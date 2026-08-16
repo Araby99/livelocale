@@ -1,6 +1,4 @@
-import { decodeKey, stripWatermark } from './watermark.js';
-
-const ZW_RE = /[\u200B\u200C\u200D]/g;
+import { decodeKey, stripWatermark, sanitizeZeroWidth } from './watermark.js';
 
 // Debounce helper: delays executing fn until after wait ms have elapsed
 // since the last call. Returns a cancel function.
@@ -384,10 +382,10 @@ export class DOMInterceptor {
     Object.defineProperty(proto, 'value', {
       get() {
         const raw: string = original.get!.call(this);
-        return raw.replace(ZW_RE, '');
+        return sanitizeZeroWidth(raw);
       },
       set(val: string) {
-        const clean = typeof val === 'string' ? val.replace(ZW_RE, '') : val;
+        const clean = typeof val === 'string' ? sanitizeZeroWidth(val) : val;
         original.set!.call(this, clean);
       },
       configurable: true,
@@ -400,7 +398,7 @@ export class DOMInterceptor {
 
     const inputs = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
     inputs.forEach((input) => {
-      const cleaned = input.value.replace(ZW_RE, '');
+      const cleaned = sanitizeZeroWidth(input.value);
       if (cleaned !== input.value) {
         // Use the original setter to set the cleaned value directly
         const proto =
@@ -538,7 +536,7 @@ export class DOMInterceptor {
       selection.includes('\u200B') ||
       selection.includes('\u200C')
     ) {
-      const clean = selection.replace(ZW_RE, '');
+      const clean = sanitizeZeroWidth(selection);
       event.clipboardData?.setData('text/plain', clean);
       event.preventDefault();
     }
@@ -548,7 +546,7 @@ export class DOMInterceptor {
     const text = event.clipboardData?.getData('text/plain') || '';
     if (text.includes('\u200D') || text.includes('\u200B') || text.includes('\u200C')) {
       event.preventDefault();
-      const cleaned = text.replace(ZW_RE, '');
+      const cleaned = sanitizeZeroWidth(text);
       const targetInput = event.target as HTMLInputElement | HTMLTextAreaElement | null;
       if (targetInput && 'value' in targetInput) {
         const proto =

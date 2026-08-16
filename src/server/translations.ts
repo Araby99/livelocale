@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { wrapTranslationEngine } from '../client/wrap.js';
+import { deepMerge } from '../core/deep-merge.js';
 
 export interface CreateTranslationsOptions {
   /**
@@ -46,21 +47,6 @@ export interface CreateTranslationsOptions {
  * }
  * ```
  */
-function deepMerge(target: any, source: any): any {
-  if (typeof target !== 'object' || target === null) return source;
-  if (typeof source !== 'object' || source === null) return target;
-
-  const result = { ...target };
-  for (const key of Object.keys(source)) {
-    if (key in target) {
-      result[key] = deepMerge(target[key], source[key]);
-    } else {
-      result[key] = source[key];
-    }
-  }
-  return result;
-}
-
 export function createTranslations(
   locale: string,
   options: CreateTranslationsOptions = {}

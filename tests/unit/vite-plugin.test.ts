@@ -8,7 +8,8 @@ import { i18nLensVite } from '../../src/server/vite-plugin.js';
 function createMockReq(
   method: string,
   url: string,
-  body?: object
+  body?: object,
+  headers: Record<string, string> = { origin: 'http://localhost:3010' }
 ): {
   req: any;
   readBody: () => Promise<void>;
@@ -19,7 +20,7 @@ function createMockReq(
   const req = {
     method,
     url,
-    headers: { origin: 'http://localhost:3010' },
+    headers,
     on(event: string, cb: (...args: any[]) => any) {
       if (!listeners[event]) listeners[event] = [];
       listeners[event].push(cb);
@@ -222,6 +223,61 @@ describe('i18nLensVite plugin', () => {
     expect(mock.parsedBody.code).toBe('INVALID_KEY_FORMAT');
   });
 
+  // ─── Security: CSRF / prototype pollution ────────────────────────────────
+
+  it('should return 403 on POST from a disallowed (non-localhost) origin', async () => {
+    const { req, readBody } = createMockReq(
+      'POST',
+      '/api/i18n-lens/mutate',
+      { locale: 'en', key: 'greeting', value: 'pwned' },
+      { origin: 'https://evil.example.com' }
+    );
+    const mock = createMockRes();
+
+    const promise = middleware(req, mock.res, vi.fn());
+    await Promise.resolve();
+    await readBody();
+    await promise;
+
+    expect(mock.statusCode).toBe(403);
+    expect(mock.parsedBody.code).toBe('FORBIDDEN_ORIGIN');
+  });
+
+  it('should return 415 on POST with a non-JSON content type', async () => {
+    const { req, readBody } = createMockReq(
+      'POST',
+      '/api/i18n-lens/mutate',
+      { locale: 'en', key: 'greeting', value: 'pwned' },
+      { origin: 'http://localhost:3010', 'content-type': 'text/plain' }
+    );
+    const mock = createMockRes();
+
+    const promise = middleware(req, mock.res, vi.fn());
+    await Promise.resolve();
+    await readBody();
+    await promise;
+
+    expect(mock.statusCode).toBe(415);
+    expect(mock.parsedBody.code).toBe('UNSUPPORTED_MEDIA_TYPE');
+  });
+
+  it('should reject prototype-pollution keys on POST', async () => {
+    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+      locale: 'en',
+      key: '__proto__.polluted',
+      value: 'PWNED',
+    });
+    const mock = createMockRes();
+
+    const promise = middleware(req, mock.res, vi.fn());
+    await Promise.resolve();
+    await readBody();
+    await promise;
+
+    expect(mock.statusCode).toBe(400);
+    expect(mock.parsedBody.code).toBe('INVALID_KEY_FORMAT');
+  });
+
   // ─── CORS Preflight ───────────────────────────────────────────────────────
 
   it('should respond 204 on OPTIONS preflight', async () => {
@@ -331,6 +387,21 @@ describe('i18nLensVite plugin', () => {
     expect(result).toContain('Hola');
     expect(result).toContain('Título');
     expect(result).toContain('</head>');
+  });
+
+  it('should escape script-breaking sequences in injected fallback data (XSS)', () => {
+    fs.writeFileSync(
+      path.join(tmpDir, 'es.json'),
+      JSON.stringify({ greeting: '</script><script>alert(1)</script>' })
+    );
+
+    const html = '<html><head><title>Test</title></head><body></body></html>';
+    const result = (plugin as any).transformIndexHtml(html);
+
+    // The literal "</script>" must never appear inside the injected inline script
+    expect(result).not.toContain('</script><script>alert(1)</script>');
+    expect(result).toContain('\\u003c/script>');
+    expect(result).toContain('\\u003cscript>');
   });
 
   it('should not inject merged fallback translations in production mode', () => {

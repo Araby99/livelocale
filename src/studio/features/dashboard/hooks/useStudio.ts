@@ -1,468 +1,86 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { SelectedElement, ConnectionStatus } from '../types/index.js';
+import { useState, useRef } from 'react';
+import { SelectedElement } from '../types/index.js';
+import { APP_ORIGIN } from '../constants.js';
+import { useConnection } from './useConnection.js';
+import { useLocaleData } from './useLocaleData.js';
+import { useSelection } from './useSelection.js';
+import { useLocaleActions } from './useLocaleActions.js';
+import { useKeySearch } from './useKeySearch.js';
 
-const APP_ORIGIN = (import.meta as any).env?.VITE_APP_ORIGIN || 'http://localhost:3000';
-
-// Helper to flatten nested JSON objects to dot-separated keys
-function flattenObject(obj: any, prefix = ''): Record<string, string> {
-  const result: Record<string, string> = {};
-  if (!obj || typeof obj !== 'object') return result;
-
-  for (const key in obj) {
-    if (Object.prototype.hasOwnProperty.call(obj, key)) {
-      const newKey = prefix ? `${prefix}.${key}` : key;
-      if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
-        Object.assign(result, flattenObject(obj[key], newKey));
-      } else {
-        result[newKey] = String(obj[key]);
-      }
-    }
-  }
-  return result;
-}
-
+/**
+ * Composer hook: wires the focused feature hooks together and owns the
+ * cross-cutting UI feedback state (loading, errors).
+ */
 export const useStudio = () => {
-  const [selected, setSelected] = useState<SelectedElement | null>(null);
-  const [inputValue, setInputValue] = useState<string>('');
-  const [locale, setLocale] = useState<string>('en');
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const [currentPath, setCurrentPath] = useState<string>('/');
 
-  // Dynamic locales list state
-  const [locales, setLocales] = useState<string[]>([]);
-  const [allKeys, setAllKeys] = useState<string[]>([]);
-  const [codeKeys, setCodeKeys] = useState<string[]>([]);
+  // Cross-hook callback refs so the iframe bridge can reach hooks that are
+  // instantiated later in the composition order.
+  const selectElementRef = useRef<(el: SelectedElement) => void>(() => {});
+  const setLocaleRef = useRef<(locale: string) => void>(() => {});
+  const setErrorRef = useRef<(message: string) => void>(() => {});
 
-  // Phase 2: Full locale keys searchable state
-  const [localeData, setLocaleData] = useState<Record<string, string>>({});
-  const [enLocaleData, setEnLocaleData] = useState<Record<string, string>>({});
-  const [searchTerm, setSearchTerm] = useState<string>('');
-
-  // Feature 2: Active page key filtering — null means "show all"
-  const [visibleKeys, setVisibleKeys] = useState<string[] | null>(null);
-  const [filterPageOnly, setFilterPageOnly] = useState<boolean>(false);
-
-  // Custom Confirmation Modal States (Keeping hook UI-agnostic)
-  const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
-  const [pendingElement, setPendingElement] = useState<SelectedElement | null>(null);
-
-  const iframeRef = useRef<HTMLIFrameElement | null>(null);
-
-  // Check if there are unsaved changes
-  const hasUnsavedChanges = selected !== null && inputValue !== selected.currentValue;
-
-  // Fetch locales list dynamically from the server
-  const fetchLocales = useCallback(async (selectDefault?: boolean) => {
-    try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`);
-      if (!response.ok) {
-        throw new Error(`Failed to load locales: ${response.statusText}`);
-      }
-      const list = await response.json();
-      if (Array.isArray(list)) {
-        setLocales(list);
-        if (selectDefault && list.length > 0) {
-          setLocale((prev) =>
-            list.includes(prev) ? prev : list.includes('en') ? 'en' : list[0] || 'en'
-          );
-        }
-      }
-    } catch (err: any) {
-      console.warn('[i18n-lens] Failed to fetch locales list:', err.message);
-    }
-  }, []);
-
-  // Fetch all keys from locales and codebase
-  const fetchKeysMetadata = useCallback(async () => {
-    try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate?action=keys`);
-      if (!response.ok) {
-        throw new Error(`Failed to load keys metadata: ${response.statusText}`);
-      }
-      const data = await response.json();
-      if (data && Array.isArray(data.allKeys)) {
-        setAllKeys(data.allKeys);
-      }
-      if (data && Array.isArray(data.codeKeys)) {
-        setCodeKeys(data.codeKeys);
-      }
-    } catch (err: any) {
-      console.warn('[i18n-lens] Failed to fetch keys metadata:', err.message);
-    }
-  }, []);
-
-  // Fetch full dictionary for active locale (Phase 2)
-  const fetchLocaleData = useCallback(async (targetLocale: string) => {
-    try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate?locale=${targetLocale}`);
-      if (!response.ok) {
-        throw new Error(`Failed to load locale dictionary: ${response.statusText}`);
-      }
-      const data = await response.json();
-      setLocaleData(flattenObject(data));
-    } catch (err: any) {
-      // Don't block studio UI if fetch fails
-      console.warn('[i18n-lens] Failed to load full locale dictionary:', err.message);
-    }
-  }, []);
-
-  // Fetch locales and then fetch dictionary when connection is successful or when locale changes
-  useEffect(() => {
-    if (connectionStatus === 'connected') {
-      fetchLocales(true);
-      fetchKeysMetadata();
-    }
-  }, [connectionStatus, fetchLocales, fetchKeysMetadata]);
-
-  useEffect(() => {
-    if (connectionStatus === 'connected' && locale) {
-      fetchLocaleData(locale);
-    }
-  }, [connectionStatus, locale, fetchLocaleData]);
-
-  // Fetch English reference data once connected
-  useEffect(() => {
-    if (connectionStatus === 'connected') {
-      fetch(`${APP_ORIGIN}/api/i18n-lens/mutate?locale=en`)
-        .then((res) => res.json())
-        .then((data) => setEnLocaleData(flattenObject(data)))
-        .catch((err) =>
-          console.warn('[i18n-lens] Failed to load reference English locale:', err.message)
-        );
-    }
-  }, [connectionStatus]);
-
-  // Keep English reference in sync if the active locale is English and gets updated
-  useEffect(() => {
-    if (locale === 'en') {
-      setEnLocaleData(localeData);
-    }
-  }, [locale, localeData]);
-
-  // Sync active translation value and English reference when active locale changes
-  useEffect(() => {
-    if (selected) {
-      const activeValue = localeData[selected.key] || '';
-      const enValue = enLocaleData[selected.key] || selected.fallbackValue || '';
-
-      // Only update if value in localeData is different, to avoid overwriting ongoing typing
-      if (selected.currentValue !== activeValue) {
-        setSelected((prev) =>
-          prev
-            ? {
-                ...prev,
-                currentValue: activeValue,
-                fallbackValue: enValue,
-              }
-            : null
-        );
-        setInputValue(activeValue);
-      }
-    }
-  }, [localeData, enLocaleData]);
-
-  // Set the locale inside state and URL query parameter if required
-  const handleLocaleChange = (newLocale: string) => {
-    setLocale(newLocale);
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      try {
-        const url = new URL(iframeRef.current.src);
-        url.searchParams.set('locale', newLocale);
-        iframeRef.current.src = url.toString();
-      } catch (e) {}
-    }
-  };
-
-  // Helper to send message to iframe
-  const sendToIframe = useCallback((type: string, payload?: any) => {
-    if (iframeRef.current && iframeRef.current.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        { source: 'i18n-lens-studio', type, payload },
-        APP_ORIGIN
-      );
-    }
-  }, []);
-
-  // Update input value with live preview message back to iframe
-  const handleInputChange = (value: string) => {
-    setInputValue(value);
-    sendToIframe('APPLY_PREVIEW', { key: selected?.key, value });
-  };
-
-  const selectElement = useCallback(
-    (newElement: SelectedElement) => {
-      // Expose the custom Confirmation Modal state instead of using blocking window.confirm (RULE STD-004)
-      if (hasUnsavedChanges) {
-        setPendingElement(newElement);
-        setShowConfirmModal(true);
-        return;
-      }
-
-      const rawValue = localeData[newElement.key] ?? newElement.currentValue;
-
-      setSelected({
-        ...newElement,
-        currentValue: rawValue,
-      });
-      setInputValue(rawValue);
-      setIsSuccess(false);
-      setError(null);
-    },
-    [hasUnsavedChanges, localeData]
-  );
-
-  // Expose trigger actions to handle Confirmation Modal choice
-  const confirmDiscard = () => {
-    if (pendingElement) {
-      const rawValue = localeData[pendingElement.key] ?? pendingElement.currentValue;
-      setSelected({
-        ...pendingElement,
-        currentValue: rawValue,
-      });
-      setInputValue(rawValue);
-      setPendingElement(null);
-    }
-    setShowConfirmModal(false);
-    setIsSuccess(false);
-    setError(null);
-  };
-
-  const cancelDiscard = () => {
-    setPendingElement(null);
-    setShowConfirmModal(false);
-  };
-
-  // Select a key directly from the searchable sidebar directory (Phase 2)
-  const selectKeyDirectly = (key: string) => {
-    const value = localeData[key] || '';
-    selectElement({
-      key,
-      fallbackValue: value,
-      currentValue: value,
-    });
-  };
-
-  // Handle postMessage events from the embedded client iframe
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      // Validate incoming message origin
-      if (event.origin !== APP_ORIGIN) {
-        return;
-      }
-
-      if (event.data?.source !== 'i18n-lens-client') {
-        return;
-      }
-
-      const { type, payload } = event.data;
-
-      if (type === 'READY') {
-        setConnectionStatus('connected');
-        setCurrentPath(payload.url || '/');
-        // Reset visible keys on page navigation so the sidebar shows all keys briefly
-        setVisibleKeys(null);
-        // Extract locale if embedded in URL path or query params
-        try {
-          const urlObj = new URL(payload.url, APP_ORIGIN);
-          const qLocale = urlObj.searchParams.get('locale');
-          if (qLocale) {
-            setLocale(qLocale);
-          } else {
-            const segments = urlObj.pathname.split('/');
-            const possibleLocale = segments[1];
-            if (possibleLocale && possibleLocale.length === 2) {
-              setLocale(possibleLocale);
-            }
-          }
-        } catch (e) {}
-      } else if (type === 'ELEMENT_SELECTED') {
-        selectElement(payload);
-      } else if (type === 'ERROR') {
-        setError(payload.error || 'Client-side error occurred.');
-      } else if (type === 'VISIBLE_KEYS_CHANGED') {
-        // payload is a string[] of translation keys visible on the current page
-        if (Array.isArray(payload)) {
-          setVisibleKeys(payload as string[]);
-        }
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
-  }, [selectElement]);
-
-  // Save mutation to Server Handler
-  const handleSave = async () => {
-    if (!selected) return;
-
-    setIsLoading(true);
-    setIsSuccess(false);
-    setError(null);
-
-    try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          locale,
-          key: selected.key,
-          value: inputValue,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || `Server responded with status ${response.status}`);
-      }
-
-      // Successful save
-      setIsSuccess(true);
-      setSelected((prev) => (prev ? { ...prev, currentValue: inputValue } : null));
-
-      // Update dictionary state local cache
-      setLocaleData((prev) => ({
-        ...prev,
-        [selected.key]: inputValue,
-      }));
-
-      // Refresh list of all keys in case a new key was saved/created
-      fetchKeysMetadata();
-
-      // Send indicator update back to client to clear selection highlight
-      sendToIframe('CLEAR_SELECTION');
-
-      // Clear saved indicator after 2 seconds
-      setTimeout(() => {
-        setIsSuccess(false);
-      }, 2000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save translation.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleClearSelection = () => {
-    setSelected(null);
-    setInputValue('');
-    sendToIframe('CLEAR_SELECTION');
-  };
-
-  // Filter dictionary keys based on search input (Phase 2)
-  // Also filter by visible page keys (Feature 2) when the iframe has reported them.
-  const filteredKeys = allKeys.filter((key) => {
-    // Contextual filter: only show keys present on the current page
-    if (filterPageOnly && visibleKeys !== null && !visibleKeys.includes(key)) {
-      return false;
-    }
-    const val = localeData[key] || '';
-    return (
-      key.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      val.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const { connectionStatus, currentPath, visibleKeys, iframeRef, sendToIframe } = useConnection({
+    onElementSelected: (el) => selectElementRef.current(el),
+    onLocaleDetected: (locale) => setLocaleRef.current(locale),
+    onError: (message) => setErrorRef.current(message),
   });
 
-  // Feature 3: Translation coverage — percentage of all project keys that have
-  // a non-empty value in the current locale.
-  const totalKeys = allKeys.length;
-  const translatedKeys = allKeys.filter((key) => {
-    const val = localeData[key];
-    return val !== undefined && val.trim() !== '';
-  }).length;
-  const coveragePercentage = totalKeys > 0 ? Math.round((translatedKeys / totalKeys) * 100) : 100;
+  const {
+    locale,
+    setLocale,
+    locales,
+    allKeys,
+    codeKeys,
+    localeData,
+    enLocaleData,
+    coveragePercentage,
+    handleLocaleChange,
+    fetchKeysMetadata,
+    refreshAll,
+    updateLocaleDataCache,
+  } = useLocaleData({ connectionStatus, iframeRef });
 
-  // Add a new locale
-  const handleAddLocale = async (newLocale: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'addLocale', locale: newLocale }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || `Server error: ${response.status}`);
-      }
-      await fetchLocales();
-      await fetchKeysMetadata();
-      handleLocaleChange(newLocale);
-    } catch (err: any) {
-      setError(err.message || 'Failed to add locale.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const {
+    selected,
+    inputValue,
+    isSuccess,
+    showConfirmModal,
+    selectElement,
+    confirmDiscard,
+    cancelDiscard,
+    selectKeyDirectly,
+    handleInputChange,
+    handleSave,
+    handleClearSelection,
+  } = useSelection({
+    localeData,
+    enLocaleData,
+    sendToIframe,
+    locale,
+    refreshKeysMetadata: fetchKeysMetadata,
+    updateLocaleDataCache,
+    setLoading: setIsLoading,
+    setError,
+  });
 
-  // Rename an existing locale
-  const handleRenameLocale = async (oldLocale: string, newLocale: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'renameLocale', locale: oldLocale, newLocale }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || `Server error: ${response.status}`);
-      }
-      await fetchLocales();
-      await fetchKeysMetadata();
-      if (locale === oldLocale) {
-        handleLocaleChange(newLocale);
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to rename locale.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  selectElementRef.current = selectElement;
+  setLocaleRef.current = setLocale;
+  setErrorRef.current = setError;
 
-  // Delete an existing locale
-  const handleDeleteLocale = async (targetLocale: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'deleteLocale', locale: targetLocale }),
-      });
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result.error || `Server error: ${response.status}`);
-      }
+  const { handleAddLocale, handleRenameLocale, handleDeleteLocale } = useLocaleActions({
+    locale,
+    locales,
+    handleLocaleChange,
+    refreshAll,
+    handleClearSelection,
+    setLoading: setIsLoading,
+    setError,
+  });
 
-      const updatedLocales = locales.filter((l) => l !== targetLocale);
-      let nextLocale = 'en';
-      if (updatedLocales.length > 0) {
-        nextLocale = updatedLocales.includes('en') ? 'en' : updatedLocales[0] || 'en';
-      }
-
-      await fetchLocales();
-      await fetchKeysMetadata();
-
-      if (locale === targetLocale) {
-        handleLocaleChange(nextLocale);
-        handleClearSelection();
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete locale.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { searchTerm, setSearchTerm, filterPageOnly, setFilterPageOnly, filteredKeys } =
+    useKeySearch({ allKeys, visibleKeys, localeData });
 
   return {
     selected,

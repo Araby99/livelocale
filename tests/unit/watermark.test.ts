@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { encodeKey, decodeKey, stripWatermark, hasWatermark } from '../../src/client/watermark.js';
+import {
+  encodeKey,
+  decodeKey,
+  stripWatermark,
+  sanitizeZeroWidth,
+  hasWatermark,
+} from '../../src/client/watermark.js';
 
 // ─── Constants (mirrors watermark.ts internals) ───────────────────────────
 const DELIM = '\u200D';
@@ -146,6 +152,38 @@ describe('stripWatermark', () => {
     const watermarked = encodeKey('', 'k');
     const stripped = stripWatermark(watermarked);
     expect(stripped).toBe('');
+  });
+
+  it('should preserve legitimate zero-width characters inside visible text (RTL safety)', () => {
+    // ZWNJ (U+200C) is valid Persian/Urdu orthography; ZWSP (U+200B) appears in Thai.
+    const persianWithZWNJ = '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645'; // "میخواهم"
+    const thaiWithZWSP = '\u0e01\u0e32\u200b\u0e23\u0e40\u0e02\u0e35\u0e22\u0e19';
+
+    const strippedPersian = stripWatermark(persianWithZWNJ);
+    expect(strippedPersian).toBe(persianWithZWNJ);
+
+    const watermarked = encodeKey(thaiWithZWSP, 'thai.key');
+    const strippedThai = stripWatermark(watermarked);
+    expect(strippedThai).toBe(thaiWithZWSP);
+    expect(strippedThai).toContain('\u200b');
+  });
+
+  it('should only strip a valid watermark prefix, not mid-text zero-width characters', () => {
+    const watermarked = encodeKey('Hello \u200bWorld', 'some.key');
+    const stripped = stripWatermark(watermarked);
+    expect(stripped).toBe('Hello \u200bWorld');
+  });
+});
+
+// ─── sanitizeZeroWidth ─────────────────────────────────────────────────────
+describe('sanitizeZeroWidth', () => {
+  it('should remove every zero-width character (aggressive clipboard/forms path)', () => {
+    const text = '\u200d\u200b\u200cHello\u200b World\u200d';
+    expect(sanitizeZeroWidth(text)).toBe('Hello World');
+  });
+
+  it('should return the same string when no zero-width characters are present', () => {
+    expect(sanitizeZeroWidth('plain text')).toBe('plain text');
   });
 });
 

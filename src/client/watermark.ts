@@ -76,10 +76,27 @@ export function decodeKey(text: string): { key: string; cleanText: string } | nu
 }
 
 /**
- * Strips all zero-width watermark characters from a string.
- * Use this to sanitize form values before submission.
+ * Strips a valid watermark *prefix* from `text`, leaving any legitimate
+ * zero-width characters inside the visible text untouched.
+ *
+ * ZWNJ (\u200C) and ZWSP (\u200B) are valid orthography in Persian, Urdu,
+ * Thai, and other scripts — a blanket removal would silently corrupt real
+ * translations. Only the decoded watermark prefix is removed.
  */
 export function stripWatermark(text: string): string {
+  const decoded = decodeKey(text);
+  if (decoded) return decoded.cleanText;
+  return text;
+}
+
+/**
+ * Aggressively removes every zero-width character from `text`.
+ *
+ * Use only for clipboard/form sanitization where no visible text should ever
+ * contain ZW characters. Do NOT use on translation content destined for
+ * locale files — prefer `stripWatermark`.
+ */
+export function sanitizeZeroWidth(text: string): string {
   return text.replace(ZW_RE, '');
 }
 

@@ -1,5 +1,9 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { isSafeLocaleSegment } from '../core/validate.js';
+import { LOCALE_RE } from '../core/validate.js';
+import { DANGEROUS_KEY_SEGMENTS } from '../core/validate.js';
+import { KeyScanner } from './key-scanner.js';
 
 class FileMutex {
   private queue: Promise<any> = Promise.resolve();
@@ -17,6 +21,7 @@ class FileMutex {
 
 export class FileMutator {
   private fileLocks = new Map<string, FileMutex>();
+  private scanner = new KeyScanner();
 
   /**
    * Helper to serialize execution per file path
@@ -48,13 +53,7 @@ export class FileMutator {
 
     // RULE SRV-002: PATH TRAVERSAL PREVENTION
     // Reject any locale string containing invalid characters
-    if (
-      locale.includes('..') ||
-      locale.includes('/') ||
-      locale.includes('\\') ||
-      locale.includes('%') ||
-      locale.includes('\0')
-    ) {
+    if (!isSafeLocaleSegment(locale)) {
       throw new Error(
         `[i18n-lens] Path traversal attempt detected in locale identifier: "${locale}"`
       );
@@ -78,6 +77,11 @@ export class FileMutator {
       const firstDot = keyPath.indexOf('.');
       if (firstDot !== -1) {
         const namespace = keyPath.substring(0, firstDot);
+        if (DANGEROUS_KEY_SEGMENTS.has(namespace)) {
+          throw new Error(
+            `[i18n-lens] Forbidden namespace segment in path: "${namespace}". Segment names like __proto__, constructor, and prototype are not allowed.`
+          );
+        }
         mutationKeyPath = keyPath.substring(firstDot + 1);
         filePath = path.resolve(localeDir, `${namespace}.json`);
       } else {
@@ -184,6 +188,13 @@ export class FileMutator {
       throw new Error(`[i18n-lens] Key depth limit exceeded. Maximum depth is 30 levels.`);
     }
 
+    // RULE SEC-005: PROTOTYPE-POLLUTION PREVENTION
+    if (keys.some((k) => DANGEROUS_KEY_SEGMENTS.has(k))) {
+      throw new Error(
+        `[i18n-lens] Forbidden key segment in path: "${keyPath}". Segment names like __proto__, constructor, and prototype are not allowed.`
+      );
+    }
+
     let current = obj;
     for (let i = 0; i < keys.length; i++) {
       const key = keys[i]!;
@@ -219,7 +230,6 @@ export class FileMutator {
     const resolvedBasePath = path.resolve(basePath);
     const items = await fs.readdir(resolvedBasePath, { withFileTypes: true });
     const localesSet = new Set<string>();
-    const LOCALE_RE = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$/;
 
     for (const item of items) {
       if (item.isDirectory()) {
@@ -245,19 +255,12 @@ export class FileMutator {
       throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
     }
 
-    if (
-      locale.includes('..') ||
-      locale.includes('/') ||
-      locale.includes('\\') ||
-      locale.includes('%') ||
-      locale.includes('\0')
-    ) {
+    if (!isSafeLocaleSegment(locale)) {
       throw new Error(
         `[i18n-lens] Path traversal attempt detected in locale identifier: "${locale}"`
       );
     }
 
-    const LOCALE_RE = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$/;
     if (!LOCALE_RE.test(locale)) {
       throw new Error(`[i18n-lens] Invalid locale format: "${locale}"`);
     }
@@ -324,22 +327,10 @@ export class FileMutator {
       throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
     }
 
-    if (
-      oldLocale.includes('..') ||
-      oldLocale.includes('/') ||
-      oldLocale.includes('\\') ||
-      oldLocale.includes('%') ||
-      oldLocale.includes('\0') ||
-      newLocale.includes('..') ||
-      newLocale.includes('/') ||
-      newLocale.includes('\\') ||
-      newLocale.includes('%') ||
-      newLocale.includes('\0')
-    ) {
+    if (!isSafeLocaleSegment(oldLocale) || !isSafeLocaleSegment(newLocale)) {
       throw new Error('[i18n-lens] Path traversal attempt detected');
     }
 
-    const LOCALE_RE = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$/;
     if (!LOCALE_RE.test(oldLocale) || !LOCALE_RE.test(newLocale)) {
       throw new Error(`[i18n-lens] Invalid locale format`);
     }
@@ -405,17 +396,10 @@ export class FileMutator {
       throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
     }
 
-    if (
-      locale.includes('..') ||
-      locale.includes('/') ||
-      locale.includes('\\') ||
-      locale.includes('%') ||
-      locale.includes('\0')
-    ) {
+    if (!isSafeLocaleSegment(locale)) {
       throw new Error('[i18n-lens] Path traversal attempt detected');
     }
 
-    const LOCALE_RE = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$/;
     if (!LOCALE_RE.test(locale)) {
       throw new Error(`[i18n-lens] Invalid locale format`);
     }
@@ -459,183 +443,23 @@ export class FileMutator {
 
   /**
    * Scans codebase directory recursively for references to translation keys.
+   * Delegates to the composed KeyScanner (SRP).
    */
   async scanCodebaseKeys(basePath: string): Promise<string[]> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
-    }
-
-    const resolvedBasePath = path.resolve(basePath);
-    const projectRoot = path.dirname(resolvedBasePath);
-    const keysSet = new Set<string>();
-
-    const IGNORE_DIRS = [
-      'node_modules',
-      '.next',
-      'dist',
-      'build',
-      '.git',
-      'coverage',
-      'test-results',
-      'out',
-      '.idea',
-      '.vscode',
-    ];
-
-    const CALL_RE = /\bt\(\s*['"`]([a-zA-Z0-9._-]+)['"`]\s*\)/g;
-    const PROP_RE = /\bt(?:\??\.[a-zA-Z0-9_]+)+/g;
-    const IGNORE_PROPS = new Set([
-      'toString',
-      'length',
-      'constructor',
-      'prototype',
-      'map',
-      'forEach',
-      'filter',
-      'reduce',
-      'call',
-      'apply',
-      'bind',
-      'name',
-      'displayName',
-    ]);
-
-    const scanDir = async (dir: string) => {
-      let items: any[] = [];
-      try {
-        items = await fs.readdir(dir, { withFileTypes: true });
-      } catch {
-        return;
-      }
-
-      for (const item of items) {
-        const fullPath = path.join(dir, item.name);
-        if (item.isDirectory()) {
-          if (!IGNORE_DIRS.includes(item.name)) {
-            await scanDir(fullPath);
-          }
-        } else if (item.isFile()) {
-          const ext = path.extname(item.name);
-          if (['.ts', '.tsx', '.js', '.jsx'].includes(ext)) {
-            try {
-              const content = await fs.readFile(fullPath, 'utf-8');
-
-              let match;
-              CALL_RE.lastIndex = 0;
-              while ((match = CALL_RE.exec(content)) !== null) {
-                if (match[1]) {
-                  keysSet.add(match[1]);
-                }
-              }
-
-              let propMatch;
-              PROP_RE.lastIndex = 0;
-              while ((propMatch = PROP_RE.exec(content)) !== null) {
-                const rawMatch = propMatch[0];
-                const clean = rawMatch.replace(/\bt/, '').replace(/\?/g, '');
-                const segments = clean
-                  .split('.')
-                  .map((s) => s.trim())
-                  .filter(Boolean);
-                if (segments.length > 0 && !segments.some((s) => IGNORE_PROPS.has(s))) {
-                  keysSet.add(segments.join('.'));
-                }
-              }
-            } catch {}
-          }
-        }
-      }
-    };
-
-    await scanDir(projectRoot);
-    return Array.from(keysSet).sort();
+    return this.scanner.scanCodebaseKeys(basePath);
   }
 
   /**
    * Scans all locale files/folders to compile the set of all keys currently in locales.
    */
   async scanLocalesKeys(basePath: string): Promise<string[]> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
-    }
-
-    const locales = await this.listLocales(basePath);
-    const keysSet = new Set<string>();
-
-    for (const locale of locales) {
-      try {
-        const resolvedBasePath = path.resolve(basePath);
-        const localePath = path.resolve(resolvedBasePath, locale);
-
-        let isDir = false;
-        try {
-          const stats = await fs.stat(localePath);
-          isDir = stats.isDirectory();
-        } catch {}
-
-        let data: Record<string, any> = {};
-
-        if (isDir) {
-          const files = await fs.readdir(localePath);
-          for (const file of files) {
-            if (file.endsWith('.json')) {
-              const ns = path.basename(file, '.json');
-              try {
-                const content = await fs.readFile(path.join(localePath, file), 'utf-8');
-                data[ns] = JSON.parse(content);
-              } catch {}
-            }
-          }
-        } else {
-          try {
-            if (
-              locale.includes('..') ||
-              locale.includes('/') ||
-              locale.includes('\\') ||
-              locale.includes('%') ||
-              locale.includes('\0')
-            ) {
-              continue;
-            }
-            const filePath = path.resolve(resolvedBasePath, `${locale}.json`);
-            if (filePath.startsWith(resolvedBasePath)) {
-              const content = await fs.readFile(filePath, 'utf-8');
-              data = JSON.parse(content);
-            }
-          } catch {}
-        }
-
-        const flatten = (obj: any, prefix = '') => {
-          if (!obj || typeof obj !== 'object') return;
-          for (const key in obj) {
-            if (Object.prototype.hasOwnProperty.call(obj, key)) {
-              const newKey = prefix ? `${prefix}.${key}` : key;
-              if (typeof obj[key] === 'object' && obj[key] !== null && !Array.isArray(obj[key])) {
-                flatten(obj[key], newKey);
-              } else {
-                keysSet.add(newKey);
-              }
-            }
-          }
-        };
-
-        flatten(data);
-      } catch {}
-    }
-
-    return Array.from(keysSet).sort();
+    return this.scanner.scanLocalesKeys(basePath, this.listLocales.bind(this));
   }
 
   /**
    * Returns merged lists of keys from codebase and existing locale files.
    */
   async getKeysMetadata(basePath: string): Promise<{ allKeys: string[]; codeKeys: string[] }> {
-    const codeKeys = await this.scanCodebaseKeys(basePath);
-    const localeKeys = await this.scanLocalesKeys(basePath);
-    const allKeys = Array.from(new Set([...codeKeys, ...localeKeys])).sort();
-    return {
-      allKeys,
-      codeKeys,
-    };
+    return this.scanner.getKeysMetadata(basePath, this.listLocales.bind(this));
   }
 }

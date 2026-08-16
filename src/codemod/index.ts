@@ -65,9 +65,13 @@ function runStudio(projectDir: string, port: number) {
   };
 
   const server = http.createServer((req, res) => {
-    // Enable CORS for preflight and standard requests
-    const origin = req.headers.origin || '*';
-    res.setHeader('Access-Control-Allow-Origin', origin);
+    // RULE SEC-009: Never reflect arbitrary origins — only localhost clients.
+    const origin = req.headers.origin || '';
+    const isLocalhostOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+    if (isLocalhostOrigin) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+    }
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -77,9 +81,27 @@ function runStudio(projectDir: string, port: number) {
       return;
     }
 
-    // Resolve request URL path
+    // RULE SEC-010: PATH CONTAINMENT — resolve the requested path and verify
+    // it stays inside the studio directory (blocks /../../etc/passwd escapes).
     const urlPath = req.url?.split('?')[0] || '/';
-    let filePath = path.join(studioDir, urlPath === '/' ? 'index.html' : urlPath);
+    let filePath: string;
+    try {
+      filePath = path.resolve(studioDir, `.${decodeURIComponent(urlPath)}`);
+    } catch {
+      res.statusCode = 400;
+      res.end('Bad Request');
+      return;
+    }
+
+    if (filePath !== studioDir && !filePath.startsWith(studioDir + path.sep)) {
+      res.statusCode = 403;
+      res.end('Forbidden');
+      return;
+    }
+
+    if (urlPath === '/' || filePath === studioDir) {
+      filePath = path.join(studioDir, 'index.html');
+    }
 
     // Fallback to index.html for SPA client-side routing
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {

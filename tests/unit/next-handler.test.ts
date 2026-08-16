@@ -44,6 +44,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ locale: 'en', key: 'title', value: 'Hello' }),
     });
 
@@ -57,6 +58,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: '{ invalid-json }',
     });
 
@@ -73,6 +75,7 @@ describe('createI18nLensHandler', () => {
     for (const loc of invalidLocales) {
       const request = new Request('http://localhost:3000/api/mutate', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locale: loc, key: 'title', value: 'Hello' }),
       });
       const response = await handler(request);
@@ -89,6 +92,7 @@ describe('createI18nLensHandler', () => {
     for (const key of invalidKeys) {
       const request = new Request('http://localhost:3000/api/mutate', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locale: 'en', key, value: 'Hello' }),
       });
       const response = await handler(request);
@@ -103,6 +107,7 @@ describe('createI18nLensHandler', () => {
 
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ locale: 'en', key: 'title', value: 'a'.repeat(10001) }),
     });
     const response = await handler(request);
@@ -115,6 +120,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ locale: 'en', key: 'dashboard.title', value: 'Welcome Dashboard' }),
     });
 
@@ -138,6 +144,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ locale: 'en', key: 'title', value: 'Hello' }),
     });
 
@@ -170,6 +177,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ locale: 'en', key: 'title', value: '' }),
     });
 
@@ -186,6 +194,7 @@ describe('createI18nLensHandler', () => {
     for (const loc of validLocales) {
       const request = new Request('http://localhost:3000/api/mutate', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ locale: loc, key: 'title', value: 'Hello' }),
       });
 
@@ -249,6 +258,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'addLocale', locale: 'fr' }),
     });
 
@@ -266,6 +276,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'renameLocale', locale: 'en', newLocale: 'en-US' }),
     });
 
@@ -284,6 +295,7 @@ describe('createI18nLensHandler', () => {
     const handler = createI18nLensHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'deleteLocale', locale: 'de' }),
     });
 
@@ -295,5 +307,96 @@ describe('createI18nLensHandler', () => {
 
     const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
     expect(mutatorInstance.deleteLocale).toHaveBeenCalledWith(config.localesPath, 'de');
+  });
+
+  // ─── Security: CSRF / prototype pollution / body limits ──────────────────
+
+  it('should return 403 when POST request origin is not allowed (CSRF)', async () => {
+    const handler = createI18nLensHandler(config);
+    const request = new Request('http://localhost:3000/api/mutate', {
+      method: 'POST',
+      headers: {
+        Origin: 'https://evil.example.com',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ locale: 'en', key: 'title', value: 'pwned' }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(403);
+    const data = await response.json();
+    expect(data.code).toBe('FORBIDDEN_ORIGIN');
+
+    const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+    expect(mutatorInstance.updateLocaleKey).not.toHaveBeenCalled();
+  });
+
+  it('should allow POST requests from any localhost origin (studio on custom ports)', async () => {
+    const handler = createI18nLensHandler(config);
+    const request = new Request('http://localhost:3000/api/mutate', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost:4321',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ locale: 'en', key: 'title', value: 'Hello' }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(200);
+  });
+
+  it('should return 415 when POST content type is not application/json', async () => {
+    const handler = createI18nLensHandler(config);
+    const request = new Request('http://localhost:3000/api/mutate', {
+      method: 'POST',
+      headers: {
+        Origin: 'http://localhost:3010',
+        'Content-Type': 'text/plain',
+      },
+      body: JSON.stringify({ locale: 'en', key: 'title', value: 'pwned' }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(415);
+    const data = await response.json();
+    expect(data.code).toBe('UNSUPPORTED_MEDIA_TYPE');
+
+    const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+    expect(mutatorInstance.updateLocaleKey).not.toHaveBeenCalled();
+  });
+
+  it('should return 413 when the request body exceeds the size cap', async () => {
+    const handler = createI18nLensHandler(config);
+    const request = new Request('http://localhost:3000/api/mutate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ locale: 'en', key: 'title', value: 'x'.repeat(2_000_000) }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(413);
+    const data = await response.json();
+    expect(data.code).toBe('BODY_TOO_LARGE');
+  });
+
+  it('should reject prototype-pollution keys like __proto__', async () => {
+    const handler = createI18nLensHandler(config);
+
+    for (const key of ['__proto__.polluted', 'constructor.prototype.x', 'a.prototype.b']) {
+      const request = new Request('http://localhost:3000/api/mutate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: 'en', key, value: 'PWNED' }),
+      });
+
+      const response = await handler(request);
+      expect(response.status).toBe(400);
+      const data = await response.json();
+      expect(data.code).toBe('INVALID_KEY_FORMAT');
+    }
+
+    const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+    expect(mutatorInstance.updateLocaleKey).not.toHaveBeenCalled();
   });
 });

@@ -130,6 +130,33 @@ describe('FileMutator', () => {
     );
   });
 
+  it('should throw when key path contains prototype-pollution segments', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({}));
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    for (const key of ['__proto__.polluted', 'constructor.prototype.x', 'a.prototype.b']) {
+      await expect(mutator.updateLocaleKey(BASE_PATH, 'en', key, 'PWNED')).rejects.toThrow(
+        /forbidden key segment/i
+      );
+    }
+
+    // Nothing must ever be written for a rejected key
+    expect(fs.writeFile).not.toHaveBeenCalled();
+  });
+
+  it('should not pollute Object.prototype via a malicious key write', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({}));
+    const sentinel = { polluted: undefined };
+
+    try {
+      await mutator.updateLocaleKey(BASE_PATH, 'en', '__proto__.polluted', 'PWNED');
+    } catch {}
+
+    expect((sentinel as any).polluted).toBeUndefined();
+    expect(({} as any).polluted).toBeUndefined();
+  });
+
   it('should throw when locale file content is invalid JSON', async () => {
     vi.mocked(fs.readFile).mockResolvedValue('{ not valid json }');
     await expect(mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi')).rejects.toThrow(
