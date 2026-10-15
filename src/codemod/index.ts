@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { createStudioServer } from './studio-server.js';
+import { runDoctor, formatFindings, hasFailures } from './doctor.js';
 
 const getDirname = () => {
   if (typeof __dirname !== 'undefined') {
@@ -26,6 +27,7 @@ Commands:
   migrate     Bulk migrate existing react-i18next translation usages to wrap them with wrapTranslationEngine automatically.
   init        Initialize the API route handler inside a Next.js project automatically.
   studio      Start the visual editing studio local web server.
+  doctor      Check the project for common integration problems (route, provider, middleware, CSP, locales).
 
 Options for migrate:
   --dir <path>       Directory to scan (default: current directory)
@@ -39,6 +41,11 @@ Options for studio:
   --port <number>    Port to run the studio server on (default: ${DEFAULT_STUDIO_PORT})
   --app <origin>     Origin of the app being edited (default: ${DEFAULT_APP_ORIGIN})
                      Can also be changed at run time with ?app=<origin> on the Studio URL.
+
+Options for doctor:
+  --dir <path>       Project directory to inspect (default: current directory)
+  --locales <path>   Locales directory relative to the project (default: locales)
+  --app <origin>     Also probe the running app, e.g. http://localhost:3000
 
 Global Options:
   -h, --help         Show help information
@@ -303,6 +310,56 @@ async function runMigrate(args: string[]) {
   console.log(`\n🎉 Done!`);
 }
 
+async function runDoctorCommand(args: string[]) {
+  let dir = '.';
+  let localesPath: string | undefined;
+  let appOrigin: string | undefined;
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--dir') {
+      dir = args[++i] || '.';
+    } else if (arg === '--locales') {
+      localesPath = args[++i];
+    } else if (arg === '--app') {
+      appOrigin = normalizeOriginArg(args[++i] || '', '--app');
+    } else if (arg && !arg.startsWith('--')) {
+      dir = arg;
+    }
+  }
+
+  const projectDir = path.resolve(dir);
+  if (!fs.existsSync(projectDir)) {
+    console.error(`Error: Directory "${dir}" does not exist.`);
+    process.exit(1);
+  }
+
+  console.log(`
+🩺 i18n Lens doctor — ${projectDir}`);
+  if (appOrigin) console.log(`🔗 Probing app at ${appOrigin}`);
+  console.log('--------------------------------------------------');
+
+  const findings = await runDoctor({ projectDir, localesPath, appOrigin });
+  console.log(formatFindings(findings));
+  console.log('--------------------------------------------------');
+
+  const fails = findings.filter((f) => f.level === 'fail').length;
+  const warns = findings.filter((f) => f.level === 'warn').length;
+  if (hasFailures(findings)) {
+    console.log(`❌ ${fails} problem(s), ${warns} warning(s). Fix the problems above and re-run.`);
+    process.exit(1);
+  }
+  console.log(
+    warns > 0
+      ? `✅ No blocking problems, ${warns} warning(s) worth a look.`
+      : `✅ Everything looks good.`
+  );
+  if (!appOrigin) {
+    console.log(
+      `💡 Start your dev server and re-run with --app http://localhost:3000 for live checks.`
+    );
+  }
+}
+
 async function run() {
   const args = process.argv.slice(2);
 
@@ -311,11 +368,16 @@ async function run() {
     process.exit(0);
   }
 
-  // Expect command: migrate, init, or studio
-  if (args[0] !== 'migrate' && args[0] !== 'init' && args[0] !== 'studio') {
-    console.error(`Unknown command: "${args[0]}". Did you mean "migrate", "init", or "studio"?`);
+  const COMMANDS = ['migrate', 'init', 'studio', 'doctor'];
+  if (!args[0] || !COMMANDS.includes(args[0])) {
+    console.error(`Unknown command: "${args[0]}". Expected one of: ${COMMANDS.join(', ')}.`);
     printHelp();
     process.exit(1);
+  }
+
+  if (args[0] === 'doctor') {
+    await runDoctorCommand(args);
+    return;
   }
 
   if (args[0] === 'init') {

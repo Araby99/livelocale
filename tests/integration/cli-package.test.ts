@@ -64,6 +64,15 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(fs.existsSync(routeFile)).toBe(true);
   });
 
+  it('should run `doctor` against the initialized project and exit 0 without failures', () => {
+    fs.mkdirSync(path.join(projectDir, 'locales'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'locales', 'en.json'), '{"hello":"Hi"}', 'utf-8');
+    const result = runCli(pkgDir, projectDir, ['doctor']);
+    expect(result.stderr).toBe('');
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('✅');
+  });
+
   it('should fail `migrate` with a clear message when typescript is not installed', () => {
     const result = runCli(pkgDir, projectDir, ['migrate', '--dry-run']);
     expect(result.status).not.toBe(0);
