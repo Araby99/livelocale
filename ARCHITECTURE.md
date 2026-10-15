@@ -94,8 +94,11 @@ adapters that translate their request shape into `RouterRequest` and back. Rules
 - locale, key, and value are validated by `src/core/validate.ts`,
 - `GET` lists locales, returns a locale dictionary, or `?action=keys` returns key metadata.
 
-`MutationGateway` is the port the router writes through. `FileMutator` is the only adapter today;
-a git-backed or remote adapter would implement the same interface.
+`MutationGateway` is the port the router writes through; `FileMutator` is its adapter.
+`GitGateway` is a second, optional port (`?action=git`, `commit`, `discard`) implemented by
+`GitClient` (`src/server/git-client.ts`), which shells out to the `git` CLI with argument arrays and
+always scopes pathspecs to the locales directory relative to the repository root. Both adapters
+enable it by default; `git: false` removes it.
 
 ### 5. Next.js handler (`src/server/next-handler.ts`)
 
@@ -109,7 +112,8 @@ argument as a Web `Request`. Body reading for Node requests is shared with the V
 `updateLocaleKey` resolves the target file (flat or namespaced), serializes writes per path with a
 promise-chain mutex, validates the parsed JSON root, sets the nested key with depth and
 prototype-pollution guards, then writes `file.tmp` and renames it over the target so a concurrent
-HMR read never sees a half-written file. `KeyScanner` finds `t('…')` and `t.a.b` references in
+HMR read never sees a half-written file. The rewrite preserves the file's indentation unit and
+trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')` and `t.a.b` references in
 source files with regexes and merges them with keys present in the locale files. Scans are
 incremental (per-file mtime and size cache), honour the root `.gitignore` through
 `core/gitignore.ts`, and skip declaration files and files over 1 MB.
@@ -127,7 +131,10 @@ from the `i18n-lens-origin` query parameter.
 
 A React app with one composer hook, `useStudio`, that wires focused hooks: `useConnection`
 (iframe bridge), `useLocaleData` (fetching and coverage), `useSelection` (editing session and live
-preview), `useLocaleActions` (add, rename, delete), and `useKeySearch`. The app origin is resolved
+preview), `useLocaleActions` (add, rename, delete), `useKeySearch`, `useGit` (status, diff,
+commit, discard) and `useHistory` (session edit log). HTTP calls live in `src/studio/api.ts`.
+Undo is implemented in the composer: it re-saves the previous value through the normal mutation
+path and removes the history entry, so disk, cache, and git status stay consistent. The app origin is resolved
 at start-up by `src/studio/config.ts` from `?app=`, then the CLI-injected
 `window.__I18N_LENS_CONFIG__`, then build-time `VITE_APP_ORIGIN`, then `http://localhost:3000`.
 
@@ -167,6 +174,6 @@ CI runs format, lint, typecheck, unit tests with coverage thresholds, and E2E.
 
 - Key extraction is regex-based; it cannot follow dynamic keys or aliased `t` functions.
 - JSON only. No ICU plural forms, YAML, or gettext.
-- The Studio is English-only and has no undo, history, or review workflow.
+- The Studio is English-only. History and undo are per browser session (not persisted).
 - Locale detection from the embedded app's URL is a heuristic (`?locale=` or a two-letter path
   segment).

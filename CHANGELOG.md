@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-10-15
+
+### Minor Changes
+
+- Milestone three: review-ready editing.
+
+  **Added**
+  - **Changes panel** in the Studio: git status of the locales directory with branch and on-demand diff, commit with a message (locales directory only), discard with confirmation, and a session history with per-edit **Undo**.
+  - `GET ?action=git` and `POST action=commit|discard` on the mutation API behind an optional `GitGateway` port; `GitClient` implements it over the `git` CLI. Both adapters enable it by default; `git: false` turns it off.
+  - Unit tests for the remaining Studio hooks (`useLocaleData`, `useLocaleActions`), the new hooks, and the Changes panel; an end-to-end test for the panel and undo.
+
+  **Changed**
+  - Locale file rewrites preserve the existing indentation unit (tabs, 2 or 4 spaces) and trailing newline, so Studio edits produce minimal diffs.
+  - The first end-to-end test waits for the iframe bridge instead of a fixed timeout.
+
 ## [0.2.0] - 2026-10-15
 
 ### Minor Changes

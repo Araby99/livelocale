@@ -35,6 +35,7 @@
 - ⚡ **Atomic File Operations:** Prevents Next.js hot module replacement (HMR) reading corrupt half-written files via atomic temp-to-final writes.
 - 🔒 **Secure Local Boundaries:** Restricts directory traversal, verifies origins, and supports deep schemas up to 30 levels of recursion.
 - 🤖 **CLI Migration Tool:** Automatically parses and wraps standard `react-i18next` hooks with a single command.
+- 🧾 **Review, commit, undo:** The Studio's Changes panel shows git status and a diff of your locale files, commits them with a message, discards them, and undoes any edit from the session.
 - 🩺 **Doctor:** `npx next-i18n-lens doctor` finds the usual integration mistakes before you open the Studio.
 - 🛑 **Safety switches:** `I18N_LENS=off` kill switch, and automatic shut-off on hosting platforms so a staging build can never leak watermarks.
 - 🧭 **App Router and Pages Router:** One handler works with both `route.ts` and `pages/api` signatures.
@@ -245,6 +246,30 @@ export default defineConfig({
 ```
 
 ---
+
+## 🧾 Reviewing and committing from the Studio
+
+Every save writes to disk immediately. The **Changes** button in the Studio header opens a panel
+that keeps those writes reviewable:
+
+- **Locale files** lists what git sees as modified, added, or deleted under your locales directory,
+  with the current branch and an on-demand diff.
+- **Commit** stages and commits _only_ the locales directory with the message you type. Other
+  work in your tree is never touched. Push when you are ready.
+- **Discard** reverts the locales directory to the last commit (tracked files restored, new locale
+  files removed) after a confirmation.
+- **This session** lists each edit you saved with its previous and new value. **Undo** writes the
+  previous value back through the normal save path.
+
+Git integration needs the `git` command on PATH and the locales directory inside a repository. It
+is on by default and can be turned off per handler:
+
+```typescript
+createI18nLensHandler({ localesPath: path.resolve('./locales'), git: false });
+```
+
+Rewrites keep your files diff-friendly: the existing indentation unit (tabs, 2 or 4 spaces) and
+trailing newline are preserved.
 
 ## 🛑 Safety switches
 
