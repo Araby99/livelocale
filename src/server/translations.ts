@@ -1,8 +1,9 @@
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { wrapTranslationEngine } from '../client/wrap.js';
 import { deepMerge } from '../core/deep-merge.js';
 import { isLensEnabled } from '../core/env.js';
+import { readJsonCached } from '../core/json-cache.js';
 
 export interface CreateTranslationsOptions {
   /**
@@ -26,10 +27,33 @@ export interface CreateTranslationsOptions {
   fallbackLocale?: string;
 }
 
+function isDirectory(p: string): boolean {
+  try {
+    return statSync(p).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/** Reads every `*.json` in `dir` into `{ [namespace]: data }`, skipping unparsable files. */
+function readNamespaceDir(dir: string): Record<string, any> {
+  const out: Record<string, any> = {};
+  for (const file of readdirSync(dir)) {
+    if (!file.endsWith('.json')) continue;
+    try {
+      out[file.slice(0, -5)] = readJsonCached(join(dir, file));
+    } catch {}
+  }
+  return out;
+}
+
 /**
  * Loads a locale JSON file and returns a type-safe translation object that
  * is automatically watermarked in development (for zero-migration studio
  * integration) and returned as-is in production.
+ *
+ * File parses are cached by mtime and size (see `core/json-cache.ts`), so
+ * repeated server renders cost one `stat` per file instead of a read and parse.
  *
  * This is the recommended entry-point for Server Components — no manual
  * `wrapTranslationEngine` call needed.
@@ -63,12 +87,10 @@ export function createTranslations(
 
   const loadFlatFile = (dir: string, loc: string, fallback: string): Record<string, any> => {
     try {
-      const raw = readFileSync(join(dir, `${loc}.json`), 'utf-8');
-      return JSON.parse(raw);
+      return readJsonCached(join(dir, `${loc}.json`));
     } catch {
       try {
-        const raw = readFileSync(join(dir, `${fallback}.json`), 'utf-8');
-        return JSON.parse(raw);
+        return readJsonCached(join(dir, `${fallback}.json`));
       } catch {
         return {};
       }
@@ -76,26 +98,11 @@ export function createTranslations(
   };
 
   const localePath = join(localesDir, safeLocale);
-  let isDir = false;
-  try {
-    const stats = statSync(localePath);
-    isDir = stats.isDirectory();
-  } catch {}
-
   let data: Record<string, any> = {};
 
-  if (isDir) {
+  if (isDirectory(localePath)) {
     try {
-      const files = readdirSync(localePath);
-      for (const file of files) {
-        if (file.endsWith('.json')) {
-          const ns = file.slice(0, -5);
-          const raw = readFileSync(join(localePath, file), 'utf-8');
-          try {
-            data[ns] = JSON.parse(raw);
-          } catch {}
-        }
-      }
+      data = readNamespaceDir(localePath);
     } catch {
       data = loadFlatFile(localesDir, safeLocale, fallbackLocale);
     }
@@ -103,44 +110,27 @@ export function createTranslations(
     data = loadFlatFile(localesDir, safeLocale, fallbackLocale);
   }
 
+  // In development, merge every other locale into a fallback dictionary so
+  // untranslated keys still render (and stay editable) in the Studio.
   let fallbackData: Record<string, any> = {};
   if (isLensEnabled()) {
     try {
-      const entries = readdirSync(localesDir);
-      if (Array.isArray(entries)) {
-        for (const entry of entries) {
-          if (entry.startsWith('.') || entry === safeLocale) continue;
-          const entryPath = join(localesDir, entry);
-          let entryIsDir = false;
-          try {
-            entryIsDir = statSync(entryPath).isDirectory();
-          } catch {}
+      for (const entry of readdirSync(localesDir)) {
+        if (entry.startsWith('.') || entry === safeLocale) continue;
+        const entryPath = join(localesDir, entry);
 
-          if (entryIsDir) {
-            try {
-              const files = readdirSync(entryPath);
-              if (Array.isArray(files)) {
-                for (const file of files) {
-                  if (file.endsWith('.json')) {
-                    const ns = file.slice(0, -5);
-                    const raw = readFileSync(join(entryPath, file), 'utf-8');
-                    try {
-                      const parsed = JSON.parse(raw);
-                      fallbackData[ns] = deepMerge(fallbackData[ns] || {}, parsed);
-                    } catch {}
-                  }
-                }
-              }
-            } catch {}
-          } else if (entry.endsWith('.json')) {
-            const name = entry.slice(0, -5);
-            if (name === safeLocale) continue;
-            const raw = readFileSync(entryPath, 'utf-8');
-            try {
-              const parsed = JSON.parse(raw);
-              fallbackData = deepMerge(fallbackData, parsed);
-            } catch {}
-          }
+        if (isDirectory(entryPath)) {
+          try {
+            const namespaces = readNamespaceDir(entryPath);
+            for (const ns of Object.keys(namespaces)) {
+              fallbackData[ns] = deepMerge(fallbackData[ns] || {}, namespaces[ns]);
+            }
+          } catch {}
+        } else if (entry.endsWith('.json')) {
+          if (entry.slice(0, -5) === safeLocale) continue;
+          try {
+            fallbackData = deepMerge(fallbackData, readJsonCached(entryPath));
+          } catch {}
         }
       }
     } catch {}

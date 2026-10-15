@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createTranslations } from '../../src/server/translations.js';
+import { clearJsonCache } from '../../src/core/json-cache.js';
 import * as fs from 'fs';
 import path from 'path';
 
@@ -18,6 +19,7 @@ describe('createTranslations', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.clearAllMocks();
+    clearJsonCache();
   });
 
   afterEach(() => {
@@ -122,5 +124,49 @@ describe('createTranslations', () => {
     // In production, no watermarking and no fallback retrieval
     expect(t.welcome).toBe('Welcome');
     expect(t.details?.title).toBeUndefined();
+  });
+  // ─── Parse cache ─────────────────────────────────────────────────────────
+
+  it('should not re-read an unchanged locale file on subsequent calls', () => {
+    vi.mocked(fs.statSync).mockReturnValue({
+      isDirectory: () => false,
+      mtimeMs: 1000,
+      size: 20,
+    } as any);
+    vi.mocked(fs.readdirSync).mockReturnValue(['en.json' as any]);
+    vi.mocked(fs.readFileSync).mockReturnValue(JSON.stringify({ greeting: 'Hello' }));
+
+    const opts = { localesDir: LOCALES_DIR, supportedLocales: ['en'] };
+    createTranslations('en', opts);
+    createTranslations('en', opts);
+
+    const enReads = vi
+      .mocked(fs.readFileSync)
+      .mock.calls.filter((c) => c[0].toString().endsWith('en.json'));
+    expect(enReads).toHaveLength(1);
+  });
+
+  it('should re-read a locale file when its mtime changes', () => {
+    let mtimeMs = 1000;
+    vi.mocked(fs.statSync).mockImplementation(
+      () => ({ isDirectory: () => false, mtimeMs, size: 20 }) as any
+    );
+    vi.mocked(fs.readdirSync).mockReturnValue(['en.json' as any]);
+    vi.mocked(fs.readFileSync)
+      .mockReturnValueOnce(JSON.stringify({ greeting: 'Hello' }))
+      .mockReturnValueOnce(JSON.stringify({ greeting: 'Hello again' }));
+
+    const opts = { localesDir: LOCALES_DIR, supportedLocales: ['en'] };
+    const first = createTranslations('en', opts);
+    expect(first.greeting).toContain('Hello');
+
+    mtimeMs = 2000;
+    const second = createTranslations('en', opts);
+    expect(second.greeting).toContain('Hello again');
+
+    const enReads = vi
+      .mocked(fs.readFileSync)
+      .mock.calls.filter((c) => c[0].toString().endsWith('en.json'));
+    expect(enReads).toHaveLength(2);
   });
 });
