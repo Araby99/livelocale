@@ -27,7 +27,7 @@ rotate both tokens when people leave, and never enable preview mode on productio
 
 | Version | Supported |
 | ------- | --------- |
-| 0.1.x   | Yes       |
+| 0.x     | Yes       |
 
 ## Reporting a vulnerability
 

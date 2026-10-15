@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { createI18nLensHandler } from '../../src/server/next-handler.js';
 import { FileMutator } from '../../src/server/file-mutator.js';
-import { promises as fs } from 'fs';
 
 vi.mock('fs', () => {
   return {
