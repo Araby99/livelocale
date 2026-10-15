@@ -49,6 +49,13 @@ The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and
 
 ## Core concepts
 
+### 0. Enablement (`src/core/env.ts`)
+
+Every "is this on?" decision calls `isLensEnabled()` / `getDisabledReason()`. The rules are:
+`NODE_ENV === 'development'`, no `I18N_LENS=off` (or `NEXT_PUBLIC_I18N_LENS=off` in the browser),
+and on the server no known hosting platform unless `I18N_LENS=force`. `process.env.NODE_ENV` and
+`process.env.NEXT_PUBLIC_I18N_LENS` are referenced literally so bundlers can inline them.
+
 ### 1. Watermark codec (`src/client/watermark.ts`)
 
 `encodeKey(text, key)` returns `DELIM + bits + DELIM + text`, where `DELIM` is U+200D and each
@@ -73,7 +80,8 @@ This file has no `'use client'` directive on purpose so it can be imported by Se
 
 `createTranslations(locale, options)` reads `locales/{locale}.json` or the namespaced folder
 `locales/{locale}/*.json`, builds a fallback dictionary from every other locale in development,
-and returns the wrapped object. Reads are synchronous and uncached (known limitation, see below).
+and returns the wrapped object. Parses are cached by `core/json-cache.ts` keyed on mtime and size, so
+steady-state renders cost one `stat` per file.
 
 ### 4. Mutation router (`src/server/router.ts`)
 
@@ -102,7 +110,9 @@ argument as a Web `Request`. Body reading for Node requests is shared with the V
 promise-chain mutex, validates the parsed JSON root, sets the nested key with depth and
 prototype-pollution guards, then writes `file.tmp` and renames it over the target so a concurrent
 HMR read never sees a half-written file. `KeyScanner` finds `t('…')` and `t.a.b` references in
-source files with regexes and merges them with keys present in the locale files.
+source files with regexes and merges them with keys present in the locale files. Scans are
+incremental (per-file mtime and size cache), honour the root `.gitignore` through
+`core/gitignore.ts`, and skip declaration files and files over 1 MB.
 
 ### 7. Client runtime (`src/client/dom-interceptor.ts`, `iframe-bridge.ts`, `index.ts`)
 
@@ -126,12 +136,14 @@ at start-up by `src/studio/config.ts` from `?app=`, then the CLI-injected
 `init` writes a route file matching the detected router and language. `studio` serves
 `dist/studio` through `createStudioServer`, injecting the app origin into `index.html`. `migrate`
 lazily imports the TypeScript-based codemod so the other commands work in JavaScript-only projects.
+`doctor` (`src/codemod/doctor.ts`) runs static checks on the project tree and, with `--app`, live
+HTTP probes; it returns structured findings so the CLI output and the tests share one source.
 
 ## Security rules at a glance
 
 | Rule                        | Where                                       |
 | --------------------------- | ------------------------------------------- |
-| Development-only            | router, mutator, scanner, client init       |
+| Development-only + guards   | core/env (all entry points)                 |
 | CSRF origin allow-list      | router (`isOriginAllowed`)                  |
 | JSON content-type on writes | router                                      |
 | Body size cap               | next-handler, node-body, vite-plugin        |
@@ -153,8 +165,7 @@ CI runs format, lint, typecheck, unit tests with coverage thresholds, and E2E.
 
 ## Known limitations
 
-- Locale reads are uncached and synchronous; large locale sets slow down every dev request.
-- Key scanning is regex-based and rescans the whole project per Studio load.
+- Key extraction is regex-based; it cannot follow dynamic keys or aliased `t` functions.
 - JSON only. No ICU plural forms, YAML, or gettext.
 - The Studio is English-only and has no undo, history, or review workflow.
 - Locale detection from the embedded app's URL is a heuristic (`?locale=` or a two-letter path

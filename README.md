@@ -35,6 +35,8 @@
 - ⚡ **Atomic File Operations:** Prevents Next.js hot module replacement (HMR) reading corrupt half-written files via atomic temp-to-final writes.
 - 🔒 **Secure Local Boundaries:** Restricts directory traversal, verifies origins, and supports deep schemas up to 30 levels of recursion.
 - 🤖 **CLI Migration Tool:** Automatically parses and wraps standard `react-i18next` hooks with a single command.
+- 🩺 **Doctor:** `npx next-i18n-lens doctor` finds the usual integration mistakes before you open the Studio.
+- 🛑 **Safety switches:** `I18N_LENS=off` kill switch, and automatic shut-off on hosting platforms so a staging build can never leak watermarks.
 - 🧭 **App Router and Pages Router:** One handler works with both `route.ts` and `pages/api` signatures.
 - 🌐 **Works beyond localhost:3000:** Point the Studio at any port or hostname with `--app` or `?app=`, and allow Codespaces or custom origins with one env var.
 
@@ -165,6 +167,18 @@ Open `http://localhost:3010` to view the Studio, loaded with your app. `--app` d
 
 ---
 
+### 6. Check your setup
+
+```bash
+npx next-i18n-lens doctor --app http://localhost:3000
+```
+
+The doctor verifies the route handler, the provider mount, middleware matchers, frame-blocking
+headers, and locale JSON, then probes the running app. It exits non-zero on blocking problems, so
+it can also run in CI.
+
+---
+
 ## 🛠️ CLI Reference
 
 ### `init`
@@ -185,6 +199,18 @@ npx next-i18n-lens studio [--port <number>] [--app <origin>]
 
 - `--port` — port for the Studio itself (default `3010`).
 - `--app` — origin of the app being edited (default `http://localhost:3000`).
+
+### `doctor`
+
+Inspects the project for the integration problems the Studio cannot recover from, and optionally
+probes the running app.
+
+```bash
+npx next-i18n-lens doctor [--dir <path>] [--locales <path>] [--app <origin>]
+```
+
+- `--locales` — locales directory relative to the project (default `locales`).
+- `--app` — also check that the mutation API answers and that pages are embeddable.
 
 ### `migrate`
 
@@ -220,6 +246,35 @@ export default defineConfig({
 
 ---
 
+## 🛑 Safety switches
+
+Everything runs only when `NODE_ENV=development`. Two more guards exist for teams:
+
+- **Kill switch.** `I18N_LENS=off` disables watermarking, the mutation API, and the client scanner.
+  Client bundles read `NEXT_PUBLIC_I18N_LENS=off` instead, because Next.js only inlines public
+  variables.
+- **Deployed-platform guard.** If the server detects Vercel (preview or production), Netlify,
+  Kubernetes, Render, Fly.io, Railway, or Heroku while `NODE_ENV` is still `development`, the tool
+  switches itself off and logs one warning. Local `vercel dev` and `netlify dev` are unaffected.
+  Set `I18N_LENS=force` to override on purpose.
+
+## 🪄 When the watermark bites
+
+In development every translated string starts with invisible characters. Most code never notices,
+but anything that treats the string as data will:
+
+| Symptom                                                                     | Cause                                              | Fix                                                           |
+| --------------------------------------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------- |
+| `t('yes') === 'Yes'` is false                                               | equality on a watermarked string                   | `unwrap(t('yes')) === 'Yes'`                                  |
+| `maxLength` or `.length` checks are off by a few                            | invisible prefix counts as characters              | `unwrap(value).length`                                        |
+| `<title>`, `aria-label`, `alt`, `placeholder` show odd spacing in dev tools | attributes do not strip the prefix                 | pass `unwrap(...)` to attributes, or leave it: it is dev-only |
+| Screenshot or snapshot tests differ between dev and prod                    | watermarks only exist in development               | run those tests with `I18N_LENS=off`                          |
+| A value saved from a form contains zero-width characters                    | input sanitizers were bypassed (custom components) | call `sanitizeZeroWidth` before submitting                    |
+
+`unwrap` and `sanitizeZeroWidth` are exported from both `next-i18n-lens/client` and
+`next-i18n-lens/server`. `unwrap` is deep: it cleans strings inside arrays and objects and never
+mutates its input.
+
 ## 🏢 Running in team and enterprise setups
 
 The defaults assume `localhost:3000` for the app and `localhost:3010` for the Studio. Anything else
@@ -246,6 +301,9 @@ Studio can reach the mutation route without a session:
 ```typescript
 export const config = { matcher: ['/((?!api/i18n-lens).*)'] };
 ```
+
+**Not sure which of these applies?** Run `npx next-i18n-lens doctor --app <origin>`; it names
+the exact file and header involved.
 
 **Monorepos.** `localesPath` is resolved relative to the process working directory of the app, so
 point it at the package that owns the locale files, for example `path.resolve('./src/locales')`.

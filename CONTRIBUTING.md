@@ -49,3 +49,19 @@ Before submitting a Pull Request, please ensure:
 2. Implement your changes and add tests if applicable.
 3. Commit your changes. Pre-commit hooks via Husky and lint-staged will automatically verify formatting and linting.
 4. Push your branch and open a Pull Request against `main`.
+
+## Release Process
+
+Versions and the changelog are managed with [Changesets](https://github.com/changesets/changesets).
+
+1. With every user-facing change, add a changeset describing it:
+   ```bash
+   npx changeset
+   ```
+2. To cut a release, apply the pending changesets. This bumps `package.json` and prepends the
+   notes to `CHANGELOG.md`:
+   ```bash
+   npm run version
+   ```
+3. Commit the result, push, and create a GitHub release tagged `vX.Y.Z`. The publish workflow
+   builds, tests, and publishes to npm with provenance.
