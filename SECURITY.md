@@ -14,6 +14,15 @@ caps, path containment inside `localesPath`, rejection of `__proto__` / `constru
 `prototype` segments, atomic temp-then-rename writes, and escaped script injection in the Studio
 and Vite plugin.
 
+### Preview mode
+
+`I18N_LENS=preview` exposes the mutation API from a deployed preview. In that mode the API
+refuses to start without `I18N_LENS_TOKEN`, requires `Authorization: Bearer <token>` on every
+request, still enforces the origin allow-list on writes, and never touches the server's
+filesystem: all writes go to a GitHub branch through a token you scope to that repository
+(`contents: write`, `pull_requests: write`). Use a long random access token, serve over HTTPS,
+rotate both tokens when people leave, and never enable preview mode on production.
+
 ## Supported versions
 
 | Version | Supported |

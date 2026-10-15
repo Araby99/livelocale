@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-10-15
+
+### Minor Changes
+
+- Milestone four: preview mode for editing without a checkout.
+
+  **Added**
+  - **Preview mode.** `I18N_LENS=preview` (server) and `NEXT_PUBLIC_I18N_LENS=preview` (client) enable watermarking and the mutation API in a production build, so a deployed preview can be edited through the Studio. The deployed-platform guard does not apply in this mode; the kill switch still wins.
+  - **Bearer-token authentication.** `authToken` (or `I18N_LENS_TOKEN`) makes every request require `Authorization: Bearer <token>`; preview mode refuses to serve without a token. The Studio asks for the token once per browser session and keeps it in sessionStorage.
+  - **GitHub gateway.** `createI18nLensHandler({ github: { repo, branch, baseBranch, token } })` stores translations on a repository branch through the GitHub REST API: one commit per save, status and diff from the compare endpoint, **Open pull request** from the Changes panel, and **Reset branch** to discard.
+  - `GET ?action=info` reports the server mode, whether a token is required, and whether git actions are available; the Studio shows a PREVIEW badge accordingly.
+
+  **Changed**
+  - `MutationGateway` gains `readLocale`; the router no longer reads the filesystem directly. Custom gateways must implement it.
+  - Nested-key writing and JSON formatting helpers moved to `core/json-path` and are shared by both gateways.
+  - All Studio HTTP calls go through `src/studio/api.ts`.
+
 ## [0.3.0] - 2026-10-15
 
 ### Minor Changes

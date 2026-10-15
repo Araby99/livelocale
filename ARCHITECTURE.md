@@ -51,10 +51,12 @@ The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and
 
 ### 0. Enablement (`src/core/env.ts`)
 
-Every "is this on?" decision calls `isLensEnabled()` / `getDisabledReason()`. The rules are:
-`NODE_ENV === 'development'`, no `I18N_LENS=off` (or `NEXT_PUBLIC_I18N_LENS=off` in the browser),
-and on the server no known hosting platform unless `I18N_LENS=force`. `process.env.NODE_ENV` and
-`process.env.NEXT_PUBLIC_I18N_LENS` are referenced literally so bundlers can inline them.
+Every "is this on?" decision calls `getLensMode()` / `isLensEnabled()`. Modes: `development`
+(`NODE_ENV === 'development'`, subject to the kill switch and the deployed-platform guard unless
+`I18N_LENS=force`), `preview` (explicit `I18N_LENS=preview` or `NEXT_PUBLIC_I18N_LENS=preview`,
+works in production builds, skips the platform guard), and `off`. The kill switch always wins.
+`process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_I18N_LENS` are referenced literally so bundlers
+can inline them.
 
 ### 1. Watermark codec (`src/client/watermark.ts`)
 
@@ -100,6 +102,15 @@ adapters that translate their request shape into `RouterRequest` and back. Rules
 always scopes pathspecs to the locales directory relative to the repository root. Both adapters
 enable it by default; `git: false` removes it.
 
+`createGitHubGateway` (`src/server/github-gateway.ts`) implements **both** ports over the GitHub
+REST API for preview mode: reads and writes go to a branch (one commit per save), `status`/`diff`
+come from the base...branch compare, `commit` opens or reuses a pull request, and `discard` resets
+the branch to base. `?action=info` tells the Studio the mode, whether a token is required, and
+whether git actions exist.
+
+When `authToken` is set (or `I18N_LENS_TOKEN`), every non-preflight request must carry
+`Authorization: Bearer <token>`; preview mode refuses to serve without one.
+
 ### 5. Next.js handler (`src/server/next-handler.ts`)
 
 `createI18nLensHandler` returns one function usable with both router styles. It detects the Pages
@@ -132,7 +143,9 @@ from the `i18n-lens-origin` query parameter.
 A React app with one composer hook, `useStudio`, that wires focused hooks: `useConnection`
 (iframe bridge), `useLocaleData` (fetching and coverage), `useSelection` (editing session and live
 preview), `useLocaleActions` (add, rename, delete), `useKeySearch`, `useGit` (status, diff,
-commit, discard) and `useHistory` (session edit log). HTTP calls live in `src/studio/api.ts`.
+commit, discard), `useHistory` (session edit log) and `useAuth` (bearer token for preview mode).
+All HTTP calls live in `src/studio/api.ts`, which attaches the token from sessionStorage and
+announces 401s on `window` so the token modal can appear.
 Undo is implemented in the composer: it re-saves the previous value through the normal mutation
 path and removes the history entry, so disk, cache, and git status stay consistent. The app origin is resolved
 at start-up by `src/studio/config.ts` from `?app=`, then the CLI-injected

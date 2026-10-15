@@ -35,6 +35,7 @@
 - ⚡ **Atomic File Operations:** Prevents Next.js hot module replacement (HMR) reading corrupt half-written files via atomic temp-to-final writes.
 - 🔒 **Secure Local Boundaries:** Restricts directory traversal, verifies origins, and supports deep schemas up to 30 levels of recursion.
 - 🤖 **CLI Migration Tool:** Automatically parses and wraps standard `react-i18next` hooks with a single command.
+- 🌍 **Preview mode for non-developers:** Run a token-protected Studio against a preview deployment; every save becomes a commit on a GitHub branch and one click opens the pull request.
 - 🧾 **Review, commit, undo:** The Studio's Changes panel shows git status and a diff of your locale files, commits them with a message, discards them, and undoes any edit from the session.
 - 🩺 **Doctor:** `npx next-i18n-lens doctor` finds the usual integration mistakes before you open the Studio.
 - 🛑 **Safety switches:** `I18N_LENS=off` kill switch, and automatic shut-off on hosting platforms so a staging build can never leak watermarks.
@@ -271,9 +272,67 @@ createI18nLensHandler({ localesPath: path.resolve('./locales'), git: false });
 Rewrites keep your files diff-friendly: the existing indentation unit (tabs, 2 or 4 spaces) and
 trailing newline are preserved.
 
+## 🌍 Preview mode: editing without a checkout
+
+Development mode needs a developer's machine. Preview mode lets a product manager, translator, or
+reviewer edit copy against a **deployed preview** of the app, with changes going to a git branch
+and a pull request instead of a local file. Nothing is written to the server's filesystem.
+
+### How it fits together
+
+1. The app is deployed from a branch (say `i18n/preview-edits`) with preview mode on.
+2. The Studio, hosted anywhere or run locally with `--app <preview-url>`, embeds that deployment.
+3. Each save calls the app's mutation API, which commits the change to `i18n/preview-edits`
+   through the GitHub API. The live preview in the iframe updates immediately; the deployment
+   itself updates when your platform rebuilds the branch.
+4. **Open pull request** in the Changes panel proposes the branch to `main`. Reviewers merge.
+
+### Server setup
+
+```typescript
+// app/api/i18n-lens/mutate/route.ts
+import { createI18nLensHandler } from 'next-i18n-lens/server';
+
+const handler = createI18nLensHandler({
+  localesPath: 'locales', // repository-relative in GitHub mode
+  allowedOrigins: ['https://i18n-studio.example.com'], // where the Studio is served from
+  github: {
+    repo: 'acme/site',
+    branch: 'i18n/preview-edits',
+    baseBranch: 'main',
+    token: process.env.GITHUB_TOKEN!, // contents: write, pull requests: write
+  },
+});
+
+export const GET = handler;
+export const POST = handler;
+export const OPTIONS = handler;
+```
+
+Environment on the preview deployment:
+
+```bash
+I18N_LENS=preview                 # server: watermark and serve the API in a production build
+NEXT_PUBLIC_I18N_LENS=preview     # client bundle: run the scanner and clipboard guards
+I18N_LENS_TOKEN=<long random>     # required; the Studio asks for it once per browser session
+GITHUB_TOKEN=<fine-grained PAT>   # contents + pull requests on the repository
+```
+
+Then open the Studio with `?app=https://<preview-url>` (or `studio --app`). It shows a
+**PREVIEW** badge, asks for the access token, and the Changes panel switches to branch and
+pull-request actions. Code-reference scanning is off in this mode (there is no checkout), so the
+Locale Directory lists keys from the locale files only.
+
+### What preview mode does not do
+
+- It never writes to the deployment's filesystem; the GitHub branch is the only store.
+- It does not replace authentication for the app itself. The token only guards the mutation API.
+- It is not a production feature. Do not set `I18N_LENS=preview` on a production deployment.
+
 ## 🛑 Safety switches
 
-Everything runs only when `NODE_ENV=development`. Two more guards exist for teams:
+Everything runs only when `NODE_ENV=development`, or when preview mode is switched on explicitly.
+Two more guards exist for teams:
 
 - **Kill switch.** `I18N_LENS=off` disables watermarking, the mutation API, and the client scanner.
   Client bundles read `NEXT_PUBLIC_I18N_LENS=off` instead, because Next.js only inlines public
