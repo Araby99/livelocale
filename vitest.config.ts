@@ -28,8 +28,6 @@ export default defineConfig({
         'src/studio/features/**/components/**',
         'src/studio/features/**/types/**',
         'src/studio/features/dashboard/hooks/useStudio.ts',
-        'src/studio/features/dashboard/hooks/useLocaleData.ts',
-        'src/studio/features/dashboard/hooks/useLocaleActions.ts',
         'src/studio/utils/**',
         'src/studio/vite.config.ts',
       ],

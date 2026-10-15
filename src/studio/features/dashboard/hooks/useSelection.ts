@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SelectedElement } from '../types/index.js';
-import { APP_ORIGIN } from '../constants.js';
+import { saveTranslation } from '../../../api.js';
 
 export interface UseSelectionParams {
   localeData: Record<string, string>;
@@ -11,6 +11,13 @@ export interface UseSelectionParams {
   updateLocaleDataCache: (key: string, value: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
+  /** Notified after every successful save (used for the session history / undo). */
+  onSaved?: (change: {
+    locale: string;
+    key: string;
+    previousValue: string;
+    nextValue: string;
+  }) => void;
 }
 
 /**
@@ -26,6 +33,7 @@ export const useSelection = ({
   updateLocaleDataCache,
   setLoading,
   setError,
+  onSaved,
 }: UseSelectionParams) => {
   const [selected, setSelected] = useState<SelectedElement | null>(null);
   const [inputValue, setInputValue] = useState<string>('');
@@ -150,26 +158,12 @@ export const useSelection = ({
     setError(null);
 
     try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          locale,
-          key: selected.key,
-          value: inputValue,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || `Server responded with status ${response.status}`);
-      }
+      const previousValue = selected.currentValue;
+      await saveTranslation(locale, selected.key, inputValue);
 
       // Successful save
       setIsSuccess(true);
+      onSaved?.({ locale, key: selected.key, previousValue, nextValue: inputValue });
       setSelected((prev) => (prev ? { ...prev, currentValue: inputValue } : null));
 
       // Update dictionary state local cache

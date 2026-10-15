@@ -53,6 +53,7 @@ describe('useSelection', () => {
     updateLocaleDataCache: vi.fn(),
     setLoading: vi.fn(),
     setError: vi.fn(),
+    onSaved: vi.fn(),
   });
 
   beforeEach(() => {
@@ -137,6 +138,12 @@ describe('useSelection', () => {
     expect(params.updateLocaleDataCache).toHaveBeenCalledWith('home.title', 'Bienvenue');
     expect(params.sendToIframe).toHaveBeenCalledWith('CLEAR_SELECTION');
     expect(params.setError).toHaveBeenLastCalledWith(null);
+    expect(params.onSaved).toHaveBeenCalledWith({
+      locale: 'ar',
+      key: 'home.title',
+      previousValue: 'Welcome',
+      nextValue: 'Bienvenue',
+    });
   });
 
   it('reports the server error message when a save is rejected', async () => {
@@ -155,6 +162,7 @@ describe('useSelection', () => {
     expect(result.current.isSuccess).toBe(false);
     expect(params.setError).toHaveBeenLastCalledWith('Forbidden: i18n Lens is disabled');
     expect(params.updateLocaleDataCache).not.toHaveBeenCalled();
+    expect(params.onSaved).not.toHaveBeenCalled();
   });
 });
 

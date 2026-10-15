@@ -101,6 +101,11 @@ test.describe('Full Visual Translation Sync Loop', () => {
 
     await page.locator('#studio-save-button').click();
 
+    // The live preview already shows the typed value; wait for the save to be
+    // acknowledged so the file is on disk before asserting on HMR (and before the
+    // afterEach restore can race with the write).
+    await expect(page.locator('[data-testid="save-success"]')).toBeVisible();
+
     // Wait for iframe to reflect the HMR update. If it doesn't happen automatically in 5s (due to slow file watchers),
     // trigger a manual reload of the iframe via the "Reload Frame" button.
     try {
@@ -166,5 +171,38 @@ test.describe('Full Visual Translation Sync Loop', () => {
       return /[\u200B\u200C\u200D]/.test(val);
     });
     expect(hasZW).toBe(false);
+  });
+  // ─── Changes panel: git status + session history ──────────────────────────
+
+  test('should list the edited locale file and the session edit in the Changes panel', async ({
+    page,
+  }) => {
+    await page.goto('http://localhost:3010');
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+
+    const frameElement = page.frameLocator('#app-preview-iframe');
+    const welcome = frameElement.locator('[data-i18n-key="home.welcome_msg"]');
+    await expect(welcome).toBeVisible({ timeout: 15_000 });
+    await welcome.click({ modifiers: ['Alt'] });
+
+    const input = page.locator('#studio-translation-input');
+    await input.clear();
+    await input.fill('Changes Panel E2E Value');
+    await page.locator('#studio-save-button').click();
+    await expect(page.locator('[data-testid="save-success"]')).toBeVisible();
+
+    await page.locator('#studio-changes-button').click();
+    const panel = page.getByTestId('changes-panel');
+    await expect(panel).toBeVisible();
+
+    // The playground lives inside this repository, so git reports the locale file as modified.
+    await expect(panel.getByText('playground/locales/en.json')).toBeVisible({ timeout: 10_000 });
+    await expect(panel.getByText('home.welcome_msg')).toBeVisible();
+
+    // Undo restores the previous value on disk without touching git.
+    await panel.getByRole('button', { name: 'Undo' }).click();
+    await expect
+      .poll(async () => JSON.parse(await fs.readFile(EN_LOCALE_FILE, 'utf-8')).home.welcome_msg)
+      .toBe('Welcome Back to Production');
   });
 });

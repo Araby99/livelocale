@@ -5,6 +5,7 @@ import {
   IframeViewer,
   EditorPanel,
   ConfirmModal,
+  ChangesPanel,
   useStudio,
 } from './features/dashboard/index.js';
 
@@ -40,11 +41,44 @@ export const App = () => {
     filterPageOnly,
     setFilterPageOnly,
     visibleKeys,
+    isChangesOpen,
+    toggleChanges,
+    closeChanges,
+    git,
+    gitError,
+    isGitLoading,
+    lastCommit,
+    commitChanges,
+    discardChanges,
+    refreshGit,
+    history,
+    undoEntry,
+    isUndoing,
   } = useStudio();
 
   return (
     <div className="w-screen h-screen flex flex-col bg-[#0b0f19] text-slate-100 font-sans select-none overflow-hidden antialiased">
-      <Header coveragePercentage={coveragePercentage} />
+      <Header
+        coveragePercentage={coveragePercentage}
+        changesCount={git?.changes.length ?? 0}
+        isChangesOpen={isChangesOpen}
+        onToggleChanges={toggleChanges}
+      />
+
+      <ChangesPanel
+        isOpen={isChangesOpen}
+        onClose={closeChanges}
+        git={git}
+        gitError={gitError}
+        isGitLoading={isGitLoading}
+        lastCommit={lastCommit}
+        onCommit={commitChanges}
+        onDiscard={discardChanges}
+        onRefresh={refreshGit}
+        history={history}
+        onUndo={undoEntry}
+        isUndoing={isUndoing}
+      />
 
       {/* Main Studio Viewport (Upgraded to 3-column layout) */}
       <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 bg-linear-to-b from-[#0b0f19] to-[#070a10]">
