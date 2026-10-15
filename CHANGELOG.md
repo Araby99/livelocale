@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.8] - 2026-10-15
+
+### Added
+
+- `wrapNextIntl` helper and FormatJS-style descriptor support (`t({ id })`) in `wrapTranslationEngine`.
+- `init` detects `next-intl` / `react-i18next` and prints the matching next step.
+- `studio --app <origin>` flag and `?app=<origin>` query parameter: the app origin is now resolved at run time instead of being baked into the Studio bundle.
+- `I18N_LENS_ALLOWED_ORIGINS` environment variable for Studio origins outside localhost (Codespaces, Gitpod, custom hostnames).
+- Packaged-CLI integration test that runs the built CLI from outside the repository.
+- `ARCHITECTURE.md`, `SECURITY.md`, CODEOWNERS, Dependabot, CodeQL workflow, `.gitattributes`.
+- README section on team and enterprise setups (CSP, auth middleware, monorepos, remote dev).
+
+### Changed
+
+- `next`, `react`, and `react-dom` are now optional peer dependencies.
+- `typescript` is no longer a runtime dependency; `migrate` loads it lazily and fails with an install hint when absent.
+- Coverage thresholds are enforced in CI.
+- Studio header and CLI output use the "i18n Lens" product name.
+
+### Fixed
+
+- Pages Router support: `createI18nLensHandler` now accepts the `(req, res)` signature, so the file written by `init` for `pages/api` works.
+- `init` and `studio` crashed in JavaScript-only projects because the CLI imported `typescript` eagerly.
+- The Studio could only talk to `http://localhost:3000`.
+- Studio static server returned a non-standard `550` status on read errors.
+
 ## [0.1.7] - 2026-05-29
 
 ### Added

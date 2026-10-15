@@ -40,8 +40,8 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
-      - name: Run Unit & Integration Tests
-        run: npm run test
+      - name: Run Unit & Integration Tests (with coverage thresholds)
+        run: npm run test:coverage
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

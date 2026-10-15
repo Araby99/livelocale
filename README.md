@@ -35,6 +35,8 @@
 - ⚡ **Atomic File Operations:** Prevents Next.js hot module replacement (HMR) reading corrupt half-written files via atomic temp-to-final writes.
 - 🔒 **Secure Local Boundaries:** Restricts directory traversal, verifies origins, and supports deep schemas up to 30 levels of recursion.
 - 🤖 **CLI Migration Tool:** Automatically parses and wraps standard `react-i18next` hooks with a single command.
+- 🧭 **App Router and Pages Router:** One handler works with both `route.ts` and `pages/api` signatures.
+- 🌐 **Works beyond localhost:3000:** Point the Studio at any port or hostname with `--app` or `?app=`, and allow Codespaces or custom origins with one env var.
 
 ---
 
@@ -95,6 +97,16 @@ _The CLI will check for TypeScript/JavaScript and write the appropriate mutation
 > export const POST = handler;
 > export const OPTIONS = handler;
 > ```
+>
+> For the **Pages Router**, create `pages/api/i18n-lens/mutate.ts` instead and default-export the
+> same handler. It accepts the `(req, res)` signature automatically:
+>
+> ```typescript
+> import { createI18nLensHandler } from 'next-i18n-lens/server';
+> import * as path from 'path';
+>
+> export default createI18nLensHandler({ localesPath: path.resolve('./locales') });
+> ```
 
 ---
 
@@ -144,10 +156,12 @@ export default function Page() {
 Boot the editing studio next to your local development server:
 
 ```bash
-npx next-i18n-lens studio --port 3010
+npx next-i18n-lens studio --port 3010 --app http://localhost:3000
 ```
 
-Open `http://localhost:3010` to view the Studio, loaded with your app running at `http://localhost:3000`.
+Open `http://localhost:3010` to view the Studio, loaded with your app. `--app` defaults to
+`http://localhost:3000`; you can also switch apps without restarting by opening
+`http://localhost:3010/?app=http://localhost:3001`.
 
 ---
 
@@ -166,8 +180,11 @@ npx next-i18n-lens init [--dir <path>]
 Spins up a lightweight, CORS-enabled HTTP server serving the Visual Studio assets statically.
 
 ```bash
-npx next-i18n-lens studio [--port <number>]
+npx next-i18n-lens studio [--port <number>] [--app <origin>]
 ```
+
+- `--port` — port for the Studio itself (default `3010`).
+- `--app` — origin of the app being edited (default `http://localhost:3000`).
 
 ### `migrate`
 
@@ -176,6 +193,9 @@ Performs static analysis to scan and automatically wrap existing `react-i18next`
 ```bash
 npx next-i18n-lens migrate [--dir <path>] [--exclude <dirs>] [--dry-run]
 ```
+
+`migrate` needs the `typescript` package to parse your source. It is an optional dependency so
+JavaScript-only projects are not forced to install it; `init` and `studio` never need it.
 
 ---
 
@@ -197,6 +217,38 @@ export default defineConfig({
   ],
 });
 ```
+
+---
+
+## 🏢 Running in team and enterprise setups
+
+The defaults assume `localhost:3000` for the app and `localhost:3010` for the Studio. Anything else
+needs one of the knobs below.
+
+**App on another port or hostname.** Start the Studio with `--app https://app.dev.local:3000`, or
+open the Studio with `?app=<origin>`.
+
+**Studio not on localhost (GitHub Codespaces, Gitpod, a shared dev box).** The mutation API only
+accepts writes from localhost origins unless told otherwise. Either pass `allowedOrigins` to
+`createI18nLensHandler`, or set an environment variable in the app's dev process:
+
+```bash
+I18N_LENS_ALLOWED_ORIGINS="https://abc-3010.app.github.dev,https://studio.dev.local"
+```
+
+**Content-Security-Policy blocks the iframe.** If your app sends `frame-ancestors 'none'` or
+`X-Frame-Options: DENY` in development, the Studio cannot embed it. Relax the header only when
+`NODE_ENV === 'development'`, for example by allowing `frame-ancestors 'self' http://localhost:3010`.
+
+**Auth middleware redirects the API.** Exclude `/api/i18n-lens` from your middleware matcher so the
+Studio can reach the mutation route without a session:
+
+```typescript
+export const config = { matcher: ['/((?!api/i18n-lens).*)'] };
+```
+
+**Monorepos.** `localesPath` is resolved relative to the process working directory of the app, so
+point it at the package that owns the locale files, for example `path.resolve('./src/locales')`.
 
 ---
 

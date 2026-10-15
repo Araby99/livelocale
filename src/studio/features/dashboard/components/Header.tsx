@@ -29,7 +29,7 @@ export const Header = ({ coveragePercentage }: HeaderProps) => {
         </div>
         <div>
           <h1 className="text-base font-extrabold tracking-wide font-outfit bg-linear-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
-            next-i18n-lens
+            i18n Lens
           </h1>
           <p className="text-[10px] text-slate-500 font-medium tracking-wider uppercase mt-0.5">
             Live Visual Translation Studio
