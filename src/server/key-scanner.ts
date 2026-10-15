@@ -24,7 +24,6 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']
 /** Files above this size are almost certainly bundles or fixtures, not components. */
 const MAX_SOURCE_BYTES = 1_000_000;
 
-const CALL_RE = /\bt\(\s*['"`]([a-zA-Z0-9._-]+)['"`]\s*\)/g;
 const PROP_RE = /\bt(?:\??\.[a-zA-Z0-9_]+)+/g;
 const IGNORE_PROPS = new Set([
   'toString',
@@ -46,6 +45,97 @@ const IGNORE_PROPS = new Set([
   'has',
 ]);
 
+const KEY_SHAPE = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
+const DECL = String.raw`(?:const|let|var)\s+`;
+/** A string literal in any quote style; read the value with `stringArg(match)`. */
+const STR = String.raw`(?:'(?<s1>[^']*)'|"(?<s2>[^"]*)"|\x60(?<s3>[^\x60]*)\x60)`;
+const stringArg = (m: RegExpMatchArray): string | undefined =>
+  m.groups?.['s1'] ?? m.groups?.['s2'] ?? m.groups?.['s3'];
+
+/** Translator-method names whose first argument is a key. */
+const METHODS = String.raw`(?:\.(?:rich|raw|markup|has))?`;
+
+/**
+ * Maps translator variable names to their key prefix (namespace) from the
+ * declarations in a file:
+ *   const t = useTranslations('home')            // next-intl (also getTranslations, await)
+ *   const { t } = useTranslation('auth')          // react-i18next
+ *   const t = wrapTranslationEngine(x, { keyPrefix: 'auth' })
+ *   const t = wrapNextIntl(x, 'checkout')
+ * Scope is not tracked; the last declaration of a name in the file wins.
+ */
+function namespaceBindings(content: string): Map<string, string> {
+  const map = new Map<string, string>();
+
+  const hookRe = new RegExp(
+    DECL +
+      String.raw`(?<name>\w+)\s*=\s*(?:await\s+)?(?:useTranslations|getTranslations)\(\s*(?:` +
+      STR +
+      String.raw`)?\s*\)`,
+    'g'
+  );
+  for (const m of content.matchAll(hookRe)) map.set(m.groups!['name']!, stringArg(m) ?? '');
+
+  const wrapNextIntlRe = new RegExp(
+    DECL + String.raw`(?<name>\w+)\s*=\s*wrapNextIntl\([^;]*?,\s*` + STR + String.raw`\s*\)`,
+    'g'
+  );
+  for (const m of content.matchAll(wrapNextIntlRe)) {
+    map.set(m.groups!['name']!, stringArg(m) ?? '');
+  }
+
+  const wrapEngineRe = new RegExp(
+    DECL + String.raw`(?<name>\w+)\s*=\s*wrapTranslationEngine\([^;]*?keyPrefix:\s*` + STR,
+    'g'
+  );
+  for (const m of content.matchAll(wrapEngineRe)) {
+    map.set(m.groups!['name']!, stringArg(m) ?? '');
+  }
+
+  const i18nextRe = new RegExp(
+    DECL + String.raw`\{(?<bindings>[^}]*)\}\s*=\s*useTranslation\(\s*(?:` + STR + String.raw`)?`,
+    'g'
+  );
+  for (const m of content.matchAll(i18nextRe)) {
+    const binding = /\bt\s*(?::\s*(\w+))?/.exec(m.groups!['bindings']!);
+    if (binding) map.set(binding[1] ?? 't', stringArg(m) ?? '');
+  }
+
+  return map;
+}
+
+/** Extracts translation key references from one source file's text. */
+export function extractKeys(content: string): string[] {
+  const keys = new Set<string>();
+  const bindings = namespaceBindings(content);
+  const translators = new Set<string>(['t', ...bindings.keys()]);
+
+  for (const name of translators) {
+    const prefix = bindings.get(name) ?? '';
+    const callRe = new RegExp(String.raw`\b` + name + METHODS + String.raw`\(\s*` + STR, 'g');
+    for (const m of content.matchAll(callRe)) {
+      const key = stringArg(m);
+      if (!key || key.includes('${') || !KEY_SHAPE.test(key)) continue;
+      keys.add(prefix ? `${prefix}.${key}` : key);
+    }
+  }
+
+  let match: RegExpExecArray | null;
+  PROP_RE.lastIndex = 0;
+  while ((match = PROP_RE.exec(content)) !== null) {
+    const clean = match[0].replace(/\bt/, '').replace(/\?/g, '');
+    const segments = clean
+      .split('.')
+      .map((seg) => seg.trim())
+      .filter(Boolean);
+    if (segments.length > 0 && !segments.some((seg) => IGNORE_PROPS.has(seg))) {
+      keys.add(segments.join('.'));
+    }
+  }
+
+  return Array.from(keys).sort();
+}
+
 interface CachedFile<T> {
   mtimeMs: number;
   size: number;
@@ -53,31 +143,6 @@ interface CachedFile<T> {
 }
 
 const NO_IGNORES: GitignoreMatcher = { ignores: () => false };
-
-/** Extracts translation key references from one source file's text. */
-export function extractKeys(content: string): string[] {
-  const keys = new Set<string>();
-
-  let match: RegExpExecArray | null;
-  CALL_RE.lastIndex = 0;
-  while ((match = CALL_RE.exec(content)) !== null) {
-    if (match[1]) keys.add(match[1]);
-  }
-
-  PROP_RE.lastIndex = 0;
-  while ((match = PROP_RE.exec(content)) !== null) {
-    const clean = match[0].replace(/\bt/, '').replace(/\?/g, '');
-    const segments = clean
-      .split('.')
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (segments.length > 0 && !segments.some((s) => IGNORE_PROPS.has(s))) {
-      keys.add(segments.join('.'));
-    }
-  }
-
-  return Array.from(keys);
-}
 
 /**
  * Read-only analysis of translation keys: scans the codebase for `t(...)`

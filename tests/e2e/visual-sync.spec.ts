@@ -235,4 +235,24 @@ test.describe('Full Visual Translation Sync Loop', () => {
     await expect(page.locator('[data-testid="save-success"]')).toBeVisible();
     expect(JSON.parse(await fs.readFile(EN_LOCALE_FILE, 'utf-8')).home.greeting).toBe('Hi there!');
   });
+  // ─── Structured plural editing ───────────────────────────────────────────
+
+  test('should edit a plural message one branch at a time and save the rebuilt ICU', async ({
+    page,
+  }) => {
+    await page.goto('http://localhost:3010');
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+
+    await page.getByRole('button', { name: /cart\.items/ }).click();
+    await expect(page.getByTestId('plural-editor')).toBeVisible();
+    await expect(page.getByTestId('plural-branch-one')).toHaveValue('# item');
+
+    await page.getByTestId('plural-branch-other').fill('# products');
+    await page.locator('#studio-save-button').click();
+    await expect(page.locator('[data-testid="save-success"]')).toBeVisible();
+
+    expect(JSON.parse(await fs.readFile(EN_LOCALE_FILE, 'utf-8')).cart.items).toBe(
+      '{count, plural, one {# item} other {# products}}'
+    );
+  });
 });

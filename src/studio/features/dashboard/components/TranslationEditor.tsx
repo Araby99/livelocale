@@ -1,6 +1,8 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { extractPlaceholders } from '../../../../core/placeholders.js';
+import { parsePluralMessage } from '../../../../core/icu-plural.js';
+import { PluralEditor } from './PluralEditor.jsx';
 
 export interface SaveWarning {
   code: string;
@@ -12,6 +14,8 @@ export interface SaveWarning {
 interface TranslationEditorProps {
   selected: SelectedElement;
   inputValue: string;
+  /** Active locale, used to pick the plural categories in the structured editor. */
+  locale?: string;
   isLoading: boolean;
   isSuccess: boolean;
   error: string | null;
@@ -40,6 +44,7 @@ const CHIP_TITLES: Record<ChipState, string> = {
 export const TranslationEditor = ({
   selected,
   inputValue,
+  locale = 'en',
   isLoading,
   isSuccess,
   error,
@@ -50,6 +55,11 @@ export const TranslationEditor = ({
   onDismissWarning,
   onClear,
 }: TranslationEditorProps) => {
+  // Plural messages get a structured editor unless the user switches to raw text.
+  const [showRaw, setShowRaw] = useState(false);
+  const isPlural = useMemo(() => parsePluralMessage(inputValue) !== null, [inputValue]);
+  const usePluralEditor = isPlural && !showRaw;
+
   // Live placeholder parity between the reference text and the current input.
   const chips = useMemo(() => {
     const reference = new Set(extractPlaceholders(selected.fallbackValue || ''));
@@ -123,19 +133,40 @@ export const TranslationEditor = ({
       <div className="space-y-2 flex-1 flex flex-col min-h-[180px]">
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Translation Output
+            {usePluralEditor ? 'Plural forms' : 'Translation Output'}
           </label>
-          <span className="text-[10px] text-slate-500 font-mono">{inputValue.length}/10000</span>
+          <div className="flex items-center gap-3">
+            {isPlural && (
+              <button
+                type="button"
+                data-testid="plural-raw-toggle"
+                onClick={() => setShowRaw((v) => !v)}
+                className="text-[10px] font-semibold text-slate-500 hover:text-slate-300 transition duration-150"
+              >
+                {showRaw ? 'Edit forms' : 'Edit raw'}
+              </button>
+            )}
+            <span className="text-[10px] text-slate-500 font-mono">{inputValue.length}/10000</span>
+          </div>
         </div>
-        <textarea
-          id="studio-translation-input"
-          dir="auto"
-          value={inputValue}
-          onChange={(e) => onInputChange(e.target.value)}
-          disabled={isLoading}
-          placeholder="Type your translation here..."
-          className="w-full min-h-32 bg-slate-950 border border-slate-800 hover:border-slate-750 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-205 shadow-inner leading-relaxed"
-        />
+        {usePluralEditor ? (
+          <PluralEditor
+            locale={locale}
+            value={inputValue}
+            onChange={onInputChange}
+            disabled={isLoading}
+          />
+        ) : (
+          <textarea
+            id="studio-translation-input"
+            dir="auto"
+            value={inputValue}
+            onChange={(e) => onInputChange(e.target.value)}
+            disabled={isLoading}
+            placeholder="Type your translation here..."
+            className="w-full min-h-32 bg-slate-950 border border-slate-800 hover:border-slate-750 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-205 shadow-inner leading-relaxed"
+          />
+        )}
       </div>
 
       {/* Placeholder / syntax warning from the server */}

@@ -152,6 +152,7 @@ export const EditorPanel = ({
         <TranslationEditor
           selected={selected}
           inputValue={inputValue}
+          locale={locale}
           isLoading={isLoading}
           isSuccess={isSuccess}
           error={error}

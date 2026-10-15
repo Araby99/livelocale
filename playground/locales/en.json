@@ -6,5 +6,8 @@
   },
   "nav": {
     "home": "Home"
+  },
+  "cart": {
+    "items": "{count, plural, one {# item} other {# items}}"
   }
 }
