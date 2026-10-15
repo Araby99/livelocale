@@ -26,6 +26,11 @@ test.describe('Full Visual Translation Sync Loop', () => {
     // Navigate to Studio UI
     await page.goto('http://localhost:3010');
 
+    // First test of the run: the dev server may still be compiling the page and the
+    // client bundle. Wait for the Studio to report the iframe bridge as connected
+    // before asserting on anything the client scanner produces.
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+
     const frameElement = page.frameLocator('#app-preview-iframe');
 
     // The element no longer has manual data-i18n-key — it is decoded from the watermark
@@ -33,7 +38,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
     const welcomeText = frameElement.locator('[data-i18n-key="home.welcome_msg"]');
 
     // Give the client scanner enough time to decode and inject attributes
-    await expect(welcomeText).toBeVisible({ timeout: 5000 });
+    await expect(welcomeText).toBeVisible({ timeout: 15_000 });
 
     // Verify the highlighter overlay appears on hover (interceptor highlight)
     await welcomeText.hover();

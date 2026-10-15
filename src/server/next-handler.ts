@@ -1,4 +1,5 @@
 import { FileMutator } from './file-mutator.js';
+import { GitClient } from './git-client.js';
 import { createMutationRouter, MAX_BODY_BYTES, type RouterResponse } from './router.js';
 import {
   readNodeBody,
@@ -11,6 +12,11 @@ import {
 export interface HandlerConfig {
   localesPath: string;
   allowedOrigins?: string[];
+  /**
+   * Expose git status, commit, and discard for the locales directory to the
+   * Studio. Requires the `git` CLI on PATH. Defaults to `true`.
+   */
+  git?: boolean;
 }
 
 /**
@@ -47,6 +53,7 @@ export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
   const router = createMutationRouter(mutator, {
     localesPath: config.localesPath,
     allowedOrigins: config.allowedOrigins,
+    git: config.git === false ? undefined : new GitClient(),
   });
 
   // ─── App Router: Web Request / Response ──────────────────────────────────

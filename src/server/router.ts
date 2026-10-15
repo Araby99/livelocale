@@ -23,6 +23,31 @@ export interface MutationGateway {
   getKeysMetadata(basePath: string): Promise<{ allKeys: string[]; codeKeys: string[] }>;
 }
 
+export type GitChangeStatus = 'modified' | 'added' | 'deleted' | 'renamed';
+
+export interface GitChange {
+  /** Path relative to the repository root, forward slashes. */
+  path: string;
+  status: GitChangeStatus;
+}
+
+export interface GitStatus {
+  isRepo: boolean;
+  branch: string | null;
+  changes: GitChange[];
+}
+
+/**
+ * Optional port for version-control operations scoped to the locales
+ * directory. Implemented by `GitClient`; absent when git integration is off.
+ */
+export interface GitGateway {
+  status(localesPath: string): Promise<GitStatus>;
+  diff(localesPath: string): Promise<string>;
+  commit(localesPath: string, message: string): Promise<{ hash: string }>;
+  discard(localesPath: string): Promise<void>;
+}
+
 export interface RouterRequest {
   method: string;
   url: string;
@@ -42,6 +67,8 @@ export interface RouterResponse {
 export interface MutationRouterOptions {
   localesPath: string;
   allowedOrigins?: string[];
+  /** Enables the `git` read action and the `commit` / `discard` write actions. */
+  git?: GitGateway;
 }
 
 export interface MutationRouter {
@@ -52,6 +79,9 @@ const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:3010', 'http://127.0.0.1:3010
 
 /** Maximum accepted request body size (1 MB) — far above any realistic payload. */
 export const MAX_BODY_BYTES = 1_000_000;
+
+/** Commit messages longer than this are rejected. */
+export const MAX_COMMIT_MESSAGE_LENGTH = 500;
 
 /** Any localhost origin (any port) is trusted — remote websites are not. */
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
@@ -86,6 +116,7 @@ export function createMutationRouter(
     .filter(Boolean);
   const allowedOrigins = [...(options.allowedOrigins || DEFAULT_ALLOWED_ORIGINS), ...envOrigins];
   const localesPath = options.localesPath;
+  const git = options.git;
 
   const isOriginAllowed = (origin: string): boolean =>
     allowedOrigins.includes(origin) || LOCALHOST_ORIGIN_RE.test(origin);
@@ -110,6 +141,28 @@ export function createMutationRouter(
   ): Promise<RouterResponse> {
     const locale = urlObj.searchParams.get('locale');
     const action = urlObj.searchParams.get('action');
+
+    if (action === 'git') {
+      if (!git) {
+        return json(200, headers, {
+          available: false,
+          isRepo: false,
+          branch: null,
+          changes: [],
+          diff: '',
+        });
+      }
+      try {
+        const status = await git.status(basePath);
+        const diff = status.isRepo && status.changes.length > 0 ? await git.diff(basePath) : '';
+        return json(200, headers, { available: true, ...status, diff });
+      } catch (err: any) {
+        return json(500, headers, {
+          error: `Failed to read git status: ${err.message}`,
+          code: 'GIT_STATUS_FAILED',
+        });
+      }
+    }
 
     if (action === 'keys') {
       try {
@@ -193,7 +246,37 @@ export function createMutationRouter(
       });
     }
 
-    const { locale, key, value, action, newLocale } = body || {};
+    const { locale, key, value, action, newLocale, message } = body || {};
+
+    if (action === 'commit' || action === 'discard') {
+      if (!git) {
+        return json(501, headers, {
+          error: 'Git integration is not enabled for this handler.',
+          code: 'GIT_UNAVAILABLE',
+        });
+      }
+      if (action === 'commit') {
+        const text = typeof message === 'string' ? message.trim() : '';
+        if (!text || text.length > MAX_COMMIT_MESSAGE_LENGTH) {
+          return json(400, headers, {
+            error: `Commit message must be 1-${MAX_COMMIT_MESSAGE_LENGTH} characters.`,
+            code: 'INVALID_COMMIT_MESSAGE',
+          });
+        }
+        try {
+          const result = await git.commit(basePath, text);
+          return json(200, headers, { success: true, hash: result.hash });
+        } catch (err: any) {
+          return json(409, headers, { error: err.message, code: 'GIT_COMMIT_FAILED' });
+        }
+      }
+      try {
+        await git.discard(basePath);
+        return json(200, headers, { success: true });
+      } catch (err: any) {
+        return json(500, headers, { error: err.message, code: 'GIT_DISCARD_FAILED' });
+      }
+    }
 
     if (action === 'addLocale') {
       if (!isValidLocaleFormat(locale)) {

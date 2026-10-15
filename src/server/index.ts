@@ -2,7 +2,15 @@ export { FileMutator } from './file-mutator.js';
 export { KeyScanner } from './key-scanner.js';
 export { createI18nLensHandler, type HandlerConfig } from './next-handler.js';
 export { createTranslations, type CreateTranslationsOptions } from './translations.js';
-export { createMutationRouter, type MutationRouter } from './router.js';
+export {
+  createMutationRouter,
+  type MutationRouter,
+  type MutationGateway,
+  type GitGateway,
+  type GitStatus,
+  type GitChange,
+} from './router.js';
+export { GitClient } from './git-client.js';
 
 // Watermark utilities — used in Server Components to encode translation keys
 // as invisible zero-width prefixes during SSR, enabling plug-and-play detection

@@ -6,6 +6,17 @@ import { DANGEROUS_KEY_SEGMENTS } from '../core/validate.js';
 import { KeyScanner } from './key-scanner.js';
 import { getDisabledReason } from '../core/env.js';
 
+/**
+ * Detects the indentation unit of an existing JSON document so rewrites keep
+ * the project's style (tabs, 2 or 4 spaces). Defaults to two spaces.
+ */
+export function detectJsonIndent(content: string): string {
+  const match = /^([ \t]+)"/m.exec(content);
+  if (!match) return '  ';
+  const ws = match[1]!;
+  return ws.includes('\t') ? '\t' : ws;
+}
+
 function assertEnabled(component: string): void {
   const reason = getDisabledReason();
   if (reason !== null) {
@@ -109,9 +120,14 @@ export class FileMutator {
     // Perform atomic operation within a file lock to guarantee concurrency safety (RULE SRV-006)
     await this.withLock(filePath, async () => {
       let currentData: Record<string, any> = {};
+      // Formatting of the existing file, preserved on rewrite (git-friendly diffs).
+      let indent = '  ';
+      let trailingNewline = '\n';
 
       try {
         const fileContent = await fs.readFile(filePath, 'utf-8');
+        indent = detectJsonIndent(fileContent);
+        trailingNewline = fileContent.endsWith('\n') ? '\n' : '';
         try {
           const parsed = JSON.parse(fileContent);
 
@@ -147,8 +163,9 @@ export class FileMutator {
       // RULE SEC-004: VALIDATE JSON BEFORE WRITE
       let stringified: string;
       try {
-        stringified = JSON.stringify(currentData, null, 2);
+        stringified = JSON.stringify(currentData, null, indent);
         JSON.parse(stringified); // Paranoid check
+        stringified += trailingNewline;
       } catch (err: any) {
         throw new Error(
           `[i18n-lens] Produced JSON is invalid or has circular references. Original error: ${err.message}`

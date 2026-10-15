@@ -415,4 +415,54 @@ describe('FileMutator', () => {
       expect(keys).toEqual(['home.desc', 'home.title']);
     });
   });
+  // ─── Git-friendly formatting ──────────────────────────────────────────────
+
+  const writtenText = () => vi.mocked(fs.writeFile).mock.calls[0]![1] as string;
+
+  it('should preserve a trailing newline when the original file had one', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue('{\n  "greeting": "Hello"\n}\n');
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+    expect(writtenText()).toBe('{\n  "greeting": "Hi"\n}\n');
+  });
+
+  it('should not add a trailing newline when the original file had none', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue('{\n  "greeting": "Hello"\n}');
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+    expect(writtenText()).toBe('{\n  "greeting": "Hi"\n}');
+  });
+
+  it('should preserve four-space indentation', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue('{\n    "greeting": "Hello"\n}\n');
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+    expect(writtenText()).toBe('{\n    "greeting": "Hi"\n}\n');
+  });
+
+  it('should preserve tab indentation', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue('{\n\t"greeting": "Hello"\n}\n');
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+    expect(writtenText()).toBe('{\n\t"greeting": "Hi"\n}\n');
+  });
+
+  it('should default to two spaces and a trailing newline for a new file', async () => {
+    const enoent: any = new Error('missing');
+    enoent.code = 'ENOENT';
+    vi.mocked(fs.readFile).mockRejectedValue(enoent);
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+    expect(writtenText()).toBe('{\n  "greeting": "Hi"\n}\n');
+  });
 });

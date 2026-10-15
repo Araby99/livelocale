@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import { FileMutator } from './file-mutator.js';
+import { GitClient } from './git-client.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
 import { readNodeBody } from './node-body.js';
 import { deepMerge } from '../core/deep-merge.js';
@@ -9,6 +10,8 @@ import { isLensEnabled } from '../core/env.js';
 export interface VitePluginConfig {
   /** Absolute or relative path to the directory containing your locale JSON files. */
   localesPath: string;
+  /** Expose git status, commit, and discard to the Studio. Defaults to `true`. */
+  git?: boolean;
 }
 
 const ROUTE = '/api/i18n-lens/mutate';
@@ -27,7 +30,10 @@ const ROUTE = '/api/i18n-lens/mutate';
  */
 export function i18nLensVite(config: VitePluginConfig) {
   const mutator = new FileMutator();
-  const router = createMutationRouter(mutator, { localesPath: config.localesPath });
+  const router = createMutationRouter(mutator, {
+    localesPath: config.localesPath,
+    git: config.git === false ? undefined : new GitClient(),
+  });
 
   return {
     name: 'next-i18n-lens',
