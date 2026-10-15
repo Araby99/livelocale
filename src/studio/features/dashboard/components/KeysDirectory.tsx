@@ -122,7 +122,7 @@ export const KeysDirectory = ({
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] text-slate-500 break-all line-clamp-1">
+                <span dir="auto" className="text-[10px] text-slate-500 break-all line-clamp-1">
                   {valueText || <span className="italic text-slate-750">Empty</span>}
                 </span>
               </button>

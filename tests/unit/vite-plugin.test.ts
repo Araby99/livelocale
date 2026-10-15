@@ -413,3 +413,27 @@ describe('i18nLensVite plugin', () => {
     expect(result).not.toContain('window.__i18n_lens_fallback__');
   });
 });
+
+describe('i18nLensVite plugin — browser flag mirroring', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('injects window.__I18N_LENS_FLAG__ when I18N_LENS is set', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {}); // locales dir is intentionally missing
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('I18N_LENS', 'preview');
+    const plugin: any = i18nLensVite({ localesPath: path.join(os.tmpdir(), 'does-not-exist') });
+    const html = plugin.transformIndexHtml('<html><head></head><body></body></html>');
+    expect(html).toContain('window.__I18N_LENS_FLAG__ = "preview"');
+    vi.restoreAllMocks();
+  });
+
+  it('injects nothing extra when the flag is unset', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('I18N_LENS', '');
+    const plugin: any = i18nLensVite({ localesPath: path.join(os.tmpdir(), 'does-not-exist') });
+    const html = plugin.transformIndexHtml('<html><head></head><body></body></html>');
+    expect(html).not.toContain('__I18N_LENS_FLAG__');
+  });
+});

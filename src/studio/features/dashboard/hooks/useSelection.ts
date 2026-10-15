@@ -1,6 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SelectedElement } from '../types/index.js';
-import { saveTranslation } from '../../../api.js';
+import { saveTranslation, ValidationError } from '../../../api.js';
+
+export interface SaveWarning {
+  code: string;
+  message: string;
+  missing: string[];
+  extra: string[];
+}
 
 export interface UseSelectionParams {
   localeData: Record<string, string>;
@@ -38,6 +45,7 @@ export const useSelection = ({
   const [selected, setSelected] = useState<SelectedElement | null>(null);
   const [inputValue, setInputValue] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
+  const [saveWarning, setSaveWarning] = useState<SaveWarning | null>(null);
 
   // Timer for the transient success indicator — cleared on unmount and re-save
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -61,6 +69,7 @@ export const useSelection = ({
   const handleInputChange = useCallback(
     (value: string) => {
       setInputValue(value);
+      setSaveWarning(null);
       sendToIframe('APPLY_PREVIEW', { key: selected?.key, value });
     },
     [sendToIframe, selected?.key]
@@ -83,6 +92,7 @@ export const useSelection = ({
       });
       setInputValue(rawValue);
       setIsSuccess(false);
+      setSaveWarning(null);
       setError(null);
     },
     [hasUnsavedChanges, localeData, setError]
@@ -149,8 +159,10 @@ export const useSelection = ({
     }
   }, [localeData, enLocaleData]);
 
-  // Save mutation to Server Handler
-  const handleSave = async () => {
+  // Save mutation to Server Handler. The reference text travels with the
+  // request so the server can check placeholder parity; a 422 becomes a
+  // warning the user can override with `force`.
+  const handleSave = async (options: { force?: boolean } = {}) => {
     if (!selected) return;
 
     setLoading(true);
@@ -159,7 +171,13 @@ export const useSelection = ({
 
     try {
       const previousValue = selected.currentValue;
-      await saveTranslation(locale, selected.key, inputValue);
+      const reference =
+        locale === 'en' ? previousValue : (enLocaleData[selected.key] ?? selected.fallbackValue);
+      await saveTranslation(locale, selected.key, inputValue, {
+        reference: reference || undefined,
+        force: options.force,
+      });
+      setSaveWarning(null);
 
       // Successful save
       setIsSuccess(true);
@@ -184,7 +202,16 @@ export const useSelection = ({
         successTimer.current = null;
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to save translation.');
+      if (err instanceof ValidationError) {
+        setSaveWarning({
+          code: err.code,
+          message: err.message,
+          missing: err.details.missing,
+          extra: err.details.extra,
+        });
+      } else {
+        setError(err.message || 'Failed to save translation.');
+      }
     } finally {
       setLoading(false);
     }
@@ -215,5 +242,7 @@ export const useSelection = ({
     handleInputChange,
     handleSave,
     handleClearSelection,
+    saveWarning,
+    dismissSaveWarning: () => setSaveWarning(null),
   };
 };

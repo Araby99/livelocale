@@ -151,3 +151,27 @@ describe('preview mode', () => {
     expect(getLensMode()).toBe('off');
   });
 });
+
+describe('browser flag global', () => {
+  beforeEach(() => {
+    for (const v of PLATFORM_VARS) vi.stubEnv(v, '');
+    vi.stubEnv('NODE_ENV', 'production');
+    resetEnvWarnings();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it('reads preview mode from window.__I18N_LENS_FLAG__ when no env flag is inlined', () => {
+    vi.stubGlobal('window', { __I18N_LENS_FLAG__: 'preview' });
+    expect(getLensMode()).toBe('preview');
+  });
+
+  it('honours an "off" flag from the global', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubGlobal('window', { __I18N_LENS_FLAG__: 'off' });
+    expect(getLensMode()).toBe('off');
+  });
+});

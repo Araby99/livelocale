@@ -5,7 +5,7 @@ import { GitClient } from './git-client.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
 import { readNodeBody } from './node-body.js';
 import { deepMerge } from '../core/deep-merge.js';
-import { isLensEnabled } from '../core/env.js';
+import { isLensEnabled, BROWSER_FLAG_GLOBAL } from '../core/env.js';
 
 export interface VitePluginConfig {
   /** Absolute or relative path to the directory containing your locale JSON files. */
@@ -82,8 +82,14 @@ export function i18nLensVite(config: VitePluginConfig) {
     },
 
     transformIndexHtml(html: string) {
+      // Mirror the server-side I18N_LENS flag (preview/off) into the page so the client
+      // bundle resolves the same mode without bundler-specific env inlining.
+      const flag = process.env['I18N_LENS'];
+      const flagScript = flag
+        ? `<script>window.${BROWSER_FLAG_GLOBAL} = ${JSON.stringify(flag)};</script>\n`
+        : '';
       if (!isLensEnabled()) {
-        return html;
+        return flagScript ? html.replace('</head>', `${flagScript}</head>`) : html;
       }
       try {
         const resolvedLocalesPath = path.resolve(config.localesPath);
@@ -126,10 +132,10 @@ export function i18nLensVite(config: VitePluginConfig) {
           .replace(/\u2028/g, '\\u2028')
           .replace(/\u2029/g, '\\u2029');
         const script = `<script>window.__i18n_lens_fallback__ = ${safeJson};</script>`;
-        return html.replace('</head>', `${script}\n</head>`);
+        return html.replace('</head>', `${flagScript}${script}\n</head>`);
       } catch (err) {
         console.warn('[i18n-lens] Failed to inject fallback data:', err);
-        return html;
+        return flagScript ? html.replace('</head>', `${flagScript}</head>`) : html;
       }
     },
   };

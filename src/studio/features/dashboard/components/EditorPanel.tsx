@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SelectedElement } from '../types/index.js';
-import { TranslationEditor } from './TranslationEditor.jsx';
+import { TranslationEditor, type SaveWarning } from './TranslationEditor.jsx';
 import { EmptySelection } from './EmptySelection.jsx';
 import { LocaleManager } from './LocaleManager.jsx';
 
@@ -32,9 +32,12 @@ interface EditorPanelProps {
   isLoading: boolean;
   isSuccess: boolean;
   error: string | null;
+  saveWarning: SaveWarning | null;
   onInputChange: (value: string) => void;
   onLocaleChange: (locale: string) => void;
   onSave: () => void;
+  onForceSave: () => void;
+  onDismissWarning: () => void;
   onClear: () => void;
   locales: string[];
   onAddLocale: (newLocale: string) => Promise<void>;
@@ -53,9 +56,12 @@ export const EditorPanel = ({
   isLoading,
   isSuccess,
   error,
+  saveWarning,
   onInputChange,
   onLocaleChange,
   onSave,
+  onForceSave,
+  onDismissWarning,
   onClear,
   locales,
   onAddLocale,
@@ -149,8 +155,11 @@ export const EditorPanel = ({
           isLoading={isLoading}
           isSuccess={isSuccess}
           error={error}
+          saveWarning={saveWarning}
           onInputChange={onInputChange}
           onSave={onSave}
+          onForceSave={onForceSave}
+          onDismissWarning={onDismissWarning}
           onClear={onClear}
         />
       ) : (

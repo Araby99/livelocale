@@ -32,6 +32,9 @@ export const App = () => {
     handleInputChange,
     handleLocaleChange,
     handleSave,
+    saveWarning,
+    handleForceSave,
+    dismissSaveWarning,
     handleClearSelection,
     confirmDiscard,
     cancelDiscard,
@@ -120,7 +123,10 @@ export const App = () => {
           error={error}
           onInputChange={handleInputChange}
           onLocaleChange={handleLocaleChange}
-          onSave={handleSave}
+          onSave={() => handleSave()}
+          saveWarning={saveWarning}
+          onForceSave={handleForceSave}
+          onDismissWarning={dismissSaveWarning}
           onClear={handleClearSelection}
           locales={locales}
           onAddLocale={handleAddLocale}

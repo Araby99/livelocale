@@ -41,9 +41,21 @@ function readNodeEnv(): string | undefined {
   }
 }
 
+/** Set by the Vite plugin (and usable by any host) to mirror the server flag into the page. */
+export const BROWSER_FLAG_GLOBAL = '__I18N_LENS_FLAG__';
+
 function readPublicFlag(): string | undefined {
+  let value: string | undefined;
   try {
-    return process.env.NEXT_PUBLIC_I18N_LENS;
+    value = process.env.NEXT_PUBLIC_I18N_LENS;
+  } catch {
+    value = undefined;
+  }
+  if (value) return value;
+  try {
+    const g = globalThis as any;
+    const fromGlobal = g.window?.[BROWSER_FLAG_GLOBAL] ?? g[BROWSER_FLAG_GLOBAL];
+    return typeof fromGlobal === 'string' ? fromGlobal : undefined;
   } catch {
     return undefined;
   }

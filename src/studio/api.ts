@@ -35,6 +35,18 @@ export interface ServerInfo {
   git: boolean;
 }
 
+/** 422 from the server: placeholder mismatch or message syntax problem. */
+export class ValidationError extends Error {
+  readonly code: string;
+  readonly details: { missing: string[]; extra: string[] };
+  constructor(message: string, code: string, details?: { missing?: string[]; extra?: string[] }) {
+    super(message);
+    this.name = 'ValidationError';
+    this.code = code;
+    this.details = { missing: details?.missing ?? [], extra: details?.extra ?? [] };
+  }
+}
+
 export class UnauthorizedError extends Error {
   readonly code = 'UNAUTHORIZED';
   constructor(message = 'Unauthorized') {
@@ -82,6 +94,13 @@ async function parse<T>(response: Response): Promise<T> {
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
     throw new UnauthorizedError(body?.error || 'Unauthorized');
   }
+  if (response.status === 422) {
+    throw new ValidationError(
+      body?.error || 'The translation was rejected.',
+      body?.code || 'VALIDATION',
+      body?.details
+    );
+  }
   if (!response.ok) {
     throw new Error(body?.error || `Server responded with status ${response.status}`);
   }
@@ -113,8 +132,26 @@ export const fetchLocaleDictionary = (locale: string) =>
   get<Record<string, any>>(`?locale=${encodeURIComponent(locale)}`);
 export const fetchGitState = () => get<GitState>('?action=git');
 
-export const saveTranslation = (locale: string, key: string, value: string) =>
-  post<{ success: true; key: string; locale: string }>({ locale, key, value });
+export interface SaveOptions {
+  /** Reference text (usually the source language) used for placeholder parity checks. */
+  reference?: string;
+  /** Save even if placeholders or syntax do not pass validation. */
+  force?: boolean;
+}
+
+export const saveTranslation = (
+  locale: string,
+  key: string,
+  value: string,
+  options: SaveOptions = {}
+) =>
+  post<{ success: true; key: string; locale: string }>({
+    locale,
+    key,
+    value,
+    ...(options.reference !== undefined ? { reference: options.reference } : {}),
+    ...(options.force ? { force: true } : {}),
+  });
 export const addLocaleRequest = (locale: string) =>
   post<{ success: true; locale: string }>({ action: 'addLocale', locale });
 export const renameLocaleRequest = (locale: string, newLocale: string) =>

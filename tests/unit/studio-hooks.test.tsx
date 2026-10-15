@@ -131,7 +131,12 @@ describe('useSelection', () => {
       `${APP_ORIGIN}/api/i18n-lens/mutate`,
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ locale: 'ar', key: 'home.title', value: 'Bienvenue' }),
+        body: JSON.stringify({
+          locale: 'ar',
+          key: 'home.title',
+          value: 'Bienvenue',
+          reference: 'Welcome',
+        }),
       })
     );
     expect(result.current.isSuccess).toBe(true);
@@ -144,6 +149,68 @@ describe('useSelection', () => {
       previousValue: 'Welcome',
       nextValue: 'Bienvenue',
     });
+  });
+
+  it('sends the reference value with each save so the server can check placeholders', async () => {
+    const params = makeParams();
+    params.enLocaleData = { 'home.title': 'Welcome {name}' };
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200 })
+    );
+    const { result } = renderHook(() => useSelection(params));
+
+    act(() => result.current.selectKeyDirectly('home.title'));
+    act(() => result.current.handleInputChange('Bienvenue {name}'));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect(JSON.parse(String((init as RequestInit).body))).toEqual({
+      locale: 'ar',
+      key: 'home.title',
+      value: 'Bienvenue {name}',
+      reference: 'Welcome {name}',
+    });
+  });
+
+  it('turns a 422 into a save warning and saves anyway when forced', async () => {
+    const params = makeParams();
+    params.enLocaleData = { 'home.title': 'Welcome {name}' };
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            error: 'Placeholders differ from the reference: missing {name}.',
+            code: 'PLACEHOLDER_MISMATCH',
+            details: { missing: ['{name}'], extra: [] },
+          }),
+          { status: 422 }
+        )
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    const { result } = renderHook(() => useSelection(params));
+
+    act(() => result.current.selectKeyDirectly('home.title'));
+    act(() => result.current.handleInputChange('Bienvenue'));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    expect(result.current.isSuccess).toBe(false);
+    expect(result.current.saveWarning).toMatchObject({
+      code: 'PLACEHOLDER_MISMATCH',
+      missing: ['{name}'],
+      extra: [],
+    });
+    expect(params.setError).not.toHaveBeenCalledWith(expect.stringMatching(/Placeholders/));
+
+    await act(async () => {
+      await result.current.handleSave({ force: true });
+    });
+    const [, init] = vi.mocked(fetch).mock.calls[1]!;
+    expect(JSON.parse(String((init as RequestInit).body))).toMatchObject({ force: true });
+    expect(result.current.isSuccess).toBe(true);
+    expect(result.current.saveWarning).toBeNull();
   });
 
   it('reports the server error message when a save is rejected', async () => {

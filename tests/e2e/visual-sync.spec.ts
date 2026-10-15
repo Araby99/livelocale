@@ -205,4 +205,34 @@ test.describe('Full Visual Translation Sync Loop', () => {
       .poll(async () => JSON.parse(await fs.readFile(EN_LOCALE_FILE, 'utf-8')).home.welcome_msg)
       .toBe('Welcome Back to Production');
   });
+  // ─── Placeholder safety ───────────────────────────────────────────────────
+
+  test('should warn when a placeholder is dropped and save only after "Save anyway"', async ({
+    page,
+  }) => {
+    await page.goto('http://localhost:3010');
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+
+    // Pick the key from the sidebar directory (it is not rendered on the page).
+    await page.getByRole('button', { name: /home\.greeting/ }).click();
+    const input = page.locator('#studio-translation-input');
+    await expect(input).toHaveValue('Hello, {name}!');
+    await expect(page.getByTestId('placeholder-{name}')).toHaveAttribute('data-state', 'present');
+
+    await input.clear();
+    await input.fill('Hi there!');
+    await expect(page.getByTestId('placeholder-{name}')).toHaveAttribute('data-state', 'missing');
+
+    await page.locator('#studio-save-button').click();
+    const warning = page.getByTestId('save-warning');
+    await expect(warning).toBeVisible();
+    await expect(warning).toContainText('{name}');
+    expect(JSON.parse(await fs.readFile(EN_LOCALE_FILE, 'utf-8')).home.greeting).toBe(
+      'Hello, {name}!'
+    );
+
+    await warning.getByRole('button', { name: /save anyway/i }).click();
+    await expect(page.locator('[data-testid="save-success"]')).toBeVisible();
+    expect(JSON.parse(await fs.readFile(EN_LOCALE_FILE, 'utf-8')).home.greeting).toBe('Hi there!');
+  });
 });

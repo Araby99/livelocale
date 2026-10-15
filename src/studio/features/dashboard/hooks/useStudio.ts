@@ -65,6 +65,8 @@ export const useStudio = () => {
     handleInputChange,
     handleSave,
     handleClearSelection,
+    saveWarning,
+    dismissSaveWarning,
   } = useSelection({
     localeData,
     enLocaleData,
@@ -190,6 +192,10 @@ export const useStudio = () => {
     history: history.entries,
     undoEntry,
     isUndoing,
+    // Placeholder safety
+    saveWarning,
+    handleForceSave: () => handleSave({ force: true }),
+    dismissSaveWarning,
     // Preview mode / auth
     mode,
     needsToken: auth.needsToken,

@@ -1,4 +1,5 @@
 import { getDisabledReason, getLensMode } from '../core/env.js';
+import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
 import {
   isValidKeyFormat,
   isValidLocaleFormat,
@@ -255,7 +256,7 @@ export function createMutationRouter(
       });
     }
 
-    const { locale, key, value, action, newLocale, message } = body || {};
+    const { locale, key, value, action, newLocale, message, reference, force } = body || {};
 
     if (action === 'commit' || action === 'discard') {
       if (!git) {
@@ -348,6 +349,31 @@ export function createMutationRouter(
         error: 'Invalid value. Must be a string less than 10000 characters.',
         code: 'INVALID_VALUE_FORMAT',
       });
+    }
+
+    // RULE SRV-007: PLACEHOLDER SAFETY — a translation must keep the placeholders
+    // of its reference and stay structurally valid, unless the author forces it.
+    if (force !== true) {
+      const syntaxError = validateMessageSyntax(value);
+      if (syntaxError) {
+        return json(422, headers, {
+          error: `Message syntax: ${syntaxError}.`,
+          code: 'MESSAGE_SYNTAX',
+        });
+      }
+      if (typeof reference === 'string') {
+        const comparison = comparePlaceholders(reference, value);
+        if (!comparison.ok) {
+          const parts: string[] = [];
+          if (comparison.missing.length) parts.push(`missing ${comparison.missing.join(', ')}`);
+          if (comparison.extra.length) parts.push(`unexpected ${comparison.extra.join(', ')}`);
+          return json(422, headers, {
+            error: `Placeholders differ from the reference: ${parts.join('; ')}.`,
+            code: 'PLACEHOLDER_MISMATCH',
+            details: { missing: comparison.missing, extra: comparison.extra },
+          });
+        }
+      }
     }
 
     await mutator.updateLocaleKey(basePath, locale, key, value);
