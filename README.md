@@ -35,6 +35,7 @@
 - ⚡ **Atomic File Operations:** Prevents Next.js hot module replacement (HMR) reading corrupt half-written files via atomic temp-to-final writes.
 - 🔒 **Secure Local Boundaries:** Restricts directory traversal, verifies origins, and supports deep schemas up to 30 levels of recursion.
 - 🤖 **CLI Migration Tool:** Automatically parses and wraps standard `react-i18next` hooks with a single command.
+- 🧩 **Placeholder safety:** Saves that drop or invent a `{placeholder}`, `{{interpolation}}`, `%s`, or `<tag>` are held back with a clear warning, and broken ICU plural/select syntax is rejected, unless you choose Save anyway.
 - 🌍 **Preview mode for non-developers:** Run a token-protected Studio against a preview deployment; every save becomes a commit on a GitHub branch and one click opens the pull request.
 - 🧾 **Review, commit, undo:** The Studio's Changes panel shows git status and a diff of your locale files, commits them with a message, discards them, and undoes any edit from the session.
 - 🩺 **Doctor:** `npx next-i18n-lens doctor` finds the usual integration mistakes before you open the Studio.
@@ -272,6 +273,27 @@ createI18nLensHandler({ localesPath: path.resolve('./locales'), git: false });
 Rewrites keep your files diff-friendly: the existing indentation unit (tabs, 2 or 4 spaces) and
 trailing newline are preserved.
 
+## 🧩 Placeholder safety
+
+Most production incidents caused by copy edits come from a placeholder that went missing. The
+Studio and the API guard against that:
+
+- The editor shows the placeholders found in the reference text as chips. A chip turns red when
+  your translation no longer contains it and amber when you introduce one the reference lacks.
+- On save, the server compares the placeholder sets of the reference and the new value. A
+  mismatch answers `422 PLACEHOLDER_MISMATCH` and the Studio shows the reason with **Save
+  anyway** and **Keep editing**.
+- Structurally broken ICU messages (unbalanced braces, a `plural`/`select` without an `other`
+  branch) answer `422 MESSAGE_SYNTAX` with the same override.
+
+Recognised syntaxes: ICU/next-intl/react-intl `{name}`, `{count, plural, …}` (with apostrophe
+quoting), i18next `{{name}}` and `$t(key)`, printf `%s` / `%1$s`, and rich-text tags such as
+`<b>` or `<0>`. The reference is the source-language value for other locales, and the previous
+value when you edit the source language itself.
+
+For API clients: send `reference` with the POST to enable the check, and `force: true` to bypass
+it. Without `reference` only the syntax check runs.
+
 ## 🌍 Preview mode: editing without a checkout
 
 Development mode needs a developer's machine. Preview mode lets a product manager, translator, or
@@ -317,6 +339,9 @@ NEXT_PUBLIC_I18N_LENS=preview     # client bundle: run the scanner and clipboard
 I18N_LENS_TOKEN=<long random>     # required; the Studio asks for it once per browser session
 GITHUB_TOKEN=<fine-grained PAT>   # contents + pull requests on the repository
 ```
+
+For a Vite app, the Vite plugin mirrors the server's `I18N_LENS` flag into the page, so
+`I18N_LENS=preview` alone is enough; no `NEXT_PUBLIC_` variable is needed there.
 
 Then open the Studio with `?app=https://<preview-url>` (or `studio --app`). It shows a
 **PREVIEW** badge, asks for the access token, and the Changes panel switches to branch and

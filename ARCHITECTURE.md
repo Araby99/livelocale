@@ -56,7 +56,8 @@ Every "is this on?" decision calls `getLensMode()` / `isLensEnabled()`. Modes: `
 `I18N_LENS=force`), `preview` (explicit `I18N_LENS=preview` or `NEXT_PUBLIC_I18N_LENS=preview`,
 works in production builds, skips the platform guard), and `off`. The kill switch always wins.
 `process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_I18N_LENS` are referenced literally so bundlers
-can inline them.
+can inline them; in the browser `window.__I18N_LENS_FLAG__` is a bundler-agnostic fallback that
+the Vite plugin injects from the server's `I18N_LENS`.
 
 ### 1. Watermark codec (`src/client/watermark.ts`)
 
@@ -85,6 +86,15 @@ This file has no `'use client'` directive on purpose so it can be imported by Se
 and returns the wrapped object. Parses are cached by `core/json-cache.ts` keyed on mtime and size, so
 steady-state renders cost one `stat` per file.
 
+### 3b. Placeholder analysis (`src/core/placeholders.ts`)
+
+`extractPlaceholders` turns a message into a sorted set of canonical tokens (`{name}`,
+`{{name}}`, `%s`, `<b>`, `$t(key)`) using a small recursive-descent ICU walker that understands
+typed arguments, `plural`/`select` branches and apostrophe quoting. `comparePlaceholders` diffs
+two sets; `validateMessageSyntax` reports unbalanced braces or a `plural`/`select` without
+`other`. The router runs both on every write unless `force: true`; the Studio runs the first one
+live for the placeholder chips.
+
 ### 4. Mutation router (`src/server/router.ts`)
 
 The single implementation of the API. Both the Next.js handler and the Vite middleware are thin
@@ -94,6 +104,8 @@ adapters that translate their request shape into `RouterRequest` and back. Rules
 - POST origin must be localhost, in `allowedOrigins`, or in `I18N_LENS_ALLOWED_ORIGINS`,
 - POST content-type must be JSON,
 - locale, key, and value are validated by `src/core/validate.ts`,
+- the value must keep the reference's placeholders and parse as ICU (422 otherwise, bypass with
+  `force`),
 - `GET` lists locales, returns a locale dictionary, or `?action=keys` returns key metadata.
 
 `MutationGateway` is the port the router writes through; `FileMutator` is its adapter.

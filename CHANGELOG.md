@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-10-15
+
+### Minor Changes
+
+- Milestone five: placeholder-safe editing.
+
+  **Added**
+  - **Placeholder safety.** The mutation API compares the placeholders of a new value with the `reference` sent by the client and rejects mismatches with `422 PLACEHOLDER_MISMATCH` (details list missing and extra tokens). Structurally broken ICU messages are rejected with `422 MESSAGE_SYNTAX`. `force: true` bypasses both.
+  - The Studio editor shows placeholder chips (present, missing, extra) live, sends the reference with each save, and turns a 422 into a warning with **Save anyway** / **Keep editing**.
+  - `core/placeholders` exports `extractPlaceholders`, `comparePlaceholders`, and `validateMessageSyntax` covering ICU/next-intl/react-intl, i18next, printf and rich-text tags.
+  - Vite parity for preview mode: the Vite plugin mirrors `I18N_LENS` into the page as `window.__I18N_LENS_FLAG__`, which the client reads when no `NEXT_PUBLIC_` variable is inlined.
+
+  **Changed**
+  - The translation textarea, the reference box, and sidebar values use `dir="auto"`, so right-to-left text renders correctly.
+
 ## [0.4.0] - 2026-10-15
 
 ### Minor Changes
