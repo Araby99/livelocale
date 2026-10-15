@@ -3,19 +3,12 @@ import * as path from 'path';
 import { isSafeLocaleSegment } from '../core/validate.js';
 import { LOCALE_RE } from '../core/validate.js';
 import { DANGEROUS_KEY_SEGMENTS } from '../core/validate.js';
+import { resolveSafeLocalePath } from '../core/safe-path.js';
+import { setNestedProperty, detectJsonIndent } from '../core/json-path.js';
 import { KeyScanner } from './key-scanner.js';
 import { getDisabledReason } from '../core/env.js';
 
-/**
- * Detects the indentation unit of an existing JSON document so rewrites keep
- * the project's style (tabs, 2 or 4 spaces). Defaults to two spaces.
- */
-export function detectJsonIndent(content: string): string {
-  const match = /^([ \t]+)"/m.exec(content);
-  if (!match) return '  ';
-  const ws = match[1]!;
-  return ws.includes('\t') ? '\t' : ws;
-}
+export { detectJsonIndent };
 
 function assertEnabled(component: string): void {
   const reason = getDisabledReason();
@@ -152,7 +145,7 @@ export class FileMutator {
 
       // Update nested property using safe array traversal (RULE SEC-003 & RULE SRV-003)
       if (mutationKeyPath) {
-        this.setNestedProperty(currentData, mutationKeyPath, newValue);
+        setNestedProperty(currentData, mutationKeyPath, newValue);
       } else {
         // Root value mutation inside split JSON files (rare but possible: e.g. key has no dot)
         throw new Error(
@@ -202,46 +195,32 @@ export class FileMutator {
   }
 
   /**
-   * Traverse dynamic dot paths and insert/update property keys.
-   * Limits key depth to 30 levels to prevent stack overflow.
+   * Returns the full dictionary for a locale: a flat `{locale}.json`, or every
+   * `*.json` inside the `{locale}/` folder merged under its namespace.
    */
-  private setNestedProperty(obj: Record<string, any>, keyPath: string, value: string): void {
-    const keys = keyPath.split('.');
+  async readLocale(basePath: string, locale: string): Promise<Record<string, any>> {
+    assertEnabled('FileMutator');
+    const localePath = path.resolve(basePath, locale);
+    let isDir = false;
+    try {
+      isDir = (await fs.stat(localePath)).isDirectory();
+    } catch {}
 
-    // RULE SRV-003: KEY DEPTH LIMIT
-    if (keys.length > 30) {
-      throw new Error(`[i18n-lens] Key depth limit exceeded. Maximum depth is 30 levels.`);
-    }
-
-    // RULE SEC-005: PROTOTYPE-POLLUTION PREVENTION
-    if (keys.some((k) => DANGEROUS_KEY_SEGMENTS.has(k))) {
-      throw new Error(
-        `[i18n-lens] Forbidden key segment in path: "${keyPath}". Segment names like __proto__, constructor, and prototype are not allowed.`
-      );
-    }
-
-    let current = obj;
-    for (let i = 0; i < keys.length; i++) {
-      const key = keys[i]!;
-
-      // If we are at the target key leaf
-      if (i === keys.length - 1) {
-        current[key] = value;
-        return;
+    if (isDir) {
+      const merged: Record<string, any> = {};
+      for (const file of await fs.readdir(localePath)) {
+        if (!file.endsWith('.json')) continue;
+        try {
+          merged[path.basename(file, '.json')] = JSON.parse(
+            await fs.readFile(path.join(localePath, file), 'utf-8')
+          );
+        } catch {}
       }
-
-      // Handle intermediate object mapping
-      if (
-        !(key in current) ||
-        current[key] === null ||
-        typeof current[key] !== 'object' ||
-        Array.isArray(current[key])
-      ) {
-        current[key] = {};
-      }
-
-      current = current[key];
+      return merged;
     }
+
+    const filePath = resolveSafeLocalePath(basePath, locale);
+    return JSON.parse(await fs.readFile(filePath, 'utf-8'));
   }
 
   /**

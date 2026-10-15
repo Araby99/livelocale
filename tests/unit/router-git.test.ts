@@ -13,6 +13,7 @@ function makeMutator(): MutationGateway {
   return {
     updateLocaleKey: vi.fn().mockResolvedValue(undefined),
     listLocales: vi.fn().mockResolvedValue(['en']),
+    readLocale: vi.fn().mockResolvedValue({}),
     addLocale: vi.fn().mockResolvedValue(undefined),
     renameLocale: vi.fn().mockResolvedValue(undefined),
     deleteLocale: vi.fn().mockResolvedValue(undefined),

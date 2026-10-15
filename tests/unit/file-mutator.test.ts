@@ -465,4 +465,32 @@ describe('FileMutator', () => {
     await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
     expect(writtenText()).toBe('{\n  "greeting": "Hi"\n}\n');
   });
+  // ─── readLocale ───────────────────────────────────────────────────────────
+
+  it('should read a flat locale file', async () => {
+    vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
+    vi.mocked(fs.readFile).mockResolvedValue('{"greeting":"Hello"}');
+    expect(await mutator.readLocale(BASE_PATH, 'en')).toEqual({ greeting: 'Hello' });
+  });
+
+  it('should merge namespace files when the locale is a directory', async () => {
+    vi.mocked(fs.stat).mockResolvedValue({ isDirectory: () => true } as any);
+    vi.mocked(fs.readdir).mockResolvedValue([
+      'common.json' as any,
+      'auth.json' as any,
+      'notes.txt' as any,
+    ]);
+    vi.mocked(fs.readFile)
+      .mockResolvedValueOnce('{"title":"Welcome"}')
+      .mockResolvedValueOnce('{"login":"Log In"}');
+    expect(await mutator.readLocale(BASE_PATH, 'en')).toEqual({
+      common: { title: 'Welcome' },
+      auth: { login: 'Log In' },
+    });
+  });
+
+  it('should reject a locale that escapes the locales directory', async () => {
+    vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
+    await expect(mutator.readLocale(BASE_PATH, '../secrets')).rejects.toThrow(/traversal/i);
+  });
 });

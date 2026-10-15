@@ -18,6 +18,7 @@ vi.mock('../../src/server/file-mutator.js', () => {
       return {
         updateLocaleKey: vi.fn().mockResolvedValue(undefined),
         listLocales: vi.fn().mockResolvedValue(['en', 'ar', 'es']),
+        readLocale: vi.fn().mockResolvedValue({}),
         addLocale: vi.fn().mockResolvedValue(undefined),
         renameLocale: vi.fn().mockResolvedValue(undefined),
         deleteLocale: vi.fn().mockResolvedValue(undefined),

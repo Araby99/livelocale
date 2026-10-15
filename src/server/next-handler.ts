@@ -1,5 +1,6 @@
 import { FileMutator } from './file-mutator.js';
 import { GitClient } from './git-client.js';
+import { createGitHubGateway, type GitHubGatewayConfig } from './github-gateway.js';
 import { createMutationRouter, MAX_BODY_BYTES, type RouterResponse } from './router.js';
 import {
   readNodeBody,
@@ -10,6 +11,7 @@ import {
 } from './node-body.js';
 
 export interface HandlerConfig {
+  /** Locales directory: absolute on disk, or repository-relative when `github` is set. */
   localesPath: string;
   allowedOrigins?: string[];
   /**
@@ -22,6 +24,12 @@ export interface HandlerConfig {
    * environment variable. Mandatory in preview mode.
    */
   authToken?: string;
+  /**
+   * Store translations on a GitHub branch instead of the local filesystem
+   * (preview mode for hosted editing). Each save becomes a commit; the
+   * Studio's commit action opens a pull request.
+   */
+  github?: GitHubGatewayConfig;
 }
 
 /**
@@ -54,11 +62,13 @@ function isNodeResponse(value: unknown): value is NodeResponseLike {
  * unified mutation router. Handles GET, POST, and OPTIONS requests.
  */
 export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
-  const mutator = new FileMutator();
+  const github = config.github ? createGitHubGateway(config.github) : null;
+  const mutator = github ?? new FileMutator();
+  const git = github ?? (config.git === false ? undefined : new GitClient());
   const router = createMutationRouter(mutator, {
     localesPath: config.localesPath,
     allowedOrigins: config.allowedOrigins,
-    git: config.git === false ? undefined : new GitClient(),
+    git,
     authToken: config.authToken ?? process.env['I18N_LENS_TOKEN'],
   });
 

@@ -92,7 +92,7 @@ export class GitClient implements GitGateway {
       }
     } catch {}
 
-    return { isRepo: true, branch, changes };
+    return { isRepo: true, branch, changes, mode: 'local', pullRequestUrl: null };
   }
 
   async diff(localesPath: string): Promise<string> {

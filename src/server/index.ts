@@ -11,6 +11,12 @@ export {
   type GitChange,
 } from './router.js';
 export { GitClient } from './git-client.js';
+export {
+  createGitHubGateway,
+  type GitHubGateway,
+  type GitHubGatewayConfig,
+} from './github-gateway.js';
+export { getLensMode, isLensEnabled, type LensMode } from '../core/env.js';
 
 // Watermark utilities — used in Server Components to encode translation keys
 // as invisible zero-width prefixes during SSR, enabling plug-and-play detection

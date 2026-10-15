@@ -19,6 +19,7 @@ vi.mock('../../src/server/file-mutator.js', () => {
       return {
         updateLocaleKey: vi.fn().mockResolvedValue(undefined),
         listLocales: vi.fn().mockResolvedValue(['en', 'ar', 'es']),
+        readLocale: vi.fn().mockResolvedValue({ greeting: 'Hello' }),
         addLocale: vi.fn().mockResolvedValue(undefined),
         renameLocale: vi.fn().mockResolvedValue(undefined),
         deleteLocale: vi.fn().mockResolvedValue(undefined),
@@ -207,8 +208,6 @@ describe('createI18nLensHandler', () => {
 
   it('should handle GET requests and load flat locale JSON file', async () => {
     const handler = createI18nLensHandler(config);
-    vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT')); // not a directory
-    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ greeting: 'Hello' }));
 
     const request = new Request('http://localhost:3000/api/mutate?locale=en', {
       method: 'GET',
@@ -218,15 +217,17 @@ describe('createI18nLensHandler', () => {
     expect(response.status).toBe(200);
     const data = await response.json();
     expect(data.greeting).toBe('Hello');
+    const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+    expect(mutatorInstance.readLocale).toHaveBeenCalledWith(config.localesPath, 'en');
   });
 
   it('should handle GET requests and merge split namespace files when locale path is a directory', async () => {
     const handler = createI18nLensHandler(config);
-    vi.mocked(fs.stat).mockResolvedValue({ isDirectory: () => true } as any);
-    vi.mocked(fs.readdir).mockResolvedValue(['common.json' as any, 'auth.json' as any]);
-    vi.mocked(fs.readFile)
-      .mockResolvedValueOnce(JSON.stringify({ title: 'Welcome' })) // common.json
-      .mockResolvedValueOnce(JSON.stringify({ login: 'Log In' })); // auth.json
+    const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+    vi.mocked(mutatorInstance.readLocale).mockResolvedValue({
+      common: { title: 'Welcome' },
+      auth: { login: 'Log In' },
+    });
 
     const request = new Request('http://localhost:3000/api/mutate?locale=en', {
       method: 'GET',

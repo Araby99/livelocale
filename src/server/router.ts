@@ -1,6 +1,3 @@
-import { promises as fs } from 'fs';
-import * as path from 'path';
-import { resolveSafeLocalePath } from '../core/safe-path.js';
 import { getDisabledReason, getLensMode } from '../core/env.js';
 import {
   isValidKeyFormat,
@@ -17,6 +14,8 @@ import {
 export interface MutationGateway {
   updateLocaleKey(basePath: string, locale: string, key: string, value: string): Promise<void>;
   listLocales(basePath: string): Promise<string[]>;
+  /** Full dictionary for one locale (namespace folders merged). Rejects when missing. */
+  readLocale(basePath: string, locale: string): Promise<Record<string, any>>;
   addLocale(basePath: string, locale: string): Promise<void>;
   renameLocale(basePath: string, locale: string, newLocale: string): Promise<void>;
   deleteLocale(basePath: string, locale: string): Promise<void>;
@@ -35,6 +34,10 @@ export interface GitStatus {
   isRepo: boolean;
   branch: string | null;
   changes: GitChange[];
+  /** `local` = git CLI on the developer machine, `github` = branch + pull request via API. */
+  mode?: 'local' | 'github';
+  /** Open pull request for the branch, when the gateway knows about one. */
+  pullRequestUrl?: string | null;
 }
 
 /**
@@ -218,31 +221,7 @@ export function createMutationRouter(
     }
 
     try {
-      const localePath = path.resolve(basePath, locale);
-      let isDir = false;
-      try {
-        const stats = await fs.stat(localePath);
-        isDir = stats.isDirectory();
-      } catch {}
-
-      if (isDir) {
-        const files = await fs.readdir(localePath);
-        const merged: Record<string, any> = {};
-        for (const file of files) {
-          if (file.endsWith('.json')) {
-            const ns = path.basename(file, '.json');
-            try {
-              const content = await fs.readFile(path.join(localePath, file), 'utf-8');
-              merged[ns] = JSON.parse(content);
-            } catch {}
-          }
-        }
-        return json(200, headers, merged);
-      } else {
-        const filePath = resolveSafeLocalePath(basePath, locale);
-        const fileContent = await fs.readFile(filePath, 'utf-8');
-        return json(200, headers, JSON.parse(fileContent));
-      }
+      return json(200, headers, await mutator.readLocale(basePath, locale));
     } catch (readErr: any) {
       return json(404, headers, {
         error: `Failed to load locale: ${readErr.message}`,
