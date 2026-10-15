@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-10-15
+
+### Minor Changes
+
+- Milestone six: accurate keys and plural forms.
+
+  **Added**
+  - **Plural forms editor** in the Studio: a message that is a single ICU `plural` / `select` / `selectordinal` argument is edited one branch per field, with the active locale's CLDR categories (via `Intl.PluralRules`) pre-populated and missing required categories flagged. "Edit raw" switches back to the textarea. `core/icu-plural` exports `parsePluralMessage`, `buildPluralMessage` and `pluralCategoriesFor`.
+  - **Namespace-aware key scanning**: `extractKeys` resolves the namespace bound to each translator variable from `useTranslations('ns')`, `getTranslations('ns')`, `useTranslation('ns')`, `wrapNextIntl(…, 'ns')` and `wrapTranslationEngine(…, { keyPrefix })`, handles several translator variables per file, `t.rich`/`t.raw`/`t.markup`/`t.has`, and template-literal keys without expressions, while skipping dynamic keys and look-alike identifiers.
+  - A playground plural key and an end-to-end test for the structured editor.
+
 ## [0.5.0] - 2026-10-15
 
 ### Minor Changes

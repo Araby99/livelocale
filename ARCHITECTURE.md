@@ -86,6 +86,14 @@ This file has no `'use client'` directive on purpose so it can be imported by Se
 and returns the wrapped object. Parses are cached by `core/json-cache.ts` keyed on mtime and size, so
 steady-state renders cost one `stat` per file.
 
+### 3a. Plural structure (`src/core/icu-plural.ts`)
+
+`parsePluralMessage` recognises a message that is exactly one top-level `plural` / `select` /
+`selectordinal` argument (with optional surrounding text, apostrophe quoting respected) and
+returns its variable, offset, branches and prefix/suffix verbatim; `buildPluralMessage` is its
+inverse; `pluralCategoriesFor` lists the CLDR categories a locale needs via `Intl.PluralRules`.
+The Studio's `PluralEditor` edits one branch per field and rebuilds the message on every change.
+
 ### 3b. Placeholder analysis (`src/core/placeholders.ts`)
 
 `extractPlaceholders` turns a message into a sorted set of canonical tokens (`{name}`,
@@ -136,8 +144,10 @@ argument as a Web `Request`. Body reading for Node requests is shared with the V
 promise-chain mutex, validates the parsed JSON root, sets the nested key with depth and
 prototype-pollution guards, then writes `file.tmp` and renames it over the target so a concurrent
 HMR read never sees a half-written file. The rewrite preserves the file's indentation unit and
-trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')` and `t.a.b` references in
-source files with regexes and merges them with keys present in the locale files. Scans are
+trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')`, `t.rich('…')` and `t.a.b` references in source files with regexes,
+prefixes them with the namespace bound to that translator variable in the same file
+(`useTranslations('ns')`, `getTranslations`, `useTranslation('ns')`, `wrapNextIntl`,
+`wrapTranslationEngine({ keyPrefix })`), and merges them with keys present in the locale files. Scans are
 incremental (per-file mtime and size cache), honour the root `.gitignore` through
 `core/gitignore.ts`, and skip declaration files and files over 1 MB.
 
@@ -197,7 +207,8 @@ CI runs format, lint, typecheck, unit tests with coverage thresholds, and E2E.
 
 ## Known limitations
 
-- Key extraction is regex-based; it cannot follow dynamic keys or aliased `t` functions.
+- Key extraction is regex-based: namespaces are resolved per file, not across imports, and
+  dynamic keys are skipped.
 - JSON only. No ICU plural forms, YAML, or gettext.
 - The Studio is English-only. History and undo are per browser session (not persisted).
 - Locale detection from the embedded app's URL is a heuristic (`?locale=` or a two-letter path

@@ -35,6 +35,8 @@
 - ⚡ **Atomic File Operations:** Prevents Next.js hot module replacement (HMR) reading corrupt half-written files via atomic temp-to-final writes.
 - 🔒 **Secure Local Boundaries:** Restricts directory traversal, verifies origins, and supports deep schemas up to 30 levels of recursion.
 - 🤖 **CLI Migration Tool:** Automatically parses and wraps standard `react-i18next` hooks with a single command.
+- 🔢 **Plural forms editor:** ICU `plural` / `select` messages are edited one branch at a time, with the categories your locale needs (Arabic gets all six) pre-filled from CLDR rules.
+- 🧭 **Namespace-aware key scanning:** `useTranslations('home')`, `getTranslations`, `useTranslation('auth')`, and the wrap helpers are understood, so the Locale Directory shows `home.title`, not a false "missing" `title`.
 - 🧩 **Placeholder safety:** Saves that drop or invent a `{placeholder}`, `{{interpolation}}`, `%s`, or `<tag>` are held back with a clear warning, and broken ICU plural/select syntax is rejected, unless you choose Save anyway.
 - 🌍 **Preview mode for non-developers:** Run a token-protected Studio against a preview deployment; every save becomes a commit on a GitHub branch and one click opens the pull request.
 - 🧾 **Review, commit, undo:** The Studio's Changes panel shows git status and a diff of your locale files, commits them with a message, discards them, and undoes any edit from the session.
@@ -273,6 +275,19 @@ createI18nLensHandler({ localesPath: path.resolve('./locales'), git: false });
 Rewrites keep your files diff-friendly: the existing indentation unit (tabs, 2 or 4 spaces) and
 trailing newline are preserved.
 
+## 🔢 Editing plural forms
+
+When a message is a single ICU `plural`, `select`, or `selectordinal` argument, optionally with text
+around it, the editor replaces the textarea with one field per branch:
+
+- Fields are the union of the branches already in the message (including explicit cases such as
+  `=0`) and the CLDR categories of the active locale, from `Intl.PluralRules`. English shows
+  `one` and `other`; Arabic shows `zero`, `one`, `two`, `few`, `many`, `other`; Japanese shows
+  `other` only. Required categories that are still empty are flagged.
+- `#` stands for the number. Text before and after the argument is editable separately.
+- Empty branches are dropped from the saved message, except `other`, which ICU requires.
+- **Edit raw** switches back to the plain textarea at any time.
+
 ## 🧩 Placeholder safety
 
 Most production incidents caused by copy edits come from a placeholder that went missing. The
@@ -413,6 +428,11 @@ export const config = { matcher: ['/((?!api/i18n-lens).*)'] };
 
 **Not sure which of these applies?** Run `npx next-i18n-lens doctor --app <origin>`; it names
 the exact file and header involved.
+
+**Namespaced hooks.** The key scanner reads the namespace from `useTranslations('ns')`,
+`getTranslations('ns')`, `useTranslation('ns')`, `wrapNextIntl(…, 'ns')`, and
+`wrapTranslationEngine(…, { keyPrefix: 'ns' })` in each file, and prefixes the keys it finds. It
+does not follow translator functions passed between files or chosen at run time.
 
 **Monorepos.** `localesPath` is resolved relative to the process working directory of the app, so
 point it at the package that owns the locale files, for example `path.resolve('./src/locales')`.
