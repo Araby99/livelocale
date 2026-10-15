@@ -4,6 +4,7 @@ import { FileMutator } from './file-mutator.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
 import { readNodeBody } from './node-body.js';
 import { deepMerge } from '../core/deep-merge.js';
+import { isLensEnabled } from '../core/env.js';
 
 export interface VitePluginConfig {
   /** Absolute or relative path to the directory containing your locale JSON files. */
@@ -71,7 +72,7 @@ export function i18nLensVite(config: VitePluginConfig) {
     },
 
     transformIndexHtml(html: string) {
-      if (process.env['NODE_ENV'] === 'production') {
+      if (!isLensEnabled()) {
         return html;
       }
       try {

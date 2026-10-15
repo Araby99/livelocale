@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { resolveSafeLocalePath } from '../core/safe-path.js';
+import { getDisabledReason } from '../core/env.js';
 import {
   isValidKeyFormat,
   isValidLocaleFormat,
@@ -267,9 +268,10 @@ export function createMutationRouter(
       const headers = corsHeaders(request.origin);
 
       // RULE GEN-001: DEVELOPMENT-ONLY ENFORCEMENT
-      if (process.env['NODE_ENV'] !== 'development') {
+      const disabledReason = getDisabledReason();
+      if (disabledReason !== null) {
         return json(403, headers, {
-          error: 'Forbidden: next-i18n-lens can only be run in development mode.',
+          error: `Forbidden: i18n Lens is disabled — ${disabledReason}. It only runs in development mode.`,
           code: 'FORBIDDEN',
         });
       }

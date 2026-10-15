@@ -2,6 +2,7 @@ import { readFileSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { wrapTranslationEngine } from '../client/wrap.js';
 import { deepMerge } from '../core/deep-merge.js';
+import { isLensEnabled } from '../core/env.js';
 
 export interface CreateTranslationsOptions {
   /**
@@ -103,7 +104,7 @@ export function createTranslations(
   }
 
   let fallbackData: Record<string, any> = {};
-  if (typeof process !== 'undefined' && process.env.NODE_ENV === 'development') {
+  if (isLensEnabled()) {
     try {
       const entries = readdirSync(localesDir);
       if (Array.isArray(entries)) {

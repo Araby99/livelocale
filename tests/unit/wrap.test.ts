@@ -19,6 +19,12 @@ describe('wrapTranslationEngine', () => {
     expect(wrapped).toBe(engine);
   });
 
+  it('should return the original engine unchanged when I18N_LENS=off', () => {
+    vi.stubEnv('I18N_LENS', 'off');
+    const engine = { welcome: 'Hello' };
+    expect(wrapTranslationEngine(engine)).toBe(engine);
+  });
+
   it('should watermark existing properties in development', () => {
     const engine = { welcome: 'Hello' };
     const wrapped = wrapTranslationEngine(engine);

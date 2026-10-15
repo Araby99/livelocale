@@ -438,4 +438,15 @@ describe('createI18nLensHandler', () => {
     const response = await handler(request);
     expect(response.status).toBe(403);
   });
+  it('should return 403 when the I18N_LENS kill switch is set, even in development', async () => {
+    vi.stubEnv('I18N_LENS', 'off');
+    const handler = createI18nLensHandler(config);
+    const request = new Request('http://localhost:3000/api/mutate', { method: 'GET' });
+
+    const response = await handler(request);
+    expect(response.status).toBe(403);
+    const data = await response.json();
+    expect(data.code).toBe('FORBIDDEN');
+    expect(data.error).toContain('I18N_LENS');
+  });
 });

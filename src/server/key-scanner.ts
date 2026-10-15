@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { isSafeLocaleSegment } from '../core/validate.js';
+import { getDisabledReason } from '../core/env.js';
 
 const IGNORE_DIRS = [
   'node_modules',
@@ -42,8 +43,11 @@ export class KeyScanner {
    * Scans codebase directory recursively for references to translation keys.
    */
   async scanCodebaseKeys(basePath: string): Promise<string[]> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] KeyScanner can only be executed in development mode.');
+    const reason = getDisabledReason();
+    if (reason !== null) {
+      throw new Error(
+        `[i18n-lens] KeyScanner can only be executed in development mode (${reason}).`
+      );
     }
 
     const resolvedBasePath = path.resolve(basePath);
@@ -108,8 +112,11 @@ export class KeyScanner {
     basePath: string,
     listLocales: (base: string) => Promise<string[]>
   ): Promise<string[]> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] KeyScanner can only be executed in development mode.');
+    const reason = getDisabledReason();
+    if (reason !== null) {
+      throw new Error(
+        `[i18n-lens] KeyScanner can only be executed in development mode (${reason}).`
+      );
     }
 
     const locales = await listLocales(basePath);

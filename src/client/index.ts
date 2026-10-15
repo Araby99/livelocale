@@ -3,6 +3,7 @@
 import { DOMInterceptor } from './dom-interceptor.js';
 import { IframeBridge } from './iframe-bridge.js';
 import { decodeKey } from './watermark.js';
+import { isLensEnabled } from '../core/env.js';
 
 export { DOMInterceptor } from './dom-interceptor.js';
 export {
@@ -70,7 +71,7 @@ function restorePreviews(): void {
 // AND only when the page is embedded inside the studio iframe (not accessed directly).
 if (
   typeof window !== 'undefined' &&
-  process.env.NODE_ENV === 'development' &&
+  isLensEnabled() &&
   window.parent !== window // <-- iframe guard: only activate inside the studio
 ) {
   const urlParams = new URLSearchParams(window.location.search);

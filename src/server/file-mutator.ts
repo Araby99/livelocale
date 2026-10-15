@@ -4,6 +4,16 @@ import { isSafeLocaleSegment } from '../core/validate.js';
 import { LOCALE_RE } from '../core/validate.js';
 import { DANGEROUS_KEY_SEGMENTS } from '../core/validate.js';
 import { KeyScanner } from './key-scanner.js';
+import { getDisabledReason } from '../core/env.js';
+
+function assertEnabled(component: string): void {
+  const reason = getDisabledReason();
+  if (reason !== null) {
+    throw new Error(
+      `[i18n-lens] ${component} can only be executed in development mode (${reason}).`
+    );
+  }
+}
 
 class FileMutex {
   private queue: Promise<any> = Promise.resolve();
@@ -47,9 +57,7 @@ export class FileMutator {
     newValue: string
   ): Promise<void> {
     // RULE GEN-001: DEVELOPMENT-ONLY ENFORCEMENT
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
-    }
+    assertEnabled('FileMutator');
 
     // RULE SRV-002: PATH TRAVERSAL PREVENTION
     // Reject any locale string containing invalid characters
@@ -223,9 +231,7 @@ export class FileMutator {
    * Lists all locale codes dynamically scanned from the locales directory.
    */
   async listLocales(basePath: string): Promise<string[]> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
-    }
+    assertEnabled('FileMutator');
 
     const resolvedBasePath = path.resolve(basePath);
     const items = await fs.readdir(resolvedBasePath, { withFileTypes: true });
@@ -251,9 +257,7 @@ export class FileMutator {
    * Adds a new locale directory/file based on current repository structure.
    */
   async addLocale(basePath: string, locale: string): Promise<void> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
-    }
+    assertEnabled('FileMutator');
 
     if (!isSafeLocaleSegment(locale)) {
       throw new Error(
@@ -323,9 +327,7 @@ export class FileMutator {
    * Renames an existing locale (directory or file) to a new name.
    */
   async renameLocale(basePath: string, oldLocale: string, newLocale: string): Promise<void> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
-    }
+    assertEnabled('FileMutator');
 
     if (!isSafeLocaleSegment(oldLocale) || !isSafeLocaleSegment(newLocale)) {
       throw new Error('[i18n-lens] Path traversal attempt detected');
@@ -392,9 +394,7 @@ export class FileMutator {
    * Deletes an existing locale (directory or file).
    */
   async deleteLocale(basePath: string, locale: string): Promise<void> {
-    if (process.env['NODE_ENV'] !== 'development') {
-      throw new Error('[i18n-lens] FileMutator can only be executed in development mode.');
-    }
+    assertEnabled('FileMutator');
 
     if (!isSafeLocaleSegment(locale)) {
       throw new Error('[i18n-lens] Path traversal attempt detected');

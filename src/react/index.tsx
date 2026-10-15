@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { isLensEnabled } from '../core/env.js';
 
 /**
  * Next-i18n-lens provider component.
@@ -11,7 +12,7 @@ import { useEffect } from 'react';
  */
 export function I18nLensProvider(): null {
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
+    if (isLensEnabled()) {
       import('../client/index.js').catch((err) => {
         console.error('Failed to load next-i18n-lens client:', err);
       });

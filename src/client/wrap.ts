@@ -1,4 +1,5 @@
 import { encodeKey } from './watermark.js';
+import { isLensEnabled } from '../core/env.js';
 
 export interface WrapOptions {
   /**
@@ -48,7 +49,7 @@ function extractKey(arg: unknown, keyPrefix: string): string {
  * engine is returned as-is.
  */
 export function wrapTranslationEngine<T extends object>(engine: T, options: WrapOptions = {}): T {
-  if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'development') {
+  if (!isLensEnabled()) {
     return engine;
   }
 

@@ -1,4 +1,5 @@
 import { decodeKey, stripWatermark, sanitizeZeroWidth } from './watermark.js';
+import { isLensEnabled } from '../core/env.js';
 
 // Debounce helper: delays executing fn until after wait ms have elapsed
 // since the last call. Returns a cancel function.
@@ -79,7 +80,7 @@ export class DOMInterceptor {
    */
   init(): void {
     // RULE CLT-004: INIT GUARD
-    if (process.env.NODE_ENV !== 'development') {
+    if (!isLensEnabled()) {
       return;
     }
 
