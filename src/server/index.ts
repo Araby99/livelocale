@@ -14,4 +14,5 @@ export {
   stripWatermark,
   sanitizeZeroWidth,
   hasWatermark,
+  unwrap,
 } from '../client/watermark.js';

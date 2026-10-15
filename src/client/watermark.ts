@@ -106,3 +106,24 @@ export function sanitizeZeroWidth(text: string): string {
 export function hasWatermark(text: string): boolean {
   return text.startsWith(DELIM);
 }
+
+/**
+ * Deeply strips watermark prefixes from a value: strings are cleaned with
+ * `stripWatermark`, arrays and plain objects are rebuilt with cleaned members,
+ * everything else is returned as-is. The input is never mutated.
+ *
+ * Use it wherever a translated string must be compared, measured, serialized
+ * or handed to code that is not display-only, e.g. `unwrap(t('yes')) === 'Yes'`.
+ */
+export function unwrap<T>(value: T): T {
+  if (typeof value === 'string') return stripWatermark(value) as T;
+  if (Array.isArray(value)) return value.map((item) => unwrap(item)) as T;
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const key of Object.keys(value as Record<string, unknown>)) {
+      out[key] = unwrap((value as Record<string, unknown>)[key]);
+    }
+    return out as T;
+  }
+  return value;
+}

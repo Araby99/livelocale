@@ -6,6 +6,7 @@ import {
   stripWatermark,
   sanitizeZeroWidth,
   hasWatermark,
+  unwrap,
 } from '../../src/client/watermark.js';
 
 // ─── Constants (mirrors watermark.ts internals) ───────────────────────────
@@ -199,5 +200,40 @@ describe('hasWatermark', () => {
 
   it('should return false for an empty string', () => {
     expect(hasWatermark('')).toBe(false);
+  });
+});
+
+// ─── unwrap ──────────────────────────────────────────────────────────────
+describe('unwrap', () => {
+  it('should strip the watermark from a plain string', () => {
+    expect(unwrap(encodeKey('Hello', 'home.title'))).toBe('Hello');
+  });
+
+  it('should return non-watermarked values untouched', () => {
+    expect(unwrap('Hello')).toBe('Hello');
+    expect(unwrap(42)).toBe(42);
+    expect(unwrap(null)).toBe(null);
+    expect(unwrap(undefined)).toBe(undefined);
+  });
+
+  it('should strip watermarks deeply inside objects and arrays', () => {
+    const input = {
+      a: encodeKey('A', 'k.a'),
+      list: [encodeKey('B', 'k.b'), 3, { c: encodeKey('C', 'k.c') }],
+      n: null,
+    };
+    expect(unwrap(input)).toEqual({ a: 'A', list: ['B', 3, { c: 'C' }], n: null });
+  });
+
+  it('should not mutate the input object', () => {
+    const input = { a: encodeKey('A', 'k.a') };
+    const copy = { ...input };
+    unwrap(input);
+    expect(input).toEqual(copy);
+  });
+
+  it('should leave legitimate zero-width characters inside the visible text alone', () => {
+    const persian = 'می‌خواهم'; // contains ZWNJ
+    expect(unwrap(encodeKey(persian, 'fa.key'))).toBe(persian);
   });
 });

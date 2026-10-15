@@ -18,6 +18,7 @@ export {
   stripWatermark,
   sanitizeZeroWidth,
   hasWatermark,
+  unwrap,
 } from './watermark.js';
 
 // wrapTranslationEngine lives in wrap.ts (no 'use client') so it can also be
