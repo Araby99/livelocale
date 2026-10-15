@@ -55,7 +55,7 @@ export const useConnection = (handlers: ConnectionHandlers) => {
               handlersRef.current.onLocaleDetected(possibleLocale);
             }
           }
-        } catch (e) {}
+        } catch {}
       } else if (type === 'ELEMENT_SELECTED') {
         handlersRef.current.onElementSelected(payload);
       } else if (type === 'ERROR') {

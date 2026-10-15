@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { wrapTranslationEngine } from '../../src/client/wrap.js';
+import { wrapTranslationEngine, wrapNextIntl } from '../../src/client/wrap.js';
 import { decodeKey } from '../../src/client/watermark.js';
 
 describe('wrapTranslationEngine', () => {
@@ -63,6 +63,60 @@ describe('wrapTranslationEngine', () => {
     const res2 = wrappedT('title');
     expect(decodeKey(res2)?.cleanText).toBe('Home Page');
     expect(decodeKey(res2)?.key).toBe('title');
+  });
+
+  it('should forward interpolation arguments to translation function', () => {
+    const tMock = vi.fn((key: string, values?: Record<string, any>) => {
+      if (key === 'greeting' && values?.name) {
+        return `Hello, ${values.name}!`;
+      }
+      return key;
+    });
+
+    const wrappedT = wrapTranslationEngine(tMock);
+    const result = (wrappedT as any)('greeting', { name: 'Sarah' });
+
+    expect(tMock).toHaveBeenCalledWith('greeting', { name: 'Sarah' });
+    expect(decodeKey(result)?.cleanText).toBe('Hello, Sarah!');
+    expect(decodeKey(result)?.key).toBe('greeting');
+  });
+
+  it('should support descriptor objects like { id: "key" } in FormatJS / react-intl style', () => {
+    const tMock = vi.fn((descriptor: { id: string; defaultMessage?: string }) => {
+      return descriptor.defaultMessage || descriptor.id;
+    });
+
+    const wrappedT = wrapTranslationEngine(tMock);
+    const result = (wrappedT as any)({ id: 'auth.title', defaultMessage: 'Sign In' });
+
+    expect(decodeKey(result)?.cleanText).toBe('Sign In');
+    expect(decodeKey(result)?.key).toBe('auth.title');
+  });
+
+  it('should support wrapNextIntl helper with namespace prefix', () => {
+    const tMock = vi.fn((key: string) => `Translated: ${key}`);
+    const wrappedT = wrapNextIntl(tMock, 'dashboard');
+
+    const res = (wrappedT as any)('stats.revenue');
+    expect(decodeKey(res)?.cleanText).toBe('Translated: stats.revenue');
+    expect(decodeKey(res)?.key).toBe('dashboard.stats.revenue');
+  });
+
+  it('should handle t.raw and non-string returns transparently', () => {
+    const engine = {
+      raw: vi.fn((key: string) => {
+        if (key === 'items') return ['Apple', 'Banana'];
+        return 'Raw String';
+      }),
+    };
+
+    const wrapped = wrapTranslationEngine(engine as any);
+    const arrayResult = (wrapped as any).raw('items');
+    expect(arrayResult).toEqual(['Apple', 'Banana']);
+
+    const stringResult = (wrapped as any).raw('single');
+    expect(decodeKey(stringResult)?.cleanText).toBe('Raw String');
+    expect(decodeKey(stringResult)?.key).toBe('raw.single');
   });
 
   it('should respect keyPrefix option when retrieving fallback', () => {

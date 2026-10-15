@@ -7,7 +7,7 @@ export { createMutationRouter, type MutationRouter } from './router.js';
 // Watermark utilities — used in Server Components to encode translation keys
 // as invisible zero-width prefixes during SSR, enabling plug-and-play detection
 // by the client-side DOM scanner without manual data-i18n-* attributes.
-export { wrapTranslationEngine, type WrapOptions } from '../client/wrap.js';
+export { wrapTranslationEngine, wrapNextIntl, type WrapOptions } from '../client/wrap.js';
 export {
   encodeKey,
   decodeKey,

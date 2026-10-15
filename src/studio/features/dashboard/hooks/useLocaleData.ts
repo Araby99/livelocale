@@ -137,7 +137,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
           const url = new URL(iframeRef.current.src);
           url.searchParams.set('locale', newLocale);
           iframeRef.current.src = url.toString();
-        } catch (e) {}
+        } catch {}
       }
     },
     [iframeRef]

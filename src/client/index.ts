@@ -21,7 +21,7 @@ export {
 
 // wrapTranslationEngine lives in wrap.ts (no 'use client') so it can also be
 // imported by Server Components via 'next-i18n-lens/server'.
-export { wrapTranslationEngine, type WrapOptions } from './wrap.js';
+export { wrapTranslationEngine, wrapNextIntl, type WrapOptions } from './wrap.js';
 
 // ─── Live preview support ───────────────────────────────────────────────────
 

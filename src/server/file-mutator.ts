@@ -163,7 +163,7 @@ export class FileMutator {
         // Attempt clean up of temp file
         try {
           await fs.unlink(tempPath);
-        } catch (unlinkErr) {
+        } catch {
           // Ignore unlink error to bubble original rename error
         }
         throw new Error(
