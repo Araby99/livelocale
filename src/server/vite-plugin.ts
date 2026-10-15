@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { FileMutator } from './file-mutator.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
+import { readNodeBody } from './node-body.js';
 import { deepMerge } from '../core/deep-merge.js';
 
 export interface VitePluginConfig {
@@ -27,23 +28,6 @@ export function i18nLensVite(config: VitePluginConfig) {
   const mutator = new FileMutator();
   const router = createMutationRouter(mutator, { localesPath: config.localesPath });
 
-  const readBody = (req: any): Promise<string> =>
-    new Promise((resolve, reject) => {
-      let bodyText = '';
-      req.on('data', (chunk: Buffer) => {
-        bodyText += chunk.toString();
-        // RULE SEC-007: BODY SIZE CAP
-        if (Buffer.byteLength(bodyText, 'utf-8') > MAX_BODY_BYTES) {
-          const err: any = new Error('Request body too large.');
-          err.code = 'BODY_TOO_LARGE';
-          reject(err);
-          req.destroy();
-        }
-      });
-      req.on('end', () => resolve(bodyText));
-      req.on('error', reject);
-    });
-
   return {
     name: 'next-i18n-lens',
     // Only active during dev server mode; the plugin is a no-op during builds.
@@ -61,7 +45,7 @@ export function i18nLensVite(config: VitePluginConfig) {
             url: req.url,
             origin: req.headers['origin'] || '',
             contentType: req.headers['content-type'] || '',
-            bodyText: req.method === 'POST' ? await readBody(req) : undefined,
+            bodyText: req.method === 'POST' ? await readNodeBody(req, MAX_BODY_BYTES) : undefined,
           });
 
           Object.entries(result.headers).forEach(([k, v]) => res.setHeader(k, v));

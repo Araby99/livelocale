@@ -1,5 +1,12 @@
 import { FileMutator } from './file-mutator.js';
-import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
+import { createMutationRouter, MAX_BODY_BYTES, type RouterResponse } from './router.js';
+import {
+  readNodeBody,
+  headerValue,
+  BodyTooLargeError,
+  type NodeRequestLike,
+  type NodeResponseLike,
+} from './node-body.js';
 
 export interface HandlerConfig {
   localesPath: string;
@@ -7,40 +14,55 @@ export interface HandlerConfig {
 }
 
 /**
+ * A handler that works as both a Next.js App Router route handler
+ * (`(request: Request) => Promise<Response>`) and a Pages Router API route
+ * (`(req, res) => Promise<void>`). The shape is detected per call.
+ */
+export interface I18nLensHandler {
+  (request: Request): Promise<Response>;
+  (req: NodeRequestLike, res: NodeResponseLike): Promise<void>;
+}
+
+const TOO_LARGE: RouterResponse = {
+  status: 413,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ error: 'Request body too large.', code: 'BODY_TOO_LARGE' }),
+};
+
+function isNodeResponse(value: unknown): value is NodeResponseLike {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    typeof (value as NodeResponseLike).setHeader === 'function' &&
+    typeof (value as NodeResponseLike).end === 'function'
+  );
+}
+
+/**
  * Creates a Next.js route handler (App Router or Pages Router) backed by the
  * unified mutation router. Handles GET, POST, and OPTIONS requests.
  */
-export function createI18nLensHandler(config: HandlerConfig) {
+export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
   const mutator = new FileMutator();
   const router = createMutationRouter(mutator, {
     localesPath: config.localesPath,
     allowedOrigins: config.allowedOrigins,
   });
 
-  return async function i18nLensMutationHandler(request: Request): Promise<Response> {
+  // ─── App Router: Web Request / Response ──────────────────────────────────
+
+  async function handleWeb(request: Request): Promise<Response> {
     // RULE SEC-007: BODY SIZE CAP — reject oversized bodies before buffering
     const contentLength = Number(request.headers.get('content-length') || 0);
     if (contentLength > MAX_BODY_BYTES) {
-      return new Response(
-        JSON.stringify({ error: 'Request body too large.', code: 'BODY_TOO_LARGE' }),
-        {
-          status: 413,
-          headers: { 'Content-Type': 'application/json' },
-        }
-      );
+      return toWebResponse(TOO_LARGE);
     }
 
     let bodyText: string | undefined;
     if (request.method === 'POST') {
       bodyText = await request.text().catch(() => '');
       if (Buffer.byteLength(bodyText, 'utf-8') > MAX_BODY_BYTES) {
-        return new Response(
-          JSON.stringify({ error: 'Request body too large.', code: 'BODY_TOO_LARGE' }),
-          {
-            status: 413,
-            headers: { 'Content-Type': 'application/json' },
-          }
-        );
+        return toWebResponse(TOO_LARGE);
       }
     }
 
@@ -52,9 +74,64 @@ export function createI18nLensHandler(config: HandlerConfig) {
       bodyText,
     });
 
-    return new Response(result.body, {
-      status: result.status,
-      headers: result.headers,
-    });
-  };
+    return toWebResponse(result);
+  }
+
+  // ─── Pages Router: Node IncomingMessage / ServerResponse ─────────────────
+
+  async function handleNode(req: NodeRequestLike, res: NodeResponseLike): Promise<void> {
+    const method = req.method || 'GET';
+    let result: RouterResponse;
+
+    try {
+      const contentLength = Number(headerValue(req.headers, 'content-length') || 0);
+      if (contentLength > MAX_BODY_BYTES) {
+        throw new BodyTooLargeError();
+      }
+
+      result = await router.handle({
+        method,
+        url: req.url || '/',
+        origin: headerValue(req.headers, 'origin'),
+        contentType: headerValue(req.headers, 'content-type'),
+        bodyText: method === 'POST' ? await readNodeBody(req, MAX_BODY_BYTES) : undefined,
+      });
+    } catch (err: any) {
+      result =
+        err instanceof BodyTooLargeError
+          ? TOO_LARGE
+          : {
+              status: 500,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                error: err?.message || 'Internal Server Error',
+                code: 'INTERNAL_ERROR',
+              }),
+            };
+    }
+
+    for (const [name, value] of Object.entries(result.headers)) {
+      res.setHeader(name, value);
+    }
+    res.statusCode = result.status;
+    res.end(result.body ?? '');
+  }
+
+  function i18nLensMutationHandler(request: Request): Promise<Response>;
+  function i18nLensMutationHandler(req: NodeRequestLike, res: NodeResponseLike): Promise<void>;
+  function i18nLensMutationHandler(
+    reqOrRequest: Request | NodeRequestLike,
+    res?: NodeResponseLike
+  ): Promise<Response> | Promise<void> {
+    if (isNodeResponse(res)) {
+      return handleNode(reqOrRequest as NodeRequestLike, res);
+    }
+    return handleWeb(reqOrRequest as Request);
+  }
+
+  return i18nLensMutationHandler;
+}
+
+function toWebResponse(result: RouterResponse): Response {
+  return new Response(result.body, { status: result.status, headers: result.headers });
 }

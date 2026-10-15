@@ -1,4 +1,22 @@
-import * as ts from 'typescript';
+// Type-only import: the runtime module is loaded lazily by `loadTypeScript()`.
+import type * as ts from 'typescript';
+
+type TypeScriptModule = typeof ts;
+
+/**
+ * `typescript` is an optional peer: it is only needed by `migrate`. Loading it
+ * lazily keeps `init` and `studio` working in JavaScript-only projects.
+ */
+export async function loadTypeScript(): Promise<TypeScriptModule> {
+  try {
+    const mod: any = await import('typescript');
+    return (mod.default ?? mod) as TypeScriptModule;
+  } catch {
+    throw new Error(
+      "The 'typescript' package is required for the migrate command. Install it with: npm install -D typescript"
+    );
+  }
+}
 
 export interface TransformResult {
   code: string;
@@ -9,7 +27,11 @@ export interface TransformResult {
  * Transforms a source file by wrapping react-i18next useTranslation hook calls
  * with wrapTranslationEngine.
  */
-export function transformReactI18next(sourceText: string, filename: string): TransformResult {
+export async function transformReactI18next(
+  sourceText: string,
+  filename: string
+): Promise<TransformResult> {
+  const ts = await loadTypeScript();
   const sourceFile = ts.createSourceFile(filename, sourceText, ts.ScriptTarget.Latest, true);
 
   let hasUseTranslationImport = false;

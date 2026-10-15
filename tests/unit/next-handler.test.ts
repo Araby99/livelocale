@@ -399,4 +399,43 @@ describe('createI18nLensHandler', () => {
     const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
     expect(mutatorInstance.updateLocaleKey).not.toHaveBeenCalled();
   });
+  // ─── Extra allowed origins via environment (Codespaces, custom hostnames) ──
+
+  it('should allow POST from an origin listed in I18N_LENS_ALLOWED_ORIGINS', async () => {
+    vi.stubEnv(
+      'I18N_LENS_ALLOWED_ORIGINS',
+      'https://abc-3010.app.github.dev, https://studio.dev.local'
+    );
+    const handler = createI18nLensHandler(config);
+    const request = new Request('http://localhost:3000/api/mutate', {
+      method: 'POST',
+      headers: {
+        Origin: 'https://abc-3010.app.github.dev',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ locale: 'en', key: 'title', value: 'Hello' }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('Access-Control-Allow-Origin')).toBe(
+      'https://abc-3010.app.github.dev'
+    );
+  });
+
+  it('should still reject origins not listed in I18N_LENS_ALLOWED_ORIGINS', async () => {
+    vi.stubEnv('I18N_LENS_ALLOWED_ORIGINS', 'https://abc-3010.app.github.dev');
+    const handler = createI18nLensHandler(config);
+    const request = new Request('http://localhost:3000/api/mutate', {
+      method: 'POST',
+      headers: {
+        Origin: 'https://evil.example.com',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ locale: 'en', key: 'title', value: 'pwned' }),
+    });
+
+    const response = await handler(request);
+    expect(response.status).toBe(403);
+  });
 });

@@ -2,21 +2,22 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as http from 'http';
 import { fileURLToPath } from 'url';
-import { transformReactI18next } from './transform.js';
+import { createStudioServer } from './studio-server.js';
 
 const getDirname = () => {
-  try {
+  if (typeof __dirname !== 'undefined') {
     return __dirname;
-  } catch {
-    return path.dirname(fileURLToPath(import.meta.url));
   }
+  return path.dirname(fileURLToPath((import.meta as any).url));
 };
+
+const DEFAULT_STUDIO_PORT = 3010;
+const DEFAULT_APP_ORIGIN = 'http://localhost:3000';
 
 function printHelp() {
   console.log(`
-next-i18n-lens CLI
+i18n Lens (next-i18n-lens) CLI
 
 Usage:
   npx next-i18n-lens <command> [options]
@@ -35,102 +36,59 @@ Options for init:
   --dir <path>       Target project directory (default: current directory)
 
 Options for studio:
-  --port <number>    Port to run the studio server on (default: 3010)
+  --port <number>    Port to run the studio server on (default: ${DEFAULT_STUDIO_PORT})
+  --app <origin>     Origin of the app being edited (default: ${DEFAULT_APP_ORIGIN})
+                     Can also be changed at run time with ?app=<origin> on the Studio URL.
 
 Global Options:
   -h, --help         Show help information
 `);
 }
 
-function runStudio(projectDir: string, port: number) {
-  console.log(`\n🚀 Starting next-i18n-lens Visual Studio...`);
+function normalizeOriginArg(value: string, flag: string): string {
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad protocol');
+    return url.origin;
+  } catch {
+    console.error(
+      `Error: ${flag} must be an http(s) origin such as http://localhost:3001 (got "${value}").`
+    );
+    process.exit(1);
+  }
+}
+
+function runStudio(port: number, appOrigin: string) {
+  console.log(`\n🚀 Starting i18n Lens Studio...`);
   const studioDir = path.resolve(getDirname(), '../studio');
 
-  if (!fs.existsSync(studioDir)) {
-    console.error(`Error: Studio directory not found at "${studioDir}".`);
+  if (!fs.existsSync(path.join(studioDir, 'index.html'))) {
+    console.error(`Error: Studio assets not found at "${studioDir}".`);
     console.error(`Did you build the project? Run "npm run build" first.`);
     process.exit(1);
   }
 
-  const mimeTypes: Record<string, string> = {
-    '.html': 'text/html',
-    '.css': 'text/css',
-    '.js': 'application/javascript',
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.svg': 'image/svg+xml',
-    '.ico': 'image/x-icon',
-    '.json': 'application/json',
-  };
+  const server = createStudioServer({ studioDir, appOrigin });
 
-  const server = http.createServer((req, res) => {
-    // RULE SEC-009: Never reflect arbitrary origins — only localhost clients.
-    const origin = req.headers.origin || '';
-    const isLocalhostOrigin = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-    if (isLocalhostOrigin) {
-      res.setHeader('Access-Control-Allow-Origin', origin);
-      res.setHeader('Vary', 'Origin');
+  server.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(`Error: port ${port} is already in use. Pick another with --port <number>.`);
+    } else {
+      console.error(`Error: failed to start the Studio server: ${err.message}`);
     }
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-    if (req.method === 'OPTIONS') {
-      res.statusCode = 204;
-      res.end();
-      return;
-    }
-
-    // RULE SEC-010: PATH CONTAINMENT — resolve the requested path and verify
-    // it stays inside the studio directory (blocks /../../etc/passwd escapes).
-    const urlPath = req.url?.split('?')[0] || '/';
-    let filePath: string;
-    try {
-      filePath = path.resolve(studioDir, `.${decodeURIComponent(urlPath)}`);
-    } catch {
-      res.statusCode = 400;
-      res.end('Bad Request');
-      return;
-    }
-
-    if (filePath !== studioDir && !filePath.startsWith(studioDir + path.sep)) {
-      res.statusCode = 403;
-      res.end('Forbidden');
-      return;
-    }
-
-    if (urlPath === '/' || filePath === studioDir) {
-      filePath = path.join(studioDir, 'index.html');
-    }
-
-    // Fallback to index.html for SPA client-side routing
-    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = path.join(studioDir, 'index.html');
-    }
-
-    const ext = path.extname(filePath);
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-
-    fs.readFile(filePath, (err, content) => {
-      if (err) {
-        res.statusCode = 550;
-        res.end(`Server Error: ${err.code}`);
-      } else {
-        res.writeHead(200, { 'Content-Type': contentType });
-        res.end(content, 'utf-8');
-      }
-    });
+    process.exit(1);
   });
 
   server.listen(port, () => {
-    console.log(`\n🎨 next-i18n-lens Visual Translation Studio is running!`);
-    console.log(`📡 URL: http://localhost:${port}`);
+    console.log(`\n🎨 i18n Lens Studio is running!`);
+    console.log(`📡 Studio: http://localhost:${port}`);
+    console.log(`🔗 Editing app at: ${appOrigin}`);
     console.log(`💡 Press Ctrl+C to stop the studio server.\n`);
   });
 }
 
 function runInit(projectDir: string) {
-  console.log(`\n🚀 Initializing next-i18n-lens API handler...`);
+  console.log(`\n🚀 Initializing i18n Lens API handler...`);
   const absoluteDir = path.resolve(projectDir);
   if (!fs.existsSync(absoluteDir)) {
     console.error(`Error: Directory "${projectDir}" does not exist.`);
@@ -143,7 +101,20 @@ function runInit(projectDir: string) {
   console.log(`📁 Target: ${absoluteDir}`);
   console.log(`🔧 Language detected: ${isTypeScript ? 'TypeScript' : 'JavaScript'}`);
 
-  // 2. Check for App Router vs Pages Router
+  // 2. Check for installed libraries in package.json
+  let hasNextIntl = false;
+  let hasReactI18next = false;
+  const targetPkgPath = path.join(absoluteDir, 'package.json');
+  if (fs.existsSync(targetPkgPath)) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(targetPkgPath, 'utf8'));
+      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+      hasNextIntl = Boolean(allDeps['next-intl']);
+      hasReactI18next = Boolean(allDeps['react-i18next']);
+    } catch {}
+  }
+
+  // 3. Check for App Router vs Pages Router
   const appDirPath = path.join(absoluteDir, 'app');
   const pagesDirPath = path.join(absoluteDir, 'pages');
   const srcAppDirPath = path.join(absoluteDir, 'src', 'app');
@@ -189,6 +160,7 @@ export const OPTIONS = handler;
     content = `import { createI18nLensHandler } from 'next-i18n-lens/server';
 import * as path from 'path';
 
+// Pages Router API route: the handler accepts the (req, res) signature.
 const handler = createI18nLensHandler({
   localesPath: path.resolve('./locales'), // Adjust relative to project root
 });
@@ -208,6 +180,16 @@ export default handler;
     fs.writeFileSync(targetPath, content, 'utf8');
     console.log(`✅ Created API Route Handler successfully at:`);
     console.log(`   ${path.relative(absoluteDir, targetPath)}`);
+    if (hasNextIntl) {
+      console.log(`\n💡 Detected 'next-intl' in your project!`);
+      console.log(
+        `   Wrap your translation hook with: import { wrapNextIntl } from 'next-i18n-lens/client';`
+      );
+      console.log(`   const t = wrapNextIntl(useTranslations('namespace'), 'namespace');`);
+    } else if (hasReactI18next) {
+      console.log(`\n💡 Detected 'react-i18next' in your project!`);
+      console.log(`   You can auto-wrap usages by running: npx next-i18n-lens migrate`);
+    }
     console.log(`\n🎉 Initialization completed successfully!\n`);
   } catch (err: any) {
     console.error(`❌ Failed to write route handler: ${err.message}`);
@@ -215,48 +197,7 @@ export default handler;
   }
 }
 
-function run() {
-  const args = process.argv.slice(2);
-
-  if (args.includes('--help') || args.includes('-h') || args[0] === 'help') {
-    printHelp();
-    process.exit(0);
-  }
-
-  // Expect command: migrate, init, or studio
-  if (args[0] !== 'migrate' && args[0] !== 'init' && args[0] !== 'studio') {
-    console.error(`Unknown command: "${args[0]}". Did you mean "migrate", "init", or "studio"?`);
-    printHelp();
-    process.exit(1);
-  }
-
-  if (args[0] === 'init') {
-    let dir = '.';
-    for (let i = 1; i < args.length; i++) {
-      const arg = args[i];
-      if (arg === '--dir') {
-        dir = args[++i] || '.';
-      } else if (arg && !arg.startsWith('--')) {
-        dir = arg;
-      }
-    }
-    runInit(dir);
-    process.exit(0);
-  }
-
-  if (args[0] === 'studio') {
-    let port = 3010;
-    for (let i = 1; i < args.length; i++) {
-      const arg = args[i];
-      if (arg === '--port') {
-        const val = parseInt(args[++i] || '3010', 10);
-        if (!isNaN(val)) port = val;
-      }
-    }
-    runStudio(process.cwd(), port);
-    return;
-  }
-
+async function runMigrate(args: string[]) {
   let dir = '.';
   let excludes = ['node_modules', '.next', 'dist', '.git'];
   let dryRun = false;
@@ -286,6 +227,17 @@ function run() {
     process.exit(1);
   }
 
+  // The codemod depends on the optional `typescript` peer; load it only here.
+  let transformReactI18next: typeof import('./transform.js').transformReactI18next;
+  try {
+    const transform = await import('./transform.js');
+    await transform.loadTypeScript();
+    transformReactI18next = transform.transformReactI18next;
+  } catch (err: any) {
+    console.error(`❌ ${err.message}`);
+    process.exit(1);
+  }
+
   console.log(`\n🚀 Starting migration scanner...`);
   console.log(`📁 Target: ${absoluteDir}`);
   console.log(`🚫 Excluded: ${excludes.join(', ')}`);
@@ -297,7 +249,7 @@ function run() {
   let scannedCount = 0;
   let migratedCount = 0;
 
-  function walk(currentDir: string) {
+  async function walk(currentDir: string) {
     const files = fs.readdirSync(currentDir, { withFileTypes: true });
 
     for (const file of files) {
@@ -307,14 +259,14 @@ function run() {
         if (excludes.includes(file.name)) {
           continue;
         }
-        walk(fullPath);
+        await walk(fullPath);
       } else if (file.isFile()) {
         const ext = path.extname(file.name);
         if (['.js', '.jsx', '.ts', '.tsx'].includes(ext)) {
           scannedCount++;
           try {
             const content = fs.readFileSync(fullPath, 'utf8');
-            const result = transformReactI18next(content, fullPath);
+            const result = await transformReactI18next(content, fullPath);
 
             if (result.modified) {
               migratedCount++;
@@ -335,7 +287,7 @@ function run() {
   }
 
   try {
-    walk(absoluteDir);
+    await walk(absoluteDir);
   } catch (err: any) {
     console.error(`❌ Walk error:`, err.message);
   }
@@ -351,4 +303,55 @@ function run() {
   console.log(`\n🎉 Done!`);
 }
 
-run();
+async function run() {
+  const args = process.argv.slice(2);
+
+  if (args.includes('--help') || args.includes('-h') || args[0] === 'help') {
+    printHelp();
+    process.exit(0);
+  }
+
+  // Expect command: migrate, init, or studio
+  if (args[0] !== 'migrate' && args[0] !== 'init' && args[0] !== 'studio') {
+    console.error(`Unknown command: "${args[0]}". Did you mean "migrate", "init", or "studio"?`);
+    printHelp();
+    process.exit(1);
+  }
+
+  if (args[0] === 'init') {
+    let dir = '.';
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i];
+      if (arg === '--dir') {
+        dir = args[++i] || '.';
+      } else if (arg && !arg.startsWith('--')) {
+        dir = arg;
+      }
+    }
+    runInit(dir);
+    process.exit(0);
+  }
+
+  if (args[0] === 'studio') {
+    let port = DEFAULT_STUDIO_PORT;
+    let appOrigin = DEFAULT_APP_ORIGIN;
+    for (let i = 1; i < args.length; i++) {
+      const arg = args[i];
+      if (arg === '--port') {
+        const val = parseInt(args[++i] || String(DEFAULT_STUDIO_PORT), 10);
+        if (!isNaN(val)) port = val;
+      } else if (arg === '--app') {
+        appOrigin = normalizeOriginArg(args[++i] || '', '--app');
+      }
+    }
+    runStudio(port, appOrigin);
+    return;
+  }
+
+  await runMigrate(args);
+}
+
+run().catch((err: any) => {
+  console.error(`❌ ${err?.message || err}`);
+  process.exit(1);
+});

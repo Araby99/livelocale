@@ -82,13 +82,20 @@
     "vite": ">=5.0.0"
   },
   "peerDependenciesMeta": {
+    "next": {
+      "optional": true
+    },
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    },
     "vite": {
       "optional": true
     }
   },
-  "dependencies": {
-    "typescript": "^5.4.5"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@playwright/test": "^1.60.0",
     "@types/node": "^20.12.12",

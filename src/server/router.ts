@@ -76,7 +76,14 @@ export function createMutationRouter(
   mutator: MutationGateway,
   options: MutationRouterOptions
 ): MutationRouter {
-  const allowedOrigins = options.allowedOrigins || DEFAULT_ALLOWED_ORIGINS;
+  // Extra origins may be supplied at run time (GitHub Codespaces, Gitpod,
+  // custom HTTPS dev hostnames) without touching code:
+  //   I18N_LENS_ALLOWED_ORIGINS="https://abc-3010.app.github.dev,https://studio.dev.local"
+  const envOrigins = (process.env['I18N_LENS_ALLOWED_ORIGINS'] || '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
+  const allowedOrigins = [...(options.allowedOrigins || DEFAULT_ALLOWED_ORIGINS), ...envOrigins];
   const localesPath = options.localesPath;
 
   const isOriginAllowed = (origin: string): boolean =>
