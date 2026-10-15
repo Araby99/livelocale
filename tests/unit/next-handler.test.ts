@@ -449,4 +449,86 @@ describe('createI18nLensHandler', () => {
     expect(data.code).toBe('FORBIDDEN');
     expect(data.error).toContain('I18N_LENS');
   });
+  // ─── Bearer-token authentication (preview mode) ───────────────────────────
+
+  describe('with authToken', () => {
+    const authed = { ...config, authToken: 'secret-token-123' };
+
+    it('rejects GET and POST without a bearer token with 401', async () => {
+      const handler = createI18nLensHandler(authed);
+      const get = await handler(new Request('http://localhost:3000/api/mutate', { method: 'GET' }));
+      expect(get.status).toBe(401);
+      expect((await get.json()).code).toBe('UNAUTHORIZED');
+
+      const post = await handler(
+        new Request('http://localhost:3000/api/mutate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ locale: 'en', key: 'title', value: 'Hello' }),
+        })
+      );
+      expect(post.status).toBe(401);
+      const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+      expect(mutatorInstance.updateLocaleKey).not.toHaveBeenCalled();
+    });
+
+    it('rejects a wrong token with 401', async () => {
+      const handler = createI18nLensHandler(authed);
+      const res = await handler(
+        new Request('http://localhost:3000/api/mutate', {
+          method: 'GET',
+          headers: { Authorization: 'Bearer nope' },
+        })
+      );
+      expect(res.status).toBe(401);
+    });
+
+    it('accepts the correct bearer token', async () => {
+      const handler = createI18nLensHandler(authed);
+      const res = await handler(
+        new Request('http://localhost:3000/api/mutate', {
+          method: 'GET',
+          headers: { Authorization: 'Bearer secret-token-123' },
+        })
+      );
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual(['en', 'ar', 'es']);
+    });
+
+    it('lets OPTIONS preflight through and advertises the Authorization header', async () => {
+      const handler = createI18nLensHandler(authed);
+      const res = await handler(
+        new Request('http://localhost:3000/api/mutate', {
+          method: 'OPTIONS',
+          headers: { Origin: 'http://localhost:3010' },
+        })
+      );
+      expect(res.status).toBe(204);
+      expect(res.headers.get('Access-Control-Allow-Headers')).toContain('Authorization');
+    });
+
+    it('reads the token from I18N_LENS_TOKEN when not configured explicitly', async () => {
+      vi.stubEnv('I18N_LENS_TOKEN', 'from-env');
+      const handler = createI18nLensHandler(config);
+      const denied = await handler(new Request('http://localhost:3000/api/mutate'));
+      expect(denied.status).toBe(401);
+      const ok = await handler(
+        new Request('http://localhost:3000/api/mutate', {
+          headers: { Authorization: 'Bearer from-env' },
+        })
+      );
+      expect(ok.status).toBe(200);
+    });
+  });
+
+  it('refuses to serve in preview mode without a token', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('I18N_LENS', 'preview');
+    const handler = createI18nLensHandler(config);
+    const res = await handler(new Request('http://localhost:3000/api/mutate'));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.code).toBe('PREVIEW_TOKEN_REQUIRED');
+    expect(body.error).toContain('I18N_LENS_TOKEN');
+  });
 });

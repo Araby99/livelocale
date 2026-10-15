@@ -1,6 +1,11 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { isLensEnabled, getDisabledReason, resetEnvWarnings } from '../../src/core/env.js';
+import {
+  isLensEnabled,
+  getDisabledReason,
+  getLensMode,
+  resetEnvWarnings,
+} from '../../src/core/env.js';
 
 const PLATFORM_VARS = [
   'VERCEL',
@@ -95,5 +100,54 @@ describe('isLensEnabled', () => {
   it('is not affected by CI=true alone', () => {
     vi.stubEnv('CI', 'true');
     expect(isLensEnabled()).toBe(true);
+  });
+});
+
+describe('preview mode', () => {
+  beforeEach(() => {
+    for (const v of PLATFORM_VARS) vi.stubEnv(v, '');
+    vi.stubEnv('NODE_ENV', 'production');
+    resetEnvWarnings();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('reports mode "off" in a plain production build', () => {
+    expect(getLensMode()).toBe('off');
+    expect(isLensEnabled()).toBe(false);
+  });
+
+  it('reports mode "development" in development', () => {
+    vi.stubEnv('NODE_ENV', 'development');
+    expect(getLensMode()).toBe('development');
+  });
+
+  it('enables preview mode in a production build when I18N_LENS=preview', () => {
+    vi.stubEnv('I18N_LENS', 'preview');
+    expect(getLensMode()).toBe('preview');
+    expect(isLensEnabled()).toBe(true);
+    expect(getDisabledReason()).toBeNull();
+  });
+
+  it('enables preview mode in client bundles via NEXT_PUBLIC_I18N_LENS=preview', () => {
+    vi.stubEnv('NEXT_PUBLIC_I18N_LENS', 'preview');
+    expect(getLensMode()).toBe('preview');
+  });
+
+  it('does not apply the deployed-platform guard in preview mode', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('I18N_LENS', 'preview');
+    vi.stubEnv('VERCEL_ENV', 'preview');
+    expect(isLensEnabled()).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it('still honours the kill switch over preview in client bundles', () => {
+    vi.stubEnv('I18N_LENS', 'off');
+    vi.stubEnv('NEXT_PUBLIC_I18N_LENS', 'preview');
+    expect(getLensMode()).toBe('off');
   });
 });

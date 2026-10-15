@@ -1,7 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { resolveSafeLocalePath } from '../core/safe-path.js';
-import { getDisabledReason } from '../core/env.js';
+import { getDisabledReason, getLensMode } from '../core/env.js';
 import {
   isValidKeyFormat,
   isValidLocaleFormat,
@@ -54,6 +54,8 @@ export interface RouterRequest {
   origin: string;
   /** Raw request body for body-carrying methods; parsed by the router. */
   bodyText?: string;
+  /** Value of the Authorization header, if any. */
+  authorization?: string;
   /** Value of the Content-Type header (lowercased), if any. */
   contentType?: string;
 }
@@ -69,6 +71,11 @@ export interface MutationRouterOptions {
   allowedOrigins?: string[];
   /** Enables the `git` read action and the `commit` / `discard` write actions. */
   git?: GitGateway;
+  /**
+   * When set, every request except CORS preflight must carry
+   * `Authorization: Bearer <authToken>`. Mandatory in preview mode.
+   */
+  authToken?: string;
 }
 
 export interface MutationRouter {
@@ -85,6 +92,20 @@ export const MAX_COMMIT_MESSAGE_LENGTH = 500;
 
 /** Any localhost origin (any port) is trusted — remote websites are not. */
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+
+/** Constant-time string comparison so token checks do not leak length or prefix. */
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function bearerToken(authorization: string | undefined): string | null {
+  if (!authorization) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
+  return match ? match[1]!.trim() : null;
+}
 
 const json = (
   status: number,
@@ -117,6 +138,7 @@ export function createMutationRouter(
   const allowedOrigins = [...(options.allowedOrigins || DEFAULT_ALLOWED_ORIGINS), ...envOrigins];
   const localesPath = options.localesPath;
   const git = options.git;
+  const authToken = options.authToken && options.authToken.length > 0 ? options.authToken : null;
 
   const isOriginAllowed = (origin: string): boolean =>
     allowedOrigins.includes(origin) || LOCALHOST_ORIGIN_RE.test(origin);
@@ -128,7 +150,7 @@ export function createMutationRouter(
   const corsHeaders = (origin: string): Record<string, string> => ({
     'Access-Control-Allow-Origin': resolveAllowedOrigin(origin),
     'Access-Control-Allow-Methods': 'POST, OPTIONS, GET',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Content-Type': 'application/json',
   });
 
@@ -359,6 +381,33 @@ export function createMutationRouter(
         });
       }
 
+      // Preflight never carries credentials; let it through so the browser can
+      // learn that Authorization is an allowed header.
+      if (request.method === 'OPTIONS') {
+        return { status: 204, headers, body: null };
+      }
+
+      // RULE SEC-011: PREVIEW MODE REQUIRES A TOKEN — the API is reachable from the
+      // internet in this mode, so refuse to serve anything without one configured.
+      if (getLensMode() === 'preview' && !authToken) {
+        return json(403, headers, {
+          error:
+            'Preview mode requires an access token. Set I18N_LENS_TOKEN (or pass authToken) on the server.',
+          code: 'PREVIEW_TOKEN_REQUIRED',
+        });
+      }
+
+      // RULE SEC-012: BEARER AUTH — when a token is configured, every request needs it.
+      if (authToken) {
+        const presented = bearerToken(request.authorization);
+        if (!presented || !safeEqual(presented, authToken)) {
+          return json(401, headers, {
+            error: 'Unauthorized: a valid Authorization: Bearer token is required.',
+            code: 'UNAUTHORIZED',
+          });
+        }
+      }
+
       // RULE SEC-006: CSRF PREVENTION — hard-reject writes from disallowed origins
       // (browsers always send Origin on cross-origin POSTs, including no-cors ones).
       if (request.method === 'POST' && request.origin && !isOriginAllowed(request.origin)) {
@@ -382,10 +431,6 @@ export function createMutationRouter(
       }
 
       try {
-        if (request.method === 'OPTIONS') {
-          return { status: 204, headers, body: null };
-        }
-
         if (request.method === 'GET') {
           const urlObj = new URL(request.url, 'http://localhost');
           return await handleGet(urlObj, localesPath, headers);

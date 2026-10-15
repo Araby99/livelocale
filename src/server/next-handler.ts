@@ -17,6 +17,11 @@ export interface HandlerConfig {
    * Studio. Requires the `git` CLI on PATH. Defaults to `true`.
    */
   git?: boolean;
+  /**
+   * Bearer token required on every request. Defaults to the `I18N_LENS_TOKEN`
+   * environment variable. Mandatory in preview mode.
+   */
+  authToken?: string;
 }
 
 /**
@@ -54,6 +59,7 @@ export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
     localesPath: config.localesPath,
     allowedOrigins: config.allowedOrigins,
     git: config.git === false ? undefined : new GitClient(),
+    authToken: config.authToken ?? process.env['I18N_LENS_TOKEN'],
   });
 
   // ─── App Router: Web Request / Response ──────────────────────────────────
@@ -78,6 +84,7 @@ export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
       url: request.url,
       origin: request.headers.get('origin') || '',
       contentType: request.headers.get('content-type') || '',
+      authorization: request.headers.get('authorization') || undefined,
       bodyText,
     });
 
@@ -101,6 +108,7 @@ export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
         url: req.url || '/',
         origin: headerValue(req.headers, 'origin'),
         contentType: headerValue(req.headers, 'content-type'),
+        authorization: headerValue(req.headers, 'authorization') || undefined,
         bodyText: method === 'POST' ? await readNodeBody(req, MAX_BODY_BYTES) : undefined,
       });
     } catch (err: any) {

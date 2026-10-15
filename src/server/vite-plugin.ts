@@ -12,6 +12,8 @@ export interface VitePluginConfig {
   localesPath: string;
   /** Expose git status, commit, and discard to the Studio. Defaults to `true`. */
   git?: boolean;
+  /** Bearer token required on every request. Defaults to `I18N_LENS_TOKEN`. */
+  authToken?: string;
 }
 
 const ROUTE = '/api/i18n-lens/mutate';
@@ -33,6 +35,7 @@ export function i18nLensVite(config: VitePluginConfig) {
   const router = createMutationRouter(mutator, {
     localesPath: config.localesPath,
     git: config.git === false ? undefined : new GitClient(),
+    authToken: config.authToken ?? process.env['I18N_LENS_TOKEN'],
   });
 
   return {
@@ -52,6 +55,7 @@ export function i18nLensVite(config: VitePluginConfig) {
             url: req.url,
             origin: req.headers['origin'] || '',
             contentType: req.headers['content-type'] || '',
+            authorization: req.headers['authorization'] || undefined,
             bodyText: req.method === 'POST' ? await readNodeBody(req, MAX_BODY_BYTES) : undefined,
           });
 

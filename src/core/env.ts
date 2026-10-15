@@ -1,17 +1,28 @@
 /**
- * Single source of truth for "is i18n Lens active right now?".
+ * Single source of truth for "is i18n Lens active right now, and in which mode?".
+ *
+ * Modes:
+ *   - `development`: NODE_ENV is `development` (the default, zero-config mode).
+ *   - `preview`: explicitly opted in with `I18N_LENS=preview` (server) or
+ *     `NEXT_PUBLIC_I18N_LENS=preview` (client bundles). Works in production builds so a
+ *     preview deployment can be edited through a hosted Studio. The mutation API then
+ *     requires a bearer token (see the router).
+ *   - `off`: everything else.
  *
  * Rules, in order:
- *   1. `NODE_ENV` must be `development`.
- *   2. `I18N_LENS=off|0|false` (or `NEXT_PUBLIC_I18N_LENS=off` in client bundles) disables it.
- *   3. `I18N_LENS=force` overrides rule 4.
- *   4. On the server, a known hosting platform (Vercel preview/production, Netlify,
- *      Kubernetes, Render, Fly.io, Railway, Heroku) disables it even when NODE_ENV is
- *      `development`, so a mis-configured staging deploy cannot leak watermarks.
+ *   1. `I18N_LENS=off|0|false` (or `NEXT_PUBLIC_I18N_LENS=off`) always wins → off.
+ *   2. `I18N_LENS=preview` / `NEXT_PUBLIC_I18N_LENS=preview` → preview.
+ *   3. `NODE_ENV` must be `development`, otherwise off.
+ *   4. `I18N_LENS=force` skips rule 5.
+ *   5. On the server, a known hosting platform (Vercel preview/production, Netlify,
+ *      Kubernetes, Render, Fly.io, Railway, Heroku) → off, so a mis-configured staging
+ *      deploy cannot leak watermarks. A one-time warning is logged.
  *
  * `process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_I18N_LENS` are referenced as
  * literal member expressions so Next.js and Vite can inline them in browser bundles.
  */
+
+export type LensMode = 'off' | 'development' | 'preview';
 
 const OFF_VALUES = new Set(['off', '0', 'false']);
 
@@ -62,23 +73,26 @@ export function detectDeployedPlatform(): string | null {
   return null;
 }
 
-/**
- * Returns `null` when i18n Lens should be active, otherwise a short reason
- * suitable for error messages and logs.
- */
-export function getDisabledReason(): string | null {
-  const nodeEnv = readNodeEnv();
-  if (nodeEnv !== 'development') {
-    return `NODE_ENV is "${nodeEnv ?? 'undefined'}" (must be "development")`;
+function evaluate(): { mode: LensMode; reason: string | null } {
+  const flag = (readEnv('I18N_LENS') ?? '').toLowerCase();
+  const publicFlag = (readPublicFlag() ?? '').toLowerCase();
+
+  if (OFF_VALUES.has(flag)) return { mode: 'off', reason: 'I18N_LENS kill switch is set' };
+  if (OFF_VALUES.has(publicFlag)) {
+    return { mode: 'off', reason: 'NEXT_PUBLIC_I18N_LENS kill switch is set' };
   }
 
-  const flag = (readEnv('I18N_LENS') ?? '').toLowerCase();
-  if (OFF_VALUES.has(flag)) return 'I18N_LENS kill switch is set';
+  if (flag === 'preview' || publicFlag === 'preview') return { mode: 'preview', reason: null };
 
-  const publicFlag = (readPublicFlag() ?? '').toLowerCase();
-  if (OFF_VALUES.has(publicFlag)) return 'NEXT_PUBLIC_I18N_LENS kill switch is set';
+  const nodeEnv = readNodeEnv();
+  if (nodeEnv !== 'development') {
+    return {
+      mode: 'off',
+      reason: `NODE_ENV is "${nodeEnv ?? 'undefined'}" (must be "development", or set I18N_LENS=preview)`,
+    };
+  }
 
-  if (flag === 'force') return null;
+  if (flag === 'force') return { mode: 'development', reason: null };
 
   const platform = detectDeployedPlatform();
   if (platform) {
@@ -86,16 +100,29 @@ export function getDisabledReason(): string | null {
       warnedDeployed = true;
       console.warn(
         `[i18n-lens] Disabled: deployed environment detected (${platform}) while NODE_ENV=development. ` +
-          `Set I18N_LENS=force to override, or I18N_LENS=off to silence this warning.`
+          `Set I18N_LENS=force to override, I18N_LENS=preview for a hosted preview, or I18N_LENS=off to silence this warning.`
       );
     }
-    return `deployed environment detected (${platform})`;
+    return { mode: 'off', reason: `deployed environment detected (${platform})` };
   }
 
-  return null;
+  return { mode: 'development', reason: null };
+}
+
+/** The active mode: `off`, `development`, or `preview`. */
+export function getLensMode(): LensMode {
+  return evaluate().mode;
+}
+
+/**
+ * Returns `null` when i18n Lens should be active, otherwise a short reason
+ * suitable for error messages and logs.
+ */
+export function getDisabledReason(): string | null {
+  return evaluate().reason;
 }
 
 /** True when watermarking, the mutation API, and the client scanner should run. */
 export function isLensEnabled(): boolean {
-  return getDisabledReason() === null;
+  return evaluate().mode !== 'off';
 }
