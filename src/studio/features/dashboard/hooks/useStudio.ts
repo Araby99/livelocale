@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { APP_ORIGIN } from '../constants.js';
 import { useConnection } from './useConnection.js';
@@ -8,7 +8,8 @@ import { useLocaleActions } from './useLocaleActions.js';
 import { useKeySearch } from './useKeySearch.js';
 import { useGit } from './useGit.js';
 import { useHistory, type HistoryEntry } from './useHistory.js';
-import { saveTranslation } from '../../../api.js';
+import { saveTranslation, fetchInfo, type LensMode } from '../../../api.js';
+import { useAuth } from './useAuth.js';
 
 /**
  * Composer hook: wires the focused feature hooks together and owns the
@@ -19,6 +20,9 @@ export const useStudio = () => {
   const [error, setError] = useState<string | null>(null);
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
   const [isUndoing, setIsUndoing] = useState<boolean>(false);
+  const [mode, setMode] = useState<LensMode | null>(null);
+
+  const auth = useAuth();
 
   // Cross-hook callback refs so the iframe bridge can reach hooks that are
   // instantiated later in the composition order.
@@ -84,6 +88,24 @@ export const useStudio = () => {
       await refreshAll();
     },
   });
+
+  // Server mode (development vs preview) for the header badge; refetched when the
+  // token changes because the first call may have been rejected with 401.
+  useEffect(() => {
+    if (connectionStatus !== 'connected') return;
+    fetchInfo()
+      .then((info) => setMode(info.mode))
+      .catch(() => {});
+  }, [connectionStatus, auth.tokenVersion]);
+
+  // After a token is entered, the earlier data loads failed with 401: reload everything.
+  const initialTokenVersion = useRef(auth.tokenVersion);
+  useEffect(() => {
+    if (auth.tokenVersion === initialTokenVersion.current) return;
+    if (connectionStatus !== 'connected') return;
+    refreshAll();
+    git.refresh();
+  }, [auth.tokenVersion]);
 
   // Undo re-saves the previous value through the normal mutation path, so the
   // file on disk, the dictionary cache, and git status all stay consistent.
@@ -168,5 +190,9 @@ export const useStudio = () => {
     history: history.entries,
     undoEntry,
     isUndoing,
+    // Preview mode / auth
+    mode,
+    needsToken: auth.needsToken,
+    submitToken: auth.submitToken,
   };
 };

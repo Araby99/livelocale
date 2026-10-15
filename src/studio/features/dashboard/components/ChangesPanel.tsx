@@ -61,6 +61,7 @@ export const ChangesPanel = ({
   if (!isOpen) return null;
 
   const changes = git?.changes ?? [];
+  const isGitHub = git?.mode === 'github';
   const canCommit = Boolean(git?.isRepo) && changes.length > 0 && message.trim().length > 0;
 
   const handleCommit = async () => {
@@ -202,15 +203,31 @@ export const ChangesPanel = ({
           {git?.isRepo && (
             <section className="space-y-3">
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                Commit
+                {isGitHub ? 'Propose' : 'Commit'}
               </label>
+              {isGitHub && git?.pullRequestUrl && (
+                <a
+                  href={git.pullRequestUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block text-[11px] text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+                >
+                  View the open pull request
+                </a>
+              )}
               <textarea
                 id="studio-commit-message"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 disabled={isGitLoading || changes.length === 0}
                 placeholder={
-                  changes.length === 0 ? 'Nothing to commit' : 'i18n: describe the copy change…'
+                  changes.length === 0
+                    ? isGitHub
+                      ? 'No changes on the branch yet'
+                      : 'Nothing to commit'
+                    : isGitHub
+                      ? 'Pull request title, e.g. "Update checkout copy"'
+                      : 'i18n: describe the copy change…'
                 }
                 maxLength={500}
                 className="w-full min-h-20 bg-slate-950 border border-slate-800 hover:border-slate-750 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-150 disabled:opacity-60"
@@ -222,7 +239,13 @@ export const ChangesPanel = ({
                   disabled={!canCommit || isGitLoading}
                   className="flex-1 h-10 rounded-xl text-xs font-semibold tracking-wide bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition duration-150"
                 >
-                  {isGitLoading ? 'Working…' : 'Commit locale changes'}
+                  {isGitLoading
+                    ? 'Working…'
+                    : isGitHub
+                      ? git?.pullRequestUrl
+                        ? 'Pull request is open'
+                        : 'Open pull request'
+                      : 'Commit locale changes'}
                 </button>
                 {!confirmDiscard ? (
                   <button
@@ -230,7 +253,7 @@ export const ChangesPanel = ({
                     disabled={changes.length === 0 || isGitLoading}
                     className="h-10 px-4 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
                   >
-                    Discard
+                    {isGitHub ? 'Reset branch' : 'Discard'}
                   </button>
                 ) : (
                   <div className="flex items-center gap-2">
@@ -239,7 +262,7 @@ export const ChangesPanel = ({
                       disabled={isGitLoading}
                       className="h-10 px-3 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 active:bg-rose-700 transition duration-150"
                     >
-                      Discard all
+                      {isGitHub ? 'Reset to base' : 'Discard all'}
                     </button>
                     <button
                       onClick={() => setConfirmDiscard(false)}
@@ -251,8 +274,17 @@ export const ChangesPanel = ({
                 )}
               </div>
               {lastCommit && !gitError && (
-                <p className="text-[11px] text-emerald-400 font-mono">
-                  Committed as {lastCommit}. Push whenever you are ready.
+                <p className="text-[11px] text-emerald-400 font-mono break-all">
+                  {isGitHub ? (
+                    <>
+                      Pull request:{' '}
+                      <a href={lastCommit} target="_blank" rel="noreferrer" className="underline">
+                        {lastCommit}
+                      </a>
+                    </>
+                  ) : (
+                    <>Committed as {lastCommit}. Push whenever you are ready.</>
+                  )}
                 </p>
               )}
               {gitError && (

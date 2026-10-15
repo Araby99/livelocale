@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { APP_ORIGIN } from '../constants.js';
+import {
+  fetchLocales as fetchLocalesRequest,
+  fetchKeysMetadata as fetchKeysMetadataRequest,
+  fetchLocaleDictionary,
+} from '../../../api.js';
 
 // Helper to flatten nested JSON objects to dot-separated keys
 function flattenObject(obj: any, prefix = ''): Record<string, string> {
@@ -43,11 +47,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
   // Fetch locales list dynamically from the server
   const fetchLocales = useCallback(async (selectDefault?: boolean) => {
     try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`);
-      if (!response.ok) {
-        throw new Error(`Failed to load locales: ${response.statusText}`);
-      }
-      const list = await response.json();
+      const list = await fetchLocalesRequest();
       if (Array.isArray(list)) {
         setLocales(list);
         if (selectDefault && list.length > 0) {
@@ -64,11 +64,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
   // Fetch all keys from locales and codebase
   const fetchKeysMetadata = useCallback(async () => {
     try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate?action=keys`);
-      if (!response.ok) {
-        throw new Error(`Failed to load keys metadata: ${response.statusText}`);
-      }
-      const data = await response.json();
+      const data = await fetchKeysMetadataRequest();
       if (data && Array.isArray(data.allKeys)) {
         setAllKeys(data.allKeys);
       }
@@ -83,11 +79,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
   // Fetch full dictionary for active locale (Phase 2)
   const fetchLocaleData = useCallback(async (targetLocale: string) => {
     try {
-      const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate?locale=${targetLocale}`);
-      if (!response.ok) {
-        throw new Error(`Failed to load locale dictionary: ${response.statusText}`);
-      }
-      const data = await response.json();
+      const data = await fetchLocaleDictionary(targetLocale);
       setLocaleData(flattenObject(data));
     } catch (err: any) {
       // Don't block studio UI if fetch fails
@@ -112,8 +104,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
   // Fetch English reference data once connected
   useEffect(() => {
     if (connectionStatus === 'connected') {
-      fetch(`${APP_ORIGIN}/api/i18n-lens/mutate?locale=en`)
-        .then((res) => res.json())
+      fetchLocaleDictionary('en')
         .then((data) => setEnLocaleData(flattenObject(data)))
         .catch((err) =>
           console.warn('[i18n-lens] Failed to load reference English locale:', err.message)

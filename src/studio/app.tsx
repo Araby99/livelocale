@@ -6,6 +6,7 @@ import {
   EditorPanel,
   ConfirmModal,
   ChangesPanel,
+  TokenModal,
   useStudio,
 } from './features/dashboard/index.js';
 
@@ -54,12 +55,18 @@ export const App = () => {
     history,
     undoEntry,
     isUndoing,
+    mode,
+    needsToken,
+    submitToken,
   } = useStudio();
 
   return (
     <div className="w-screen h-screen flex flex-col bg-[#0b0f19] text-slate-100 font-sans select-none overflow-hidden antialiased">
+      <TokenModal isOpen={needsToken} onSubmit={submitToken} />
+
       <Header
         coveragePercentage={coveragePercentage}
+        mode={mode}
         changesCount={git?.changes.length ?? 0}
         isChangesOpen={isChangesOpen}
         onToggleChanges={toggleChanges}

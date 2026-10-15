@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { APP_ORIGIN } from '../constants.js';
+import { addLocaleRequest, renameLocaleRequest, deleteLocaleRequest } from '../../../api.js';
 
 export interface UseLocaleActionsParams {
   locale: string;
@@ -29,15 +29,7 @@ export const useLocaleActions = ({
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'addLocale', locale: newLocale }),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.error || `Server error: ${response.status}`);
-        }
+        await addLocaleRequest(newLocale);
         await refreshAll();
         handleLocaleChange(newLocale);
       } catch (err: any) {
@@ -55,15 +47,7 @@ export const useLocaleActions = ({
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'renameLocale', locale: oldLocale, newLocale }),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.error || `Server error: ${response.status}`);
-        }
+        await renameLocaleRequest(oldLocale, newLocale);
         await refreshAll();
         if (locale === oldLocale) {
           handleLocaleChange(newLocale);
@@ -83,15 +67,7 @@ export const useLocaleActions = ({
       try {
         setLoading(true);
         setError(null);
-        const response = await fetch(`${APP_ORIGIN}/api/i18n-lens/mutate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'deleteLocale', locale: targetLocale }),
-        });
-        const result = await response.json();
-        if (!response.ok) {
-          throw new Error(result.error || `Server error: ${response.status}`);
-        }
+        await deleteLocaleRequest(targetLocale);
 
         const updatedLocales = locales.filter((l) => l !== targetLocale);
         let nextLocale = 'en';

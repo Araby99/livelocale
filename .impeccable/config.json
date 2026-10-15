@@ -9,6 +9,13 @@
         "files": ["src/studio/features/dashboard/components/ChangesPanel.tsx"],
         "createdAt": "2026-10-15T09:02:46.304Z",
         "reason": "maintainer decision: disabled state pairs slate-500 text with slate-800 background, mirroring TranslationEditor's Save button; gray never renders on the indigo background"
+      },
+      {
+        "rule": "gray-on-color",
+        "value": "*",
+        "files": ["src/studio/features/dashboard/components/TokenModal.tsx"],
+        "createdAt": "2026-10-15T09:46:55.046Z",
+        "reason": "maintainer decision: Connect button's disabled state pairs slate-500 text with slate-800 background (same pattern as the Save button); gray never renders on the indigo background"
       }
     ]
   }

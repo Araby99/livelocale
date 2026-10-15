@@ -167,6 +167,14 @@ export function createMutationRouter(
     const locale = urlObj.searchParams.get('locale');
     const action = urlObj.searchParams.get('action');
 
+    if (action === 'info') {
+      return json(200, headers, {
+        mode: getLensMode(),
+        authRequired: authToken !== null,
+        git: Boolean(git),
+      });
+    }
+
     if (action === 'git') {
       if (!git) {
         return json(200, headers, {

@@ -109,3 +109,27 @@ describe('ChangesPanel', () => {
     cleanup();
   });
 });
+
+describe('ChangesPanel — GitHub mode', () => {
+  const githubGit: GitState = {
+    ...baseGit,
+    mode: 'github',
+    branch: 'i18n/preview-edits',
+    pullRequestUrl: null,
+  };
+
+  it('offers to open a pull request instead of committing', () => {
+    renderPanel({ git: githubGit });
+    expect(screen.getByRole('button', { name: /open pull request/i })).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /commit locale changes/i })).toBeNull();
+    expect(screen.getByRole('button', { name: /reset branch/i })).toBeTruthy();
+    cleanup();
+  });
+
+  it('links to the open pull request when one exists', () => {
+    renderPanel({ git: { ...githubGit, pullRequestUrl: 'https://github.com/acme/site/pull/7' } });
+    const link = screen.getByRole('link', { name: /pull request/i }) as HTMLAnchorElement;
+    expect(link.href).toBe('https://github.com/acme/site/pull/7');
+    cleanup();
+  });
+});

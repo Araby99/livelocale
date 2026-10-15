@@ -5,6 +5,8 @@ declare const __STUDIO_VERSION__: string;
 
 interface HeaderProps {
   coveragePercentage: number;
+  /** Reported by the app's API; `preview` means a hosted, token-protected session. */
+  mode?: 'off' | 'development' | 'preview' | null;
   changesCount: number;
   isChangesOpen: boolean;
   onToggleChanges: () => void;
@@ -12,6 +14,7 @@ interface HeaderProps {
 
 export const Header = ({
   coveragePercentage,
+  mode,
   changesCount,
   isChangesOpen,
   onToggleChanges,
@@ -73,6 +76,15 @@ export const Header = ({
             {coveragePercentage}%
           </span>
         </div>
+
+        {mode === 'preview' && (
+          <span
+            className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-extrabold tracking-wider text-amber-300 select-none"
+            title="Edits go to a git branch on the server; nothing is written locally."
+          >
+            PREVIEW
+          </span>
+        )}
 
         <button
           id="studio-changes-button"
