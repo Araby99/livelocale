@@ -103,6 +103,20 @@ two sets; `validateMessageSyntax` reports unbalanced braces or a `plural`/`selec
 `other`. The Studio runs the first one live for the placeholder chips; `validateWrite` in
 `src/core/save-rules.ts` runs both on every write unless `force: true`.
 
+### 3c. Change links (`src/core/change-link.ts`)
+
+A change link is `lc1.` followed by unpadded base64url of the zlib-format deflate
+(`CompressionStream('deflate')`) of the JSON
+`{v:1, repo?, branch, base, src, by, note, e:[[locale,key,from,to,force?]]}`. `parseChangeSet` is
+the schema: it checks every field and edit, rejects two edits to one key or to nested keys in a
+locale, and allows at most 500 edits (`MAX_CHANGE_EDITS`), while the JSON is capped at 512 KB
+(`MAX_INFLATED_BYTES`) on encode and on decode. Decoding takes an `Inflater`: the browser uses
+`streamInflate` (`DecompressionStream`, fed in 4 KB slices and stopped as soon as the output passes
+the cap), and `apply` uses `nodeInflate` from the Node-only `src/core/change-link-node.ts`
+(`zlib.inflateSync` with `maxOutputLength`, which also refuses bytes after the zlib stream), a file
+nothing in the Studio or client may import. Every failure is a `ChangeLinkError` with a code
+(`CORRUPT`, `TOO_LARGE`, `TOO_MANY_EDITS`, `INVALID`, …) whose message never echoes payload text.
+
 ### 4. Mutation router (`src/server/router.ts`)
 
 The single implementation of the API. Both the Next.js handler and the Vite middleware are thin
@@ -214,6 +228,7 @@ second server can bind beside it. Commands set `process.exitCode` rather than ca
 | CSRF origin allow-list      | router (`isOriginAllowed`)                  |
 | JSON content-type on writes | router                                      |
 | Body size cap               | next-handler, node-body, vite-plugin        |
+| Change-link size caps       | core/change-link, core/change-link-node     |
 | Path containment            | core/safe-path, file-mutator, studio-server |
 | Prototype pollution         | core/validate, file-mutator                 |
 | Atomic writes               | file-mutator                                |
