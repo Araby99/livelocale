@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { deflateSync } from 'node:zlib';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   CHANGE_LINK_FILE_THRESHOLD,
@@ -384,6 +385,42 @@ describe('encode/decode', () => {
         'lc1.' + toBase64Url(await streamDeflate(new Uint8Array(600 * 1024).fill(0x20)))
       )
     ).rejects.toMatchObject({ code: 'TOO_LARGE' }));
+
+  it('feeds a bomb to the inflater in 4 KB slices and stops feeding at the cap', async () => {
+    // A browser inflates each written chunk whole before the reader sees the
+    // cap, so one big write of a bomb spikes memory far past 512 KB. 64 MB of
+    // zeros deflates to about 64 KB, which is 16 slices.
+    const bomb = deflateSync(new Uint8Array(64 * 1024 * 1024));
+    const Real = globalThis.DecompressionStream;
+    const writes: number[] = [];
+    vi.stubGlobal(
+      'DecompressionStream',
+      class {
+        readonly readable: ReadableStream<Uint8Array>;
+        readonly writable: WritableStream<BufferSource>;
+        constructor(format: CompressionFormat) {
+          const real = new Real(format);
+          const writer = real.writable.getWriter();
+          this.readable = real.readable;
+          this.writable = new WritableStream<BufferSource>({
+            write: (chunk) => {
+              writes.push(chunk.byteLength);
+              return writer.write(chunk);
+            },
+            close: () => writer.close(),
+            abort: (reason) => writer.abort(reason),
+          });
+        }
+      }
+    );
+    await expect(streamInflate(bomb, MAX_INFLATED_BYTES)).rejects.toMatchObject({
+      code: 'TOO_LARGE',
+    });
+    // A write still queued when the read failed would have landed by now.
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(Math.max(...writes)).toBeLessThanOrEqual(4096);
+    expect(writes.reduce((a, b) => a + b, 0)).toBeLessThan(bomb.length / 2);
+  });
 
   it('refuses an over-long token before inflating', async () => {
     const inflate = vi.fn();

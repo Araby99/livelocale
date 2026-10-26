@@ -379,6 +379,13 @@ const UNSUPPORTED_ENVIRONMENT_MESSAGE =
   'This browser cannot create or read change links. Use a current Chrome, Edge or Firefox, or Safari 16.4 or later.';
 
 /**
+ * Input is written to a stream this many bytes at a time. Browsers inflate a
+ * written chunk whole before the reader sees any of it, so this bounds how far
+ * past the cap a decompression bomb can grow (about 1,000 times this).
+ */
+const FEED_SLICE_BYTES = 4096;
+
+/**
  * Feeds `bytes` through a compression or decompression stream and collects
  * the output, throwing `TOO_LARGE` as soon as it passes `maxOutputLength`.
  * A failed read rejects with the stream's own error.
@@ -388,12 +395,19 @@ async function pipeBytes(
   bytes: Uint8Array,
   maxOutputLength: number
 ): Promise<Uint8Array> {
-  // Not awaited: a transform stream takes more input only once its output is
-  // read. These promises reject when the stream errors or is cancelled, which
-  // the reads below report, so they are silenced here.
+  // The copy keeps a caller's later change to `bytes` out of the stream.
+  const input = new Uint8Array(bytes);
   const writer = stream.writable.getWriter();
-  writer.write(new Uint8Array(bytes)).catch(() => {});
-  writer.close().catch(() => {});
+  // Runs alongside the reads below and is not awaited: a transform stream
+  // takes more input only once its output is read. Each write waits for the
+  // one before, so feeding stops once the stream errors or is cancelled. The
+  // reads report that error, so the loop's rejection is silenced here.
+  void (async () => {
+    for (let at = 0; at < input.length; at += FEED_SLICE_BYTES) {
+      await writer.write(input.subarray(at, at + FEED_SLICE_BYTES));
+    }
+    await writer.close();
+  })().catch(() => {});
 
   const reader = stream.readable.getReader();
   const chunks: Uint8Array[] = [];
