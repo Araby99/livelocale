@@ -517,7 +517,8 @@ aliases for the old names:
    `livelocale/server`, `livelocale/react` and `livelocale/vite`.
 2. `I18nLensProvider` → `LiveLocaleProvider`, `createI18nLensHandler` → `createLiveLocaleHandler`,
    `i18nLensVite` → `liveLocaleVite`, `getLensMode` / `isLensEnabled` → `getLiveLocaleMode` /
-   `isLiveLocaleEnabled` (`ClientInitializer` is gone).
+   `isLiveLocaleEnabled`; types `I18nLensHandler` → `LiveLocaleHandler` and `LensMode` →
+   `LiveLocaleMode` (`ClientInitializer` is gone).
 3. Move the route file: `app/api/i18n-lens/mutate/route.ts` → `app/api/livelocale/route.ts`
    (Pages Router: `pages/api/i18n-lens/mutate.ts` → `pages/api/livelocale.ts`), or run
    `npx livelocale init` again.
@@ -529,4 +530,4 @@ aliases for the old names:
 
 ## ⚖️ License
 
-MIT License. See [LICENSE](file:///e:/works/livelocale/LICENSE) for more details.
+MIT License. See [LICENSE](LICENSE) for more details.

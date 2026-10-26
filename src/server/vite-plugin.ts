@@ -45,7 +45,9 @@ export function liveLocaleVite(config: VitePluginConfig) {
 
     configureServer(server: any) {
       server.middlewares.use(async (req: any, res: any, next: any) => {
-        if (!req.url?.startsWith(ROUTE)) {
+        const url: string = req.url ?? '';
+        // Exact path only, so app routes such as /api/livelocale-stats stay with the app.
+        if (url !== ROUTE && !url.startsWith(`${ROUTE}?`) && !url.startsWith(`${ROUTE}/`)) {
           return next();
         }
 

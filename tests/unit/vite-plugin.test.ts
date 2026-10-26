@@ -300,6 +300,16 @@ describe('liveLocaleVite plugin', () => {
     expect(next).toHaveBeenCalled();
   });
 
+  it('leaves app routes that only share the prefix to the app', async () => {
+    for (const url of ['/api/livelocale-stats', '/api/livelocales', '/api/livelocalex?x=1']) {
+      const { req } = createMockReq('GET', url);
+      const mock = createMockRes();
+      const next = vi.fn();
+      await middleware(req, mock.res, next);
+      expect(next, url).toHaveBeenCalled();
+    }
+  });
+
   it('should call next() for unrelated routes', async () => {
     const { req } = createMockReq('GET', '/some-other-route');
     const mock = createMockRes();
