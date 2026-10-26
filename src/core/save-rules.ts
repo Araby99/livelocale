@@ -218,9 +218,9 @@ const hasNew = (known: string[], found: string[]): boolean => {
 
 /**
  * Flags only what `value` adds compared with `reference`, in the order of
- * the union above, each at most once. A missing reference counts as empty,
- * so a source-locale edit or a new key is judged against nothing. Flags warn
- * a reviewer; they never reject a write.
+ * the union above, each at most once. A missing reference (a key the source
+ * locale lacks) counts as empty, so everything in `value` is new. This only
+ * reports; what a flag blocks, if anything, is the caller's decision.
  */
 export function detectRiskFlags(reference: string | undefined, value: string): ContentRiskFlag[] {
   const ref = reference ?? '';
