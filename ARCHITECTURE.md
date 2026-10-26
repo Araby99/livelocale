@@ -117,6 +117,9 @@ adapters that translate their request shape into `RouterRequest` and back. Rules
   ones,
 - `GET` lists locales, returns a locale dictionary, or `?action=keys` returns key metadata.
 
+Outside the router, `validateEdit` (also in `save-rules.ts`) recomputes the reference from the
+source-locale dictionary and never trusts a client `reference` or `force`.
+
 `MutationGateway` is the port the router writes through; `FileMutator` is its adapter.
 `GitGateway` is a second, optional port (`?action=git`, `commit`, `discard`) implemented by
 `GitClient` (`src/server/git-client.ts`), which shells out to the `git` CLI with argument arrays and

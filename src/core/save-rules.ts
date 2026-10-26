@@ -3,8 +3,11 @@
  *
  * The mutation router, the Studio's static transport and `livelocale apply`
  * all call `validateWrite`, so a value accepted by one is accepted by all.
+ * `validateEdit` adds what a write needs when its caller holds the locale
+ * files: the reference from the source locale and the structure guard.
  */
 
+import { lookupKey } from './json-path.js';
 import { comparePlaceholders, validateMessageSyntax } from './placeholders.js';
 import {
   isSafeKeyPath,
@@ -47,7 +50,11 @@ export interface WriteRuleOptions {
   force?: boolean;
 }
 
-const reject = (status: 400 | 422, code: WriteRuleCode, error: string): WriteRejected => ({
+const reject = (
+  status: WriteRejected['status'],
+  code: WriteRuleCode,
+  error: string
+): WriteRejected => ({
   ok: false,
   status,
   code,
@@ -126,4 +133,54 @@ export function validateWrite(
   }
 
   return accepted;
+}
+
+/** The locale files an edit is checked against. */
+export interface SourceContext {
+  /** apply: its --source argument; Studio: manifest.sourceLocale. */
+  sourceLocale: string;
+  /** The source-locale dictionary as stored (namespaces merged under their names). */
+  source: Record<string, unknown>;
+  /** The edit locale's dictionary; omitted when that locale has no file. */
+  target?: Record<string, unknown>;
+}
+
+/** The string at `key` in ctx.source, else null. For a source-locale edit this is its current text. */
+export function sourceReference(key: string, ctx: SourceContext): string | null {
+  const found = lookupKey(ctx.source, key);
+  return found.state === 'string' ? found.value : null;
+}
+
+/**
+ * Checks one edit against the locale files: the format rules, then the
+ * structure guard (409, which `force` cannot override), then message syntax
+ * and placeholder parity against `sourceReference` unless `options.force`.
+ * The reference is always recomputed here; any `reference` or `force`
+ * carried on `edit` is ignored.
+ */
+export function validateEdit(
+  edit: { locale: string; key: string; value: string },
+  ctx: SourceContext,
+  options?: { force?: boolean }
+): WriteVerdict {
+  const { locale, key, value } = edit;
+  const input = { locale, key, value };
+
+  // `force` skips only the 422 rules, so this runs the format rules alone.
+  const format = validateWrite(input, { force: true });
+  if (!format.ok) return format;
+
+  const dict = locale === ctx.sourceLocale ? ctx.source : (ctx.target ?? {});
+  if (lookupKey(dict, key).state === 'occupied') {
+    return reject(
+      409,
+      'KEY_NOT_A_STRING',
+      `Cannot save "${key}" in ${locale}: it would replace translations that are not a single text.`
+    );
+  }
+
+  return validateWrite(input, {
+    reference: sourceReference(key, ctx),
+    force: options?.force === true,
+  });
 }
