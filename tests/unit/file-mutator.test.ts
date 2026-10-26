@@ -493,4 +493,50 @@ describe('FileMutator', () => {
     vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
     await expect(mutator.readLocale(BASE_PATH, '../secrets')).rejects.toThrow(/traversal/i);
   });
+
+  describe('FileMutator({ requireEnabled: false })', () => {
+    it('writes and reads when NODE_ENV is production', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.mocked(fs.readFile).mockResolvedValue('{\n  "greeting": "Hello"\n}\n');
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.rename).mockResolvedValue(undefined);
+      const m = new FileMutator({ requireEnabled: false });
+      await m.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        expect.stringContaining('en.json.tmp'),
+        '{\n  "greeting": "Hi"\n}\n',
+        'utf-8'
+      );
+      await expect(m.readLocale(BASE_PATH, 'en')).resolves.toEqual({ greeting: 'Hello' });
+    });
+
+    it('ignores the LIVELOCALE=off kill switch (CLI-only option)', async () => {
+      vi.stubEnv('LIVELOCALE', 'off');
+      vi.mocked(fs.readFile).mockResolvedValue('{}');
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.rename).mockResolvedValue(undefined);
+      await expect(
+        new FileMutator({ requireEnabled: false }).updateLocaleKey(BASE_PATH, 'en', 'a', 'b')
+      ).resolves.toBeUndefined();
+    });
+
+    it('lists locales and scans key metadata outside development', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      const m = new FileMutator({ requireEnabled: false });
+      vi.mocked(fs.readdir).mockResolvedValue([
+        { name: 'en.json', isDirectory: () => false, isFile: () => true },
+      ] as any);
+      expect(await m.listLocales(BASE_PATH)).toEqual(['en']);
+      vi.mocked(fs.readdir).mockResolvedValue([] as any);
+      vi.mocked(fs.stat).mockRejectedValue(Object.assign(new Error('ENOENT'), { code: 'ENOENT' }));
+      expect(await m.getKeysMetadata(BASE_PATH)).toEqual({ allKeys: [], codeKeys: [] });
+    });
+
+    it('still refuses by default', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      await expect(new FileMutator({}).updateLocaleKey(BASE_PATH, 'en', 'a', 'b')).rejects.toThrow(
+        /development/i
+      );
+    });
+  });
 });

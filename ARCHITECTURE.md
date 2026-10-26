@@ -173,6 +173,7 @@ prefixes them with the namespace bound to that translator variable in the same f
 `wrapTranslationEngine({ keyPrefix })`), and merges them with keys present in the locale files. Scans are
 incremental (per-file mtime and size cache), honour the root `.gitignore` through
 `core/gitignore.ts`, and skip declaration files and files over 1 MB.
+`new FileMutator({ requireEnabled: false })` skips the enablement check, like `KeyScanner`, for CLI tools that write outside development, such as `livelocale apply`.
 
 ### 7. Client runtime (`src/client/dom-interceptor.ts`, `iframe-bridge.ts`, `index.ts`)
 

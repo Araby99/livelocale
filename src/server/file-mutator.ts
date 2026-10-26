@@ -10,15 +10,6 @@ import { getDisabledReason } from '../core/env.js';
 
 export { detectJsonIndent };
 
-function assertEnabled(component: string): void {
-  const reason = getDisabledReason();
-  if (reason !== null) {
-    throw new Error(
-      `[livelocale] ${component} can only be executed in development mode (${reason}).`
-    );
-  }
-}
-
 class FileMutex {
   private queue: Promise<any> = Promise.resolve();
 
@@ -33,9 +24,30 @@ class FileMutex {
   }
 }
 
+export interface FileMutatorOptions {
+  /** Refuse to run unless LiveLocale is enabled. Default true; only CLI tooling passes false. */
+  requireEnabled?: boolean;
+}
+
 export class FileMutator {
   private fileLocks = new Map<string, FileMutex>();
-  private scanner = new KeyScanner();
+  private readonly requireEnabled: boolean;
+  private readonly scanner: KeyScanner;
+
+  constructor(options: FileMutatorOptions = {}) {
+    this.requireEnabled = options.requireEnabled ?? true;
+    this.scanner = new KeyScanner({ requireEnabled: this.requireEnabled });
+  }
+
+  private assertEnabled(): void {
+    if (!this.requireEnabled) return;
+    const reason = getDisabledReason();
+    if (reason !== null) {
+      throw new Error(
+        `[livelocale] FileMutator can only be executed in development mode (${reason}).`
+      );
+    }
+  }
 
   /**
    * Helper to serialize execution per file path
@@ -61,7 +73,7 @@ export class FileMutator {
     newValue: string
   ): Promise<void> {
     // RULE GEN-001: DEVELOPMENT-ONLY ENFORCEMENT
-    assertEnabled('FileMutator');
+    this.assertEnabled();
 
     // RULE SRV-002: PATH TRAVERSAL PREVENTION
     // Reject any locale string containing invalid characters
@@ -199,7 +211,7 @@ export class FileMutator {
    * `*.json` inside the `{locale}/` folder merged under its namespace.
    */
   async readLocale(basePath: string, locale: string): Promise<Record<string, any>> {
-    assertEnabled('FileMutator');
+    this.assertEnabled();
     const localePath = path.resolve(basePath, locale);
     let isDir = false;
     try {
@@ -227,7 +239,7 @@ export class FileMutator {
    * Lists all locale codes dynamically scanned from the locales directory.
    */
   async listLocales(basePath: string): Promise<string[]> {
-    assertEnabled('FileMutator');
+    this.assertEnabled();
 
     const resolvedBasePath = path.resolve(basePath);
     const items = await fs.readdir(resolvedBasePath, { withFileTypes: true });
@@ -253,7 +265,7 @@ export class FileMutator {
    * Adds a new locale directory/file based on current repository structure.
    */
   async addLocale(basePath: string, locale: string): Promise<void> {
-    assertEnabled('FileMutator');
+    this.assertEnabled();
 
     if (!isSafeLocaleSegment(locale)) {
       throw new Error(
@@ -323,7 +335,7 @@ export class FileMutator {
    * Renames an existing locale (directory or file) to a new name.
    */
   async renameLocale(basePath: string, oldLocale: string, newLocale: string): Promise<void> {
-    assertEnabled('FileMutator');
+    this.assertEnabled();
 
     if (!isSafeLocaleSegment(oldLocale) || !isSafeLocaleSegment(newLocale)) {
       throw new Error('[livelocale] Path traversal attempt detected');
@@ -390,7 +402,7 @@ export class FileMutator {
    * Deletes an existing locale (directory or file).
    */
   async deleteLocale(basePath: string, locale: string): Promise<void> {
-    assertEnabled('FileMutator');
+    this.assertEnabled();
 
     if (!isSafeLocaleSegment(locale)) {
       throw new Error('[livelocale] Path traversal attempt detected');

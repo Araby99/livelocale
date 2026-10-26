@@ -1,4 +1,4 @@
-export { FileMutator } from './file-mutator.js';
+export { FileMutator, type FileMutatorOptions } from './file-mutator.js';
 export { KeyScanner } from './key-scanner.js';
 export { createLiveLocaleHandler, type HandlerConfig } from './next-handler.js';
 export { createTranslations, type CreateTranslationsOptions } from './translations.js';
