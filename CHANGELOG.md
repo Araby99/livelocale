@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-10-26
+
+### Patch Changes
+
+- **Fixed**
+  - Arabic and Persian text shaped wrongly while LiveLocale was active: the first letter of every translated string was drawn in its connected form, as if a hidden letter came before it. The invisible watermark ended with a zero-width joiner, which is join-causing in Arabic shaping. Watermarks now start and end with the non-joining ZWNJ (bits use ZWSP and ZWJ, which never touch a letter); in a browser the watermarked text now renders pixel-identical to plain text.
+  - Copy, paste, form submit and input values no longer delete every zero-width character, which removed the ZWNJ that Persian and Urdu words need (e.g. "می‌خواهم") and the ZWSP Thai uses. Only complete watermarks are removed, through the new exported `removeWatermarks()`.
+  - After the embedded app navigated through its own links (for example a language switcher), clicks and locale changes no longer reached a Studio running anywhere other than `http://localhost:3010`: the app's links drop the `?livelocale-origin=` parameter and the client fell back to the default origin. The client now remembers the Studio origin for the browser tab (`resolveStudioOrigin`), accepts only http(s) origins, and still works when storage is blocked. Found while editing the Vercel preview of the demo app with the Studio on port 3011.
+
 ## [0.8.0] - 2026-10-26
 
 ### Minor Changes
