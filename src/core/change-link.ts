@@ -152,11 +152,12 @@ const BRANCH_NAME_RE = /^(?!-)(?!.*\.\.)[^\s\x00-\x1f\x7f]{1,255}$/;
 /**
  * The one branch-name rule. The share manifest, build info and the change-set
  * schema all use it. `''` is not valid. A name never starts with `-` (so git
- * never reads it as an option) and never holds `..`, whitespace or control
- * characters.
+ * never reads it as an option) and never holds `..`, whitespace, control
+ * characters or a lone UTF-16 surrogate. The schema rejects a lone surrogate
+ * anywhere as broken text, so a name that passes here never fails a link.
  */
 export function isValidBranchName(name: string): boolean {
-  return BRANCH_NAME_RE.test(name);
+  return BRANCH_NAME_RE.test(name) && !hasLoneSurrogate(name);
 }
 
 export const CHANGE_LINK_VERSION = 1;

@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { it, expect } from 'vitest';
+import { parseChangeSet } from '../../src/core/change-link.js';
 import {
   isShareManifest,
   parseShareManifest,
@@ -63,6 +64,42 @@ it.each([
   ['a default branch with a space', { ...valid, defaultBranch: 'a b' }],
   ['an empty branch', { ...valid, branch: '' }],
 ])('rejects %s', (_label, v) => expect(isShareManifest(v)).toBe(false));
+
+it.each([
+  ['a branch with a lone high surrogate', { ...valid, branch: 'a\uD800b' }],
+  ['a branch with a lone low surrogate', { ...valid, branch: 'a\uDC00b' }],
+  ['a default branch with a lone surrogate', { ...valid, defaultBranch: 'x\uDBFF' }],
+])('rejects %s', (_label, v) => expect(isShareManifest(v)).toBe(false));
+
+/** True when the change-set schema accepts a link built from this manifest branch. */
+function linkAccepts(branch: string): boolean {
+  try {
+    parseChangeSet({
+      v: 1,
+      branch,
+      base: SHA,
+      src: 'en',
+      by: '',
+      note: '',
+      e: [['ar', 'k', null, 'x']],
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// A manifest that passes here must never yield a link the schema rejects (Task 38 maps branch).
+it.each([
+  ['main', 'main', true],
+  ['a 255-character name', 'x'.repeat(255), true],
+  ['a well-formed surrogate pair', 'x\uD83D\uDE00', true],
+  ['a lone high surrogate', 'a\uD800b', false],
+  ['a lone low surrogate', 'a\uDC00b', false],
+])('agrees with the change-link schema on a branch with %s', (_label, branch, ok) => {
+  expect(isShareManifest({ ...valid, branch })).toBe(ok);
+  expect(linkAccepts(branch)).toBe(ok);
+});
 
 it('parseShareManifest returns null for anything else', () => {
   expect(parseShareManifest(valid)).toBe(valid);

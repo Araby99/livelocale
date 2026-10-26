@@ -250,6 +250,18 @@ describe('change-set schema', () => {
     'rejects branch name %j',
     (b) => expect(isValidBranchName(b)).toBe(false)
   );
+
+  // The schema rejects a lone surrogate as broken text, so the one branch rule must too.
+  it.each(['a\uD800b', 'a\uDC00b', 'x\uDBFF', '\uDC00x'])(
+    'rejects branch name %j, which holds a lone surrogate',
+    (b) => expect(isValidBranchName(b)).toBe(false)
+  );
+
+  it('accepts a branch name with a well-formed surrogate pair', () =>
+    expect(isValidBranchName('x\uD83D\uDE00')).toBe(true));
+
+  it('rejects a link whose branch holds a lone surrogate', () =>
+    expect(codeOf(() => parseChangeSet({ ...valid, branch: 'a\uD800b' }))).toBe('INVALID'));
 });
 
 describe('encode/decode', () => {
