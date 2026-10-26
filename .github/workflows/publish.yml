@@ -23,6 +23,10 @@ jobs:
           registry-url: 'https://registry.npmjs.org/'
           cache: 'npm'
 
+      # Trusted publishing (OIDC, no NPM_TOKEN) needs npm 11.5.1 or later; Node 20 ships npm 10.
+      - name: Update npm
+        run: npm install -g npm@latest
+
       - name: Install Root Dependencies
         run: npm ci
 
@@ -32,7 +36,6 @@ jobs:
       - name: Run Unit & Integration Tests
         run: npm run test
 
+      # Authenticated by npm trusted publishing for this repository and workflow file.
       - name: Publish Package to NPM
         run: npm publish --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

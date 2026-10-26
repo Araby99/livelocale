@@ -125,8 +125,13 @@ enable it by default; `git: false` removes it.
 `createGitHubGateway` (`src/server/github-gateway.ts`) implements **both** ports over the GitHub
 REST API for preview mode: reads and writes go to a branch (one commit per save), `status`/`diff`
 come from the base...branch compare, `commit` opens or reuses a pull request, and `discard` resets
-the branch to base. `?action=info` tells the Studio the mode, whether a token is required, and
-whether git actions exist.
+the branch to base. Saves to one file are queued in-process, and a save that loses a race with
+another writer (`409`, or `422` for a stale sha) re-reads the file and retries up to four times,
+so separate serverless instances can write the same file. `checkAccess` verifies the token, the
+repository, the base branch, and write access; write permissions are probed with empty requests
+that GitHub answers with `422` when allowed and `403` when not, so nothing is created.
+`?action=info` tells the Studio the mode, whether a token is required, whether git actions exist,
+and the gateway's access `problems` (a passing check is cached; a failing one re-runs).
 
 When `authToken` is set (or `I18N_LENS_TOKEN`), every non-preflight request must carry
 `Authorization: Bearer <token>`; preview mode refuses to serve without one.
@@ -158,7 +163,10 @@ incremental (per-file mtime and size cache), honour the root `.gitignore` throug
 Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
 watermarks never leave the page. `IframeBridge` validates origins both ways. `index.ts`
 auto-initializes only when running inside an iframe in development and reads the Studio origin
-from the `i18n-lens-origin` query parameter.
+from the `i18n-lens-origin` query parameter. `APPLY_PREVIEW` swaps the visible text after the
+watermark and remembers the original; `CLEAR_SELECTION` restores it; `COMMIT_PREVIEW` applies a
+saved value and forgets the original so it stays. Re-applying an unchanged value is a no-op, so
+the Studio can resend saved values without triggering mutation loops.
 
 ### 8. Studio (`src/studio`)
 
@@ -172,6 +180,11 @@ Undo is implemented in the composer: it re-saves the previous value through the 
 path and removes the history entry, so disk, cache, and git status stay consistent. The app origin is resolved
 at start-up by `src/studio/config.ts` from `?app=`, then the CLI-injected
 `window.__I18N_LENS_CONFIG__`, then build-time `VITE_APP_ORIGIN`, then `http://localhost:3000`.
+In preview mode a deployment keeps serving the text it was built with, so `useStudio` resends the
+session's saved values (`COMMIT_PREVIEW`, newest wins per key) whenever the page reloads,
+navigates, or its visible keys change. Setup problems from `?action=info` render in
+`SetupProblems`; `IframeViewer` lists likely causes when the bridge has not answered in eight
+seconds, because a blocked frame is only reported in the browser console.
 
 ### 9. CLI (`src/codemod`)
 
@@ -179,7 +192,15 @@ at start-up by `src/studio/config.ts` from `?app=`, then the CLI-injected
 `dist/studio` through `createStudioServer`, injecting the app origin into `index.html`. `migrate`
 lazily imports the TypeScript-based codemod so the other commands work in JavaScript-only projects.
 `doctor` (`src/codemod/doctor.ts`) runs static checks on the project tree and, with `--app`, live
-HTTP probes; it returns structured findings so the CLI output and the tests share one source.
+HTTP probes; it returns structured findings so the CLI output and the tests share one source. With
+`--token` it also reads `?action=info` (mode, access problems), and it recognises redirects to a
+hosting login wall such as Vercel Deployment Protection. `check` (`src/codemod/check.ts`) is the
+read-only CI command: it reads locales the way the runtime does, scans source with
+`KeyScanner({ requireEnabled: false }).scanSourceKeys`, and reports missing keys, placeholder
+drift against the source locale, ICU syntax errors, empty values and unused keys. `studio`
+refuses to start when something already answers on `localhost:<port>`, because on Windows a
+second server can bind beside it. Commands set `process.exitCode` rather than calling
+`process.exit()` after network probes or large output.
 
 ## Security rules at a glance
 
@@ -209,7 +230,7 @@ CI runs format, lint, typecheck, unit tests with coverage thresholds, and E2E.
 
 - Key extraction is regex-based: namespaces are resolved per file, not across imports, and
   dynamic keys are skipped.
-- JSON only. No ICU plural forms, YAML, or gettext.
+- JSON only. No YAML or gettext.
 - The Studio is English-only. History and undo are per browser session (not persisted).
 - Locale detection from the embedded app's URL is a heuristic (`?locale=` or a two-letter path
   segment).

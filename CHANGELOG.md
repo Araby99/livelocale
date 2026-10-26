@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-10-26
+
+### Minor Changes
+
+- Milestone seven: a translation check for CI, and preview mode tested against a real deployment.
+
+  **Added**
+  - `npx next-i18n-lens check` reports invalid locale JSON, broken ICU syntax, keys used in code but missing from a locale, keys missing compared to the source locale (`--source`, default `en`), placeholder drift against the source locale, empty values, and keys nothing references. Exits 1 on problems; `--strict` promotes warnings, `--no-unused` skips the unused report, `--json` prints the full report. Runs in any `NODE_ENV`, so it works in CI.
+  - i18next plural families (`items_one`, `items_other`, …) count as one key, and object access such as `t.home` covers every key under it.
+  - `KeyScanner` accepts `{ requireEnabled: false }` and gains `scanSourceKeys(projectRoot)` for read-only tooling.
+
+  **Added (preview mode)**
+  - The GitHub gateway checks its own access (`checkAccess`): an empty or rejected token, an unknown repository, a missing base branch, and missing "Contents" or "Pull requests" write permission. Write permissions are probed with empty requests that GitHub rejects as invalid, so nothing is created. `GET ?action=info` returns the result as `problems`, the Studio shows it in a banner, and `GitGateway` gains an optional `checkAccess()`.
+  - `doctor --token <token>` (or `I18N_LENS_TOKEN`) checks a preview deployment: server mode, git availability, and repository access problems. A 401 now explains that a token is needed.
+  - After eight seconds on "Connecting", the Studio lists the usual causes (app not running, framing blocked, provider missing or off) and the `doctor` command to run.
+  - `studio` refuses to start when something already answers on `localhost:<port>`; on Windows a second server could otherwise bind beside it and the browser would silently reach the other one.
+
+  **Fixed**
+  - Concurrent saves to one locale file in GitHub mode lost edits with `409`. Saves are now queued per file and a save that loses a race re-reads and retries, so two server instances can write the same file.
+  - In preview mode a saved edit disappeared from the page as soon as it was saved, and on every reload, because the deployment still serves the old text. The Studio now keeps saved values on the page (`COMMIT_PREVIEW` bridge message) and re-applies the session's saves after reloads and navigation.
+  - `doctor --app` blamed middleware when a hosting login wall (Vercel Deployment Protection) redirected the request; it now names the wall and how to turn it off.
+  - `doctor` warned about frame-blocking headers even when `frame-ancestors` allowed the Studio origin.
+  - `doctor --app` could crash Node on Windows on exit (`UV_HANDLE_CLOSING`), and `check --json` could truncate piped output; both now set `process.exitCode` instead of calling `process.exit()`.
+  - GitHub permission errors say which token permission is missing.
+
 ## [0.6.0] - 2026-10-15
 
 ### Minor Changes
