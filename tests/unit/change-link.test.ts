@@ -2,11 +2,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   ChangeLinkError,
+  type ChangeWire,
   fencedChangeBlock,
   findChangeToken,
   fromBase64Url,
+  isValidBranchName,
   isValidRepoSlug,
+  parseChangeSet,
   toBase64Url,
+  toWire,
 } from '../../src/core/change-link.js';
 
 const codeOf = (fn: () => unknown) => {
@@ -99,4 +103,140 @@ describe('isValidRepoSlug', () => {
     'acme/shop#x',
     'acme/sh op',
   ])('rejects repo %j', (s) => expect(isValidRepoSlug(s)).toBe(false));
+});
+
+describe('change-set schema', () => {
+  const valid: ChangeWire = {
+    v: 1,
+    branch: 'main',
+    base: 'a'.repeat(40),
+    src: 'en',
+    by: 'Mona',
+    note: '',
+    e: [
+      ['ar', 'home.title', 'الرئيسية', 'الصفحة الرئيسية'],
+      ['ar', 'greeting', null, 'مرحبا {name}', 1],
+    ],
+  };
+
+  it('maps a wire object to a change set', () =>
+    expect(parseChangeSet(valid)).toEqual({
+      branch: 'main',
+      base: 'a'.repeat(40),
+      src: 'en',
+      by: 'Mona',
+      note: '',
+      edits: [
+        { locale: 'ar', key: 'home.title', from: 'الرئيسية', to: 'الصفحة الرئيسية', force: false },
+        { locale: 'ar', key: 'greeting', from: null, to: 'مرحبا {name}', force: true },
+      ],
+    }));
+
+  it('toWire is the inverse and omits repo and force when unset', () => {
+    const set = parseChangeSet(valid);
+    expect(toWire(set)).toEqual(valid);
+    expect('repo' in toWire(set)).toBe(false);
+    expect(toWire({ ...set, repo: 'acme/shop' }).repo).toBe('acme/shop');
+  });
+
+  it('accepts boundary values', () => {
+    for (const patch of [
+      { base: '' },
+      { base: 'f'.repeat(64) },
+      { branch: '' },
+      { branch: 'feature/ä' },
+      { by: 'x'.repeat(100) },
+      { note: 'a\nb\tc\r\n' + 'x'.repeat(1990) },
+      { e: Array.from({ length: 500 }, (_, i) => ['ar', `k${i}`, null, 'x']) },
+      {
+        e: [
+          ['ar', 'k', null, 'x'],
+          ['fr', 'k', null, 'y'],
+        ],
+      },
+    ])
+      expect(() => parseChangeSet({ ...valid, ...patch })).not.toThrow();
+  });
+
+  it.each([
+    ['v 2', { v: 2 }, 'UNSUPPORTED_VERSION'],
+    [
+      '501 edits',
+      { e: Array.from({ length: 501 }, (_, i) => ['ar', `k${i}`, null, 'x']) },
+      'TOO_MANY_EDITS',
+    ],
+    ['no edits', { e: [] }, 'INVALID'],
+    ['repo', { repo: 'acme' }, 'INVALID'],
+    ['empty repo', { repo: '' }, 'INVALID'],
+    ['short base', { base: 'abc' }, 'INVALID'],
+    ['uppercase base', { base: 'A'.repeat(40) }, 'INVALID'],
+    ['option-like branch', { branch: '--upload-pack=x' }, 'INVALID'],
+    ['branch with ..', { branch: 'a..b' }, 'INVALID'],
+    ['branch with space', { branch: 'a b' }, 'INVALID'],
+    ['src', { src: 'english' }, 'INVALID'],
+    ['by too long', { by: 'x'.repeat(101) }, 'INVALID'],
+    ['by control char', { by: 'Mo\u0000na' }, 'INVALID'],
+    ['note too long', { note: 'x'.repeat(2001) }, 'INVALID'],
+    ['short entry', { e: [['ar', 'k', null]] }, 'INVALID'],
+    ['long entry', { e: [['ar', 'k', null, 'x', 1, 1]] }, 'INVALID'],
+    ['force true', { e: [['ar', 'k', null, 'x', true]] }, 'INVALID'],
+    ['bad locale', { e: [['../x', 'k', null, 'x']] }, 'INVALID'],
+    ['polluting key', { e: [['ar', 'a.__proto__.b', null, 'x']] }, 'INVALID'],
+    ['numeric from', { e: [['ar', 'k', 5, 'x']] }, 'INVALID'],
+    ['to too long', { e: [['ar', 'k', null, 'x'.repeat(10_001)]] }, 'INVALID'],
+    ['lone surrogate', { e: [['ar', 'k', null, 'a\uD800b']] }, 'INVALID'],
+    [
+      'duplicate',
+      {
+        e: [
+          ['ar', 'k', null, 'x'],
+          ['ar', 'k', 'x', 'y'],
+        ],
+      },
+      'INVALID',
+    ],
+    [
+      'overlap',
+      {
+        e: [
+          ['ar', 'a.b', null, 'x'],
+          ['ar', 'a.b-x', null, 'y'],
+          ['ar', 'a.b.c', null, 'z'],
+        ],
+      },
+      'INVALID',
+    ],
+  ])('rejects %s', (_, patch, code) =>
+    expect(codeOf(() => parseChangeSet({ ...valid, ...patch }))).toBe(code)
+  );
+
+  it.each([null, [], 'lc1', 42])('rejects root %j', (v) =>
+    expect(codeOf(() => parseChangeSet(v))).toBe('INVALID')
+  );
+
+  it('names the failing edit', () =>
+    expect(() => parseChangeSet({ ...valid, e: [valid.e[0], ['ar', 'k', 5, 'x']] })).toThrow(
+      /edit 2/
+    ));
+
+  it('builds fresh objects', () => {
+    const set = parseChangeSet(
+      JSON.parse(`{"__proto__":{"polluted":1},${JSON.stringify(valid).slice(1)}`)
+    );
+    expect(({} as any).polluted).toBeUndefined();
+    expect((set as any).polluted).toBeUndefined();
+  });
+
+  it('ignores unknown top-level fields', () =>
+    expect(parseChangeSet({ ...valid, extra: 1 })).not.toHaveProperty('extra'));
+
+  it.each(['main', 'feature/ä', 'i18n/preview-edits', 'x'.repeat(255)])(
+    'accepts branch name %j',
+    (b) => expect(isValidBranchName(b)).toBe(true)
+  );
+
+  it.each(['', '-x', '--upload-pack=x', 'a..b', 'a b', 'a\tb', 'x'.repeat(256)])(
+    'rejects branch name %j',
+    (b) => expect(isValidBranchName(b)).toBe(false)
+  );
 });

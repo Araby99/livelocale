@@ -1,10 +1,19 @@
 /**
  * Text layer of the `lc1.` change link: the error type every codec step
  * throws, base64url, finding a token in pasted text, the fenced block GitHub
- * issues carry, and the repository slug rule.
+ * issues carry, the repository slug and branch name rules, and the change-set
+ * schema with its caps.
  *
  * Browser-safe, as tests/unit/core-browser-safe.test.ts checks.
  */
+
+import {
+  isSafeKeyPath,
+  isValidKeyFormat,
+  isValidLocaleFormat,
+  isValidValueFormat,
+  MAX_VALUE_LENGTH,
+} from './validate.js';
 
 export const CHANGE_LINK_PREFIX = 'lc1.';
 
@@ -35,6 +44,9 @@ export class ChangeLinkError extends Error {
 
 const CORRUPT_MESSAGE =
   'This change link is damaged or incomplete. Ask the sender to send the file instead.';
+
+const UNSUPPORTED_VERSION_MESSAGE =
+  'This change link was made by a newer LiveLocale. Update LiveLocale and try again.';
 
 const BASE64URL_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
@@ -120,10 +132,7 @@ export function findChangeToken(text: string): string {
     );
   }
   if (/(?:^|[^A-Za-z0-9_-])lc(?:[2-9]|[1-9]\d+)\.[A-Za-z0-9_-]/.test(scope)) {
-    throw new ChangeLinkError(
-      'UNSUPPORTED_VERSION',
-      'This change link was made by a newer LiveLocale. Update LiveLocale and try again.'
-    );
+    throw new ChangeLinkError('UNSUPPORTED_VERSION', UNSUPPORTED_VERSION_MESSAGE);
   }
   throw new ChangeLinkError(
     'NOT_FOUND',
@@ -136,4 +145,212 @@ export function isValidRepoSlug(slug: string): boolean {
   if (!/^[A-Za-z0-9][A-Za-z0-9-]{0,38}\/[A-Za-z0-9._-]{1,100}$/.test(slug)) return false;
   const repo = slug.slice(slug.indexOf('/') + 1);
   return repo !== '.' && repo !== '..';
+}
+
+const BRANCH_NAME_RE = /^(?!-)(?!.*\.\.)[^\s\x00-\x1f\x7f]{1,255}$/;
+
+/**
+ * The one branch-name rule. The share manifest, build info and the change-set
+ * schema all use it. `''` is not valid. A name never starts with `-` (so git
+ * never reads it as an option) and never holds `..`, whitespace or control
+ * characters.
+ */
+export function isValidBranchName(name: string): boolean {
+  return BRANCH_NAME_RE.test(name);
+}
+
+export const CHANGE_LINK_VERSION = 1;
+export const MAX_CHANGE_EDITS = 500;
+export const MAX_BY_CHARS = 100;
+export const MAX_NOTE_CHARS = 2_000;
+
+/** One proposed edit. `from` is null when the key is absent in that locale in the build. */
+export interface ChangeEdit {
+  locale: string;
+  key: string;
+  from: string | null;
+  to: string;
+  force: boolean;
+}
+
+/** The edits a translator sends, with the build they were made against. */
+export interface ChangeSet {
+  repo?: string;
+  branch: string;
+  base: string;
+  src: string;
+  by: string;
+  note: string;
+  edits: ChangeEdit[];
+}
+
+/** An edit on the wire. A forced edit carries a trailing `1`. */
+export type ChangeEditTuple =
+  | [locale: string, key: string, from: string | null, to: string]
+  | [locale: string, key: string, from: string | null, to: string, force: 1];
+
+/** The JSON a change link carries. */
+export interface ChangeWire {
+  v: 1;
+  repo?: string;
+  branch: string;
+  base: string;
+  src: string;
+  by: string;
+  note: string;
+  e: ChangeEditTuple[];
+}
+
+/** The wire form of a change set: no `repo` key when it is unset, and `1` appended only to forced edits. */
+export function toWire(set: ChangeSet): ChangeWire {
+  return {
+    v: CHANGE_LINK_VERSION,
+    ...(set.repo === undefined ? {} : { repo: set.repo }),
+    branch: set.branch,
+    base: set.base,
+    src: set.src,
+    by: set.by,
+    note: set.note,
+    e: set.edits.map(
+      ({ locale, key, from, to, force }): ChangeEditTuple =>
+        force ? [locale, key, from, to, 1] : [locale, key, from, to]
+    ),
+  };
+}
+
+/** Empty, or a full SHA-1 or SHA-256 commit id in lowercase hex. */
+const BASE_SHA_RE = /^(?:[0-9a-f]{40}|[0-9a-f]{64})?$/;
+
+const BY_FORBIDDEN_RE = /[\x00-\x1f\x7f]/;
+
+/** Control characters other than tab, line feed and carriage return. */
+const NOTE_FORBIDDEN_RE = /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/;
+
+/** A high surrogate with no low one after it, or a low surrogate with no high one before it. */
+const LONE_SURROGATE_RE =
+  /[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?:^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/;
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/** Reads an own property only, so no field ever comes from a prototype. */
+function own(obj: Record<string, unknown>, key: string): unknown {
+  return Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
+}
+
+function invalid(message: string): ChangeLinkError {
+  return new ChangeLinkError('INVALID', message);
+}
+
+function hasLoneSurrogate(text: string | null | undefined): boolean {
+  return typeof text === 'string' && LONE_SURROGATE_RE.test(text);
+}
+
+function parseEdit(entry: unknown, n: number): ChangeEdit {
+  const fail = (problem: string) => invalid(`edit ${n}: ${problem}`);
+  if (!Array.isArray(entry) || (entry.length !== 4 && entry.length !== 5)) {
+    throw fail('is not a [locale, key, from, to] entry.');
+  }
+  const [locale, key, from, to, force] = entry as unknown[];
+  if (typeof locale !== 'string' || !isValidLocaleFormat(locale)) {
+    throw fail('the locale is not a locale code.');
+  }
+  if (typeof key !== 'string' || !isValidKeyFormat(key) || !isSafeKeyPath(key)) {
+    throw fail('the key is not a valid translation key.');
+  }
+  if (from !== null && (typeof from !== 'string' || !isValidValueFormat(from))) {
+    throw fail(`the current text is not text of at most ${MAX_VALUE_LENGTH} characters.`);
+  }
+  if (typeof to !== 'string' || !isValidValueFormat(to)) {
+    throw fail(`the new text is not text of at most ${MAX_VALUE_LENGTH} characters.`);
+  }
+  if (entry.length === 5 && force !== 1) throw fail('the force flag must be 1.');
+  return { locale, key, from, to, force: entry.length === 5 };
+}
+
+/**
+ * Rejects two edits to one locale and key, and, within one locale, an edit
+ * whose key is a dotted ancestor of another edit's key (`a.b` and `a.b.c`),
+ * which would need both a text and a nested object at the same path.
+ */
+function checkKeysDistinct(edits: ChangeEdit[]): void {
+  const keysByLocale = new Map<string, Set<string>>();
+  edits.forEach(({ locale, key }, i) => {
+    let keys = keysByLocale.get(locale);
+    if (!keys) keysByLocale.set(locale, (keys = new Set()));
+    if (keys.has(key)) throw invalid(`edit ${i + 1}: an earlier edit changes the same key.`);
+    keys.add(key);
+  });
+  edits.forEach(({ locale, key }, i) => {
+    const keys = keysByLocale.get(locale)!;
+    for (let dot = key.indexOf('.'); dot >= 0; dot = key.indexOf('.', dot + 1)) {
+      if (keys.has(key.slice(0, dot))) {
+        throw invalid(`edit ${i + 1}: another edit changes a key that contains this one.`);
+      }
+    }
+  });
+}
+
+/**
+ * Validates a decoded change link and returns it as a change set made of
+ * fresh objects, ignoring unknown top-level fields. Throws
+ * `UNSUPPORTED_VERSION` unless `v` is 1, `TOO_MANY_EDITS` above
+ * `MAX_CHANGE_EDITS` edits, and `INVALID` for anything else outside the
+ * schema; a bad entry's message starts with `edit <n>:` (1-based).
+ */
+export function parseChangeSet(value: unknown): ChangeSet {
+  if (!isPlainObject(value)) throw invalid('This change link does not hold a change set.');
+  if (own(value, 'v') !== CHANGE_LINK_VERSION) {
+    throw new ChangeLinkError('UNSUPPORTED_VERSION', UNSUPPORTED_VERSION_MESSAGE);
+  }
+
+  const repo = own(value, 'repo');
+  if (repo !== undefined && (typeof repo !== 'string' || !isValidRepoSlug(repo))) {
+    throw invalid('The repository is not an owner/name slug.');
+  }
+  const branch = own(value, 'branch');
+  if (typeof branch !== 'string' || (branch !== '' && !isValidBranchName(branch))) {
+    throw invalid('The branch is not a valid branch name.');
+  }
+  const base = own(value, 'base');
+  if (typeof base !== 'string' || !BASE_SHA_RE.test(base)) {
+    throw invalid('The base is not a full commit id.');
+  }
+  const src = own(value, 'src');
+  if (typeof src !== 'string' || !isValidLocaleFormat(src)) {
+    throw invalid('The source locale is not a locale code.');
+  }
+  const by = own(value, 'by');
+  if (typeof by !== 'string' || by.length > MAX_BY_CHARS || BY_FORBIDDEN_RE.test(by)) {
+    throw invalid(`The name is not one line of at most ${MAX_BY_CHARS} characters.`);
+  }
+  const note = own(value, 'note');
+  if (typeof note !== 'string' || note.length > MAX_NOTE_CHARS || NOTE_FORBIDDEN_RE.test(note)) {
+    throw invalid(`The note is not plain text of at most ${MAX_NOTE_CHARS} characters.`);
+  }
+
+  const entries = own(value, 'e');
+  if (!Array.isArray(entries)) throw invalid('This change link holds no list of edits.');
+  if (entries.length > MAX_CHANGE_EDITS) {
+    throw new ChangeLinkError(
+      'TOO_MANY_EDITS',
+      `A change link holds at most ${MAX_CHANGE_EDITS} edits. Send the rest in another link.`
+    );
+  }
+  if (entries.length === 0) throw invalid('This change link holds no edits.');
+  // Array.from visits the holes of a sparse array, which map would skip.
+  const edits = Array.from(entries, (entry: unknown, i) => parseEdit(entry, i + 1));
+  checkKeysDistinct(edits);
+
+  if ([repo, branch, base, src, by, note].some(hasLoneSurrogate)) {
+    throw invalid('This change link holds broken text.');
+  }
+  edits.forEach(({ locale, key, from, to }, i) => {
+    if ([locale, key, from, to].some(hasLoneSurrogate)) {
+      throw invalid(`edit ${i + 1}: holds broken text.`);
+    }
+  });
+
+  return { ...(repo === undefined ? {} : { repo }), branch, base, src, by, note, edits };
 }
