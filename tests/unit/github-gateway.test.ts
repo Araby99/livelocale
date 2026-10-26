@@ -10,6 +10,11 @@ class FakeGitHub {
   branches: Record<string, Record<string, string>> = {}; // branch -> path -> content
   pulls: { number: number; head: string; base: string; title: string; state: string }[] = [];
   calls: { method: string; path: string; body?: any }[] = [];
+  /** Permissions of the token, as probed by checkAccess. */
+  canWriteContents = true;
+  canWritePulls = true;
+  /** When > 0, this many upcoming PUTs fail with 409 as if another writer won the race. */
+  forcedConflicts = 0;
 
   constructor(main: Record<string, string>) {
     this.branches['main'] = { ...main };
@@ -36,6 +41,12 @@ class FakeGitHub {
 
     if (!/^Bearer \S+$/.test((init.headers as any)?.Authorization ?? '')) {
       return json(401, { message: 'Bad credentials' });
+    }
+
+    if (path === '' && method === 'GET') return json(200, { full_name: 'acme/site' });
+    if (path === '/git/blobs' && method === 'POST') {
+      if (!this.canWriteContents) return json(403, { message: 'Resource not accessible' });
+      return json(422, { message: 'Invalid request' });
     }
 
     // Refs
@@ -92,6 +103,10 @@ class FakeGitHub {
         return json(200, Array.from(entries.values()));
       }
       if (method === 'PUT') {
+        if (this.forcedConflicts > 0) {
+          this.forcedConflicts -= 1;
+          return json(409, { message: 'is at abc but expected def' });
+        }
         if (files[p] !== undefined && body.sha !== this.sha(branch, p))
           return json(409, { message: 'sha mismatch' });
         if (files[p] === undefined && body.sha)
@@ -137,6 +152,8 @@ class FakeGitHub {
       );
     }
     if (path === '/pulls' && method === 'POST') {
+      if (!this.canWritePulls) return json(403, { message: 'Resource not accessible' });
+      if (!body?.head) return json(422, { message: 'Validation Failed' });
       const number = this.pulls.length + 1;
       this.pulls.push({
         number,
@@ -282,6 +299,81 @@ describe('createGitHubGateway', () => {
     await gw.discard('locales');
     expect(github.branches['i18n/preview-edits']!['locales/en.json']).toContain('"Hello"');
     expect((await gw.status('locales')).changes).toEqual([]);
+  });
+
+  it('keeps every edit when saves to one file run concurrently', async () => {
+    const gw = make();
+    await Promise.all(
+      ['a', 'b', 'c', 'd'].map((k) => gw.updateLocaleKey('locales', 'en', `race.${k}`, k))
+    );
+    const data = JSON.parse(github.branches['i18n/preview-edits']!['locales/en.json']!);
+    expect(data.race).toEqual({ a: 'a', b: 'b', c: 'c', d: 'd' });
+  });
+
+  it('keeps every edit when two server instances save the same file at once', async () => {
+    const a = make();
+    const b = make();
+    await a.listLocales('locales'); // create the branch first
+    await Promise.all([
+      a.updateLocaleKey('locales', 'en', 'race.a', 'A'),
+      b.updateLocaleKey('locales', 'en', 'race.b', 'B'),
+    ]);
+    const data = JSON.parse(github.branches['i18n/preview-edits']!['locales/en.json']!);
+    expect(data.race).toEqual({ a: 'A', b: 'B' });
+  });
+
+  it('re-reads and retries a save that loses a race, then gives up', async () => {
+    const gw = make();
+    github.forcedConflicts = 2;
+    await gw.updateLocaleKey('locales', 'en', 'home.title', 'After retry');
+    expect(github.branches['i18n/preview-edits']!['locales/en.json']).toContain('After retry');
+
+    github.forcedConflicts = 10;
+    await expect(gw.updateLocaleKey('locales', 'en', 'home.title', 'Never')).rejects.toThrow(/409/);
+    expect(github.forcedConflicts).toBe(6); // four attempts, then the error surfaces
+  });
+
+  describe('checkAccess', () => {
+    it('reports nothing when the token can write contents and pull requests', async () => {
+      expect(await make().checkAccess()).toEqual([]);
+    });
+
+    it('names the missing permissions without creating anything', async () => {
+      github.canWriteContents = false;
+      github.canWritePulls = false;
+      const problems = await make().checkAccess();
+      expect(problems).toHaveLength(2);
+      expect(problems[0]).toMatch(/Contents: Read and write/);
+      expect(problems[1]).toMatch(/Pull requests: Read and write/);
+      expect(github.pulls).toEqual([]);
+    });
+
+    it('reports a missing base branch', async () => {
+      const gw = createGitHubGateway({
+        repo: 'acme/site',
+        branch: 'edits',
+        baseBranch: 'develop',
+        token: 'ghp_test',
+        fetchImpl: github.fetch as unknown as typeof fetch,
+      });
+      expect(await gw.checkAccess()).toEqual([
+        'Base branch "develop" does not exist in acme/site.',
+      ]);
+    });
+
+    it('reports an empty or rejected token', async () => {
+      const opts = {
+        repo: 'acme/site',
+        branch: 'edits',
+        fetchImpl: github.fetch as unknown as typeof fetch,
+      };
+      expect(await createGitHubGateway({ ...opts, token: '' }).checkAccess()).toEqual([
+        'No GitHub token configured (github.token / GITHUB_TOKEN is empty).',
+      ]);
+      expect(await createGitHubGateway({ ...opts, token: 'bad token' }).checkAccess()).toEqual([
+        'The GitHub token is invalid or expired.',
+      ]);
+    });
   });
 
   it('surfaces GitHub errors with the API message', async () => {

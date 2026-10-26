@@ -2,6 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as net from 'net';
 import { fileURLToPath } from 'url';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures } from './doctor.js';
@@ -48,6 +49,7 @@ Options for doctor:
   --dir <path>       Project directory to inspect (default: current directory)
   --locales <path>   Locales directory relative to the project (default: locales)
   --app <origin>     Also probe the running app, e.g. http://localhost:3000
+  --token <token>    Access token for a preview deployment (default: I18N_LENS_TOKEN)
 
 Options for check:
   --dir <path>       Project directory to scan (default: current directory)
@@ -75,13 +77,38 @@ function normalizeOriginArg(value: string, flag: string): string {
   }
 }
 
-function runStudio(port: number, appOrigin: string) {
+/**
+ * True when something already accepts connections on localhost:port. On Windows
+ * another process can hold [::1]:port while our [::]:port bind still succeeds,
+ * so the browser would silently reach the other server.
+ */
+function isPortAnswering(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host: 'localhost', port });
+    const done = (answering: boolean) => {
+      socket.destroy();
+      resolve(answering);
+    };
+    socket.setTimeout(1000, () => done(false));
+    socket.once('connect', () => done(true));
+    socket.once('error', () => done(false));
+  });
+}
+
+async function runStudio(port: number, appOrigin: string) {
   console.log(`\n🚀 Starting i18n Lens Studio...`);
   const studioDir = path.resolve(getDirname(), '../studio');
 
   if (!fs.existsSync(path.join(studioDir, 'index.html'))) {
     console.error(`Error: Studio assets not found at "${studioDir}".`);
     console.error(`Did you build the project? Run "npm run build" first.`);
+    process.exit(1);
+  }
+
+  if (await isPortAnswering(port)) {
+    console.error(
+      `Error: something is already running on localhost:${port}. Stop it or pick another port with --port <number>.`
+    );
     process.exit(1);
   }
 
@@ -324,6 +351,7 @@ async function runDoctorCommand(args: string[]) {
   let dir = '.';
   let localesPath: string | undefined;
   let appOrigin: string | undefined;
+  let token: string | undefined;
   for (let i = 1; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--dir') {
@@ -332,6 +360,8 @@ async function runDoctorCommand(args: string[]) {
       localesPath = args[++i];
     } else if (arg === '--app') {
       appOrigin = normalizeOriginArg(args[++i] || '', '--app');
+    } else if (arg === '--token') {
+      token = args[++i];
     } else if (arg && !arg.startsWith('--')) {
       dir = arg;
     }
@@ -348,7 +378,7 @@ async function runDoctorCommand(args: string[]) {
   if (appOrigin) console.log(`🔗 Probing app at ${appOrigin}`);
   console.log('--------------------------------------------------');
 
-  const findings = await runDoctor({ projectDir, localesPath, appOrigin });
+  const findings = await runDoctor({ projectDir, localesPath, appOrigin, token });
   console.log(formatFindings(findings));
   console.log('--------------------------------------------------');
 
@@ -356,7 +386,9 @@ async function runDoctorCommand(args: string[]) {
   const warns = findings.filter((f) => f.level === 'warn').length;
   if (hasFailures(findings)) {
     console.log(`❌ ${fails} problem(s), ${warns} warning(s). Fix the problems above and re-run.`);
-    process.exit(1);
+    // exitCode, not exit(): open fetch sockets from --app probes crash Node on Windows otherwise.
+    process.exitCode = 1;
+    return;
   }
   console.log(
     warns > 0
@@ -413,7 +445,9 @@ async function runCheckCommand(args: string[]) {
   const failed = hasCheckFailures(report);
   if (json) {
     console.log(JSON.stringify(report, null, 2));
-    process.exit(failed ? 1 : 0);
+    // exitCode, not exit(): exiting immediately can truncate a large report piped to another tool.
+    process.exitCode = failed ? 1 : 0;
+    return;
   }
 
   console.log(`\n🔎 i18n Lens check — ${projectDir}`);
@@ -432,7 +466,8 @@ async function runCheckCommand(args: string[]) {
   const warns = report.issues.filter((i) => i.level === 'warn').length;
   if (failed) {
     console.log(`❌ ${fails} problem(s), ${warns} warning(s).`);
-    process.exit(1);
+    process.exitCode = 1;
+    return;
   }
   console.log(
     warns > 0 ? `✅ No problems, ${warns} warning(s) worth a look.` : `✅ Translations look good.`
@@ -490,7 +525,7 @@ async function run() {
         appOrigin = normalizeOriginArg(args[++i] || '', '--app');
       }
     }
-    runStudio(port, appOrigin);
+    await runStudio(port, appOrigin);
     return;
   }
 

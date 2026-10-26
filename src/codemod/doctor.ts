@@ -17,6 +17,8 @@ export interface DoctorOptions {
   localesPath?: string;
   /** When given, the running app is probed over HTTP. */
   appOrigin?: string;
+  /** Bearer token for an app that requires one (preview mode). Defaults to `I18N_LENS_TOKEN`. */
+  token?: string;
   /** Injectable fetch for tests. Defaults to the global fetch. */
   fetchImpl?: typeof fetch;
 }
@@ -131,11 +133,27 @@ function checkMiddleware(root: string): Finding {
   };
 }
 
+/** The default Studio origin inside a frame-ancestors source or config text. */
+const STUDIO_ORIGIN_RE = /(?:localhost|127\.0\.0\.1):3010(?!\d)/;
+
+/** True when a frame-ancestors directive lets the default Studio embed the page. */
+function allowsStudio(frameAncestors: string): boolean {
+  const sources = frameAncestors.split(/\s+/).slice(1);
+  return sources.includes('*') || sources.some((src) => STUDIO_ORIGIN_RE.test(src));
+}
+
 function checkFrameHeaders(root: string): Finding {
   const found = firstExisting(root, NEXT_CONFIG_CANDIDATES);
   if (!found)
     return { level: 'ok', title: 'Frame-blocking headers in next.config', detail: 'none' };
   const text = readText(path.join(root, found));
+  if (STUDIO_ORIGIN_RE.test(text)) {
+    return {
+      level: 'ok',
+      title: 'Frame-blocking headers in next.config',
+      detail: `${found} sets frame headers that name the Studio origin`,
+    };
+  }
   const hits: string[] = [];
   if (/frame-ancestors/i.test(text)) hits.push('frame-ancestors');
   if (/x-frame-options/i.test(text)) hits.push('X-Frame-Options');
@@ -217,23 +235,55 @@ function checkLocales(root: string, localesPath: string | undefined): Finding {
 
 async function probe(
   fetchImpl: typeof fetch,
-  url: string
+  url: string,
+  token?: string
 ): Promise<{ ok: true; res: Response } | { ok: false; error: string }> {
   try {
+    // Preview deployments answer in cold starts and GitHub round trips; allow more time there.
     const signal =
-      typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(5000) : undefined;
-    const res = await fetchImpl(url, { signal, redirect: 'manual' });
+      typeof AbortSignal.timeout === 'function' ? AbortSignal.timeout(15000) : undefined;
+    const headers: Record<string, string> = token ? { Authorization: `Bearer ${token}` } : {};
+    const res = await fetchImpl(url, { signal, redirect: 'manual', headers });
     return { ok: true, res };
   } catch (err: any) {
     return { ok: false, error: err?.message || String(err) };
   }
 }
 
-async function checkLive(appOrigin: string, fetchImpl: typeof fetch): Promise<Finding[]> {
+async function checkServerInfo(
+  origin: string,
+  fetchImpl: typeof fetch,
+  token: string | undefined
+): Promise<Finding[]> {
+  const res = await probe(fetchImpl, `${origin}${API_ROUTE}?action=info`, token);
+  if (!res.ok || res.res.status !== 200) return [];
+  let info: any = null;
+  try {
+    info = await res.res.json();
+  } catch {}
+  if (!info || typeof info.mode !== 'string') return [];
+  const findings: Finding[] = [
+    {
+      level: 'ok',
+      title: 'Server mode',
+      detail: `${info.mode}${info.authRequired ? ', token required' : ''}${info.git ? ', git actions available' : ''}`,
+    },
+  ];
+  for (const problem of Array.isArray(info.problems) ? info.problems : []) {
+    findings.push({ level: 'fail', title: 'Repository access', detail: String(problem) });
+  }
+  return findings;
+}
+
+async function checkLive(
+  appOrigin: string,
+  fetchImpl: typeof fetch,
+  token: string | undefined
+): Promise<Finding[]> {
   const findings: Finding[] = [];
   const origin = appOrigin.replace(/\/+$/, '');
 
-  const api = await probe(fetchImpl, `${origin}${API_ROUTE}`);
+  const api = await probe(fetchImpl, `${origin}${API_ROUTE}`, token);
   if (!api.ok) {
     findings.push({
       level: 'fail',
@@ -251,6 +301,15 @@ async function checkLive(appOrigin: string, fetchImpl: typeof fetch): Promise<Fi
         level: 'ok',
         title: 'Mutation API',
         detail: `${origin}${API_ROUTE} responded with ${body.length} locale(s)`,
+      });
+      findings.push(...(await checkServerInfo(origin, fetchImpl, token)));
+    } else if (res.status === 401) {
+      findings.push({
+        level: 'fail',
+        title: 'Mutation API',
+        detail: token
+          ? 'The server rejected the access token. Check I18N_LENS_TOKEN on the deployment.'
+          : 'The server requires an access token (preview mode). Re-run with --token <token> or set I18N_LENS_TOKEN.',
       });
     } else if (res.status === 403) {
       findings.push({
@@ -284,8 +343,10 @@ async function checkLive(appOrigin: string, fetchImpl: typeof fetch): Promise<Fi
     const csp = page.res.headers.get('content-security-policy') || '';
     const xfo = page.res.headers.get('x-frame-options') || '';
     const blockers: string[] = [];
-    if (/frame-ancestors/i.test(csp))
-      blockers.push(`Content-Security-Policy: ${csp.match(/frame-ancestors[^;]*/i)?.[0]}`);
+    const frameAncestors = csp.match(/frame-ancestors[^;]*/i)?.[0];
+    if (frameAncestors && !allowsStudio(frameAncestors.trim())) {
+      blockers.push(`Content-Security-Policy: ${frameAncestors}`);
+    }
     if (xfo) blockers.push(`X-Frame-Options: ${xfo}`);
     if (blockers.length > 0) {
       findings.push({
@@ -326,7 +387,8 @@ export async function runDoctor(options: DoctorOptions): Promise<Finding[]> {
         detail: 'Live checks need Node 18+ (global fetch).',
       });
     } else {
-      findings.push(...(await checkLive(options.appOrigin, fetchImpl)));
+      const token = options.token ?? process.env['I18N_LENS_TOKEN'] ?? undefined;
+      findings.push(...(await checkLive(options.appOrigin, fetchImpl, token || undefined)));
     }
   }
 

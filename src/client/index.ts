@@ -27,9 +27,9 @@ export { wrapTranslationEngine, wrapNextIntl, type WrapOptions } from './wrap.js
 
 // ─── Live preview support ───────────────────────────────────────────────────
 
-// Text nodes mutated by APPLY_PREVIEW, keyed to their original value so the
+// Text nodes mutated by APPLY_PREVIEW, with their original value so the
 // preview can be reverted when the selection is cleared.
-const previewNodes = new Map<Text, string>();
+const previewNodes = new Map<Text, { key: string; original: string }>();
 
 /**
  * Applies a live preview value to every rendered element matching `key`
@@ -50,17 +50,33 @@ function applyPreview(key: string, value: string): void {
     const decoded = decodeKey(raw);
     if (!decoded) return;
 
-    if (!previewNodes.has(node)) {
-      previewNodes.set(node, raw);
-    }
     // Preserve the watermark prefix, swap only the visible text
-    node.nodeValue = raw.slice(0, raw.length - decoded.cleanText.length) + value;
+    const next = raw.slice(0, raw.length - decoded.cleanText.length) + value;
+    // Skipping unchanged text avoids a mutation, so re-applying is idempotent.
+    if (next === raw) return;
+    if (!previewNodes.has(node)) {
+      previewNodes.set(node, { key, original: raw });
+    }
+    node.nodeValue = next;
+  });
+}
+
+/**
+ * Makes a saved value the text that stays on the page. In development the
+ * dev server re-renders from the edited file anyway; in preview mode the
+ * deployment still serves the old text until it is rebuilt, so the Studio
+ * re-sends saved values whenever the page reloads or changes.
+ */
+function commitPreview(key: string, value: string): void {
+  applyPreview(key, value);
+  previewNodes.forEach((entry, node) => {
+    if (entry.key === key) previewNodes.delete(node);
   });
 }
 
 /** Restores all previewed text nodes to their pre-preview values. */
 function restorePreviews(): void {
-  previewNodes.forEach((original, node) => {
+  previewNodes.forEach(({ original }, node) => {
     node.nodeValue = original;
   });
   previewNodes.clear();
@@ -98,6 +114,10 @@ if (
     if (type === 'APPLY_PREVIEW') {
       if (payload && typeof payload.key === 'string' && typeof payload.value === 'string') {
         applyPreview(payload.key, payload.value);
+      }
+    } else if (type === 'COMMIT_PREVIEW') {
+      if (payload && typeof payload.key === 'string' && typeof payload.value === 'string') {
+        commitPreview(payload.key, payload.value);
       }
     } else if (type === 'CLEAR_SELECTION') {
       // Revert any live preview, then re-trigger/reset interceptor highlight states

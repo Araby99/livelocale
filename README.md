@@ -212,11 +212,13 @@ Inspects the project for the integration problems the Studio cannot recover from
 probes the running app.
 
 ```bash
-npx next-i18n-lens doctor [--dir <path>] [--locales <path>] [--app <origin>]
+npx next-i18n-lens doctor [--dir <path>] [--locales <path>] [--app <origin>] [--token <token>]
 ```
 
 - `--locales` — locales directory relative to the project (default `locales`).
 - `--app` — also check that the mutation API answers and that pages are embeddable.
+- `--token` — access token for a preview deployment (defaults to `I18N_LENS_TOKEN`); with it the
+  doctor also reports the server mode and repository access problems.
 
 ### `check`
 
@@ -387,8 +389,12 @@ Environment on the preview deployment:
 I18N_LENS=preview                 # server: watermark and serve the API in a production build
 NEXT_PUBLIC_I18N_LENS=preview     # client bundle: run the scanner and clipboard guards
 I18N_LENS_TOKEN=<long random>     # required; the Studio asks for it once per browser session
-GITHUB_TOKEN=<fine-grained PAT>   # contents + pull requests on the repository
+GITHUB_TOKEN=<fine-grained PAT>   # Contents and Pull requests: "Read and write" on the repository
 ```
+
+The app must also let the Studio embed it. Next.js evaluates `headers()` in `next.config` at
+**build** time, so a `frame-ancestors` value that lists the Studio origin has to be present when the
+preview is built, not only at run time.
 
 For a Vite app, the Vite plugin mirrors the server's `I18N_LENS` flag into the page, so
 `I18N_LENS=preview` alone is enough; no `NEXT_PUBLIC_` variable is needed there.
@@ -397,6 +403,25 @@ Then open the Studio with `?app=https://<preview-url>` (or `studio --app`). It s
 **PREVIEW** badge, asks for the access token, and the Changes panel switches to branch and
 pull-request actions. Code-reference scanning is off in this mode (there is no checkout), so the
 Locale Directory lists keys from the locale files only.
+
+Check a preview deployment before handing it to anyone:
+
+```bash
+npx next-i18n-lens doctor --app https://<preview-url> --token <I18N_LENS_TOKEN>
+```
+
+The server verifies its GitHub token when the Studio connects: a token that cannot write contents
+or open pull requests, a missing base branch, or an unknown repository is reported in a banner
+in the Studio and by `doctor`, before anyone loses an edit to a failed save.
+
+Behaviour worth knowing:
+
+- **Edits stay visible.** The deployment keeps serving the text it was built with until the
+  branch is rebuilt, so the Studio re-applies this session's saved values on reload and navigation.
+- **Concurrent saves are safe.** Saves to one file are queued, and a save that loses a race with
+  another server instance or another Studio re-reads the file and retries.
+- **Discard closes the pull request.** Resetting the branch to the base leaves the pull request
+  with no changes, and GitHub closes it.
 
 ### What preview mode does not do
 

@@ -141,7 +141,14 @@ describe('useSelection', () => {
     );
     expect(result.current.isSuccess).toBe(true);
     expect(params.updateLocaleDataCache).toHaveBeenCalledWith('home.title', 'Bienvenue');
-    expect(params.sendToIframe).toHaveBeenCalledWith('CLEAR_SELECTION');
+    // The saved text is committed on the page before the selection is cleared,
+    // so a preview deployment does not revert to the pre-edit value.
+    const sent = params.sendToIframe.mock.calls.map((c: unknown[]) => c[0]);
+    expect(params.sendToIframe).toHaveBeenCalledWith('COMMIT_PREVIEW', {
+      key: 'home.title',
+      value: 'Bienvenue',
+    });
+    expect(sent.lastIndexOf('COMMIT_PREVIEW')).toBeLessThan(sent.lastIndexOf('CLEAR_SELECTION'));
     expect(params.setError).toHaveBeenLastCalledWith(null);
     expect(params.onSaved).toHaveBeenCalledWith({
       locale: 'ar',

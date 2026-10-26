@@ -190,7 +190,8 @@ export const useSelection = ({
       // Refresh list of all keys in case a new key was saved/created
       refreshKeysMetadata();
 
-      // Send indicator update back to client to clear selection highlight
+      // Keep the saved text on the page, then clear the selection highlight
+      sendToIframe('COMMIT_PREVIEW', { key: selected.key, value: inputValue });
       sendToIframe('CLEAR_SELECTION');
 
       // Clear saved indicator after 2 seconds (restart the timer on re-save)

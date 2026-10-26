@@ -1,5 +1,5 @@
 export type ClientMessageType = 'ELEMENT_SELECTED' | 'READY' | 'ERROR' | 'VISIBLE_KEYS_CHANGED';
-export type StudioMessageType = 'APPLY_PREVIEW' | 'CLEAR_SELECTION';
+export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION';
 
 export interface TranslationPayload {
   key: string;

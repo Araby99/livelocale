@@ -1,5 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ConnectionStatus } from '../types/index.js';
+
+/** How long the Studio waits for the app's bridge before suggesting causes. */
+export const SLOW_CONNECTION_MS = 8000;
 
 interface IframeViewerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -9,6 +12,16 @@ interface IframeViewerProps {
 }
 
 export const IframeViewer = ({ iframeRef, appOrigin, connectionStatus }: IframeViewerProps) => {
+  // The browser never tells the parent page why a frame stayed blank (a CSP
+  // frame-ancestors block only reaches the console), so after a while list the usual causes.
+  const [isSlow, setIsSlow] = useState(false);
+  useEffect(() => {
+    setIsSlow(false);
+    if (connectionStatus !== 'connecting') return;
+    const timer = setTimeout(() => setIsSlow(true), SLOW_CONNECTION_MS);
+    return () => clearTimeout(timer);
+  }, [connectionStatus]);
+
   const reloadIframe = () => {
     if (iframeRef.current) {
       iframeRef.current.src = iframeRef.current.src;
@@ -92,6 +105,37 @@ export const IframeViewer = ({ iframeRef, appOrigin, connectionStatus }: IframeV
                 Waiting for client bridge initialization...
               </p>
             </div>
+            {isSlow && (
+              <div
+                role="status"
+                data-testid="slow-connection-help"
+                className="max-w-md mx-6 mt-2 rounded-xl border border-slate-800 bg-slate-900/90 p-4 text-left text-xs text-slate-300"
+              >
+                <p className="font-semibold text-slate-100">Still connecting? Usual causes:</p>
+                <ul className="mt-2 space-y-1.5 list-disc pl-4">
+                  <li>
+                    The app is not running at <span className="font-mono">{appOrigin}</span>.
+                  </li>
+                  <li>
+                    The app blocks framing: its <span className="font-mono">frame-ancestors</span>{' '}
+                    or <span className="font-mono">X-Frame-Options</span> header must allow{' '}
+                    <span className="font-mono">{window.location.origin}</span>.
+                  </li>
+                  <li>
+                    <span className="font-mono">I18nLensProvider</span> is not mounted, or i18n Lens
+                    is off in the app (preview builds need{' '}
+                    <span className="font-mono">NEXT_PUBLIC_I18N_LENS=preview</span>).
+                  </li>
+                </ul>
+                <p className="mt-3 text-slate-400">
+                  Run{' '}
+                  <span className="font-mono text-slate-200 select-all">
+                    npx next-i18n-lens doctor --app {appOrigin}
+                  </span>{' '}
+                  to check.
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>

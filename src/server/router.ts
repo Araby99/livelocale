@@ -50,6 +50,11 @@ export interface GitGateway {
   diff(localesPath: string): Promise<string>;
   commit(localesPath: string, message: string): Promise<{ hash: string }>;
   discard(localesPath: string): Promise<void>;
+  /**
+   * Optional self-test of credentials and permissions. Returns human-readable
+   * problems (empty when everything needed is in place). Reported by `?action=info`.
+   */
+  checkAccess?(): Promise<string[]>;
 }
 
 export interface RouterRequest {
@@ -158,6 +163,20 @@ export function createMutationRouter(
     'Content-Type': 'application/json',
   });
 
+  // A passing access check is remembered; a failing one is re-run on every
+  // `info` call so fixing the token takes effect without a restart.
+  let accessOk = false;
+  async function accessProblems(): Promise<string[]> {
+    if (!git?.checkAccess || accessOk) return [];
+    try {
+      const problems = await git.checkAccess();
+      accessOk = problems.length === 0;
+      return problems;
+    } catch (err: any) {
+      return [`Could not verify repository access: ${err?.message || err}`];
+    }
+  }
+
   // ─── GET: Fetch locale dictionary, list locales, or fetch keys metadata ───
 
   async function handleGet(
@@ -173,6 +192,7 @@ export function createMutationRouter(
         mode: getLensMode(),
         authRequired: authToken !== null,
         git: Boolean(git),
+        problems: await accessProblems(),
       });
     }
 

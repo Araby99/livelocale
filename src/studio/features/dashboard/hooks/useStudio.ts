@@ -21,6 +21,7 @@ export const useStudio = () => {
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
   const [isUndoing, setIsUndoing] = useState<boolean>(false);
   const [mode, setMode] = useState<LensMode | null>(null);
+  const [setupProblems, setSetupProblems] = useState<string[]>([]);
 
   const auth = useAuth();
 
@@ -96,7 +97,10 @@ export const useStudio = () => {
   useEffect(() => {
     if (connectionStatus !== 'connected') return;
     fetchInfo()
-      .then((info) => setMode(info.mode))
+      .then((info) => {
+        setMode(info.mode);
+        setSetupProblems(info.problems ?? []);
+      })
       .catch(() => {});
   }, [connectionStatus, auth.tokenVersion]);
 
@@ -109,6 +113,18 @@ export const useStudio = () => {
     git.refresh();
   }, [auth.tokenVersion]);
 
+  // A preview deployment keeps serving the text it was built with, so a reload
+  // or navigation would bring back pre-edit values. Re-apply this session's
+  // saved values for the current locale (oldest first, so the newest wins).
+  useEffect(() => {
+    if (mode !== 'preview' || connectionStatus !== 'connected') return;
+    const latest = new Map<string, string>();
+    for (const entry of [...history.entries].reverse()) {
+      if (entry.locale === locale) latest.set(entry.key, entry.nextValue);
+    }
+    latest.forEach((value, key) => sendToIframe('COMMIT_PREVIEW', { key, value }));
+  }, [mode, connectionStatus, currentPath, visibleKeys, locale, history.entries]);
+
   // Undo re-saves the previous value through the normal mutation path, so the
   // file on disk, the dictionary cache, and git status all stay consistent.
   const undoEntry = async (entry: HistoryEntry) => {
@@ -118,6 +134,7 @@ export const useStudio = () => {
       await saveTranslation(entry.locale, entry.key, entry.previousValue);
       if (entry.locale === locale) {
         updateLocaleDataCache(entry.key, entry.previousValue);
+        sendToIframe('COMMIT_PREVIEW', { key: entry.key, value: entry.previousValue });
       }
       history.remove(entry.id);
       await git.refresh();
@@ -192,6 +209,7 @@ export const useStudio = () => {
     history: history.entries,
     undoEntry,
     isUndoing,
+    setupProblems,
     // Placeholder safety
     saveWarning,
     handleForceSave: () => handleSave({ force: true }),

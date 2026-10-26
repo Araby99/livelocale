@@ -39,6 +39,7 @@ describe('mutation router — info action', () => {
       mode: 'development',
       authRequired: false,
       git: false,
+      problems: [],
     });
   });
 
@@ -54,6 +55,36 @@ describe('mutation router — info action', () => {
     expect((await router.handle(info())).status).toBe(401);
     const res = await router.handle(info('Bearer t0ken'));
     expect(res.status).toBe(200);
-    expect(JSON.parse(res.body!)).toEqual({ mode: 'preview', authRequired: true, git: true });
+    expect(JSON.parse(res.body!)).toEqual({
+      mode: 'preview',
+      authRequired: true,
+      git: true,
+      problems: [],
+    });
+  });
+
+  it('reports access problems until they are fixed, then stops checking', async () => {
+    const checkAccess = vi
+      .fn()
+      .mockResolvedValueOnce(['The token cannot write.'])
+      .mockResolvedValueOnce([]);
+    const git = { status: vi.fn(), diff: vi.fn(), commit: vi.fn(), discard: vi.fn(), checkAccess };
+    const router = createMutationRouter(makeMutator(), { localesPath: 'locales', git });
+    const problems = async () => JSON.parse((await router.handle(info())).body!).problems;
+    expect(await problems()).toEqual(['The token cannot write.']);
+    expect(await problems()).toEqual([]);
+    expect(await problems()).toEqual([]);
+    expect(checkAccess).toHaveBeenCalledTimes(2);
+  });
+
+  it('turns a failing access check into a problem instead of an error', async () => {
+    const checkAccess = vi.fn().mockRejectedValue(new Error('network down'));
+    const git = { status: vi.fn(), diff: vi.fn(), commit: vi.fn(), discard: vi.fn(), checkAccess };
+    const router = createMutationRouter(makeMutator(), { localesPath: 'locales', git });
+    const res = await router.handle(info());
+    expect(res.status).toBe(200);
+    expect(JSON.parse(res.body!).problems).toEqual([
+      'Could not verify repository access: network down',
+    ]);
   });
 });

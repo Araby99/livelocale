@@ -105,6 +105,17 @@ describe('runDoctor — static checks', () => {
     expect(byTitle(findings, 'frame')?.level).toBe('warn');
   });
 
+  it('accepts a next.config whose frame-ancestors names the Studio origin', async () => {
+    healthyAppRouterProject(project);
+    write(
+      project,
+      'next.config.mjs',
+      `export default { headers: async () => [{ key: 'Content-Security-Policy', value: "frame-ancestors 'self' http://localhost:3010" }] };`
+    );
+    const findings = await runDoctor({ projectDir: project });
+    expect(byTitle(findings, 'frame')?.level).toBe('ok');
+  });
+
   it('fails on invalid locale JSON and names the file', async () => {
     healthyAppRouterProject(project);
     write(project, 'locales/es.json', '{ not json');
@@ -183,6 +194,48 @@ describe('runDoctor — live checks', () => {
     expect(api?.detail).toContain('I18N_LENS');
   });
 
+  it('sends the token to a preview deployment and reports access problems', async () => {
+    const seen: (string | undefined)[] = [];
+    const fetchImpl = vi.fn(async (url: string, init: RequestInit = {}) => {
+      const auth = (init.headers as Record<string, string> | undefined)?.Authorization;
+      seen.push(auth);
+      if (url.includes('/api/i18n-lens/mutate')) {
+        if (auth !== 'Bearer s3cret') return jsonResponse(401, { error: 'Unauthorized' });
+        if (url.endsWith('?action=info')) {
+          return jsonResponse(200, {
+            mode: 'preview',
+            authRequired: true,
+            git: true,
+            problems: ['The token cannot write to acme/site.'],
+          });
+        }
+        return jsonResponse(200, ['en']);
+      }
+      return new Response('', { status: 200 });
+    });
+    const run = (token?: string) =>
+      runDoctor({
+        projectDir: project,
+        appOrigin: 'https://preview.example.com',
+        token,
+        fetchImpl: fetchImpl as any,
+      });
+
+    const withoutToken = await run();
+    expect(byTitle(withoutToken, 'mutation api')?.detail).toMatch(/--token/);
+
+    const findings = await run('s3cret');
+    expect(seen).toContain('Bearer s3cret');
+    expect(byTitle(findings, 'mutation api')?.level).toBe('ok');
+    expect(byTitle(findings, 'server mode')?.detail).toBe(
+      'preview, token required, git actions available'
+    );
+    expect(byTitle(findings, 'repository access')).toMatchObject({
+      level: 'fail',
+      detail: 'The token cannot write to acme/site.',
+    });
+  });
+
   it('fails clearly when the app is not running', async () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error('ECONNREFUSED');
@@ -209,6 +262,25 @@ describe('runDoctor — live checks', () => {
       fetchImpl: fetchImpl as any,
     });
     expect(byTitle(findings, 'embed')?.level).toBe('warn');
+  });
+
+  it.each([
+    ["frame-ancestors 'self' http://localhost:3010", 'ok'],
+    ['frame-ancestors *', 'ok'],
+    ["frame-ancestors 'self' http://localhost:30100", 'warn'],
+    ["frame-ancestors 'none'", 'warn'],
+  ])('judges the live CSP "%s" as %s', async (csp, level) => {
+    const fetchImpl = vi.fn(async (url: string) =>
+      url.endsWith('/api/i18n-lens/mutate')
+        ? jsonResponse(200, ['en'])
+        : new Response('', { status: 200, headers: { 'content-security-policy': csp } })
+    );
+    const findings = await runDoctor({
+      projectDir: project,
+      appOrigin: 'http://localhost:3000',
+      fetchImpl: fetchImpl as any,
+    });
+    expect(byTitle(findings, 'embed')?.level).toBe(level);
   });
 });
 

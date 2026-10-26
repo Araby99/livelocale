@@ -48,6 +48,28 @@ interface ContentEntry {
 
 type Contents = ContentFile | ContentEntry[] | null;
 
+/** A non-2xx answer from the GitHub REST API. */
+class GitHubApiError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = 'GitHubApiError';
+  }
+}
+
+/** Attempts per save when another writer changed the file between our read and our write. */
+const MAX_WRITE_ATTEMPTS = 4;
+
+/**
+ * True when a contents write lost a race: GitHub answers 409 when the blob sha
+ * we sent is stale, and 422 when a file we thought was new now exists.
+ */
+const isWriteConflict = (err: unknown) =>
+  err instanceof GitHubApiError &&
+  (err.status === 409 || (err.status === 422 && /sha/i.test(err.message)));
+
 const encodePath = (p: string) => p.split('/').map(encodeURIComponent).join('/');
 
 const normalizeDir = (p: string) =>
@@ -115,11 +137,34 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     } catch {}
     if (response.status === 404 && options.allow404) return { status: 404, data: null };
     if (!response.ok) {
-      throw new Error(
-        `GitHub API ${response.status} on ${method} ${path}: ${data?.message || 'request failed'}`
+      const detail = data?.message || 'request failed';
+      const hint = /not accessible by/i.test(detail)
+        ? ' The token lacks a permission: give it "Contents" and "Pull requests" with "Read and write" on this repository.'
+        : '';
+      throw new GitHubApiError(
+        `GitHub API ${response.status} on ${method} ${path}: ${detail}.${hint}`,
+        response.status
       );
     }
     return { status: response.status, data };
+  }
+
+  /** Raw status of a request that is expected to fail validation; never throws on 4xx. */
+  async function probeStatus(method: string, path: string, body?: unknown): Promise<number> {
+    const response = await fetchImpl(`${apiBase}/repos/${repo}${path}`, {
+      method,
+      headers: {
+        Authorization: `Bearer ${config.token}`,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      },
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    try {
+      await response.arrayBuffer();
+    } catch {}
+    return response.status;
   }
 
   async function refSha(name: string): Promise<string | null> {
@@ -177,6 +222,34 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
 
   async function deleteFile(path: string, message: string, sha: string): Promise<void> {
     await api('DELETE', `/contents/${encodePath(path)}`, { body: { message, sha, branch } });
+  }
+
+  // Saves to one file are queued in this process, and a save that still loses
+  // a race (another serverless instance, another Studio) re-reads and retries.
+  const fileQueues = new Map<string, Promise<unknown>>();
+  function withFileLock<T>(path: string, fn: () => Promise<T>): Promise<T> {
+    const previous = fileQueues.get(path) ?? Promise.resolve();
+    const next = previous.then(fn, fn);
+    const settled = next.then(
+      () => {},
+      () => {}
+    );
+    fileQueues.set(path, settled);
+    settled.then(() => {
+      if (fileQueues.get(path) === settled) fileQueues.delete(path);
+    });
+    return next;
+  }
+
+  async function retryOnConflict<T>(fn: () => Promise<T>): Promise<T> {
+    for (let attempt = 1; ; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        if (!isWriteConflict(err) || attempt >= MAX_WRITE_ATTEMPTS) throw err;
+        await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
+      }
+    }
   }
 
   // ─── Locale layout helpers ───────────────────────────────────────────────
@@ -262,21 +335,25 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
       filePath = flatPath(basePath, locale);
     }
 
-    const existing = await readFile(filePath);
-    let data: Record<string, any> = {};
-    if (existing) {
-      const parsed = JSON.parse(existing.text);
-      if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-        throw new Error('[i18n-lens] Invalid locale file: root must be an object.');
-      }
-      data = parsed;
-    }
-    setNestedProperty(data, mutationKeyPath, value);
-    await putFile(
-      filePath,
-      stringifyLike(data, existing?.text ?? null),
-      `i18n(${locale}): update ${keyPath}`,
-      existing?.sha
+    await withFileLock(filePath, () =>
+      retryOnConflict(async () => {
+        const existing = await readFile(filePath);
+        let data: Record<string, any> = {};
+        if (existing) {
+          const parsed = JSON.parse(existing.text);
+          if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            throw new Error('[i18n-lens] Invalid locale file: root must be an object.');
+          }
+          data = parsed;
+        }
+        setNestedProperty(data, mutationKeyPath, value);
+        await putFile(
+          filePath,
+          stringifyLike(data, existing?.text ?? null),
+          `i18n(${locale}): update ${keyPath}`,
+          existing?.sha
+        );
+      })
     );
   }
 
@@ -438,7 +515,42 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     });
   }
 
+  /**
+   * Verifies the token, the repository, the base branch, and write access.
+   * Write access is probed with deliberately empty requests: GitHub answers
+   * 422 (validation failed) when the token has the permission and 403 when it
+   * does not, so nothing is created either way.
+   */
+  async function checkAccess(): Promise<string[]> {
+    if (!config.token) {
+      return ['No GitHub token configured (github.token / GITHUB_TOKEN is empty).'];
+    }
+    const repoStatus = await probeStatus('GET', '');
+    if (repoStatus === 401) return ['The GitHub token is invalid or expired.'];
+    if (repoStatus === 404 || repoStatus === 403) {
+      return [`Repository ${repo} was not found, or the token has no access to it.`];
+    }
+    if (repoStatus >= 400) return [`GitHub answered HTTP ${repoStatus} for ${repo}.`];
+
+    const problems: string[] = [];
+    if (!(await refSha(baseBranch))) {
+      problems.push(`Base branch "${baseBranch}" does not exist in ${repo}.`);
+    }
+    if ((await probeStatus('POST', '/git/blobs', {})) === 403) {
+      problems.push(
+        `The token cannot write to ${repo}: give it "Contents: Read and write" so saves can be committed.`
+      );
+    }
+    if ((await probeStatus('POST', '/pulls', {})) === 403) {
+      problems.push(
+        `The token cannot open pull requests in ${repo}: give it "Pull requests: Read and write".`
+      );
+    }
+    return problems;
+  }
+
   return {
+    checkAccess,
     listLocales,
     readLocale,
     updateLocaleKey,

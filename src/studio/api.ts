@@ -33,6 +33,8 @@ export interface ServerInfo {
   mode: LensMode;
   authRequired: boolean;
   git: boolean;
+  /** Setup problems found by the server, such as a token without write access. */
+  problems?: string[];
 }
 
 /** 422 from the server: placeholder mismatch or message syntax problem. */

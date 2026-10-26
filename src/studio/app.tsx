@@ -7,6 +7,7 @@ import {
   ConfirmModal,
   ChangesPanel,
   TokenModal,
+  SetupProblems,
   useStudio,
 } from './features/dashboard/index.js';
 
@@ -61,6 +62,7 @@ export const App = () => {
     mode,
     needsToken,
     submitToken,
+    setupProblems,
   } = useStudio();
 
   return (
@@ -89,6 +91,8 @@ export const App = () => {
         onUndo={undoEntry}
         isUndoing={isUndoing}
       />
+
+      <SetupProblems problems={setupProblems} />
 
       {/* Main Studio Viewport (Upgraded to 3-column layout) */}
       <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 bg-linear-to-b from-[#0b0f19] to-[#070a10]">
