@@ -1,7 +1,7 @@
-import { createI18nLensHandler } from 'next-i18n-lens/server';
+import { createLiveLocaleHandler } from 'livelocale/server';
 import * as path from 'path';
 
-const handler = createI18nLensHandler({
+const handler = createLiveLocaleHandler({
   localesPath: path.resolve('./locales'), // Adjust relative to project root
 });
 

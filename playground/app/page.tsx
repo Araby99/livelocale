@@ -1,5 +1,5 @@
 import React from 'react';
-import { createTranslations } from 'next-i18n-lens/server';
+import { createTranslations } from 'livelocale/server';
 
 const SUPPORTED_LOCALES = ['en', 'ar', 'es', 'fr', 'de'];
 

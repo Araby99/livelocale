@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "next": "^16.2.6",
-    "next-i18n-lens": "file:..",
+    "livelocale": "file:..",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

@@ -1,5 +1,5 @@
 import React from 'react';
-import { I18nLensProvider } from 'next-i18n-lens/react';
+import { LiveLocaleProvider } from 'livelocale/react';
 
 export default function RootLayout({
   children,
@@ -9,7 +9,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <I18nLensProvider />
+        <LiveLocaleProvider />
         {children}
       </body>
     </html>
