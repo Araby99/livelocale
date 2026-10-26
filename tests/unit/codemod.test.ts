@@ -28,7 +28,7 @@ export function Component() {
 }`;
     const result = await transformReactI18next(code, 'component.tsx');
     expect(result.modified).toBe(true);
-    expect(result.code).toContain("import { wrapTranslationEngine } from 'next-i18n-lens/client';");
+    expect(result.code).toContain("import { wrapTranslationEngine } from 'livelocale/client';");
     expect(result.code).toContain("const { t: rawT } = useTranslation('home');");
     expect(result.code).toContain("const t = wrapTranslationEngine(rawT, { keyPrefix: 'home' });");
   });
@@ -149,7 +149,7 @@ export function Component() {
     const result = await transformReactI18next(code, 'component.tsx');
     expect(result.modified).toBe(true);
     expect(result.code.startsWith("'use client';")).toBe(true);
-    expect(result.code).toContain("import { wrapTranslationEngine } from 'next-i18n-lens/client';");
+    expect(result.code).toContain("import { wrapTranslationEngine } from 'livelocale/client';");
   });
 
   it('should handle aliased hook import (useTranslation as useTrans)', async () => {
@@ -180,7 +180,7 @@ export function Component() {
 
   it('should not duplicate imports or wrap if already wrapped/imported', async () => {
     const code = `import { useTranslation } from 'react-i18next';
-import { wrapTranslationEngine } from 'next-i18n-lens/client';
+import { wrapTranslationEngine } from 'livelocale/client';
 export function Component() {
   const { t: rawT } = useTranslation('home');
   const t = wrapTranslationEngine(rawT, { keyPrefix: 'home' });

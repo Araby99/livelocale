@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { i18nLensVite } from '../../src/server/vite-plugin.js';
+import { liveLocaleVite } from '../../src/server/vite-plugin.js';
 
 // Helper: create a minimal mock request / response pair for the Vite middleware
 function createMockReq(
@@ -76,23 +76,23 @@ function createMockRes() {
   };
 }
 
-describe('i18nLensVite plugin', () => {
+describe('liveLocaleVite plugin', () => {
   let tmpDir: string;
-  let plugin: ReturnType<typeof i18nLensVite>;
+  let plugin: ReturnType<typeof liveLocaleVite>;
   let middleware: (req: any, res: any, next: any) => Promise<void>;
 
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
 
     // Create a temp directory with a flat locale file
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-vite-test-'));
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-vite-test-'));
     fs.writeFileSync(
       path.join(tmpDir, 'en.json'),
       JSON.stringify({ greeting: 'Hello', farewell: 'Goodbye' })
     );
 
     // Instantiate the plugin and grab the middleware
-    plugin = i18nLensVite({ localesPath: tmpDir });
+    plugin = liveLocaleVite({ localesPath: tmpDir });
     const server = {
       middlewares: {
         use: (mw: any) => {
@@ -111,7 +111,7 @@ describe('i18nLensVite plugin', () => {
   // ─── GET: Fetch locale dictionary ────────────────────────────────────────
 
   it('should return 200 with locale JSON on valid GET request', async () => {
-    const { req } = createMockReq('GET', '/api/i18n-lens/mutate?locale=en');
+    const { req } = createMockReq('GET', '/api/livelocale?locale=en');
     const mock = createMockRes();
     const next = vi.fn();
 
@@ -123,7 +123,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should return 400 on GET with invalid locale', async () => {
-    const { req } = createMockReq('GET', '/api/i18n-lens/mutate?locale=../../etc');
+    const { req } = createMockReq('GET', '/api/livelocale?locale=../../etc');
     const mock = createMockRes();
     const next = vi.fn();
 
@@ -134,7 +134,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should return 404 on GET with non-existent locale', async () => {
-    const { req } = createMockReq('GET', '/api/i18n-lens/mutate?locale=fr');
+    const { req } = createMockReq('GET', '/api/livelocale?locale=fr');
     const mock = createMockRes();
     const next = vi.fn();
 
@@ -152,7 +152,7 @@ describe('i18nLensVite plugin', () => {
     fs.writeFileSync(path.join(nsDir, 'common.json'), JSON.stringify({ save: 'Speichern' }));
     fs.writeFileSync(path.join(nsDir, 'auth.json'), JSON.stringify({ login: 'Anmelden' }));
 
-    const { req } = createMockReq('GET', '/api/i18n-lens/mutate?locale=de');
+    const { req } = createMockReq('GET', '/api/livelocale?locale=de');
     const mock = createMockRes();
 
     await middleware(req, mock.res, vi.fn());
@@ -167,7 +167,7 @@ describe('i18nLensVite plugin', () => {
   // ─── POST: Mutate a key ───────────────────────────────────────────────────
 
   it('should write updated value on valid POST request', async () => {
-    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+    const { req, readBody } = createMockReq('POST', '/api/livelocale', {
       locale: 'en',
       key: 'greeting',
       value: 'Hi there!',
@@ -190,7 +190,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should return 400 on POST with invalid locale', async () => {
-    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+    const { req, readBody } = createMockReq('POST', '/api/livelocale', {
       locale: '!!',
       key: 'greeting',
       value: 'Hi',
@@ -207,7 +207,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should return 400 on POST with invalid key', async () => {
-    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+    const { req, readBody } = createMockReq('POST', '/api/livelocale', {
       locale: 'en',
       key: 'path/../traversal',
       value: 'hi',
@@ -228,7 +228,7 @@ describe('i18nLensVite plugin', () => {
   it('should return 403 on POST from a disallowed (non-localhost) origin', async () => {
     const { req, readBody } = createMockReq(
       'POST',
-      '/api/i18n-lens/mutate',
+      '/api/livelocale',
       { locale: 'en', key: 'greeting', value: 'pwned' },
       { origin: 'https://evil.example.com' }
     );
@@ -246,7 +246,7 @@ describe('i18nLensVite plugin', () => {
   it('should return 415 on POST with a non-JSON content type', async () => {
     const { req, readBody } = createMockReq(
       'POST',
-      '/api/i18n-lens/mutate',
+      '/api/livelocale',
       { locale: 'en', key: 'greeting', value: 'pwned' },
       { origin: 'http://localhost:3010', 'content-type': 'text/plain' }
     );
@@ -262,7 +262,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should reject prototype-pollution keys on POST', async () => {
-    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+    const { req, readBody } = createMockReq('POST', '/api/livelocale', {
       locale: 'en',
       key: '__proto__.polluted',
       value: 'PWNED',
@@ -281,7 +281,7 @@ describe('i18nLensVite plugin', () => {
   // ─── CORS Preflight ───────────────────────────────────────────────────────
 
   it('should respond 204 on OPTIONS preflight', async () => {
-    const { req } = createMockReq('OPTIONS', '/api/i18n-lens/mutate');
+    const { req } = createMockReq('OPTIONS', '/api/livelocale');
     const mock = createMockRes();
 
     await middleware(req, mock.res, vi.fn());
@@ -291,6 +291,14 @@ describe('i18nLensVite plugin', () => {
   });
 
   // ─── Route passthrough ────────────────────────────────────────────────────
+
+  it('does not answer on the old /api/i18n-lens/mutate route', async () => {
+    const { req } = createMockReq('GET', '/api/i18n-lens/mutate');
+    const mock = createMockRes();
+    const next = vi.fn();
+    await middleware(req, mock.res, next);
+    expect(next).toHaveBeenCalled();
+  });
 
   it('should call next() for unrelated routes', async () => {
     const { req } = createMockReq('GET', '/some-other-route');
@@ -306,7 +314,7 @@ describe('i18nLensVite plugin', () => {
     // Add another file in tmpDir
     fs.writeFileSync(path.join(tmpDir, 'es.json'), '{}');
 
-    const { req } = createMockReq('GET', '/api/i18n-lens/mutate');
+    const { req } = createMockReq('GET', '/api/livelocale');
     const mock = createMockRes();
     const next = vi.fn();
 
@@ -317,7 +325,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should add a locale file on POST addLocale request', async () => {
-    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+    const { req, readBody } = createMockReq('POST', '/api/livelocale', {
       action: 'addLocale',
       locale: 'fr',
     });
@@ -335,7 +343,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should rename a locale file on POST renameLocale request', async () => {
-    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+    const { req, readBody } = createMockReq('POST', '/api/livelocale', {
       action: 'renameLocale',
       locale: 'en',
       newLocale: 'en-GB',
@@ -355,7 +363,7 @@ describe('i18nLensVite plugin', () => {
   });
 
   it('should delete a locale file on POST deleteLocale request', async () => {
-    const { req, readBody } = createMockReq('POST', '/api/i18n-lens/mutate', {
+    const { req, readBody } = createMockReq('POST', '/api/livelocale', {
       action: 'deleteLocale',
       locale: 'en',
     });
@@ -383,7 +391,7 @@ describe('i18nLensVite plugin', () => {
     const html = '<html><head><title>Test</title></head><body></body></html>';
     const result = (plugin as any).transformIndexHtml(html);
 
-    expect(result).toContain('window.__i18n_lens_fallback__ =');
+    expect(result).toContain('window.__livelocale_fallback__ =');
     expect(result).toContain('Hola');
     expect(result).toContain('Título');
     expect(result).toContain('</head>');
@@ -410,30 +418,30 @@ describe('i18nLensVite plugin', () => {
     const result = (plugin as any).transformIndexHtml(html);
 
     expect(result).toBe(html);
-    expect(result).not.toContain('window.__i18n_lens_fallback__');
+    expect(result).not.toContain('window.__livelocale_fallback__');
   });
 });
 
-describe('i18nLensVite plugin — browser flag mirroring', () => {
+describe('liveLocaleVite plugin — browser flag mirroring', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
   });
 
-  it('injects window.__I18N_LENS_FLAG__ when I18N_LENS is set', () => {
+  it('injects window.__LIVELOCALE_FLAG__ when LIVELOCALE is set', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {}); // locales dir is intentionally missing
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('I18N_LENS', 'preview');
-    const plugin: any = i18nLensVite({ localesPath: path.join(os.tmpdir(), 'does-not-exist') });
+    vi.stubEnv('LIVELOCALE', 'preview');
+    const plugin: any = liveLocaleVite({ localesPath: path.join(os.tmpdir(), 'does-not-exist') });
     const html = plugin.transformIndexHtml('<html><head></head><body></body></html>');
-    expect(html).toContain('window.__I18N_LENS_FLAG__ = "preview"');
+    expect(html).toContain('window.__LIVELOCALE_FLAG__ = "preview"');
     vi.restoreAllMocks();
   });
 
   it('injects nothing extra when the flag is unset', () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('I18N_LENS', '');
-    const plugin: any = i18nLensVite({ localesPath: path.join(os.tmpdir(), 'does-not-exist') });
+    vi.stubEnv('LIVELOCALE', '');
+    const plugin: any = liveLocaleVite({ localesPath: path.join(os.tmpdir(), 'does-not-exist') });
     const html = plugin.transformIndexHtml('<html><head></head><body></body></html>');
-    expect(html).not.toContain('__I18N_LENS_FLAG__');
+    expect(html).not.toContain('__LIVELOCALE_FLAG__');
   });
 });

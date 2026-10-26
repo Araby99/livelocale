@@ -28,8 +28,8 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
         <div>
           <h3 className="text-base font-bold text-slate-200 font-outfit">Access token required</h3>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed">
-            This app runs i18n Lens in preview mode. Paste the access token configured on the server
-            (<code className="font-mono text-slate-300">I18N_LENS_TOKEN</code>) to edit
+            This app runs LiveLocale in preview mode. Paste the access token configured on the
+            server (<code className="font-mono text-slate-300">LIVELOCALE_TOKEN</code>) to edit
             translations. It is kept in this browser tab only.
           </p>
         </div>

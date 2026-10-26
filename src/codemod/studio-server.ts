@@ -32,7 +32,7 @@ const MIME_TYPES: Record<string, string> = {
 const LOCALHOST_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 
 /**
- * Injects `window.__I18N_LENS_CONFIG__` into the Studio's index.html so the
+ * Injects `window.__LIVELOCALE_CONFIG__` into the Studio's index.html so the
  * app origin can be chosen at run time instead of at build time.
  *
  * RULE SEC-008: "<" and the U+2028/U+2029 line terminators are escaped so no
@@ -43,7 +43,7 @@ export function injectStudioConfig(html: string, config: StudioConfig): string {
     .replace(/</g, '\\u003c')
     .replace(new RegExp(String.fromCharCode(0x2028), 'g'), '\\u2028')
     .replace(new RegExp(String.fromCharCode(0x2029), 'g'), '\\u2029');
-  const script = `<script>window.__I18N_LENS_CONFIG__ = ${safeJson};</script>`;
+  const script = `<script>window.__LIVELOCALE_CONFIG__ = ${safeJson};</script>`;
   if (html.includes('</head>')) {
     return html.replace('</head>', `${script}\n</head>`);
   }

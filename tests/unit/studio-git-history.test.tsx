@@ -5,7 +5,7 @@ import { useGit } from '../../src/studio/features/dashboard/hooks/useGit.js';
 import { useHistory } from '../../src/studio/features/dashboard/hooks/useHistory.js';
 
 const APP_ORIGIN = 'http://localhost:3000';
-const API = `${APP_ORIGIN}/api/i18n-lens/mutate`;
+const API = `${APP_ORIGIN}/api/livelocale`;
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {

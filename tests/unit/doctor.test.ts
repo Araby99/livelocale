@@ -16,9 +16,9 @@ function healthyAppRouterProject(root: string) {
   write(
     root,
     'app/layout.tsx',
-    `import { I18nLensProvider } from 'next-i18n-lens/react'; export default () => <I18nLensProvider />;`
+    `import { LiveLocaleProvider } from 'livelocale/react'; export default () => <LiveLocaleProvider />;`
   );
-  write(root, 'app/api/i18n-lens/mutate/route.ts', `export const GET = () => {};`);
+  write(root, 'app/api/livelocale/route.ts', `export const GET = () => {};`);
   write(root, 'locales/en.json', JSON.stringify({ home: { title: 'Hi' } }));
   write(root, 'locales/ar.json', JSON.stringify({ home: { title: 'مرحبا' } }));
 }
@@ -31,7 +31,7 @@ describe('runDoctor — static checks', () => {
 
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
-    project = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-doctor-'));
+    project = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-doctor-'));
   });
 
   afterEach(() => {
@@ -45,7 +45,7 @@ describe('runDoctor — static checks', () => {
     expect(hasFailures(findings)).toBe(false);
     expect(byTitle(findings, 'route handler')?.level).toBe('ok');
     expect(byTitle(findings, 'provider')?.level).toBe('ok');
-    expect(byTitle(findings, 'locale')?.level).toBe('ok');
+    expect(byTitle(findings, 'locale files')?.level).toBe('ok');
   });
 
   it('fails when the mutation route handler is missing and points at init', async () => {
@@ -54,14 +54,22 @@ describe('runDoctor — static checks', () => {
     const findings = await runDoctor({ projectDir: project });
     const route = byTitle(findings, 'route handler');
     expect(route?.level).toBe('fail');
-    expect(route?.detail).toContain('next-i18n-lens init');
+    expect(route?.detail).toContain('livelocale init');
+  });
+
+  it('does not accept a route file left at the old i18n-lens path', async () => {
+    healthyAppRouterProject(project);
+    fs.rmSync(path.join(project, 'app/api/livelocale'), { recursive: true, force: true });
+    write(project, 'app/api/i18n-lens/mutate/route.ts', `export const GET = () => {};`);
+    const findings = await runDoctor({ projectDir: project });
+    expect(byTitle(findings, 'route handler')?.level).toBe('fail');
   });
 
   it('accepts a Pages Router route file', async () => {
     healthyAppRouterProject(project);
     fs.rmSync(path.join(project, 'app'), { recursive: true });
-    write(project, 'pages/_app.tsx', `<I18nLensProvider />`);
-    write(project, 'pages/api/i18n-lens/mutate.js', `export default () => {};`);
+    write(project, 'pages/_app.tsx', `<LiveLocaleProvider />`);
+    write(project, 'pages/api/livelocale.js', `export default () => {};`);
     const findings = await runDoctor({ projectDir: project });
     expect(byTitle(findings, 'route handler')?.level).toBe('ok');
     expect(byTitle(findings, 'provider')?.level).toBe('ok');
@@ -74,13 +82,13 @@ describe('runDoctor — static checks', () => {
     expect(byTitle(findings, 'provider')?.level).toBe('warn');
   });
 
-  it('warns when middleware exists without excluding /api/i18n-lens', async () => {
+  it('warns when middleware exists without excluding /api/livelocale', async () => {
     healthyAppRouterProject(project);
     write(project, 'middleware.ts', `export const config = { matcher: ['/((?!_next).*)'] };`);
     const findings = await runDoctor({ projectDir: project });
     const mw = byTitle(findings, 'middleware');
     expect(mw?.level).toBe('warn');
-    expect(mw?.detail).toContain('api/i18n-lens');
+    expect(mw?.detail).toContain('api/livelocale');
   });
 
   it('passes middleware that already excludes the route', async () => {
@@ -88,7 +96,7 @@ describe('runDoctor — static checks', () => {
     write(
       project,
       'src/middleware.ts',
-      `export const config = { matcher: ['/((?!api/i18n-lens).*)'] };`
+      `export const config = { matcher: ['/((?!api/livelocale).*)'] };`
     );
     const findings = await runDoctor({ projectDir: project });
     expect(byTitle(findings, 'middleware')?.level).toBe('ok');
@@ -120,7 +128,7 @@ describe('runDoctor — static checks', () => {
     healthyAppRouterProject(project);
     write(project, 'locales/es.json', '{ not json');
     const findings = await runDoctor({ projectDir: project });
-    const locales = byTitle(findings, 'locale');
+    const locales = byTitle(findings, 'locale files');
     expect(locales?.level).toBe('fail');
     expect(locales?.detail).toContain('es.json');
   });
@@ -129,14 +137,14 @@ describe('runDoctor — static checks', () => {
     healthyAppRouterProject(project);
     fs.rmSync(path.join(project, 'locales'), { recursive: true });
     const findings = await runDoctor({ projectDir: project });
-    expect(byTitle(findings, 'locale')?.level).toBe('fail');
+    expect(byTitle(findings, 'locale files')?.level).toBe('fail');
   });
 
   it('respects a custom locales path', async () => {
     healthyAppRouterProject(project);
     fs.renameSync(path.join(project, 'locales'), path.join(project, 'i18n'));
     const findings = await runDoctor({ projectDir: project, localesPath: 'i18n' });
-    expect(byTitle(findings, 'locale')?.level).toBe('ok');
+    expect(byTitle(findings, 'locale files')?.level).toBe('ok');
   });
 });
 
@@ -145,7 +153,7 @@ describe('runDoctor — live checks', () => {
 
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
-    project = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-doctor-live-'));
+    project = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-doctor-live-'));
     healthyAppRouterProject(project);
   });
 
@@ -162,7 +170,7 @@ describe('runDoctor — live checks', () => {
 
   it('reports the API as reachable when it lists locales', async () => {
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/api/i18n-lens/mutate')
+      url.endsWith('/api/livelocale')
         ? jsonResponse(200, ['en', 'ar'])
         : new Response('<html></html>', { status: 200 })
     );
@@ -178,9 +186,9 @@ describe('runDoctor — live checks', () => {
 
   it('surfaces the server-side disabled reason on a 403', async () => {
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/api/i18n-lens/mutate')
+      url.endsWith('/api/livelocale')
         ? jsonResponse(403, {
-            error: 'Forbidden: i18n Lens is disabled — I18N_LENS kill switch is set.',
+            error: 'Forbidden: LiveLocale is disabled — LIVELOCALE kill switch is set.',
           })
         : new Response('', { status: 200 })
     );
@@ -191,7 +199,7 @@ describe('runDoctor — live checks', () => {
     });
     const api = byTitle(findings, 'mutation api');
     expect(api?.level).toBe('fail');
-    expect(api?.detail).toContain('I18N_LENS');
+    expect(api?.detail).toContain('LIVELOCALE');
   });
 
   it('sends the token to a preview deployment and reports access problems', async () => {
@@ -199,7 +207,7 @@ describe('runDoctor — live checks', () => {
     const fetchImpl = vi.fn(async (url: string, init: RequestInit = {}) => {
       const auth = (init.headers as Record<string, string> | undefined)?.Authorization;
       seen.push(auth);
-      if (url.includes('/api/i18n-lens/mutate')) {
+      if (url.includes('/api/livelocale')) {
         if (auth !== 'Bearer s3cret') return jsonResponse(401, { error: 'Unauthorized' });
         if (url.endsWith('?action=info')) {
           return jsonResponse(200, {
@@ -274,7 +282,7 @@ describe('runDoctor — live checks', () => {
 
   it('warns when the app page sends frame-blocking headers', async () => {
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/api/i18n-lens/mutate')
+      url.endsWith('/api/livelocale')
         ? jsonResponse(200, ['en'])
         : new Response('', { status: 200, headers: { 'x-frame-options': 'DENY' } })
     );
@@ -293,7 +301,7 @@ describe('runDoctor — live checks', () => {
     ["frame-ancestors 'none'", 'warn'],
   ])('judges the live CSP "%s" as %s', async (csp, level) => {
     const fetchImpl = vi.fn(async (url: string) =>
-      url.endsWith('/api/i18n-lens/mutate')
+      url.endsWith('/api/livelocale')
         ? jsonResponse(200, ['en'])
         : new Response('', { status: 200, headers: { 'content-security-policy': csp } })
     );
@@ -310,12 +318,12 @@ describe('formatFindings', () => {
   it('renders one line per finding with a status glyph and keeps details indented', () => {
     const text = formatFindings([
       { level: 'ok', title: 'Route handler found' },
-      { level: 'warn', title: 'Middleware', detail: 'exclude /api/i18n-lens' },
+      { level: 'warn', title: 'Middleware', detail: 'exclude /api/livelocale' },
       { level: 'fail', title: 'Locales', detail: 'missing' },
     ]);
     expect(text).toContain('✅ Route handler found');
     expect(text).toContain('⚠️  Middleware');
     expect(text).toContain('❌ Locales');
-    expect(text).toContain('   exclude /api/i18n-lens');
+    expect(text).toContain('   exclude /api/livelocale');
   });
 });

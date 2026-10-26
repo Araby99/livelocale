@@ -16,7 +16,7 @@ function makeMutator(): MutationGateway {
 
 const info = (authorization?: string) => ({
   method: 'GET',
-  url: '/api/i18n-lens/mutate?action=info',
+  url: '/api/livelocale?action=info',
   origin: 'http://localhost:3010',
   authorization,
 });
@@ -24,7 +24,7 @@ const info = (authorization?: string) => ({
 describe('mutation router — info action', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('I18N_LENS', '');
+    vi.stubEnv('LIVELOCALE', '');
   });
 
   afterEach(() => {
@@ -45,7 +45,7 @@ describe('mutation router — info action', () => {
 
   it('reports preview mode, auth, and git availability', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('I18N_LENS', 'preview');
+    vi.stubEnv('LIVELOCALE', 'preview');
     const git = { status: vi.fn(), diff: vi.fn(), commit: vi.fn(), discard: vi.fn() };
     const router = createMutationRouter(makeMutator(), {
       localesPath: 'locales',
@@ -61,6 +61,16 @@ describe('mutation router — info action', () => {
       git: true,
       problems: [],
     });
+  });
+
+  it('refuses to serve preview mode without LIVELOCALE_TOKEN', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('LIVELOCALE', 'preview');
+    vi.stubEnv('LIVELOCALE_TOKEN', '');
+    const router = createMutationRouter(makeMutator(), { localesPath: 'locales' });
+    const res = await router.handle(info());
+    expect(res.status).not.toBe(200);
+    expect(res.body).toContain('LIVELOCALE_TOKEN');
   });
 
   it('reports access problems until they are fixed, then stops checking', async () => {

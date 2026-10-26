@@ -3,7 +3,7 @@
  *
  * Precedence (first valid wins):
  *   1. `?app=<origin>` query parameter on the Studio URL
- *   2. `window.__I18N_LENS_CONFIG__.appOrigin`, injected by `next-i18n-lens studio --app`
+ *   2. `window.__LIVELOCALE_CONFIG__.appOrigin`, injected by `livelocale studio --app`
  *   3. `VITE_APP_ORIGIN` baked in at Studio build time
  *   4. `http://localhost:3000`
  */

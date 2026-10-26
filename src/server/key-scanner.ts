@@ -154,7 +154,7 @@ const NO_IGNORES: GitignoreMatcher = { ignores: () => false };
  */
 export interface KeyScannerOptions {
   /**
-   * Refuse to scan unless i18n Lens is enabled (development or preview mode).
+   * Refuse to scan unless LiveLocale is enabled (development or preview mode).
    * Defaults to true; read-only tooling such as `check` turns it off so it can run in CI.
    */
   requireEnabled?: boolean;
@@ -174,7 +174,7 @@ export class KeyScanner {
     const reason = getDisabledReason();
     if (reason !== null) {
       throw new Error(
-        `[i18n-lens] KeyScanner can only be executed in development mode (${reason}).`
+        `[livelocale] KeyScanner can only be executed in development mode (${reason}).`
       );
     }
   }

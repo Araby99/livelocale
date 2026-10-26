@@ -41,3 +41,8 @@ repomix-output*.xml
 # Temporary Files
 *.tmp
 *.bak
+
+# Local planning scratch and private business research
+.superpowers/
+reports/
+research_notes/

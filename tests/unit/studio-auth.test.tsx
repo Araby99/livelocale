@@ -12,7 +12,7 @@ import {
 import { useAuth } from '../../src/studio/features/dashboard/hooks/useAuth.js';
 import { TokenModal } from '../../src/studio/features/dashboard/components/TokenModal.jsx';
 
-const API = 'http://localhost:3000/api/i18n-lens/mutate';
+const API = 'http://localhost:3000/api/livelocale';
 
 const jsonResponse = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -35,7 +35,7 @@ describe('api token handling', () => {
     expect(getToken()).toBeNull();
     setToken('abc');
     expect(getToken()).toBe('abc');
-    expect(window.sessionStorage.getItem('i18n-lens-token')).toBe('abc');
+    expect(window.sessionStorage.getItem('livelocale-token')).toBe('abc');
     setToken(null);
     expect(getToken()).toBeNull();
   });

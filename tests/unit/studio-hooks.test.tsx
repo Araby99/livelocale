@@ -128,7 +128,7 @@ describe('useSelection', () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      `${APP_ORIGIN}/api/i18n-lens/mutate`,
+      `${APP_ORIGIN}/api/livelocale`,
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({
@@ -223,7 +223,7 @@ describe('useSelection', () => {
   it('reports the server error message when a save is rejected', async () => {
     const params = makeParams();
     vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ error: 'Forbidden: i18n Lens is disabled' }), { status: 403 })
+      new Response(JSON.stringify({ error: 'Forbidden: LiveLocale is disabled' }), { status: 403 })
     );
     const { result } = renderHook(() => useSelection(params));
 
@@ -234,7 +234,7 @@ describe('useSelection', () => {
     });
 
     expect(result.current.isSuccess).toBe(false);
-    expect(params.setError).toHaveBeenLastCalledWith('Forbidden: i18n Lens is disabled');
+    expect(params.setError).toHaveBeenLastCalledWith('Forbidden: LiveLocale is disabled');
     expect(params.updateLocaleDataCache).not.toHaveBeenCalled();
     expect(params.onSaved).not.toHaveBeenCalled();
   });
@@ -258,7 +258,7 @@ describe('useConnection', () => {
     const { result } = renderHook(() => useConnection(handlers));
     expect(result.current.connectionStatus).toBe('connecting');
 
-    post({ source: 'i18n-lens-client', type: 'READY', payload: { url: '/?locale=ar' } });
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/?locale=ar' } });
     await waitFor(() => expect(result.current.connectionStatus).toBe('connected'));
     expect(result.current.currentPath).toBe('/?locale=ar');
     expect(handlers.onLocaleDetected).toHaveBeenCalledWith('ar');
@@ -267,7 +267,7 @@ describe('useConnection', () => {
   it('detects a locale from the first path segment', () => {
     const handlers = makeHandlers();
     renderHook(() => useConnection(handlers));
-    post({ source: 'i18n-lens-client', type: 'READY', payload: { url: '/fr/pricing' } });
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/fr/pricing' } });
     expect(handlers.onLocaleDetected).toHaveBeenCalledWith('fr');
   });
 
@@ -276,7 +276,7 @@ describe('useConnection', () => {
     const { result } = renderHook(() => useConnection(handlers));
 
     post(
-      { source: 'i18n-lens-client', type: 'READY', payload: { url: '/' } },
+      { source: 'livelocale-client', type: 'READY', payload: { url: '/' } },
       'https://evil.example.com'
     );
     post({ source: 'someone-else', type: 'READY', payload: { url: '/' } });
@@ -288,13 +288,13 @@ describe('useConnection', () => {
     const { result } = renderHook(() => useConnection(handlers));
 
     const payload = { key: 'home.title', fallbackValue: 'Welcome', currentValue: 'Welcome' };
-    post({ source: 'i18n-lens-client', type: 'ELEMENT_SELECTED', payload });
+    post({ source: 'livelocale-client', type: 'ELEMENT_SELECTED', payload });
     expect(handlers.onElementSelected).toHaveBeenCalledWith(payload);
 
-    post({ source: 'i18n-lens-client', type: 'ERROR', payload: { error: 'boom' } });
+    post({ source: 'livelocale-client', type: 'ERROR', payload: { error: 'boom' } });
     expect(handlers.onError).toHaveBeenCalledWith('boom');
 
-    post({ source: 'i18n-lens-client', type: 'VISIBLE_KEYS_CHANGED', payload: ['home.title'] });
+    post({ source: 'livelocale-client', type: 'VISIBLE_KEYS_CHANGED', payload: ['home.title'] });
     expect(result.current.visibleKeys).toEqual(['home.title']);
   });
 });

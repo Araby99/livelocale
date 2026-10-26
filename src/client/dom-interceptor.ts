@@ -1,5 +1,5 @@
 import { decodeKey, stripWatermark, sanitizeZeroWidth } from './watermark.js';
-import { isLensEnabled } from '../core/env.js';
+import { isLiveLocaleEnabled } from '../core/env.js';
 
 // Debounce helper: delays executing fn until after wait ms have elapsed
 // since the last call. Returns a cancel function.
@@ -80,7 +80,7 @@ export class DOMInterceptor {
    */
   init(): void {
     // RULE CLT-004: INIT GUARD
-    if (!isLensEnabled()) {
+    if (!isLiveLocaleEnabled()) {
       return;
     }
 
@@ -167,7 +167,7 @@ export class DOMInterceptor {
     if (this.overlay) return; // Guard against double injection
 
     const overlay = document.createElement('div');
-    overlay.id = 'i18n-lens-highlighter-overlay';
+    overlay.id = 'livelocale-highlighter-overlay';
     overlay.style.cssText = [
       'position: fixed',
       'top: 0',
@@ -377,8 +377,8 @@ export class DOMInterceptor {
     if (!original || !original.get || !original.set) return;
 
     // Prevent double-patching
-    if ((proto as any).__i18nLensSanitized__) return;
-    (proto as any).__i18nLensSanitized__ = true;
+    if ((proto as any).__liveLocaleSanitized__) return;
+    (proto as any).__liveLocaleSanitized__ = true;
 
     Object.defineProperty(proto, 'value', {
       get() {

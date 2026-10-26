@@ -49,7 +49,7 @@ describe('DOMInterceptor', () => {
     el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
     // The floating overlay should be visible (opacity non-zero)
-    const overlay = document.getElementById('i18n-lens-highlighter-overlay');
+    const overlay = document.getElementById('livelocale-highlighter-overlay');
     expect(overlay).not.toBeNull();
     expect(overlay?.style.opacity).toBe('1');
   });
@@ -61,7 +61,7 @@ describe('DOMInterceptor', () => {
     interceptor.init();
 
     el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-    const overlay = document.getElementById('i18n-lens-highlighter-overlay');
+    const overlay = document.getElementById('livelocale-highlighter-overlay');
     expect(overlay?.style.opacity).toBe('1');
 
     el.dispatchEvent(new MouseEvent('mouseout', { bubbles: true }));
@@ -125,7 +125,7 @@ describe('DOMInterceptor', () => {
 
   it('should inject the floating overlay div into document.body on init', () => {
     interceptor.init();
-    const overlay = document.getElementById('i18n-lens-highlighter-overlay');
+    const overlay = document.getElementById('livelocale-highlighter-overlay');
     expect(overlay).not.toBeNull();
     expect(overlay?.style.pointerEvents).toBe('none');
   });
@@ -133,7 +133,7 @@ describe('DOMInterceptor', () => {
   it('should remove the floating overlay from body on destroy', () => {
     interceptor.init();
     interceptor.destroy();
-    const overlay = document.getElementById('i18n-lens-highlighter-overlay');
+    const overlay = document.getElementById('livelocale-highlighter-overlay');
     expect(overlay).toBeNull();
   });
 

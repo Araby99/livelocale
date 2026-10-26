@@ -5,41 +5,41 @@ import { GitClient } from './git-client.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
 import { readNodeBody } from './node-body.js';
 import { deepMerge } from '../core/deep-merge.js';
-import { isLensEnabled, BROWSER_FLAG_GLOBAL } from '../core/env.js';
+import { isLiveLocaleEnabled, BROWSER_FLAG_GLOBAL } from '../core/env.js';
 
 export interface VitePluginConfig {
   /** Absolute or relative path to the directory containing your locale JSON files. */
   localesPath: string;
   /** Expose git status, commit, and discard to the Studio. Defaults to `true`. */
   git?: boolean;
-  /** Bearer token required on every request. Defaults to `I18N_LENS_TOKEN`. */
+  /** Bearer token required on every request. Defaults to `LIVELOCALE_TOKEN`. */
   authToken?: string;
 }
 
-const ROUTE = '/api/i18n-lens/mutate';
+const ROUTE = '/api/livelocale';
 
 /**
- * A Vite plugin that serves the i18n-lens mutation API for Vite-based SPAs
+ * A Vite plugin that serves the livelocale mutation API for Vite-based SPAs
  * (React, Vue, Svelte, etc.) that do not use Next.js.
  *
  * @example
  * // vite.config.ts
- * import { i18nLensVite } from 'next-i18n-lens/vite';
+ * import { liveLocaleVite } from 'livelocale/vite';
  *
  * export default defineConfig({
- *   plugins: [react(), i18nLensVite({ localesPath: './src/locales' })],
+ *   plugins: [react(), liveLocaleVite({ localesPath: './src/locales' })],
  * });
  */
-export function i18nLensVite(config: VitePluginConfig) {
+export function liveLocaleVite(config: VitePluginConfig) {
   const mutator = new FileMutator();
   const router = createMutationRouter(mutator, {
     localesPath: config.localesPath,
     git: config.git === false ? undefined : new GitClient(),
-    authToken: config.authToken ?? process.env['I18N_LENS_TOKEN'],
+    authToken: config.authToken ?? process.env['LIVELOCALE_TOKEN'],
   });
 
   return {
-    name: 'next-i18n-lens',
+    name: 'livelocale',
     // Only active during dev server mode; the plugin is a no-op during builds.
     apply: 'serve' as const,
 
@@ -82,13 +82,13 @@ export function i18nLensVite(config: VitePluginConfig) {
     },
 
     transformIndexHtml(html: string) {
-      // Mirror the server-side I18N_LENS flag (preview/off) into the page so the client
+      // Mirror the server-side LIVELOCALE flag (preview/off) into the page so the client
       // bundle resolves the same mode without bundler-specific env inlining.
-      const flag = process.env['I18N_LENS'];
+      const flag = process.env['LIVELOCALE'];
       const flagScript = flag
         ? `<script>window.${BROWSER_FLAG_GLOBAL} = ${JSON.stringify(flag)};</script>\n`
         : '';
-      if (!isLensEnabled()) {
+      if (!isLiveLocaleEnabled()) {
         return flagScript ? html.replace('</head>', `${flagScript}</head>`) : html;
       }
       try {
@@ -131,10 +131,10 @@ export function i18nLensVite(config: VitePluginConfig) {
           .replace(/</g, '\\u003c')
           .replace(/\u2028/g, '\\u2028')
           .replace(/\u2029/g, '\\u2029');
-        const script = `<script>window.__i18n_lens_fallback__ = ${safeJson};</script>`;
+        const script = `<script>window.__livelocale_fallback__ = ${safeJson};</script>`;
         return html.replace('</head>', `${flagScript}${script}\n</head>`);
       } catch (err) {
-        console.warn('[i18n-lens] Failed to inject fallback data:', err);
+        console.warn('[livelocale] Failed to inject fallback data:', err);
         return flagScript ? html.replace('</head>', `${flagScript}</head>`) : html;
       }
     },

@@ -35,9 +35,7 @@ describe('IframeViewer slow-connection help', () => {
     const help = screen.getByTestId('slow-connection-help');
     expect(help.textContent).toContain('https://preview.example.com');
     expect(help.textContent).toContain('frame-ancestors');
-    expect(help.textContent).toContain(
-      'npx next-i18n-lens doctor --app https://preview.example.com'
-    );
+    expect(help.textContent).toContain('npx livelocale doctor --app https://preview.example.com');
   });
 
   it('shows nothing once connected', () => {

@@ -86,7 +86,7 @@ export const IframeViewer = ({ iframeRef, appOrigin, connectionStatus }: IframeV
         <iframe
           id="app-preview-iframe"
           ref={iframeRef}
-          src={`${appOrigin}?i18n-lens-origin=${encodeURIComponent(window.location.origin)}`}
+          src={`${appOrigin}?livelocale-origin=${encodeURIComponent(window.location.origin)}`}
           className="w-full h-full border-none bg-white"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
         />
@@ -122,15 +122,15 @@ export const IframeViewer = ({ iframeRef, appOrigin, connectionStatus }: IframeV
                     <span className="font-mono">{window.location.origin}</span>.
                   </li>
                   <li>
-                    <span className="font-mono">I18nLensProvider</span> is not mounted, or i18n Lens
-                    is off in the app (preview builds need{' '}
-                    <span className="font-mono">NEXT_PUBLIC_I18N_LENS=preview</span>).
+                    <span className="font-mono">LiveLocaleProvider</span> is not mounted, or
+                    LiveLocale is off in the app (preview builds need{' '}
+                    <span className="font-mono">NEXT_PUBLIC_LIVELOCALE=preview</span>).
                   </li>
                 </ul>
                 <p className="mt-3 text-slate-400">
                   Run{' '}
                   <span className="font-mono text-slate-200 select-all">
-                    npx next-i18n-lens doctor --app {appOrigin}
+                    npx livelocale doctor --app {appOrigin}
                   </span>{' '}
                   to check.
                 </p>

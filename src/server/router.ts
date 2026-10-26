@@ -1,4 +1,4 @@
-import { getDisabledReason, getLensMode } from '../core/env.js';
+import { getDisabledReason, getLiveLocaleMode } from '../core/env.js';
 import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
 import {
   isValidKeyFormat,
@@ -127,7 +127,7 @@ const json = (
 });
 
 /**
- * The single implementation of the i18n-lens mutation API.
+ * The single implementation of the livelocale mutation API.
  *
  * Both the Next.js route handler and the Vite dev-server middleware are thin
  * adapters over this router, so validation, CORS, and error handling live in
@@ -139,8 +139,8 @@ export function createMutationRouter(
 ): MutationRouter {
   // Extra origins may be supplied at run time (GitHub Codespaces, Gitpod,
   // custom HTTPS dev hostnames) without touching code:
-  //   I18N_LENS_ALLOWED_ORIGINS="https://abc-3010.app.github.dev,https://studio.dev.local"
-  const envOrigins = (process.env['I18N_LENS_ALLOWED_ORIGINS'] || '')
+  //   LIVELOCALE_ALLOWED_ORIGINS="https://abc-3010.app.github.dev,https://studio.dev.local"
+  const envOrigins = (process.env['LIVELOCALE_ALLOWED_ORIGINS'] || '')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean);
@@ -189,7 +189,7 @@ export function createMutationRouter(
 
     if (action === 'info') {
       return json(200, headers, {
-        mode: getLensMode(),
+        mode: getLiveLocaleMode(),
         authRequired: authToken !== null,
         git: Boolean(git),
         problems: await accessProblems(),
@@ -409,7 +409,7 @@ export function createMutationRouter(
       const disabledReason = getDisabledReason();
       if (disabledReason !== null) {
         return json(403, headers, {
-          error: `Forbidden: i18n Lens is disabled — ${disabledReason}. It only runs in development mode.`,
+          error: `Forbidden: LiveLocale is disabled — ${disabledReason}. It only runs in development mode.`,
           code: 'FORBIDDEN',
         });
       }
@@ -422,10 +422,10 @@ export function createMutationRouter(
 
       // RULE SEC-011: PREVIEW MODE REQUIRES A TOKEN — the API is reachable from the
       // internet in this mode, so refuse to serve anything without one configured.
-      if (getLensMode() === 'preview' && !authToken) {
+      if (getLiveLocaleMode() === 'preview' && !authToken) {
         return json(403, headers, {
           error:
-            'Preview mode requires an access token. Set I18N_LENS_TOKEN (or pass authToken) on the server.',
+            'Preview mode requires an access token. Set LIVELOCALE_TOKEN (or pass authToken) on the server.',
           code: 'PREVIEW_TOKEN_REQUIRED',
         });
       }

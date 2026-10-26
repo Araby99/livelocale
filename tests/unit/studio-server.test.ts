@@ -23,11 +23,11 @@ function request(
 }
 
 describe('injectStudioConfig', () => {
-  it('should inject a window.__I18N_LENS_CONFIG__ script before </head>', () => {
+  it('should inject a window.__LIVELOCALE_CONFIG__ script before </head>', () => {
     const out = injectStudioConfig(INDEX_HTML, { appOrigin: 'http://localhost:3001' });
-    expect(out).toContain('window.__I18N_LENS_CONFIG__');
+    expect(out).toContain('window.__LIVELOCALE_CONFIG__');
     expect(out).toContain('"appOrigin":"http://localhost:3001"');
-    expect(out.indexOf('__I18N_LENS_CONFIG__')).toBeLessThan(out.indexOf('</head>'));
+    expect(out.indexOf('__LIVELOCALE_CONFIG__')).toBeLessThan(out.indexOf('</head>'));
   });
 
   it('should escape "<" so config values cannot break out of the script tag', () => {
@@ -43,7 +43,7 @@ describe('createStudioServer', () => {
   let port: number;
 
   beforeAll(async () => {
-    studioDir = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-studio-'));
+    studioDir = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-studio-'));
     fs.writeFileSync(path.join(studioDir, 'index.html'), INDEX_HTML, 'utf-8');
     fs.mkdirSync(path.join(studioDir, 'assets'));
     fs.writeFileSync(path.join(studioDir, 'assets', 'app.js'), 'console.log(1)', 'utf-8');
@@ -75,7 +75,7 @@ describe('createStudioServer', () => {
   it('should fall back to index.html for unknown SPA routes', async () => {
     const res = await request(port, '/some/client/route');
     expect(res.status).toBe(200);
-    expect(res.body).toContain('__I18N_LENS_CONFIG__');
+    expect(res.body).toContain('__LIVELOCALE_CONFIG__');
   });
 
   it('should refuse paths that escape the studio directory', async () => {

@@ -2,7 +2,7 @@ import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { wrapTranslationEngine } from '../client/wrap.js';
 import { deepMerge } from '../core/deep-merge.js';
-import { isLensEnabled } from '../core/env.js';
+import { isLiveLocaleEnabled } from '../core/env.js';
 import { readJsonCached } from '../core/json-cache.js';
 
 export interface CreateTranslationsOptions {
@@ -61,7 +61,7 @@ function readNamespaceDir(dir: string): Record<string, any> {
  * @example
  * ```tsx
  * // app/page.tsx
- * import { createTranslations } from 'next-i18n-lens/server';
+ * import { createTranslations } from 'livelocale/server';
  *
  * export default async function Page({ searchParams }) {
  *   const { locale = 'en' } = await searchParams;
@@ -113,7 +113,7 @@ export function createTranslations(
   // In development, merge every other locale into a fallback dictionary so
   // untranslated keys still render (and stay editable) in the Studio.
   let fallbackData: Record<string, any> = {};
-  if (isLensEnabled()) {
+  if (isLiveLocaleEnabled()) {
     try {
       for (const entry of readdirSync(localesDir)) {
         if (entry.startsWith('.') || entry === safeLocale) continue;

@@ -64,8 +64,8 @@ export async function transformReactI18next(
           }
         }
         if (
-          moduleSpecifier.text === 'next-i18n-lens/client' ||
-          moduleSpecifier.text === 'next-i18n-lens/server'
+          moduleSpecifier.text === 'livelocale/client' ||
+          moduleSpecifier.text === 'livelocale/server'
         ) {
           alreadyHasWrapImport = true;
         }
@@ -343,7 +343,7 @@ export async function transformReactI18next(
       edits.push({
         start: insertPos,
         end: insertPos,
-        text: `\nimport { wrapTranslationEngine } from 'next-i18n-lens/client';`,
+        text: `\nimport { wrapTranslationEngine } from 'livelocale/client';`,
         index: editCount++,
       });
     } else {
@@ -355,7 +355,7 @@ export async function transformReactI18next(
       edits.push({
         start: insertPos,
         end: insertPos,
-        text: `import { wrapTranslationEngine } from 'next-i18n-lens/client';\n`,
+        text: `import { wrapTranslationEngine } from 'livelocale/client';\n`,
         index: editCount++,
       });
     }

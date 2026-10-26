@@ -36,13 +36,13 @@ function makeGit(): GitGateway {
 
 const get = (query: string): RouterRequest => ({
   method: 'GET',
-  url: `/api/i18n-lens/mutate${query}`,
+  url: `/api/livelocale${query}`,
   origin: 'http://localhost:3010',
 });
 
 const post = (body: unknown): RouterRequest => ({
   method: 'POST',
-  url: '/api/i18n-lens/mutate',
+  url: '/api/livelocale',
   origin: 'http://localhost:3010',
   contentType: 'application/json',
   bodyText: JSON.stringify(body),
@@ -53,7 +53,7 @@ describe('mutation router — git actions', () => {
 
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('I18N_LENS', '');
+    vi.stubEnv('LIVELOCALE', '');
     git = makeGit();
   });
 

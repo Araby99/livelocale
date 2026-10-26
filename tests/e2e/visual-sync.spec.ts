@@ -42,7 +42,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
 
     // Verify the highlighter overlay appears on hover (interceptor highlight)
     await welcomeText.hover();
-    const overlay = frameElement.locator('#i18n-lens-highlighter-overlay');
+    const overlay = frameElement.locator('#livelocale-highlighter-overlay');
     await expect(overlay).toBeVisible();
     const border = await overlay.evaluate((el) => (el as HTMLElement).style.border);
     expect(border).toContain('dashed');

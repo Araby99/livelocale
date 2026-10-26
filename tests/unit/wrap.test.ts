@@ -19,8 +19,8 @@ describe('wrapTranslationEngine', () => {
     expect(wrapped).toBe(engine);
   });
 
-  it('should return the original engine unchanged when I18N_LENS=off', () => {
-    vi.stubEnv('I18N_LENS', 'off');
+  it('should return the original engine unchanged when LIVELOCALE=off', () => {
+    vi.stubEnv('LIVELOCALE', 'off');
     const engine = { welcome: 'Hello' };
     expect(wrapTranslationEngine(engine)).toBe(engine);
   });
@@ -137,10 +137,10 @@ describe('wrapTranslationEngine', () => {
     expect(decodeKey(wrapped.title)?.key).toBe('home.title');
   });
 
-  it('should fallback to window.__i18n_lens_fallback__ if defined and options.fallback is missing', () => {
+  it('should fallback to window.__livelocale_fallback__ if defined and options.fallback is missing', () => {
     const originalWindow = (globalThis as any).window;
     (globalThis as any).window = {
-      __i18n_lens_fallback__: { welcome: 'Global Hi', title: 'Global Title' },
+      __livelocale_fallback__: { welcome: 'Global Hi', title: 'Global Title' },
     };
 
     try {

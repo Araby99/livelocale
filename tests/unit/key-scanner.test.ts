@@ -19,8 +19,8 @@ describe('KeyScanner (real filesystem)', () => {
 
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('I18N_LENS', '');
-    project = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-scan-'));
+    vi.stubEnv('LIVELOCALE', '');
+    project = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-scan-'));
     localesPath = path.join(project, 'locales');
     write(project, 'locales/en.json', JSON.stringify({ home: { title: 'Hi' } }));
     write(

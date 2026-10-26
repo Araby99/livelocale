@@ -7,7 +7,7 @@ import { spawnSync } from 'child_process';
 /**
  * Runs the BUILT CLI from a copy of the package placed outside the repository,
  * so that module resolution cannot reach the repo's node_modules. This is the
- * environment a JavaScript-only consumer gets after `npm install next-i18n-lens`.
+ * environment a JavaScript-only consumer gets after `npm install livelocale`.
  *
  * Requires `npm run build` to have produced dist/ first (CI builds before testing).
  */
@@ -29,8 +29,8 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
   let projectDir: string;
 
   beforeAll(() => {
-    sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-pkg-'));
-    pkgDir = path.join(sandbox, 'node_modules', 'next-i18n-lens');
+    sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-pkg-'));
+    pkgDir = path.join(sandbox, 'node_modules', 'livelocale');
     fs.mkdirSync(pkgDir, { recursive: true });
     fs.copyFileSync(path.join(REPO_ROOT, 'package.json'), path.join(pkgDir, 'package.json'));
     fs.cpSync(path.join(REPO_ROOT, 'dist'), path.join(pkgDir, 'dist'), { recursive: true });
@@ -54,13 +54,20 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('Usage:');
+    expect(result.stdout).toContain('npx livelocale');
+  });
+
+  it('should install the CLI under the `livelocale` command', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf-8'));
+    expect(pkg.name).toBe('livelocale');
+    expect(pkg.bin).toEqual({ livelocale: 'dist/codemod/index.js' });
   });
 
   it('should run `init` in a JavaScript project and write the route handler', () => {
     const result = runCli(pkgDir, projectDir, ['init']);
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
-    const routeFile = path.join(projectDir, 'app', 'api', 'i18n-lens', 'mutate', 'route.js');
+    const routeFile = path.join(projectDir, 'app', 'api', 'livelocale', 'route.js');
     expect(fs.existsSync(routeFile)).toBe(true);
   });
 

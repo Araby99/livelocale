@@ -106,10 +106,10 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
   const owner = repo.split('/')[0] ?? '';
 
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
-    throw new Error(`[i18n-lens] github.repo must be "owner/name", got "${repo}".`);
+    throw new Error(`[livelocale] github.repo must be "owner/name", got "${repo}".`);
   }
   if (typeof fetchImpl !== 'function') {
-    throw new Error('[i18n-lens] The GitHub gateway needs a global fetch (Node 18+).');
+    throw new Error('[livelocale] The GitHub gateway needs a global fetch (Node 18+).');
   }
 
   // ─── Low-level API ───────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
 
   function assertLocale(locale: string): void {
     if (!isValidLocaleFormat(locale) || !isSafeLocaleSegment(locale)) {
-      throw new Error(`[i18n-lens] Invalid locale "${locale}".`);
+      throw new Error(`[livelocale] Invalid locale "${locale}".`);
     }
   }
 
@@ -312,7 +312,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
   ): Promise<void> {
     assertLocale(locale);
     if (!isSafeKeyPath(keyPath)) {
-      throw new Error(`[i18n-lens] Forbidden key segment in path: "${keyPath}".`);
+      throw new Error(`[livelocale] Forbidden key segment in path: "${keyPath}".`);
     }
 
     let filePath: string;
@@ -322,12 +322,12 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
       const firstDot = keyPath.indexOf('.');
       if (firstDot === -1) {
         throw new Error(
-          '[i18n-lens] Invalid namespace key path: must contain at least one nested key.'
+          '[livelocale] Invalid namespace key path: must contain at least one nested key.'
         );
       }
       const ns = keyPath.slice(0, firstDot);
       if (DANGEROUS_KEY_SEGMENTS.has(ns)) {
-        throw new Error(`[i18n-lens] Forbidden namespace segment in path: "${ns}".`);
+        throw new Error(`[livelocale] Forbidden namespace segment in path: "${ns}".`);
       }
       filePath = `${dirPath(basePath, locale)}/${ns}.json`;
       mutationKeyPath = keyPath.slice(firstDot + 1);
@@ -342,7 +342,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
         if (existing) {
           const parsed = JSON.parse(existing.text);
           if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-            throw new Error('[i18n-lens] Invalid locale file: root must be an object.');
+            throw new Error('[livelocale] Invalid locale file: root must be an object.');
           }
           data = parsed;
         }
@@ -365,7 +365,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
   async function addLocale(basePath: string, locale: string): Promise<void> {
     assertLocale(locale);
     if (await localeExists(basePath, locale)) {
-      throw new Error(`[i18n-lens] Locale "${locale}" already exists.`);
+      throw new Error(`[livelocale] Locale "${locale}" already exists.`);
     }
     // Mirror the existing layout: if any locale is a folder, create a folder.
     const contents = await getContents(normalizeDir(basePath));
@@ -390,10 +390,10 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     assertLocale(oldLocale);
     assertLocale(newLocale);
     if (!(await localeExists(basePath, oldLocale))) {
-      throw new Error(`[i18n-lens] Locale "${oldLocale}" does not exist.`);
+      throw new Error(`[livelocale] Locale "${oldLocale}" does not exist.`);
     }
     if (await localeExists(basePath, newLocale)) {
-      throw new Error(`[i18n-lens] Target locale "${newLocale}" already exists.`);
+      throw new Error(`[livelocale] Target locale "${newLocale}" already exists.`);
     }
     const message = `i18n: rename locale ${oldLocale} to ${newLocale}`;
     const files = await namespaceFiles(basePath, oldLocale);
@@ -424,7 +424,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
       return;
     }
     const flat = await readFile(flatPath(basePath, locale));
-    if (!flat) throw new Error(`[i18n-lens] Locale "${locale}" does not exist.`);
+    if (!flat) throw new Error(`[livelocale] Locale "${locale}" does not exist.`);
     await deleteFile(flatPath(basePath, locale), message, flat.sha);
   }
 
@@ -500,7 +500,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
         title: message,
         head: branch,
         base: baseBranch,
-        body: 'Translation changes proposed from the i18n Lens Studio.',
+        body: 'Translation changes proposed from the LiveLocale Studio.',
       },
     });
     return { hash: res.data!.html_url };

@@ -1,6 +1,6 @@
 ---
 name: 🚀 Feature request
-about: Suggest an idea for next-i18n-lens
+about: Suggest an idea for livelocale
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''

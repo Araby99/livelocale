@@ -1,6 +1,6 @@
 ---
 name: 🐛 Bug report
-about: Create a report to help us improve next-i18n-lens
+about: Create a report to help us improve livelocale
 title: '[BUG] '
 labels: bug
 assignees: ''
@@ -27,7 +27,7 @@ If applicable, add screenshots to help explain your problem.
 - OS: [e.g. macOS, Windows]
 - Browser [e.g. chrome, safari]
 - Next.js Version [e.g. 14.2.3]
-- next-i18n-lens Version [e.g. 0.1.7]
+- livelocale Version [e.g. 0.1.7]
 
 **Additional context**
 Add any other context about the problem here (e.g., translation file structure).

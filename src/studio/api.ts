@@ -1,15 +1,15 @@
 import { APP_ORIGIN } from './features/dashboard/constants.js';
 
-const API = `${APP_ORIGIN}/api/i18n-lens/mutate`;
+const API = `${APP_ORIGIN}/api/livelocale`;
 
 /** sessionStorage key for the bearer token (preview mode). */
-export const TOKEN_STORAGE_KEY = 'i18n-lens-token';
+export const TOKEN_STORAGE_KEY = 'livelocale-token';
 /** Dispatched on `window` when the API answers 401, so the UI can ask for a token. */
-export const UNAUTHORIZED_EVENT = 'i18n-lens:unauthorized';
+export const UNAUTHORIZED_EVENT = 'livelocale:unauthorized';
 /** Dispatched on `window` after `setToken` so data hooks can refetch. */
-export const TOKEN_CHANGED_EVENT = 'i18n-lens:token-changed';
+export const TOKEN_CHANGED_EVENT = 'livelocale:token-changed';
 
-export type LensMode = 'off' | 'development' | 'preview';
+export type LiveLocaleMode = 'off' | 'development' | 'preview';
 
 export type GitChangeStatus = 'modified' | 'added' | 'deleted' | 'renamed';
 
@@ -30,7 +30,7 @@ export interface GitState {
 }
 
 export interface ServerInfo {
-  mode: LensMode;
+  mode: LiveLocaleMode;
   authRequired: boolean;
   git: boolean;
   /** Setup problems found by the server, such as a token without write access. */

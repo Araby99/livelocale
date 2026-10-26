@@ -17,21 +17,21 @@ export interface DoctorOptions {
   localesPath?: string;
   /** When given, the running app is probed over HTTP. */
   appOrigin?: string;
-  /** Bearer token for an app that requires one (preview mode). Defaults to `I18N_LENS_TOKEN`. */
+  /** Bearer token for an app that requires one (preview mode). Defaults to `LIVELOCALE_TOKEN`. */
   token?: string;
   /** Injectable fetch for tests. Defaults to the global fetch. */
   fetchImpl?: typeof fetch;
 }
 
 const ROUTE_CANDIDATES = [
-  'app/api/i18n-lens/mutate/route.ts',
-  'app/api/i18n-lens/mutate/route.js',
-  'src/app/api/i18n-lens/mutate/route.ts',
-  'src/app/api/i18n-lens/mutate/route.js',
-  'pages/api/i18n-lens/mutate.ts',
-  'pages/api/i18n-lens/mutate.js',
-  'src/pages/api/i18n-lens/mutate.ts',
-  'src/pages/api/i18n-lens/mutate.js',
+  'app/api/livelocale/route.ts',
+  'app/api/livelocale/route.js',
+  'src/app/api/livelocale/route.ts',
+  'src/app/api/livelocale/route.js',
+  'pages/api/livelocale.ts',
+  'pages/api/livelocale.js',
+  'src/pages/api/livelocale.ts',
+  'src/pages/api/livelocale.js',
 ];
 
 const LAYOUT_CANDIDATES = [
@@ -69,7 +69,7 @@ const NEXT_CONFIG_CANDIDATES = [
   'next.config.cjs',
 ];
 
-const API_ROUTE = '/api/i18n-lens/mutate';
+const API_ROUTE = '/api/livelocale';
 
 function firstExisting(root: string, candidates: string[]): string | null {
   for (const rel of candidates) {
@@ -94,7 +94,7 @@ function checkRouteHandler(root: string): Finding {
   return {
     level: 'fail',
     title: 'Mutation route handler',
-    detail: `No route file found at ${ROUTE_CANDIDATES[0]} (or the src/ and pages/ variants). Run: npx next-i18n-lens init`,
+    detail: `No route file found at ${ROUTE_CANDIDATES[0]} (or the src/ and pages/ variants). Run: npx livelocale init`,
   };
 }
 
@@ -103,19 +103,17 @@ function checkProvider(root: string): Finding {
   if (existing.length === 0) {
     return {
       level: 'warn',
-      title: 'I18nLensProvider mounted',
+      title: 'LiveLocaleProvider mounted',
       detail:
         'No root layout (app/layout.*) or pages/_app.* found, so the provider could not be verified.',
     };
   }
-  const mounted = existing.find((rel) =>
-    /I18nLensProvider|ClientInitializer/.test(readText(path.join(root, rel)))
-  );
-  if (mounted) return { level: 'ok', title: 'I18nLensProvider mounted', detail: mounted };
+  const mounted = existing.find((rel) => /LiveLocaleProvider/.test(readText(path.join(root, rel))));
+  if (mounted) return { level: 'ok', title: 'LiveLocaleProvider mounted', detail: mounted };
   return {
     level: 'warn',
-    title: 'I18nLensProvider mounted',
-    detail: `Add <I18nLensProvider /> from 'next-i18n-lens/react' to ${existing[0]} so the Studio can talk to the page.`,
+    title: 'LiveLocaleProvider mounted',
+    detail: `Add <LiveLocaleProvider /> from 'livelocale/react' to ${existing[0]} so the Studio can talk to the page.`,
   };
 }
 
@@ -123,13 +121,13 @@ function checkMiddleware(root: string): Finding {
   const found = firstExisting(root, MIDDLEWARE_CANDIDATES);
   if (!found) return { level: 'ok', title: 'Middleware matcher', detail: 'no middleware file' };
   const text = readText(path.join(root, found));
-  if (text.includes('api/i18n-lens')) {
+  if (text.includes('api/livelocale')) {
     return { level: 'ok', title: 'Middleware matcher', detail: `${found} excludes ${API_ROUTE}` };
   }
   return {
     level: 'warn',
     title: 'Middleware matcher',
-    detail: `${found} does not mention api/i18n-lens. If it enforces auth or redirects, exclude the route: matcher: ['/((?!api/i18n-lens).*)']`,
+    detail: `${found} does not mention api/livelocale. If it enforces auth or redirects, exclude the route: matcher: ['/((?!api/livelocale).*)']`,
   };
 }
 
@@ -328,8 +326,8 @@ async function checkLive(
         level: 'fail',
         title: 'Mutation API',
         detail: token
-          ? 'The server rejected the access token. Check I18N_LENS_TOKEN on the deployment.'
-          : 'The server requires an access token (preview mode). Re-run with --token <token> or set I18N_LENS_TOKEN.',
+          ? 'The server rejected the access token. Check LIVELOCALE_TOKEN on the deployment.'
+          : 'The server requires an access token (preview mode). Re-run with --token <token> or set LIVELOCALE_TOKEN.',
       });
     } else if (res.status === 403) {
       findings.push({
@@ -341,7 +339,7 @@ async function checkLive(
       findings.push({
         level: 'fail',
         title: 'Mutation API',
-        detail: `HTTP 404 at ${origin}${API_ROUTE}. The route handler is not served; run npx next-i18n-lens init and restart the dev server.`,
+        detail: `HTTP 404 at ${origin}${API_ROUTE}. The route handler is not served; run npx livelocale init and restart the dev server.`,
       });
     } else if (res.status >= 300 && res.status < 400) {
       const wall = loginWall(res, origin);
@@ -350,7 +348,7 @@ async function checkLive(
         title: 'Mutation API',
         detail: wall
           ? `${wall} The Studio cannot reach the app through it.`
-          : `HTTP ${res.status} redirect at ${API_ROUTE}; auth middleware is probably intercepting it. Exclude api/i18n-lens from the matcher.`,
+          : `HTTP ${res.status} redirect at ${API_ROUTE}; auth middleware is probably intercepting it. Exclude api/livelocale from the matcher.`,
       });
     } else {
       findings.push({
@@ -413,7 +411,7 @@ export async function runDoctor(options: DoctorOptions): Promise<Finding[]> {
         detail: 'Live checks need Node 18+ (global fetch).',
       });
     } else {
-      const token = options.token ?? process.env['I18N_LENS_TOKEN'] ?? undefined;
+      const token = options.token ?? process.env['LIVELOCALE_TOKEN'] ?? undefined;
       findings.push(...(await checkLive(options.appOrigin, fetchImpl, token || undefined)));
     }
   }

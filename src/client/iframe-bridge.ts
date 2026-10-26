@@ -49,7 +49,7 @@ export class IframeBridge {
     }
 
     const message = {
-      source: 'i18n-lens-client',
+      source: 'livelocale-client',
       type,
       payload,
     };
@@ -70,7 +70,7 @@ export class IframeBridge {
       if (event.origin !== this.allowedOrigin) {
         return;
       }
-      if (event.data?.source !== 'i18n-lens-studio') {
+      if (event.data?.source !== 'livelocale-studio') {
         return;
       }
 

@@ -21,7 +21,7 @@ describe('GitClient', () => {
   let localesPath: string;
 
   beforeEach(() => {
-    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-git-'));
+    repo = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-git-'));
     localesPath = path.join(repo, 'locales');
     git(repo, 'init', '-q', '-b', 'main');
     git(repo, 'config', 'user.email', 'test@example.com');
@@ -98,7 +98,7 @@ describe('GitClient', () => {
   });
 
   it('reports isRepo=false outside a repository', async () => {
-    const plain = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-nogit-'));
+    const plain = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-nogit-'));
     try {
       const status = await new GitClient().status(path.join(plain, 'locales'));
       expect(status.isRepo).toBe(false);

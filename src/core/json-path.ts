@@ -13,13 +13,13 @@ export function setNestedProperty(obj: Record<string, any>, keyPath: string, val
 
   if (keys.length > MAX_KEY_DEPTH) {
     throw new Error(
-      `[i18n-lens] Key depth limit exceeded. Maximum depth is ${MAX_KEY_DEPTH} levels.`
+      `[livelocale] Key depth limit exceeded. Maximum depth is ${MAX_KEY_DEPTH} levels.`
     );
   }
 
   if (keys.some((k) => DANGEROUS_KEY_SEGMENTS.has(k))) {
     throw new Error(
-      `[i18n-lens] Forbidden key segment in path: "${keyPath}". Segment names like __proto__, constructor, and prototype are not allowed.`
+      `[livelocale] Forbidden key segment in path: "${keyPath}". Segment names like __proto__, constructor, and prototype are not allowed.`
     );
   }
 

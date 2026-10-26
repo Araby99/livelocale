@@ -1,5 +1,5 @@
 import { encodeKey } from './watermark.js';
-import { isLensEnabled } from '../core/env.js';
+import { isLiveLocaleEnabled } from '../core/env.js';
 
 export interface WrapOptions {
   /**
@@ -49,7 +49,7 @@ function extractKey(arg: unknown, keyPrefix: string): string {
  * engine is returned as-is.
  */
 export function wrapTranslationEngine<T extends object>(engine: T, options: WrapOptions = {}): T {
-  if (!isLensEnabled()) {
+  if (!isLiveLocaleEnabled()) {
     return engine;
   }
 
@@ -102,7 +102,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
       // If val is missing, try looking it up in fallback
       const fallbackObj =
         options.fallback ??
-        (typeof window !== 'undefined' ? (window as any).__i18n_lens_fallback__ : undefined);
+        (typeof window !== 'undefined' ? (window as any).__livelocale_fallback__ : undefined);
       if (val === undefined && fallbackObj) {
         const fbVal = getNestedProperty(fallbackObj, fullKey);
         if (fbVal !== undefined) {
@@ -158,7 +158,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
 
       const fallbackObj =
         options.fallback ??
-        (typeof window !== 'undefined' ? (window as any).__i18n_lens_fallback__ : undefined);
+        (typeof window !== 'undefined' ? (window as any).__livelocale_fallback__ : undefined);
       let resolvedValue = result;
       const isMissing =
         resolvedValue === undefined ||

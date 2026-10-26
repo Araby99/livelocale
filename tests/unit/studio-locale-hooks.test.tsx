@@ -4,7 +4,7 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useLocaleData } from '../../src/studio/features/dashboard/hooks/useLocaleData.js';
 import { useLocaleActions } from '../../src/studio/features/dashboard/hooks/useLocaleActions.js';
 
-const API = 'http://localhost:3000/api/i18n-lens/mutate';
+const API = 'http://localhost:3000/api/livelocale';
 
 const jsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -32,7 +32,7 @@ describe('useLocaleData', () => {
     vi.stubGlobal(
       'fetch',
       routeFetch({
-        '/mutate': () => ['ar', 'en'],
+        '/api/livelocale': () => ['ar', 'en'],
         '?action=keys': () => ({
           allKeys: ['home.title', 'home.subtitle'],
           codeKeys: ['home.title'],
@@ -64,7 +64,7 @@ describe('useLocaleData', () => {
     vi.stubGlobal(
       'fetch',
       routeFetch({
-        '/mutate': () => ['ar', 'en'],
+        '/api/livelocale': () => ['ar', 'en'],
         '?action=keys': () => ({ allKeys: [], codeKeys: [] }),
         '?locale=en': () => ({ hello: 'Hello' }),
         '?locale=ar': () => ({ hello: 'مرحبا' }),
@@ -72,7 +72,7 @@ describe('useLocaleData', () => {
     );
     // The hook only touches the iframe once it has a contentWindow, i.e. once attached.
     const iframe = document.createElement('iframe');
-    iframe.src = 'http://localhost:3000/?i18n-lens-origin=http%3A%2F%2Flocalhost%3A3010';
+    iframe.src = 'http://localhost:3000/?livelocale-origin=http%3A%2F%2Flocalhost%3A3010';
     document.body.appendChild(iframe);
     const iframeRef = { current: iframe };
     const { result } = renderHook(() =>
@@ -91,7 +91,7 @@ describe('useLocaleData', () => {
     vi.stubGlobal(
       'fetch',
       routeFetch({
-        '/mutate': () => ['en'],
+        '/api/livelocale': () => ['en'],
         '?action=keys': () => ({ allKeys: ['hello'], codeKeys: [] }),
         '?locale=en': () => ({ hello: 'Hello' }),
       })

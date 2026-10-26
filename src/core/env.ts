@@ -1,28 +1,28 @@
 /**
- * Single source of truth for "is i18n Lens active right now, and in which mode?".
+ * Single source of truth for "is LiveLocale active right now, and in which mode?".
  *
  * Modes:
  *   - `development`: NODE_ENV is `development` (the default, zero-config mode).
- *   - `preview`: explicitly opted in with `I18N_LENS=preview` (server) or
- *     `NEXT_PUBLIC_I18N_LENS=preview` (client bundles). Works in production builds so a
+ *   - `preview`: explicitly opted in with `LIVELOCALE=preview` (server) or
+ *     `NEXT_PUBLIC_LIVELOCALE=preview` (client bundles). Works in production builds so a
  *     preview deployment can be edited through a hosted Studio. The mutation API then
  *     requires a bearer token (see the router).
  *   - `off`: everything else.
  *
  * Rules, in order:
- *   1. `I18N_LENS=off|0|false` (or `NEXT_PUBLIC_I18N_LENS=off`) always wins → off.
- *   2. `I18N_LENS=preview` / `NEXT_PUBLIC_I18N_LENS=preview` → preview.
+ *   1. `LIVELOCALE=off|0|false` (or `NEXT_PUBLIC_LIVELOCALE=off`) always wins → off.
+ *   2. `LIVELOCALE=preview` / `NEXT_PUBLIC_LIVELOCALE=preview` → preview.
  *   3. `NODE_ENV` must be `development`, otherwise off.
- *   4. `I18N_LENS=force` skips rule 5.
+ *   4. `LIVELOCALE=force` skips rule 5.
  *   5. On the server, a known hosting platform (Vercel preview/production, Netlify,
  *      Kubernetes, Render, Fly.io, Railway, Heroku) → off, so a mis-configured staging
  *      deploy cannot leak watermarks. A one-time warning is logged.
  *
- * `process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_I18N_LENS` are referenced as
+ * `process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_LIVELOCALE` are referenced as
  * literal member expressions so Next.js and Vite can inline them in browser bundles.
  */
 
-export type LensMode = 'off' | 'development' | 'preview';
+export type LiveLocaleMode = 'off' | 'development' | 'preview';
 
 const OFF_VALUES = new Set(['off', '0', 'false']);
 
@@ -42,12 +42,12 @@ function readNodeEnv(): string | undefined {
 }
 
 /** Set by the Vite plugin (and usable by any host) to mirror the server flag into the page. */
-export const BROWSER_FLAG_GLOBAL = '__I18N_LENS_FLAG__';
+export const BROWSER_FLAG_GLOBAL = '__LIVELOCALE_FLAG__';
 
 function readPublicFlag(): string | undefined {
   let value: string | undefined;
   try {
-    value = process.env.NEXT_PUBLIC_I18N_LENS;
+    value = process.env.NEXT_PUBLIC_LIVELOCALE;
   } catch {
     value = undefined;
   }
@@ -85,13 +85,13 @@ export function detectDeployedPlatform(): string | null {
   return null;
 }
 
-function evaluate(): { mode: LensMode; reason: string | null } {
-  const flag = (readEnv('I18N_LENS') ?? '').toLowerCase();
+function evaluate(): { mode: LiveLocaleMode; reason: string | null } {
+  const flag = (readEnv('LIVELOCALE') ?? '').toLowerCase();
   const publicFlag = (readPublicFlag() ?? '').toLowerCase();
 
-  if (OFF_VALUES.has(flag)) return { mode: 'off', reason: 'I18N_LENS kill switch is set' };
+  if (OFF_VALUES.has(flag)) return { mode: 'off', reason: 'LIVELOCALE kill switch is set' };
   if (OFF_VALUES.has(publicFlag)) {
-    return { mode: 'off', reason: 'NEXT_PUBLIC_I18N_LENS kill switch is set' };
+    return { mode: 'off', reason: 'NEXT_PUBLIC_LIVELOCALE kill switch is set' };
   }
 
   if (flag === 'preview' || publicFlag === 'preview') return { mode: 'preview', reason: null };
@@ -100,7 +100,7 @@ function evaluate(): { mode: LensMode; reason: string | null } {
   if (nodeEnv !== 'development') {
     return {
       mode: 'off',
-      reason: `NODE_ENV is "${nodeEnv ?? 'undefined'}" (must be "development", or set I18N_LENS=preview)`,
+      reason: `NODE_ENV is "${nodeEnv ?? 'undefined'}" (must be "development", or set LIVELOCALE=preview)`,
     };
   }
 
@@ -111,8 +111,8 @@ function evaluate(): { mode: LensMode; reason: string | null } {
     if (!warnedDeployed) {
       warnedDeployed = true;
       console.warn(
-        `[i18n-lens] Disabled: deployed environment detected (${platform}) while NODE_ENV=development. ` +
-          `Set I18N_LENS=force to override, I18N_LENS=preview for a hosted preview, or I18N_LENS=off to silence this warning.`
+        `[livelocale] Disabled: deployed environment detected (${platform}) while NODE_ENV=development. ` +
+          `Set LIVELOCALE=force to override, LIVELOCALE=preview for a hosted preview, or LIVELOCALE=off to silence this warning.`
       );
     }
     return { mode: 'off', reason: `deployed environment detected (${platform})` };
@@ -122,12 +122,12 @@ function evaluate(): { mode: LensMode; reason: string | null } {
 }
 
 /** The active mode: `off`, `development`, or `preview`. */
-export function getLensMode(): LensMode {
+export function getLiveLocaleMode(): LiveLocaleMode {
   return evaluate().mode;
 }
 
 /**
- * Returns `null` when i18n Lens should be active, otherwise a short reason
+ * Returns `null` when LiveLocale should be active, otherwise a short reason
  * suitable for error messages and logs.
  */
 export function getDisabledReason(): string | null {
@@ -135,6 +135,6 @@ export function getDisabledReason(): string | null {
 }
 
 /** True when watermarking, the mutation API, and the client scanner should run. */
-export function isLensEnabled(): boolean {
+export function isLiveLocaleEnabled(): boolean {
   return evaluate().mode !== 'off';
 }

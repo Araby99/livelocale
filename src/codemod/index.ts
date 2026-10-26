@@ -20,10 +20,10 @@ const DEFAULT_APP_ORIGIN = 'http://localhost:3000';
 
 function printHelp() {
   console.log(`
-i18n Lens (next-i18n-lens) CLI
+LiveLocale (livelocale) CLI
 
 Usage:
-  npx next-i18n-lens <command> [options]
+  npx livelocale <command> [options]
 
 Commands:
   migrate     Bulk migrate existing react-i18next translation usages to wrap them with wrapTranslationEngine automatically.
@@ -49,7 +49,7 @@ Options for doctor:
   --dir <path>       Project directory to inspect (default: current directory)
   --locales <path>   Locales directory relative to the project (default: locales)
   --app <origin>     Also probe the running app, e.g. http://localhost:3000
-  --token <token>    Access token for a preview deployment (default: I18N_LENS_TOKEN)
+  --token <token>    Access token for a preview deployment (default: LIVELOCALE_TOKEN)
 
 Options for check:
   --dir <path>       Project directory to scan (default: current directory)
@@ -96,7 +96,7 @@ function isPortAnswering(port: number): Promise<boolean> {
 }
 
 async function runStudio(port: number, appOrigin: string) {
-  console.log(`\n🚀 Starting i18n Lens Studio...`);
+  console.log(`\n🚀 Starting LiveLocale Studio...`);
   const studioDir = path.resolve(getDirname(), '../studio');
 
   if (!fs.existsSync(path.join(studioDir, 'index.html'))) {
@@ -124,7 +124,7 @@ async function runStudio(port: number, appOrigin: string) {
   });
 
   server.listen(port, () => {
-    console.log(`\n🎨 i18n Lens Studio is running!`);
+    console.log(`\n🎨 LiveLocale Studio is running!`);
     console.log(`📡 Studio: http://localhost:${port}`);
     console.log(`🔗 Editing app at: ${appOrigin}`);
     console.log(`💡 Press Ctrl+C to stop the studio server.\n`);
@@ -132,7 +132,7 @@ async function runStudio(port: number, appOrigin: string) {
 }
 
 function runInit(projectDir: string) {
-  console.log(`\n🚀 Initializing i18n Lens API handler...`);
+  console.log(`\n🚀 Initializing LiveLocale API handler...`);
   const absoluteDir = path.resolve(projectDir);
   if (!fs.existsSync(absoluteDir)) {
     console.error(`Error: Directory "${projectDir}" does not exist.`);
@@ -169,30 +169,30 @@ function runInit(projectDir: string) {
   let content = '';
 
   if (fs.existsSync(appDirPath)) {
-    targetPath = path.join(appDirPath, 'api', 'i18n-lens', 'mutate', `route.${fileExt}`);
+    targetPath = path.join(appDirPath, 'api', 'livelocale', `route.${fileExt}`);
     routerType = 'Next.js App Router (root)';
   } else if (fs.existsSync(srcAppDirPath)) {
-    targetPath = path.join(srcAppDirPath, 'api', 'i18n-lens', 'mutate', `route.${fileExt}`);
+    targetPath = path.join(srcAppDirPath, 'api', 'livelocale', `route.${fileExt}`);
     routerType = 'Next.js App Router (src/)';
   } else if (fs.existsSync(pagesDirPath)) {
-    targetPath = path.join(pagesDirPath, 'api', 'i18n-lens', `mutate.${fileExt}`);
+    targetPath = path.join(pagesDirPath, 'api', `livelocale.${fileExt}`);
     routerType = 'Next.js Pages Router (root)';
   } else if (fs.existsSync(srcPagesDirPath)) {
-    targetPath = path.join(srcPagesDirPath, 'api', 'i18n-lens', `mutate.${fileExt}`);
+    targetPath = path.join(srcPagesDirPath, 'api', `livelocale.${fileExt}`);
     routerType = 'Next.js Pages Router (src/)';
   } else {
     // Default fallback to root app router structure
-    targetPath = path.join(absoluteDir, 'app', 'api', 'i18n-lens', 'mutate', `route.${fileExt}`);
+    targetPath = path.join(absoluteDir, 'app', 'api', 'livelocale', `route.${fileExt}`);
     routerType = 'Default App Router (app/ not found)';
   }
 
   console.log(`📍 Project structure: ${routerType}`);
 
   if (routerType.includes('App Router')) {
-    content = `import { createI18nLensHandler } from 'next-i18n-lens/server';
+    content = `import { createLiveLocaleHandler } from 'livelocale/server';
 import * as path from 'path';
 
-const handler = createI18nLensHandler({
+const handler = createLiveLocaleHandler({
   localesPath: path.resolve('./locales'), // Adjust relative to project root
 });
 
@@ -201,11 +201,11 @@ export const POST = handler;
 export const OPTIONS = handler;
 `;
   } else {
-    content = `import { createI18nLensHandler } from 'next-i18n-lens/server';
+    content = `import { createLiveLocaleHandler } from 'livelocale/server';
 import * as path from 'path';
 
 // Pages Router API route: the handler accepts the (req, res) signature.
-const handler = createI18nLensHandler({
+const handler = createLiveLocaleHandler({
   localesPath: path.resolve('./locales'), // Adjust relative to project root
 });
 
@@ -227,12 +227,12 @@ export default handler;
     if (hasNextIntl) {
       console.log(`\n💡 Detected 'next-intl' in your project!`);
       console.log(
-        `   Wrap your translation hook with: import { wrapNextIntl } from 'next-i18n-lens/client';`
+        `   Wrap your translation hook with: import { wrapNextIntl } from 'livelocale/client';`
       );
       console.log(`   const t = wrapNextIntl(useTranslations('namespace'), 'namespace');`);
     } else if (hasReactI18next) {
       console.log(`\n💡 Detected 'react-i18next' in your project!`);
-      console.log(`   You can auto-wrap usages by running: npx next-i18n-lens migrate`);
+      console.log(`   You can auto-wrap usages by running: npx livelocale migrate`);
     }
     console.log(`\n🎉 Initialization completed successfully!\n`);
   } catch (err: any) {
@@ -374,7 +374,7 @@ async function runDoctorCommand(args: string[]) {
   }
 
   console.log(`
-🩺 i18n Lens doctor — ${projectDir}`);
+🩺 LiveLocale doctor — ${projectDir}`);
   if (appOrigin) console.log(`🔗 Probing app at ${appOrigin}`);
   console.log('--------------------------------------------------');
 
@@ -450,7 +450,7 @@ async function runCheckCommand(args: string[]) {
     return;
   }
 
-  console.log(`\n🔎 i18n Lens check — ${projectDir}`);
+  console.log(`\n🔎 LiveLocale check — ${projectDir}`);
   console.log(
     `🌐 Locales: ${report.locales.join(', ') || 'none'}` +
       (report.sourceLocale ? ` (source: ${report.sourceLocale})` : '') +

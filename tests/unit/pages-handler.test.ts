@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { createI18nLensHandler } from '../../src/server/next-handler.js';
+import { createLiveLocaleHandler } from '../../src/server/next-handler.js';
 import { FileMutator } from '../../src/server/file-mutator.js';
 
 vi.mock('fs', () => {
@@ -84,7 +84,7 @@ function createNodeRes() {
   return res;
 }
 
-describe('createI18nLensHandler — Pages Router (req, res) signature', () => {
+describe('createLiveLocaleHandler — Pages Router (req, res) signature', () => {
   const config = { localesPath: '/project/locales' };
 
   beforeEach(() => {
@@ -97,8 +97,8 @@ describe('createI18nLensHandler — Pages Router (req, res) signature', () => {
   });
 
   it('should list locales when invoked Node-style with GET', async () => {
-    const handler = createI18nLensHandler(config);
-    const req = createNodeReq('GET', '/api/i18n-lens/mutate');
+    const handler = createLiveLocaleHandler(config);
+    const req = createNodeReq('GET', '/api/livelocale');
     const res = createNodeRes();
 
     await (handler as any)(req, res);
@@ -110,10 +110,10 @@ describe('createI18nLensHandler — Pages Router (req, res) signature', () => {
   });
 
   it('should write a key when invoked Node-style with a JSON POST body', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const req = createNodeReq(
       'POST',
-      '/api/i18n-lens/mutate',
+      '/api/livelocale',
       { locale: 'en', key: 'home.title', value: 'Hello' },
       { origin: 'http://localhost:3010', 'content-type': 'application/json' }
     );
@@ -134,10 +134,10 @@ describe('createI18nLensHandler — Pages Router (req, res) signature', () => {
   });
 
   it('should reject a disallowed origin Node-style with 403', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const req = createNodeReq(
       'POST',
-      '/api/i18n-lens/mutate',
+      '/api/livelocale',
       { locale: 'en', key: 'home.title', value: 'pwned' },
       { origin: 'https://evil.example.com', 'content-type': 'application/json' }
     );
@@ -151,8 +151,8 @@ describe('createI18nLensHandler — Pages Router (req, res) signature', () => {
   });
 
   it('should answer OPTIONS Node-style with 204 and CORS headers', async () => {
-    const handler = createI18nLensHandler(config);
-    const req = createNodeReq('OPTIONS', '/api/i18n-lens/mutate');
+    const handler = createLiveLocaleHandler(config);
+    const req = createNodeReq('OPTIONS', '/api/livelocale');
     const res = createNodeRes();
 
     await (handler as any)(req, res);

@@ -26,7 +26,7 @@ describe('runCheck', () => {
   let project: string;
 
   beforeEach(() => {
-    project = fs.mkdtempSync(path.join(os.tmpdir(), 'i18n-lens-check-'));
+    project = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-check-'));
   });
 
   afterEach(() => {
@@ -47,7 +47,7 @@ describe('runCheck', () => {
 
   it('runs outside development mode (CI)', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('I18N_LENS', 'off');
+    vi.stubEnv('LIVELOCALE', 'off');
     write(project, 'locales/en.json', { a: 'A' });
     write(project, 'app/page.tsx', `t('a')`);
     await expect(runCheck({ projectDir: project })).resolves.toMatchObject({ issues: [] });

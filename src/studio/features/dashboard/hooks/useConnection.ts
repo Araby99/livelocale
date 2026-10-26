@@ -31,7 +31,7 @@ export const useConnection = (handlers: ConnectionHandlers) => {
         return;
       }
 
-      if (event.data?.source !== 'i18n-lens-client') {
+      if (event.data?.source !== 'livelocale-client') {
         return;
       }
 
@@ -78,7 +78,7 @@ export const useConnection = (handlers: ConnectionHandlers) => {
   const sendToIframe = useCallback((type: string, payload?: any) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
-        { source: 'i18n-lens-studio', type, payload },
+        { source: 'livelocale-studio', type, payload },
         APP_ORIGIN
       );
     }

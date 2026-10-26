@@ -37,6 +37,20 @@ jobs:
       - name: Run Unit & Integration Tests
         run: npm run test
 
+      # A version can already be on npm when it was published by hand (a new package's first
+      # release has to be); then the release only records it.
+      - name: Check whether this version is already published
+        id: published
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "livelocale@$VERSION" version >/dev/null 2>&1; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "livelocale@$VERSION is already on npm; skipping publish."
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # Authenticated by npm trusted publishing for this repository and workflow file.
       - name: Publish Package to NPM
+        if: steps.published.outputs.already == 'false'
         run: npm publish --provenance

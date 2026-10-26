@@ -8,7 +8,7 @@ import { useLocaleActions } from './useLocaleActions.js';
 import { useKeySearch } from './useKeySearch.js';
 import { useGit } from './useGit.js';
 import { useHistory, type HistoryEntry } from './useHistory.js';
-import { saveTranslation, fetchInfo, type LensMode } from '../../../api.js';
+import { saveTranslation, fetchInfo, type LiveLocaleMode } from '../../../api.js';
 import { useAuth } from './useAuth.js';
 
 /**
@@ -20,7 +20,7 @@ export const useStudio = () => {
   const [error, setError] = useState<string | null>(null);
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
   const [isUndoing, setIsUndoing] = useState<boolean>(false);
-  const [mode, setMode] = useState<LensMode | null>(null);
+  const [mode, setMode] = useState<LiveLocaleMode | null>(null);
   const [setupProblems, setSetupProblems] = useState<string[]>([]);
 
   const auth = useAuth();

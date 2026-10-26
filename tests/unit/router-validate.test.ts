@@ -22,7 +22,7 @@ function makeMutator(): MutationGateway {
 
 const post = (body: unknown): RouterRequest => ({
   method: 'POST',
-  url: '/api/i18n-lens/mutate',
+  url: '/api/livelocale',
   origin: 'http://localhost:3010',
   contentType: 'application/json',
   bodyText: JSON.stringify(body),
@@ -33,7 +33,7 @@ describe('mutation router — placeholder and syntax validation', () => {
 
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');
-    vi.stubEnv('I18N_LENS', '');
+    vi.stubEnv('LIVELOCALE', '');
     mutator = makeMutator();
   });
 

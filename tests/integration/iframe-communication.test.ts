@@ -33,7 +33,7 @@ describe('IframeBridge', () => {
 
     expect(window.parent.postMessage).toHaveBeenCalledWith(
       {
-        source: 'i18n-lens-client',
+        source: 'livelocale-client',
         type: 'ELEMENT_SELECTED',
         payload: {
           key: 'home.title',
@@ -71,7 +71,7 @@ describe('IframeBridge', () => {
     const cleanup = bridge.listenToParent(callback);
 
     const event = new MessageEvent('message', {
-      data: { source: 'i18n-lens-studio', type: 'APPLY_PREVIEW', payload: { value: 'Hi' } },
+      data: { source: 'livelocale-studio', type: 'APPLY_PREVIEW', payload: { value: 'Hi' } },
       origin: ALLOWED_ORIGIN,
     });
     window.dispatchEvent(event);
@@ -85,7 +85,7 @@ describe('IframeBridge', () => {
     const cleanup = bridge.listenToParent(callback);
 
     const event = new MessageEvent('message', {
-      data: { source: 'i18n-lens-studio', type: 'APPLY_PREVIEW', payload: {} },
+      data: { source: 'livelocale-studio', type: 'APPLY_PREVIEW', payload: {} },
       origin: 'http://evil.example.com',
     });
     window.dispatchEvent(event);
@@ -99,7 +99,7 @@ describe('IframeBridge', () => {
     const cleanup = bridge.listenToParent(callback);
 
     const event = new MessageEvent('message', {
-      data: { source: 'not-i18n-lens-studio', type: 'APPLY_PREVIEW', payload: {} },
+      data: { source: 'not-livelocale-studio', type: 'APPLY_PREVIEW', payload: {} },
       origin: ALLOWED_ORIGIN,
     });
     window.dispatchEvent(event);

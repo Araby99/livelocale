@@ -188,7 +188,7 @@ describe('createGitHubGateway', () => {
 
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('I18N_LENS', 'preview');
+    vi.stubEnv('LIVELOCALE', 'preview');
     github = new FakeGitHub(MAIN_FILES);
   });
 

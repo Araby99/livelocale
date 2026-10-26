@@ -14,7 +14,7 @@ function assertEnabled(component: string): void {
   const reason = getDisabledReason();
   if (reason !== null) {
     throw new Error(
-      `[i18n-lens] ${component} can only be executed in development mode (${reason}).`
+      `[livelocale] ${component} can only be executed in development mode (${reason}).`
     );
   }
 }
@@ -67,7 +67,7 @@ export class FileMutator {
     // Reject any locale string containing invalid characters
     if (!isSafeLocaleSegment(locale)) {
       throw new Error(
-        `[i18n-lens] Path traversal attempt detected in locale identifier: "${locale}"`
+        `[livelocale] Path traversal attempt detected in locale identifier: "${locale}"`
       );
     }
 
@@ -91,7 +91,7 @@ export class FileMutator {
         const namespace = keyPath.substring(0, firstDot);
         if (DANGEROUS_KEY_SEGMENTS.has(namespace)) {
           throw new Error(
-            `[i18n-lens] Forbidden namespace segment in path: "${namespace}". Segment names like __proto__, constructor, and prototype are not allowed.`
+            `[livelocale] Forbidden namespace segment in path: "${namespace}". Segment names like __proto__, constructor, and prototype are not allowed.`
           );
         }
         mutationKeyPath = keyPath.substring(firstDot + 1);
@@ -106,7 +106,7 @@ export class FileMutator {
 
     if (!filePath.startsWith(resolvedBasePath)) {
       throw new Error(
-        `[i18n-lens] Path traversal attempt: Resolved file path must start with basePath.`
+        `[livelocale] Path traversal attempt: Resolved file path must start with basePath.`
       );
     }
 
@@ -131,14 +131,14 @@ export class FileMutator {
           currentData = parsed;
         } catch (parseError: any) {
           throw new Error(
-            `[i18n-lens] Invalid locale file: root must be an object. Code: INVALID_LOCALE. Original error: ${parseError.message}`
+            `[livelocale] Invalid locale file: root must be an object. Code: INVALID_LOCALE. Original error: ${parseError.message}`
           );
         }
       } catch (err: any) {
         // If file does not exist, initialize it as empty object
         if (err.code !== 'ENOENT') {
           throw new Error(
-            `[i18n-lens] Failed to read locale file at ${filePath}. Operation: read. Original error: ${err.message}`
+            `[livelocale] Failed to read locale file at ${filePath}. Operation: read. Original error: ${err.message}`
           );
         }
       }
@@ -149,7 +149,7 @@ export class FileMutator {
       } else {
         // Root value mutation inside split JSON files (rare but possible: e.g. key has no dot)
         throw new Error(
-          '[i18n-lens] Invalid namespace key path: must contain at least one nested key.'
+          '[livelocale] Invalid namespace key path: must contain at least one nested key.'
         );
       }
 
@@ -161,7 +161,7 @@ export class FileMutator {
         stringified += trailingNewline;
       } catch (err: any) {
         throw new Error(
-          `[i18n-lens] Produced JSON is invalid or has circular references. Original error: ${err.message}`
+          `[livelocale] Produced JSON is invalid or has circular references. Original error: ${err.message}`
         );
       }
 
@@ -171,7 +171,7 @@ export class FileMutator {
         await fs.writeFile(tempPath, stringified, 'utf-8');
       } catch (err: any) {
         throw new Error(
-          `[i18n-lens] Failed to write temp file at ${tempPath}. Operation: write. Original error: ${err.message}`
+          `[livelocale] Failed to write temp file at ${tempPath}. Operation: write. Original error: ${err.message}`
         );
       }
 
@@ -185,12 +185,12 @@ export class FileMutator {
           // Ignore unlink error to bubble original rename error
         }
         throw new Error(
-          `[i18n-lens] Failed to rename temp file to target at ${filePath}. Operation: rename. Original error: ${err.message}`
+          `[livelocale] Failed to rename temp file to target at ${filePath}. Operation: rename. Original error: ${err.message}`
         );
       }
 
       // RULE SEC-001: NEVER LOG TRANSLATION VALUES
-      console.log(`[i18n-lens] Updated key '${keyPath}' in locale '${locale}'`);
+      console.log(`[livelocale] Updated key '${keyPath}' in locale '${locale}'`);
     });
   }
 
@@ -257,12 +257,12 @@ export class FileMutator {
 
     if (!isSafeLocaleSegment(locale)) {
       throw new Error(
-        `[i18n-lens] Path traversal attempt detected in locale identifier: "${locale}"`
+        `[livelocale] Path traversal attempt detected in locale identifier: "${locale}"`
       );
     }
 
     if (!LOCALE_RE.test(locale)) {
-      throw new Error(`[i18n-lens] Invalid locale format: "${locale}"`);
+      throw new Error(`[livelocale] Invalid locale format: "${locale}"`);
     }
 
     const resolvedBasePath = path.resolve(basePath);
@@ -270,7 +270,7 @@ export class FileMutator {
 
     if (!localePath.startsWith(resolvedBasePath)) {
       throw new Error(
-        `[i18n-lens] Path traversal attempt: Resolved file path must start with basePath.`
+        `[livelocale] Path traversal attempt: Resolved file path must start with basePath.`
       );
     }
 
@@ -286,7 +286,7 @@ export class FileMutator {
     } catch {}
 
     if (exists) {
-      throw new Error(`[i18n-lens] Locale "${locale}" already exists.`);
+      throw new Error(`[livelocale] Locale "${locale}" already exists.`);
     }
 
     // Scan basePath for layout detection: if we find any directories matching locale regex,
@@ -316,7 +316,7 @@ export class FileMutator {
       await fs.writeFile(`${localePath}.json`, '{}', 'utf-8');
     }
 
-    console.log(`[i18n-lens] Added locale '${locale}'`);
+    console.log(`[livelocale] Added locale '${locale}'`);
   }
 
   /**
@@ -326,11 +326,11 @@ export class FileMutator {
     assertEnabled('FileMutator');
 
     if (!isSafeLocaleSegment(oldLocale) || !isSafeLocaleSegment(newLocale)) {
-      throw new Error('[i18n-lens] Path traversal attempt detected');
+      throw new Error('[livelocale] Path traversal attempt detected');
     }
 
     if (!LOCALE_RE.test(oldLocale) || !LOCALE_RE.test(newLocale)) {
-      throw new Error(`[i18n-lens] Invalid locale format`);
+      throw new Error(`[livelocale] Invalid locale format`);
     }
 
     const resolvedBasePath = path.resolve(basePath);
@@ -338,7 +338,7 @@ export class FileMutator {
     const newPath = path.resolve(resolvedBasePath, newLocale);
 
     if (!oldPath.startsWith(resolvedBasePath) || !newPath.startsWith(resolvedBasePath)) {
-      throw new Error('[i18n-lens] Path traversal attempt');
+      throw new Error('[livelocale] Path traversal attempt');
     }
 
     let isDir = false;
@@ -359,7 +359,7 @@ export class FileMutator {
     }
 
     if (!exists) {
-      throw new Error(`[i18n-lens] Locale "${oldLocale}" does not exist.`);
+      throw new Error(`[livelocale] Locale "${oldLocale}" does not exist.`);
     }
 
     // Check if new path already exists
@@ -374,7 +374,7 @@ export class FileMutator {
     } catch {}
 
     if (newExists) {
-      throw new Error(`[i18n-lens] Target locale "${newLocale}" already exists.`);
+      throw new Error(`[livelocale] Target locale "${newLocale}" already exists.`);
     }
 
     if (isDir) {
@@ -383,7 +383,7 @@ export class FileMutator {
       await fs.rename(`${oldPath}.json`, `${newPath}.json`);
     }
 
-    console.log(`[i18n-lens] Renamed locale '${oldLocale}' to '${newLocale}'`);
+    console.log(`[livelocale] Renamed locale '${oldLocale}' to '${newLocale}'`);
   }
 
   /**
@@ -393,18 +393,18 @@ export class FileMutator {
     assertEnabled('FileMutator');
 
     if (!isSafeLocaleSegment(locale)) {
-      throw new Error('[i18n-lens] Path traversal attempt detected');
+      throw new Error('[livelocale] Path traversal attempt detected');
     }
 
     if (!LOCALE_RE.test(locale)) {
-      throw new Error(`[i18n-lens] Invalid locale format`);
+      throw new Error(`[livelocale] Invalid locale format`);
     }
 
     const resolvedBasePath = path.resolve(basePath);
     const localePath = path.resolve(resolvedBasePath, locale);
 
     if (!localePath.startsWith(resolvedBasePath)) {
-      throw new Error('[i18n-lens] Path traversal attempt');
+      throw new Error('[livelocale] Path traversal attempt');
     }
 
     let isDir = false;
@@ -425,7 +425,7 @@ export class FileMutator {
     }
 
     if (!exists) {
-      throw new Error(`[i18n-lens] Locale "${locale}" does not exist.`);
+      throw new Error(`[livelocale] Locale "${locale}" does not exist.`);
     }
 
     if (isDir) {
@@ -434,7 +434,7 @@ export class FileMutator {
       await fs.unlink(`${localePath}.json`);
     }
 
-    console.log(`[i18n-lens] Deleted locale '${locale}'`);
+    console.log(`[livelocale] Deleted locale '${locale}'`);
   }
 
   /**

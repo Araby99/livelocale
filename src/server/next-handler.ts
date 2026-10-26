@@ -20,7 +20,7 @@ export interface HandlerConfig {
    */
   git?: boolean;
   /**
-   * Bearer token required on every request. Defaults to the `I18N_LENS_TOKEN`
+   * Bearer token required on every request. Defaults to the `LIVELOCALE_TOKEN`
    * environment variable. Mandatory in preview mode.
    */
   authToken?: string;
@@ -37,7 +37,7 @@ export interface HandlerConfig {
  * (`(request: Request) => Promise<Response>`) and a Pages Router API route
  * (`(req, res) => Promise<void>`). The shape is detected per call.
  */
-export interface I18nLensHandler {
+export interface LiveLocaleHandler {
   (request: Request): Promise<Response>;
   (req: NodeRequestLike, res: NodeResponseLike): Promise<void>;
 }
@@ -61,7 +61,7 @@ function isNodeResponse(value: unknown): value is NodeResponseLike {
  * Creates a Next.js route handler (App Router or Pages Router) backed by the
  * unified mutation router. Handles GET, POST, and OPTIONS requests.
  */
-export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
+export function createLiveLocaleHandler(config: HandlerConfig): LiveLocaleHandler {
   const github = config.github ? createGitHubGateway(config.github) : null;
   const mutator = github ?? new FileMutator();
   const git = github ?? (config.git === false ? undefined : new GitClient());
@@ -69,7 +69,7 @@ export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
     localesPath: config.localesPath,
     allowedOrigins: config.allowedOrigins,
     git,
-    authToken: config.authToken ?? process.env['I18N_LENS_TOKEN'],
+    authToken: config.authToken ?? process.env['LIVELOCALE_TOKEN'],
   });
 
   // ─── App Router: Web Request / Response ──────────────────────────────────
@@ -142,9 +142,9 @@ export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
     res.end(result.body ?? '');
   }
 
-  function i18nLensMutationHandler(request: Request): Promise<Response>;
-  function i18nLensMutationHandler(req: NodeRequestLike, res: NodeResponseLike): Promise<void>;
-  function i18nLensMutationHandler(
+  function liveLocaleHandler(request: Request): Promise<Response>;
+  function liveLocaleHandler(req: NodeRequestLike, res: NodeResponseLike): Promise<void>;
+  function liveLocaleHandler(
     reqOrRequest: Request | NodeRequestLike,
     res?: NodeResponseLike
   ): Promise<Response> | Promise<void> {
@@ -154,7 +154,7 @@ export function createI18nLensHandler(config: HandlerConfig): I18nLensHandler {
     return handleWeb(reqOrRequest as Request);
   }
 
-  return i18nLensMutationHandler;
+  return liveLocaleHandler;
 }
 
 function toWebResponse(result: RouterResponse): Response {

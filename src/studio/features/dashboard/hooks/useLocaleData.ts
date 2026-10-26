@@ -57,7 +57,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
         }
       }
     } catch (err: any) {
-      console.warn('[i18n-lens] Failed to fetch locales list:', err.message);
+      console.warn('[livelocale] Failed to fetch locales list:', err.message);
     }
   }, []);
 
@@ -72,7 +72,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
         setCodeKeys(data.codeKeys);
       }
     } catch (err: any) {
-      console.warn('[i18n-lens] Failed to fetch keys metadata:', err.message);
+      console.warn('[livelocale] Failed to fetch keys metadata:', err.message);
     }
   }, []);
 
@@ -83,7 +83,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
       setLocaleData(flattenObject(data));
     } catch (err: any) {
       // Don't block studio UI if fetch fails
-      console.warn('[i18n-lens] Failed to load full locale dictionary:', err.message);
+      console.warn('[livelocale] Failed to load full locale dictionary:', err.message);
     }
   }, []);
 
@@ -107,7 +107,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
       fetchLocaleDictionary('en')
         .then((data) => setEnLocaleData(flattenObject(data)))
         .catch((err) =>
-          console.warn('[i18n-lens] Failed to load reference English locale:', err.message)
+          console.warn('[livelocale] Failed to load reference English locale:', err.message)
         );
     }
   }, [connectionStatus]);

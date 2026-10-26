@@ -1,17 +1,17 @@
 {
-  "name": "next-i18n-lens",
+  "name": "livelocale",
   "version": "0.7.0",
-  "description": "A local-first, zero-dependency visual translation studio for Next.js (App Router) and React.",
+  "description": "Click any text in your running React app to edit its translation. Edits stay as JSON in git, or arrive as a pull request from a deployed preview. Local-first, zero-dependency.",
   "license": "MIT",
   "author": "Araby99",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Araby99/next-i18n-lens.git"
+    "url": "git+https://github.com/Araby99/livelocale.git"
   },
   "bugs": {
-    "url": "https://github.com/Araby99/next-i18n-lens/issues"
+    "url": "https://github.com/Araby99/livelocale/issues"
   },
-  "homepage": "https://github.com/Araby99/next-i18n-lens#readme",
+  "homepage": "https://github.com/Araby99/livelocale#readme",
   "keywords": [
     "nextjs",
     "react",
@@ -22,11 +22,16 @@
     "visual-editor",
     "localization",
     "in-context-editing",
-    "zero-dependency"
+    "zero-dependency",
+    "vite",
+    "i18next",
+    "next-intl",
+    "rtl",
+    "git"
   ],
   "type": "module",
   "bin": {
-    "next-i18n-lens": "dist/codemod/index.js"
+    "livelocale": "dist/codemod/index.js"
   },
   "engines": {
     "node": ">=18"
@@ -56,7 +61,8 @@
       "types": "./dist/vite/index.d.ts",
       "import": "./dist/vite/index.js",
       "require": "./dist/vite/index.cjs"
-    }
+    },
+    "./package.json": "./package.json"
   },
   "files": [
     "dist"

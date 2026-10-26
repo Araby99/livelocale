@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { createI18nLensHandler } from '../../src/server/next-handler.js';
+import { createLiveLocaleHandler } from '../../src/server/next-handler.js';
 import { FileMutator } from '../../src/server/file-mutator.js';
 
 vi.mock('fs', () => {
@@ -27,7 +27,7 @@ vi.mock('../../src/server/file-mutator.js', () => {
   };
 });
 
-describe('createI18nLensHandler', () => {
+describe('createLiveLocaleHandler', () => {
   const config = { localesPath: '/project/locales' };
 
   beforeEach(() => {
@@ -41,7 +41,7 @@ describe('createI18nLensHandler', () => {
 
   it('should return 403 Forbidden when run in non-development mode', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -55,7 +55,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 400 Bad Request when request body contains invalid JSON', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -69,7 +69,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 400 Bad Request when locale formatting is invalid', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
 
     const invalidLocales = ['e', 'english', 'en_US', 'en-US-extra'];
     for (const loc of invalidLocales) {
@@ -86,7 +86,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 400 Bad Request when key formatting is invalid', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
 
     const invalidKeys = ['', 'a'.repeat(201), 'key$name', 'key/name', 'key\\name'];
     for (const key of invalidKeys) {
@@ -103,7 +103,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 400 Bad Request when value formatting is invalid', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
 
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
@@ -117,7 +117,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should call updateLocaleKey and return 200 OK when request payload is valid', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -141,7 +141,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 500 when mutator throws an error', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -159,7 +159,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 204 and correct CORS headers for OPTIONS requests', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'OPTIONS',
       headers: {
@@ -174,7 +174,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should accept empty string as a valid translation value', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -188,7 +188,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should accept valid regional, script, and three-letter codes under loose regex validation', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
 
     const validLocales = ['es-419', 'zh-Hans', 'zh-Hant', 'en-US', 'ar-EG', 'eng', 'ar'];
     for (const loc of validLocales) {
@@ -206,7 +206,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should handle GET requests and load flat locale JSON file', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
 
     const request = new Request('http://localhost:3000/api/mutate?locale=en', {
       method: 'GET',
@@ -221,7 +221,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should handle GET requests and merge split namespace files when locale path is a directory', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
     vi.mocked(mutatorInstance.readLocale).mockResolvedValue({
       common: { title: 'Welcome' },
@@ -240,7 +240,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should handle GET requests without locale param by listing locales', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'GET',
     });
@@ -255,7 +255,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should handle POST requests to add a locale', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -273,7 +273,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should handle POST requests to rename a locale', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -292,7 +292,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should handle POST requests to delete a locale', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -312,7 +312,7 @@ describe('createI18nLensHandler', () => {
   // ─── Security: CSRF / prototype pollution / body limits ──────────────────
 
   it('should return 403 when POST request origin is not allowed (CSRF)', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: {
@@ -332,7 +332,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should allow POST requests from any localhost origin (studio on custom ports)', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: {
@@ -347,7 +347,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 415 when POST content type is not application/json', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: {
@@ -367,7 +367,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should return 413 when the request body exceeds the size cap', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -381,7 +381,7 @@ describe('createI18nLensHandler', () => {
   });
 
   it('should reject prototype-pollution keys like __proto__', async () => {
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
 
     for (const key of ['__proto__.polluted', 'constructor.prototype.x', 'a.prototype.b']) {
       const request = new Request('http://localhost:3000/api/mutate', {
@@ -401,12 +401,12 @@ describe('createI18nLensHandler', () => {
   });
   // ─── Extra allowed origins via environment (Codespaces, custom hostnames) ──
 
-  it('should allow POST from an origin listed in I18N_LENS_ALLOWED_ORIGINS', async () => {
+  it('should allow POST from an origin listed in LIVELOCALE_ALLOWED_ORIGINS', async () => {
     vi.stubEnv(
-      'I18N_LENS_ALLOWED_ORIGINS',
+      'LIVELOCALE_ALLOWED_ORIGINS',
       'https://abc-3010.app.github.dev, https://studio.dev.local'
     );
-    const handler = createI18nLensHandler(config);
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: {
@@ -423,9 +423,9 @@ describe('createI18nLensHandler', () => {
     );
   });
 
-  it('should still reject origins not listed in I18N_LENS_ALLOWED_ORIGINS', async () => {
-    vi.stubEnv('I18N_LENS_ALLOWED_ORIGINS', 'https://abc-3010.app.github.dev');
-    const handler = createI18nLensHandler(config);
+  it('should still reject origins not listed in LIVELOCALE_ALLOWED_ORIGINS', async () => {
+    vi.stubEnv('LIVELOCALE_ALLOWED_ORIGINS', 'https://abc-3010.app.github.dev');
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', {
       method: 'POST',
       headers: {
@@ -438,16 +438,16 @@ describe('createI18nLensHandler', () => {
     const response = await handler(request);
     expect(response.status).toBe(403);
   });
-  it('should return 403 when the I18N_LENS kill switch is set, even in development', async () => {
-    vi.stubEnv('I18N_LENS', 'off');
-    const handler = createI18nLensHandler(config);
+  it('should return 403 when the LIVELOCALE kill switch is set, even in development', async () => {
+    vi.stubEnv('LIVELOCALE', 'off');
+    const handler = createLiveLocaleHandler(config);
     const request = new Request('http://localhost:3000/api/mutate', { method: 'GET' });
 
     const response = await handler(request);
     expect(response.status).toBe(403);
     const data = await response.json();
     expect(data.code).toBe('FORBIDDEN');
-    expect(data.error).toContain('I18N_LENS');
+    expect(data.error).toContain('LIVELOCALE');
   });
   // ─── Bearer-token authentication (preview mode) ───────────────────────────
 
@@ -455,7 +455,7 @@ describe('createI18nLensHandler', () => {
     const authed = { ...config, authToken: 'secret-token-123' };
 
     it('rejects GET and POST without a bearer token with 401', async () => {
-      const handler = createI18nLensHandler(authed);
+      const handler = createLiveLocaleHandler(authed);
       const get = await handler(new Request('http://localhost:3000/api/mutate', { method: 'GET' }));
       expect(get.status).toBe(401);
       expect((await get.json()).code).toBe('UNAUTHORIZED');
@@ -473,7 +473,7 @@ describe('createI18nLensHandler', () => {
     });
 
     it('rejects a wrong token with 401', async () => {
-      const handler = createI18nLensHandler(authed);
+      const handler = createLiveLocaleHandler(authed);
       const res = await handler(
         new Request('http://localhost:3000/api/mutate', {
           method: 'GET',
@@ -484,7 +484,7 @@ describe('createI18nLensHandler', () => {
     });
 
     it('accepts the correct bearer token', async () => {
-      const handler = createI18nLensHandler(authed);
+      const handler = createLiveLocaleHandler(authed);
       const res = await handler(
         new Request('http://localhost:3000/api/mutate', {
           method: 'GET',
@@ -496,7 +496,7 @@ describe('createI18nLensHandler', () => {
     });
 
     it('lets OPTIONS preflight through and advertises the Authorization header', async () => {
-      const handler = createI18nLensHandler(authed);
+      const handler = createLiveLocaleHandler(authed);
       const res = await handler(
         new Request('http://localhost:3000/api/mutate', {
           method: 'OPTIONS',
@@ -507,9 +507,9 @@ describe('createI18nLensHandler', () => {
       expect(res.headers.get('Access-Control-Allow-Headers')).toContain('Authorization');
     });
 
-    it('reads the token from I18N_LENS_TOKEN when not configured explicitly', async () => {
-      vi.stubEnv('I18N_LENS_TOKEN', 'from-env');
-      const handler = createI18nLensHandler(config);
+    it('reads the token from LIVELOCALE_TOKEN when not configured explicitly', async () => {
+      vi.stubEnv('LIVELOCALE_TOKEN', 'from-env');
+      const handler = createLiveLocaleHandler(config);
       const denied = await handler(new Request('http://localhost:3000/api/mutate'));
       expect(denied.status).toBe(401);
       const ok = await handler(
@@ -523,12 +523,12 @@ describe('createI18nLensHandler', () => {
 
   it('refuses to serve in preview mode without a token', async () => {
     vi.stubEnv('NODE_ENV', 'production');
-    vi.stubEnv('I18N_LENS', 'preview');
-    const handler = createI18nLensHandler(config);
+    vi.stubEnv('LIVELOCALE', 'preview');
+    const handler = createLiveLocaleHandler(config);
     const res = await handler(new Request('http://localhost:3000/api/mutate'));
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.code).toBe('PREVIEW_TOKEN_REQUIRED');
-    expect(body.error).toContain('I18N_LENS_TOKEN');
+    expect(body.error).toContain('LIVELOCALE_TOKEN');
   });
 });
