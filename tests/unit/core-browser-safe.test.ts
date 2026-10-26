@@ -8,6 +8,7 @@ const BROWSER_SAFE = [
   'src/core/json-path.ts',
   'src/core/placeholders.ts',
   'src/core/validate.ts',
+  'src/core/apply-plan.ts',
 ];
 
 it.each(BROWSER_SAFE)('%s stays browser-safe', (file) => {
