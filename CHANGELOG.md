@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-10-26
+
+### Minor Changes
+
+- Renamed to LiveLocale. Same features as next-i18n-lens 0.7.0; every name changes and old names are not honoured.
+
+  **Changed**
+  - Package `next-i18n-lens` → `livelocale`, CLI `npx livelocale`.
+  - `I18nLensProvider` → `LiveLocaleProvider`, `createI18nLensHandler` / `I18nLensHandler` → `createLiveLocaleHandler` / `LiveLocaleHandler`, `i18nLensVite` → `liveLocaleVite`, `getLensMode` / `isLensEnabled` / `LensMode` → `getLiveLocaleMode` / `isLiveLocaleEnabled` / `LiveLocaleMode`; the `ClientInitializer` alias is removed.
+  - Route `/api/i18n-lens/mutate` → `/api/livelocale` (`app/api/livelocale/route.ts`, `pages/api/livelocale.ts`); `init` and `doctor` use the new paths.
+  - Environment variables `I18N_LENS`, `NEXT_PUBLIC_I18N_LENS`, `I18N_LENS_TOKEN`, `I18N_LENS_ALLOWED_ORIGINS` → `LIVELOCALE`, `NEXT_PUBLIC_LIVELOCALE`, `LIVELOCALE_TOKEN`, `LIVELOCALE_ALLOWED_ORIGINS`.
+  - Window globals, iframe query parameter (`livelocale-origin`), bridge message sources, session storage key and log prefix (`[livelocale]`) renamed.
+  - The README's migration section lists the steps; it also now states that preview mode for Vite needs the Vite dev server (static builds are not supported yet).
+
+  **Added**
+  - `livelocale/package.json` is exported.
+  - The publish workflow skips versions that are already on npm.
+
 ## [0.7.0] - 2026-10-26
 
 ### Minor Changes

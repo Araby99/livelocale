@@ -1,6 +1,6 @@
 # Architecture
 
-This document explains how `next-i18n-lens` (branded **i18n Lens**) works end to end, so a new
+This document explains how `livelocale` (branded **LiveLocale**) works end to end, so a new
 contributor can be productive in a day. It describes the system as it is, not as it might become.
 
 ## The one-paragraph version
@@ -16,13 +16,13 @@ no-op and every server entry point returns 403.
 
 The library ships one npm package with five entry points (see `tsup.config.ts`):
 
-| Entry                      | Source                      | Runs in                | Purpose                                   |
-| -------------------------- | --------------------------- | ---------------------- | ----------------------------------------- |
-| `next-i18n-lens/server`    | `src/server/index.ts`       | Node (Next.js server)  | Route handler, loader, mutator, watermark |
-| `next-i18n-lens/client`    | `src/client/index.ts`       | Browser                | DOM scanner, bridge, auto-init            |
-| `next-i18n-lens/react`     | `src/react/index.tsx`       | Browser (React)        | `I18nLensProvider` that lazy-loads client |
-| `next-i18n-lens/vite`      | `src/server/vite-plugin.ts` | Node (Vite dev server) | Mutation API as Vite middleware           |
-| `npx next-i18n-lens` (bin) | `src/codemod/index.ts`      | Node CLI               | `init`, `studio`, `migrate`               |
+| Entry                  | Source                      | Runs in                | Purpose                                     |
+| ---------------------- | --------------------------- | ---------------------- | ------------------------------------------- |
+| `livelocale/server`    | `src/server/index.ts`       | Node (Next.js server)  | Route handler, loader, mutator, watermark   |
+| `livelocale/client`    | `src/client/index.ts`       | Browser                | DOM scanner, bridge, auto-init              |
+| `livelocale/react`     | `src/react/index.tsx`       | Browser (React)        | `LiveLocaleProvider` that lazy-loads client |
+| `livelocale/vite`      | `src/server/vite-plugin.ts` | Node (Vite dev server) | Mutation API as Vite middleware             |
+| `npx livelocale` (bin) | `src/codemod/index.ts`      | Node CLI               | `init`, `studio`, `migrate`                 |
 
 The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and served by the CLI.
 
@@ -30,11 +30,11 @@ The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and
 
 ```
 ┌────────────────────────── Studio (localhost:3010) ───────────────────────────┐
-│  React UI ── fetch ──▶ {appOrigin}/api/i18n-lens/mutate  (GET list / POST)  │
+│  React UI ── fetch ──▶ {appOrigin}/api/livelocale  (GET list / POST)  │
 │      ▲                                                                       │
 │      │ postMessage (ELEMENT_SELECTED, READY, VISIBLE_KEYS_CHANGED)           │
 │      ▼                                                                       │
-│  <iframe src="{appOrigin}?i18n-lens-origin=http://localhost:3010">           │
+│  <iframe src="{appOrigin}?livelocale-origin=http://localhost:3010">           │
 │    ┌───────────────── Your app (localhost:3000) ─────────────────┐           │
 │    │  SSR/CSR renders  "‍…bits…‍" + "Hello"           │           │
 │    │  client/index.ts: scan text nodes → data-i18n-key           │           │
@@ -43,7 +43,7 @@ The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and
 └──────────────────────────────────────────────────────────────────────────────┘
                                    │ POST {locale,key,value}
                                    ▼
-        app/api/i18n-lens/mutate/route.ts ──▶ createMutationRouter ──▶ FileMutator
+        app/api/livelocale/route.ts ──▶ createMutationRouter ──▶ FileMutator
                                                                      (atomic write)
 ```
 
@@ -51,13 +51,13 @@ The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and
 
 ### 0. Enablement (`src/core/env.ts`)
 
-Every "is this on?" decision calls `getLensMode()` / `isLensEnabled()`. Modes: `development`
+Every "is this on?" decision calls `getLiveLocaleMode()` / `isLiveLocaleEnabled()`. Modes: `development`
 (`NODE_ENV === 'development'`, subject to the kill switch and the deployed-platform guard unless
-`I18N_LENS=force`), `preview` (explicit `I18N_LENS=preview` or `NEXT_PUBLIC_I18N_LENS=preview`,
+`LIVELOCALE=force`), `preview` (explicit `LIVELOCALE=preview` or `NEXT_PUBLIC_LIVELOCALE=preview`,
 works in production builds, skips the platform guard), and `off`. The kill switch always wins.
-`process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_I18N_LENS` are referenced literally so bundlers
-can inline them; in the browser `window.__I18N_LENS_FLAG__` is a bundler-agnostic fallback that
-the Vite plugin injects from the server's `I18N_LENS`.
+`process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_LIVELOCALE` are referenced literally so bundlers
+can inline them; in the browser `window.__LIVELOCALE_FLAG__` is a bundler-agnostic fallback that
+the Vite plugin injects from the server's `LIVELOCALE`.
 
 ### 1. Watermark codec (`src/client/watermark.ts`)
 
@@ -109,7 +109,7 @@ The single implementation of the API. Both the Next.js handler and the Vite midd
 adapters that translate their request shape into `RouterRequest` and back. Rules live here:
 
 - development-only (403 otherwise),
-- POST origin must be localhost, in `allowedOrigins`, or in `I18N_LENS_ALLOWED_ORIGINS`,
+- POST origin must be localhost, in `allowedOrigins`, or in `LIVELOCALE_ALLOWED_ORIGINS`,
 - POST content-type must be JSON,
 - locale, key, and value are validated by `src/core/validate.ts`,
 - the value must keep the reference's placeholders and parse as ICU (422 otherwise, bypass with
@@ -133,12 +133,12 @@ that GitHub answers with `422` when allowed and `403` when not, so nothing is cr
 `?action=info` tells the Studio the mode, whether a token is required, whether git actions exist,
 and the gateway's access `problems` (a passing check is cached; a failing one re-runs).
 
-When `authToken` is set (or `I18N_LENS_TOKEN`), every non-preflight request must carry
+When `authToken` is set (or `LIVELOCALE_TOKEN`), every non-preflight request must carry
 `Authorization: Bearer <token>`; preview mode refuses to serve without one.
 
 ### 5. Next.js handler (`src/server/next-handler.ts`)
 
-`createI18nLensHandler` returns one function usable with both router styles. It detects the Pages
+`createLiveLocaleHandler` returns one function usable with both router styles. It detects the Pages
 Router `(req, res)` signature by the presence of `res.setHeader` and otherwise treats the first
 argument as a Web `Request`. Body reading for Node requests is shared with the Vite plugin through
 `src/server/node-body.ts`.
@@ -163,7 +163,7 @@ incremental (per-file mtime and size cache), honour the root `.gitignore` throug
 Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
 watermarks never leave the page. `IframeBridge` validates origins both ways. `index.ts`
 auto-initializes only when running inside an iframe in development and reads the Studio origin
-from the `i18n-lens-origin` query parameter. `APPLY_PREVIEW` swaps the visible text after the
+from the `livelocale-origin` query parameter. `APPLY_PREVIEW` swaps the visible text after the
 watermark and remembers the original; `CLEAR_SELECTION` restores it; `COMMIT_PREVIEW` applies a
 saved value and forgets the original so it stays. Re-applying an unchanged value is a no-op, so
 the Studio can resend saved values without triggering mutation loops.
@@ -179,7 +179,7 @@ announces 401s on `window` so the token modal can appear.
 Undo is implemented in the composer: it re-saves the previous value through the normal mutation
 path and removes the history entry, so disk, cache, and git status stay consistent. The app origin is resolved
 at start-up by `src/studio/config.ts` from `?app=`, then the CLI-injected
-`window.__I18N_LENS_CONFIG__`, then build-time `VITE_APP_ORIGIN`, then `http://localhost:3000`.
+`window.__LIVELOCALE_CONFIG__`, then build-time `VITE_APP_ORIGIN`, then `http://localhost:3000`.
 In preview mode a deployment keeps serving the text it was built with, so `useStudio` resends the
 session's saved values (`COMMIT_PREVIEW`, newest wins per key) whenever the page reloads,
 navigates, or its visible keys change. Setup problems from `?action=info` render in

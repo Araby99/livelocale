@@ -1,14 +1,14 @@
-# Contributing to next-i18n-lens
+# Contributing to livelocale
 
-Thank you for your interest in contributing to `next-i18n-lens`! This guide will help you get started with running and developing the project locally.
+Thank you for your interest in contributing to `livelocale`! This guide will help you get started with running and developing the project locally.
 
 ## Development Setup
 
 1. **Clone the repository**:
 
    ```bash
-   git clone https://github.com/Araby99/next-i18n-lens.git
-   cd next-i18n-lens
+   git clone https://github.com/Araby99/livelocale.git
+   cd livelocale
    ```
 
 2. **Install dependencies**:

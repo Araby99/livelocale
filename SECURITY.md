@@ -2,7 +2,7 @@
 
 ## Scope
 
-`next-i18n-lens` is a **development-only** tool. Every server entry point refuses to run unless
+`livelocale` is a **development-only** tool. Every server entry point refuses to run unless
 `NODE_ENV=development`, and the client watermarking is bypassed in any other mode. The mutation
 API writes to your local locale JSON files, so the threat model is:
 
@@ -16,8 +16,8 @@ and Vite plugin.
 
 ### Preview mode
 
-`I18N_LENS=preview` exposes the mutation API from a deployed preview. In that mode the API
-refuses to start without `I18N_LENS_TOKEN`, requires `Authorization: Bearer <token>` on every
+`LIVELOCALE=preview` exposes the mutation API from a deployed preview. In that mode the API
+refuses to start without `LIVELOCALE_TOKEN`, requires `Authorization: Bearer <token>` on every
 request, still enforces the origin allow-list on writes, and never touches the server's
 filesystem: all writes go to a GitHub branch through a token you scope to that repository
 (`contents: write`, `pull_requests: write`). Use a long random access token, serve over HTTPS,
@@ -44,5 +44,5 @@ maintainer will reply with one.
 
 - Never set `NODE_ENV=development` on a shared or publicly reachable server.
 - Keep `localesPath` pointed at a directory that contains only translation files.
-- Restrict origins explicitly with `allowedOrigins` in `createI18nLensHandler` or the
-  `I18N_LENS_ALLOWED_ORIGINS` environment variable when the Studio is not on localhost.
+- Restrict origins explicitly with `allowedOrigins` in `createLiveLocaleHandler` or the
+  `LIVELOCALE_ALLOWED_ORIGINS` environment variable when the Studio is not on localhost.

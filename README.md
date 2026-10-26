@@ -1,14 +1,14 @@
-# 🔍 next-i18n-lens
+# LiveLocale
 
 <div align="center">
-  <p><strong>Click, Edit, and Translate. Locally.</strong></p>
-  <p>A local-first, zero-dependency visual translation studio for Next.js (App Router) and React.</p>
+  <p><strong>Click any text in your app. Fix the translation. Ship it as a pull request.</strong></p>
+  <p>Keep next-intl or react-i18next. LiveLocale adds in-context editing for Next.js and React + Vite: no account, no server, no browser extension. Your translations stay as JSON in git.</p>
   
   <p align="center">
-    <a href="https://github.com/Araby99/next-i18n-lens/actions/workflows/ci.yml"><img src="https://github.com/Araby99/next-i18n-lens/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
-    <a href="https://www.npmjs.com/package/next-i18n-lens"><img src="https://img.shields.io/npm/v/next-i18n-lens.svg?style=flat-square" alt="NPM Version" /></a>
-    <a href="https://www.npmjs.com/package/next-i18n-lens"><img src="https://img.shields.io/npm/dm/next-i18n-lens.svg?style=flat-square" alt="NPM Downloads" /></a>
-    <a href="https://github.com/Araby99/next-i18n-lens/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/next-i18n-lens.svg?style=flat-square" alt="License" /></a>
+    <a href="https://github.com/Araby99/livelocale/actions/workflows/ci.yml"><img src="https://github.com/Araby99/livelocale/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
+    <a href="https://www.npmjs.com/package/livelocale"><img src="https://img.shields.io/npm/v/livelocale.svg?style=flat-square" alt="NPM Version" /></a>
+    <a href="https://www.npmjs.com/package/livelocale"><img src="https://img.shields.io/npm/dm/livelocale.svg?style=flat-square" alt="NPM Downloads" /></a>
+    <a href="https://github.com/Araby99/livelocale/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/livelocale.svg?style=flat-square" alt="License" /></a>
   </p>
 </div>
 
@@ -16,7 +16,7 @@
 
 ## 💡 How It Works: Zero-Width Unicode Watermarking
 
-`next-i18n-lens` bridges your running application UI with your local JSON translation files using **Zero-Width Unicode Watermarking**.
+`livelocale` bridges your running application UI with your local JSON translation files using **Zero-Width Unicode Watermarking**.
 
 1. **Watermark Encoding:** In development, when a translation key is looked up, the library prepends an invisible Unicode watermark (using combinations of `\u200D` (ZWJ), `\u200B` (ZWS), and `\u200C` (ZWNJ)) to the text.
 2. **DOM Scanning:** A lightweight dev-only browser listener scans the active DOM, decodes the watermarks, and dynamically hooks visual highlights onto translated elements.
@@ -40,9 +40,9 @@
 - 🧩 **Placeholder safety:** Saves that drop or invent a `{placeholder}`, `{{interpolation}}`, `%s`, or `<tag>` are held back with a clear warning, and broken ICU plural/select syntax is rejected, unless you choose Save anyway.
 - 🌍 **Preview mode for non-developers:** Run a token-protected Studio against a preview deployment; every save becomes a commit on a GitHub branch and one click opens the pull request.
 - 🧾 **Review, commit, undo:** The Studio's Changes panel shows git status and a diff of your locale files, commits them with a message, discards them, and undoes any edit from the session.
-- 🩺 **Doctor:** `npx next-i18n-lens doctor` finds the usual integration mistakes before you open the Studio.
-- ✅ **Translation check for CI:** `npx next-i18n-lens check` fails the build on missing keys, placeholder drift between locales, and broken ICU syntax, and lists keys nothing uses.
-- 🛑 **Safety switches:** `I18N_LENS=off` kill switch, and automatic shut-off on hosting platforms so a staging build can never leak watermarks.
+- 🩺 **Doctor:** `npx livelocale doctor` finds the usual integration mistakes before you open the Studio.
+- ✅ **Translation check for CI:** `npx livelocale check` fails the build on missing keys, placeholder drift between locales, and broken ICU syntax, and lists keys nothing uses.
+- 🛑 **Safety switches:** `LIVELOCALE=off` kill switch, and automatic shut-off on hosting platforms so a staging build can never leak watermarks.
 - 🧭 **App Router and Pages Router:** One handler works with both `route.ts` and `pages/api` signatures.
 - 🌐 **Works beyond localhost:3000:** Point the Studio at any port or hostname with `--app` or `?app=`, and allow Codespaces or custom origins with one env var.
 
@@ -53,24 +53,24 @@
 ### 1. Install Dependency
 
 ```bash
-npm install next-i18n-lens
+npm install livelocale
 ```
 
 ---
 
 ### 2. Add the Client Listener
 
-Mount the `I18nLensProvider` inside your root layout. This launches the dev-mode DOM scanners and intercepts clipboard copy/paste actions.
+Mount the `LiveLocaleProvider` inside your root layout. This launches the dev-mode DOM scanners and intercepts clipboard copy/paste actions.
 
 ```tsx
 // app/layout.tsx
-import { I18nLensProvider } from 'next-i18n-lens/react';
+import { LiveLocaleProvider } from 'livelocale/react';
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <I18nLensProvider />
+        <LiveLocaleProvider />
         {children}
       </body>
     </html>
@@ -85,19 +85,19 @@ export default function RootLayout({ children }) {
 Initialize the server-side API endpoints automatically by running:
 
 ```bash
-npx next-i18n-lens init
+npx livelocale init
 ```
 
-_The CLI will check for TypeScript/JavaScript and write the appropriate mutation file (`/app/api/i18n-lens/mutate/route.ts` or `/pages/api/i18n-lens/mutate.ts`) directly into your project._
+_The CLI will check for TypeScript/JavaScript and write the appropriate mutation file (`/app/api/livelocale/route.ts` or `/pages/api/livelocale.ts`) directly into your project._
 
 > [!NOTE]
-> For manual setup, create `app/api/i18n-lens/mutate/route.ts` with:
+> For manual setup, create `app/api/livelocale/route.ts` with:
 >
 > ```typescript
-> import { createI18nLensHandler } from 'next-i18n-lens/server';
+> import { createLiveLocaleHandler } from 'livelocale/server';
 > import * as path from 'path';
 >
-> const handler = createI18nLensHandler({
+> const handler = createLiveLocaleHandler({
 >   localesPath: path.resolve('./locales'),
 > });
 >
@@ -106,14 +106,14 @@ _The CLI will check for TypeScript/JavaScript and write the appropriate mutation
 > export const OPTIONS = handler;
 > ```
 >
-> For the **Pages Router**, create `pages/api/i18n-lens/mutate.ts` instead and default-export the
+> For the **Pages Router**, create `pages/api/livelocale.ts` instead and default-export the
 > same handler. It accepts the `(req, res)` signature automatically:
 >
 > ```typescript
-> import { createI18nLensHandler } from 'next-i18n-lens/server';
+> import { createLiveLocaleHandler } from 'livelocale/server';
 > import * as path from 'path';
 >
-> export default createI18nLensHandler({ localesPath: path.resolve('./locales') });
+> export default createLiveLocaleHandler({ localesPath: path.resolve('./locales') });
 > ```
 
 ---
@@ -127,7 +127,7 @@ Wrap translation lookups to inject dev-only watermarks.
 Use `createTranslations` to load flat JSON files or directory-based namespaces:
 
 ```tsx
-import { createTranslations } from 'next-i18n-lens/server';
+import { createTranslations } from 'livelocale/server';
 
 export default async function Page({ searchParams }) {
   const { locale = 'en' } = await searchParams;
@@ -147,7 +147,7 @@ Wrap hook return values with `wrapTranslationEngine`:
 ```tsx
 'use client';
 import { useTranslation } from 'react-i18next';
-import { wrapTranslationEngine } from 'next-i18n-lens/client';
+import { wrapTranslationEngine } from 'livelocale/client';
 
 export default function Page() {
   const { t: rawT } = useTranslation('auth');
@@ -164,7 +164,7 @@ export default function Page() {
 Boot the editing studio next to your local development server:
 
 ```bash
-npx next-i18n-lens studio --port 3010 --app http://localhost:3000
+npx livelocale studio --port 3010 --app http://localhost:3000
 ```
 
 Open `http://localhost:3010` to view the Studio, loaded with your app. `--app` defaults to
@@ -176,7 +176,7 @@ Open `http://localhost:3010` to view the Studio, loaded with your app. `--app` d
 ### 6. Check your setup
 
 ```bash
-npx next-i18n-lens doctor --app http://localhost:3000
+npx livelocale doctor --app http://localhost:3000
 ```
 
 The doctor verifies the route handler, the provider mount, middleware matchers, frame-blocking
@@ -192,7 +192,7 @@ it can also run in CI.
 Generates API route handlers based on your router structure (App vs Pages Router) and configuration language (TypeScript vs JavaScript).
 
 ```bash
-npx next-i18n-lens init [--dir <path>]
+npx livelocale init [--dir <path>]
 ```
 
 ### `studio`
@@ -200,7 +200,7 @@ npx next-i18n-lens init [--dir <path>]
 Spins up a lightweight, CORS-enabled HTTP server serving the Visual Studio assets statically.
 
 ```bash
-npx next-i18n-lens studio [--port <number>] [--app <origin>]
+npx livelocale studio [--port <number>] [--app <origin>]
 ```
 
 - `--port` — port for the Studio itself (default `3010`).
@@ -212,12 +212,12 @@ Inspects the project for the integration problems the Studio cannot recover from
 probes the running app.
 
 ```bash
-npx next-i18n-lens doctor [--dir <path>] [--locales <path>] [--app <origin>] [--token <token>]
+npx livelocale doctor [--dir <path>] [--locales <path>] [--app <origin>] [--token <token>]
 ```
 
 - `--locales` — locales directory relative to the project (default `locales`).
 - `--app` — also check that the mutation API answers and that pages are embeddable.
-- `--token` — access token for a preview deployment (defaults to `I18N_LENS_TOKEN`); with it the
+- `--token` — access token for a preview deployment (defaults to `LIVELOCALE_TOKEN`); with it the
   doctor also reports the server mode and repository access problems.
 
 ### `check`
@@ -225,7 +225,7 @@ npx next-i18n-lens doctor [--dir <path>] [--locales <path>] [--app <origin>] [--
 A read-only consistency check of your translations, built for CI. It runs in any `NODE_ENV`.
 
 ```bash
-npx next-i18n-lens check [--dir <path>] [--locales <path>] [--source <locale>] [--no-unused] [--strict] [--json]
+npx livelocale check [--dir <path>] [--locales <path>] [--source <locale>] [--no-unused] [--strict] [--json]
 ```
 
 | Finding                                                                         | Level   |
@@ -251,7 +251,7 @@ English's two are not reported.
 
 ```yaml
 # .github/workflows/i18n.yml
-- run: npx next-i18n-lens check
+- run: npx livelocale check
 ```
 
 ### `migrate`
@@ -259,7 +259,7 @@ English's two are not reported.
 Performs static analysis to scan and automatically wrap existing `react-i18next` hooks with `wrapTranslationEngine`.
 
 ```bash
-npx next-i18n-lens migrate [--dir <path>] [--exclude <dirs>] [--dry-run]
+npx livelocale migrate [--dir <path>] [--exclude <dirs>] [--dry-run]
 ```
 
 `migrate` needs the `typescript` package to parse your source. It is an optional dependency so
@@ -274,12 +274,12 @@ If you are using a standard React Client-Side SPA (like Vite), you don't have Ne
 ```typescript
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import { i18nLensVite } from 'next-i18n-lens/vite';
+import { liveLocaleVite } from 'livelocale/vite';
 
 export default defineConfig({
   plugins: [
     react(),
-    i18nLensVite({
+    liveLocaleVite({
       localesPath: './locales', // path to your locales directory
     }),
   ],
@@ -306,7 +306,7 @@ Git integration needs the `git` command on PATH and the locales directory inside
 is on by default and can be turned off per handler:
 
 ```typescript
-createI18nLensHandler({ localesPath: path.resolve('./locales'), git: false });
+createLiveLocaleHandler({ localesPath: path.resolve('./locales'), git: false });
 ```
 
 Rewrites keep your files diff-friendly: the existing indentation unit (tabs, 2 or 4 spaces) and
@@ -364,10 +364,10 @@ and a pull request instead of a local file. Nothing is written to the server's f
 ### Server setup
 
 ```typescript
-// app/api/i18n-lens/mutate/route.ts
-import { createI18nLensHandler } from 'next-i18n-lens/server';
+// app/api/livelocale/route.ts
+import { createLiveLocaleHandler } from 'livelocale/server';
 
-const handler = createI18nLensHandler({
+const handler = createLiveLocaleHandler({
   localesPath: 'locales', // repository-relative in GitHub mode
   allowedOrigins: ['https://i18n-studio.example.com'], // where the Studio is served from
   github: {
@@ -386,9 +386,9 @@ export const OPTIONS = handler;
 Environment on the preview deployment:
 
 ```bash
-I18N_LENS=preview                 # server: watermark and serve the API in a production build
-NEXT_PUBLIC_I18N_LENS=preview     # client bundle: run the scanner and clipboard guards
-I18N_LENS_TOKEN=<long random>     # required; the Studio asks for it once per browser session
+LIVELOCALE=preview                 # server: watermark and serve the API in a production build
+NEXT_PUBLIC_LIVELOCALE=preview     # client bundle: run the scanner and clipboard guards
+LIVELOCALE_TOKEN=<long random>     # required; the Studio asks for it once per browser session
 GITHUB_TOKEN=<fine-grained PAT>   # Contents and Pull requests: "Read and write" on the repository
 ```
 
@@ -396,8 +396,10 @@ The app must also let the Studio embed it. Next.js evaluates `headers()` in `nex
 **build** time, so a `frame-ancestors` value that lists the Studio origin has to be present when the
 preview is built, not only at run time.
 
-For a Vite app, the Vite plugin mirrors the server's `I18N_LENS` flag into the page, so
-`I18N_LENS=preview` alone is enough; no `NEXT_PUBLIC_` variable is needed there.
+For a Vite app, the Vite plugin mirrors the server's `LIVELOCALE` flag into the page, so
+`LIVELOCALE=preview` alone is enough; no `NEXT_PUBLIC_` variable is needed there. The plugin runs
+on the Vite dev server only: a static `vite build` served by Apache, Nginx or a CDN has no server for
+the Studio to save through, so preview mode does not work there yet.
 
 Then open the Studio with `?app=https://<preview-url>` (or `studio --app`). It shows a
 **PREVIEW** badge, asks for the access token, and the Changes panel switches to branch and
@@ -407,7 +409,7 @@ Locale Directory lists keys from the locale files only.
 Check a preview deployment before handing it to anyone:
 
 ```bash
-npx next-i18n-lens doctor --app https://<preview-url> --token <I18N_LENS_TOKEN>
+npx livelocale doctor --app https://<preview-url> --token <LIVELOCALE_TOKEN>
 ```
 
 The server verifies its GitHub token when the Studio connects: a token that cannot write contents
@@ -434,20 +436,20 @@ Behaviour worth knowing:
 
 - It never writes to the deployment's filesystem; the GitHub branch is the only store.
 - It does not replace authentication for the app itself. The token only guards the mutation API.
-- It is not a production feature. Do not set `I18N_LENS=preview` on a production deployment.
+- It is not a production feature. Do not set `LIVELOCALE=preview` on a production deployment.
 
 ## 🛑 Safety switches
 
 Everything runs only when `NODE_ENV=development`, or when preview mode is switched on explicitly.
 Two more guards exist for teams:
 
-- **Kill switch.** `I18N_LENS=off` disables watermarking, the mutation API, and the client scanner.
-  Client bundles read `NEXT_PUBLIC_I18N_LENS=off` instead, because Next.js only inlines public
+- **Kill switch.** `LIVELOCALE=off` disables watermarking, the mutation API, and the client scanner.
+  Client bundles read `NEXT_PUBLIC_LIVELOCALE=off` instead, because Next.js only inlines public
   variables.
 - **Deployed-platform guard.** If the server detects Vercel (preview or production), Netlify,
   Kubernetes, Render, Fly.io, Railway, or Heroku while `NODE_ENV` is still `development`, the tool
   switches itself off and logs one warning. Local `vercel dev` and `netlify dev` are unaffected.
-  Set `I18N_LENS=force` to override on purpose.
+  Set `LIVELOCALE=force` to override on purpose.
 
 ## 🪄 When the watermark bites
 
@@ -459,11 +461,11 @@ but anything that treats the string as data will:
 | `t('yes') === 'Yes'` is false                                               | equality on a watermarked string                   | `unwrap(t('yes')) === 'Yes'`                                  |
 | `maxLength` or `.length` checks are off by a few                            | invisible prefix counts as characters              | `unwrap(value).length`                                        |
 | `<title>`, `aria-label`, `alt`, `placeholder` show odd spacing in dev tools | attributes do not strip the prefix                 | pass `unwrap(...)` to attributes, or leave it: it is dev-only |
-| Screenshot or snapshot tests differ between dev and prod                    | watermarks only exist in development               | run those tests with `I18N_LENS=off`                          |
+| Screenshot or snapshot tests differ between dev and prod                    | watermarks only exist in development               | run those tests with `LIVELOCALE=off`                         |
 | A value saved from a form contains zero-width characters                    | input sanitizers were bypassed (custom components) | call `sanitizeZeroWidth` before submitting                    |
 
-`unwrap` and `sanitizeZeroWidth` are exported from both `next-i18n-lens/client` and
-`next-i18n-lens/server`. `unwrap` is deep: it cleans strings inside arrays and objects and never
+`unwrap` and `sanitizeZeroWidth` are exported from both `livelocale/client` and
+`livelocale/server`. `unwrap` is deep: it cleans strings inside arrays and objects and never
 mutates its input.
 
 ## 🏢 Running in team and enterprise setups
@@ -476,24 +478,24 @@ open the Studio with `?app=<origin>`.
 
 **Studio not on localhost (GitHub Codespaces, Gitpod, a shared dev box).** The mutation API only
 accepts writes from localhost origins unless told otherwise. Either pass `allowedOrigins` to
-`createI18nLensHandler`, or set an environment variable in the app's dev process:
+`createLiveLocaleHandler`, or set an environment variable in the app's dev process:
 
 ```bash
-I18N_LENS_ALLOWED_ORIGINS="https://abc-3010.app.github.dev,https://studio.dev.local"
+LIVELOCALE_ALLOWED_ORIGINS="https://abc-3010.app.github.dev,https://studio.dev.local"
 ```
 
 **Content-Security-Policy blocks the iframe.** If your app sends `frame-ancestors 'none'` or
 `X-Frame-Options: DENY` in development, the Studio cannot embed it. Relax the header only when
 `NODE_ENV === 'development'`, for example by allowing `frame-ancestors 'self' http://localhost:3010`.
 
-**Auth middleware redirects the API.** Exclude `/api/i18n-lens` from your middleware matcher so the
+**Auth middleware redirects the API.** Exclude `/api/livelocale` from your middleware matcher so the
 Studio can reach the mutation route without a session:
 
 ```typescript
-export const config = { matcher: ['/((?!api/i18n-lens).*)'] };
+export const config = { matcher: ['/((?!api/livelocale).*)'] };
 ```
 
-**Not sure which of these applies?** Run `npx next-i18n-lens doctor --app <origin>`; it names
+**Not sure which of these applies?** Run `npx livelocale doctor --app <origin>`; it names
 the exact file and header involved.
 
 **Namespaced hooks.** The key scanner reads the namespace from `useTranslations('ns')`,
@@ -506,6 +508,25 @@ point it at the package that owns the locale files, for example `path.resolve('.
 
 ---
 
+## 🔁 Migrating from next-i18n-lens
+
+LiveLocale was published as `next-i18n-lens` up to 0.7.0. Version 0.8.0 renames everything, with no
+aliases for the old names:
+
+1. `npm uninstall next-i18n-lens && npm install livelocale`, and import from `livelocale/client`,
+   `livelocale/server`, `livelocale/react` and `livelocale/vite`.
+2. `I18nLensProvider` → `LiveLocaleProvider`, `createI18nLensHandler` → `createLiveLocaleHandler`,
+   `i18nLensVite` → `liveLocaleVite`, `getLensMode` / `isLensEnabled` → `getLiveLocaleMode` /
+   `isLiveLocaleEnabled` (`ClientInitializer` is gone).
+3. Move the route file: `app/api/i18n-lens/mutate/route.ts` → `app/api/livelocale/route.ts`
+   (Pages Router: `pages/api/i18n-lens/mutate.ts` → `pages/api/livelocale.ts`), or run
+   `npx livelocale init` again.
+4. Rename environment variables: `I18N_LENS` → `LIVELOCALE`, `NEXT_PUBLIC_I18N_LENS` →
+   `NEXT_PUBLIC_LIVELOCALE`, `I18N_LENS_TOKEN` → `LIVELOCALE_TOKEN`, `I18N_LENS_ALLOWED_ORIGINS` →
+   `LIVELOCALE_ALLOWED_ORIGINS`. Old names are ignored, so a forgotten kill switch stops working:
+   check your hosting settings.
+5. The CLI is `npx livelocale` (`doctor`, `check`, `studio`, `init`, `migrate`).
+
 ## ⚖️ License
 
-MIT License. See [LICENSE](file:///e:/works/next-i18n-lens/LICENSE) for more details.
+MIT License. See [LICENSE](file:///e:/works/livelocale/LICENSE) for more details.
