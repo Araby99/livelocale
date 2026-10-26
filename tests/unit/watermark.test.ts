@@ -7,12 +7,14 @@ import {
   sanitizeZeroWidth,
   hasWatermark,
   unwrap,
+  removeWatermarks,
 } from '../../src/client/watermark.js';
 
 // ─── Constants (mirrors watermark.ts internals) ───────────────────────────
-const DELIM = '\u200D';
+// ZWNJ is non-joining, so letters on either side keep their normal Arabic forms.
+const DELIM = '\u200C';
 const BIT_0 = '\u200B';
-const BIT_1 = '\u200C';
+const BIT_1 = '\u200D';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────
 function isZeroWidthOnly(str: string): boolean {
@@ -26,7 +28,7 @@ describe('encodeKey', () => {
     // The production bypass is applied upstream by wrapTranslationEngine.
     const result = encodeKey('Hello', 'home.title');
     expect(result).not.toBe('Hello'); // encoding always fires
-    expect(result.startsWith('\u200D')).toBe(true);
+    expect(result.startsWith(DELIM)).toBe(true);
   });
 
   it('should prepend a watermark delimited by DELIM in development', () => {
@@ -88,7 +90,7 @@ describe('encodeKey', () => {
   it('should survive downstream substring from the right side', () => {
     // Simulates a truncation of the visible portion — the watermark stays intact
     const result = encodeKey('Welcome Back to Production', 'home.welcome_msg');
-    const sliced = result.substring(0, result.indexOf('\u200D', 1) + 1 + 7); // keep watermark + 7 visible chars
+    const sliced = result.substring(0, result.indexOf(DELIM, 1) + 1 + 7); // keep watermark + 7 visible chars
     // Watermark prefix should still decode correctly
     const decoded = decodeKey(sliced);
     expect(decoded?.key).toBe('home.welcome_msg');
@@ -235,5 +237,37 @@ describe('unwrap', () => {
   it('should leave legitimate zero-width characters inside the visible text alone', () => {
     const persian = 'می‌خواهم'; // contains ZWNJ
     expect(unwrap(encodeKey(persian, 'fa.key'))).toBe(persian);
+  });
+});
+
+// ─── Arabic shaping and Persian orthography ───────────────────────────────
+describe('watermarks next to Arabic-script text', () => {
+  const arabic = '\u0627\u062e\u062a\u0628\u0627\u0631'; // "اختبار"
+  const persian = '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645'; // "می‌خواهم" with a real ZWNJ
+  const thai = '\u0e01\u0e32\u200b\u0e23';
+
+  it('never puts a join-causing character (ZWJ) next to the visible text', () => {
+    const result = encodeKey(arabic, 'home.title');
+    // The character right before the first letter, and the very first character
+    // (which follows any preceding text), must both be the non-joining ZWNJ.
+    expect(result[result.length - arabic.length - 1]).toBe('\u200C');
+    expect(result[0]).toBe('\u200C');
+    expect(decodeKey(result)).toEqual({ key: 'home.title', cleanText: arabic });
+  });
+
+  it('round-trips non-ASCII keys', () => {
+    expect(decodeKey(encodeKey(arabic, 'صفحة.عنوان'))).toEqual({
+      key: 'صفحة.عنوان',
+      cleanText: arabic,
+    });
+  });
+
+  it('removeWatermarks strips every complete watermark and nothing else', () => {
+    const sentence = `${encodeKey('\u0623\u0647\u0644\u0627', 'a')} ${encodeKey('\u0628\u0643', 'b')}`;
+    expect(removeWatermarks(sentence)).toBe('\u0623\u0647\u0644\u0627 \u0628\u0643');
+    expect(removeWatermarks(persian)).toBe(persian);
+    expect(removeWatermarks(thai)).toBe(thai);
+    expect(removeWatermarks(encodeKey(persian, 'fa.key'))).toBe(persian);
+    expect(removeWatermarks('\u200C\u200C')).toBe('\u200C\u200C');
   });
 });

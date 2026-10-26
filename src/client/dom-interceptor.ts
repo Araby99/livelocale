@@ -1,4 +1,10 @@
-import { decodeKey, stripWatermark, sanitizeZeroWidth } from './watermark.js';
+import {
+  decodeKey,
+  stripWatermark,
+  removeWatermarks,
+  containsWatermark,
+  WATERMARK_DELIMITER,
+} from './watermark.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
 
 // Debounce helper: delays executing fn until after wait ms have elapsed
@@ -287,7 +293,7 @@ export class DOMInterceptor {
 
   private processTextNode(node: Text): void {
     const raw = node.nodeValue ?? '';
-    if (!raw.includes('\u200D')) return; // fast bail-out
+    if (!raw.includes(WATERMARK_DELIMITER)) return; // fast bail-out
 
     const decoded = decodeKey(raw);
     if (!decoded) return;
@@ -383,10 +389,10 @@ export class DOMInterceptor {
     Object.defineProperty(proto, 'value', {
       get() {
         const raw: string = original.get!.call(this);
-        return sanitizeZeroWidth(raw);
+        return removeWatermarks(raw);
       },
       set(val: string) {
-        const clean = typeof val === 'string' ? sanitizeZeroWidth(val) : val;
+        const clean = typeof val === 'string' ? removeWatermarks(val) : val;
         original.set!.call(this, clean);
       },
       configurable: true,
@@ -399,7 +405,7 @@ export class DOMInterceptor {
 
     const inputs = form.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('input, textarea');
     inputs.forEach((input) => {
-      const cleaned = sanitizeZeroWidth(input.value);
+      const cleaned = removeWatermarks(input.value);
       if (cleaned !== input.value) {
         // Use the original setter to set the cleaned value directly
         const proto =
@@ -532,12 +538,8 @@ export class DOMInterceptor {
 
   private handleCopy = (event: ClipboardEvent): void => {
     const selection = window.getSelection()?.toString() || '';
-    if (
-      selection.includes('\u200D') ||
-      selection.includes('\u200B') ||
-      selection.includes('\u200C')
-    ) {
-      const clean = sanitizeZeroWidth(selection);
+    if (containsWatermark(selection)) {
+      const clean = removeWatermarks(selection);
       event.clipboardData?.setData('text/plain', clean);
       event.preventDefault();
     }
@@ -545,9 +547,9 @@ export class DOMInterceptor {
 
   private handlePaste = (event: ClipboardEvent): void => {
     const text = event.clipboardData?.getData('text/plain') || '';
-    if (text.includes('\u200D') || text.includes('\u200B') || text.includes('\u200C')) {
+    if (containsWatermark(text)) {
       event.preventDefault();
-      const cleaned = sanitizeZeroWidth(text);
+      const cleaned = removeWatermarks(text);
       const targetInput = event.target as HTMLInputElement | HTMLTextAreaElement | null;
       if (targetInput && 'value' in targetInput) {
         const proto =

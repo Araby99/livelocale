@@ -294,9 +294,8 @@ describe('DOMInterceptor', () => {
     document.body.appendChild(form);
 
     // Manually inject a ZW watermarked value as if pasted
-    const zw = '\u200D\u200B\u200C\u200D';
     // Bypass the patched setter by writing to value attribute
-    formInput.setAttribute('value', `${zw}Hello`);
+    formInput.setAttribute('value', encodeKey('Hello', 'form.key'));
 
     const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
     form.dispatchEvent(submitEvent);
@@ -307,10 +306,36 @@ describe('DOMInterceptor', () => {
     expect(true).toBe(true); // submit handler should not throw
   });
 
+  it('leaves a copy of Persian text with a real ZWNJ alone', () => {
+    interceptor.init();
+    const persian = '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645';
+    vi.spyOn(window, 'getSelection').mockReturnValue({ toString: () => persian } as any);
+    const mockSetData = vi.fn();
+    const event = new Event('copy', { bubbles: true }) as any;
+    event.clipboardData = { setData: mockSetData };
+    event.preventDefault = vi.fn();
+    window.dispatchEvent(event);
+    expect(mockSetData).not.toHaveBeenCalled();
+    expect(event.preventDefault).not.toHaveBeenCalled();
+  });
+
+  it('strips only the watermark when copying watermarked Persian text', () => {
+    interceptor.init();
+    const persian = '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645';
+    vi.spyOn(window, 'getSelection').mockReturnValue({
+      toString: () => encodeKey(persian, 'fa.key'),
+    } as any);
+    const mockSetData = vi.fn();
+    const event = new Event('copy', { bubbles: true }) as any;
+    event.clipboardData = { setData: mockSetData };
+    event.preventDefault = vi.fn();
+    window.dispatchEvent(event);
+    expect(mockSetData).toHaveBeenCalledWith('text/plain', persian);
+  });
+
   it('should intercept copy event and write clean text to clipboard', () => {
     interceptor.init();
-    const zw = '\u200D\u200B\u200C\u200D';
-    const originalText = `${zw}My clean text`;
+    const originalText = encodeKey('My clean text', 'copy.key');
 
     // Spy on getSelection
     vi.spyOn(window, 'getSelection').mockReturnValue({
@@ -334,8 +359,7 @@ describe('DOMInterceptor', () => {
 
   it('should intercept paste event and update input using native setter to bypass React', () => {
     interceptor.init();
-    const zw = '\u200D\u200B\u200C\u200D';
-    const pastedText = `${zw}Pasted text`;
+    const pastedText = encodeKey('Pasted text', 'paste.key');
 
     const input = document.createElement('input');
     input.value = 'Existing ';

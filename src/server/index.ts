@@ -27,6 +27,7 @@ export {
   decodeKey,
   stripWatermark,
   sanitizeZeroWidth,
+  removeWatermarks,
   hasWatermark,
   unwrap,
 } from '../client/watermark.js';

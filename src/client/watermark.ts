@@ -5,19 +5,29 @@
  * prepends them as a binary watermark onto the translation string.
  *
  * Delimiters:
- *   \u200D – Zero-Width Joiner (ZWJ)  → boundary start/end marker
+ *   \u200C – Zero-Width Non-Joiner (ZWNJ) → boundary start/end marker
  *   \u200B – Zero-Width Space (ZWS)   → binary bit 0
- *   \u200C – Zero-Width Non-Joiner (ZWNJ) → binary bit 1
+ *   \u200D – Zero-Width Joiner (ZWJ)  → binary bit 1
+ *
+ * The delimiters touch the visible text, so they must be non-joining: a ZWJ
+ * there is "join-causing" and makes the first Arabic letter take its connected
+ * form, as if a hidden letter came before it. Bits never touch a letter.
  *
  * The watermark is strictly prepended so it survives downstream truncation
  * (e.g., text.substring()) that removes only from the right.
  */
 
-const DELIM = '\u200D'; // ZWJ – boundary delimiter
+const DELIM = '\u200C'; // ZWNJ – boundary delimiter (non-joining)
 const BIT_0 = '\u200B'; // ZWS – represents bit 0
-const BIT_1 = '\u200C'; // ZWNJ – represents bit 1
+const BIT_1 = '\u200D'; // ZWJ – represents bit 1
+
+/** First character of every watermark; a cheap pre-check before decoding. */
+export const WATERMARK_DELIMITER = DELIM;
 
 const ZW_RE = /[\u200B\u200C\u200D]/g;
+
+/** A complete watermark anywhere in a string: delimiter, whole bytes of bits, delimiter. */
+const WATERMARK_RE = /\u200C(?:[\u200B\u200D]{8})+\u200C/g;
 
 /** Encodes a translation key as an invisible watermark prefix on `text`. */
 export function encodeKey(text: string, key: string): string {
@@ -92,12 +102,29 @@ export function stripWatermark(text: string): string {
 /**
  * Aggressively removes every zero-width character from `text`.
  *
- * Use only for clipboard/form sanitization where no visible text should ever
- * contain ZW characters. Do NOT use on translation content destined for
- * locale files — prefer `stripWatermark`.
+ * This also removes ZWNJ and ZWSP that Persian, Urdu and Thai text needs, so
+ * prefer `removeWatermarks` for user-visible text and `stripWatermark` for
+ * translation content.
  */
 export function sanitizeZeroWidth(text: string): string {
   return text.replace(ZW_RE, '');
+}
+
+/**
+ * Removes every complete watermark from `text`, wherever it occurs, and keeps
+ * all other zero-width characters. Persian and Urdu use ZWNJ inside words and
+ * Thai uses ZWSP, so stripping every zero-width character would corrupt them.
+ */
+export function removeWatermarks(text: string): string {
+  return text.replace(WATERMARK_RE, '');
+}
+
+/** True when `text` contains at least one complete watermark. */
+export function containsWatermark(text: string): boolean {
+  WATERMARK_RE.lastIndex = 0;
+  const found = WATERMARK_RE.test(text);
+  WATERMARK_RE.lastIndex = 0;
+  return found;
 }
 
 /**
