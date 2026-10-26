@@ -1,14 +1,24 @@
 // @vitest-environment node
-import { describe, it, expect } from 'vitest';
+import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
+  CHANGE_LINK_FILE_THRESHOLD,
+  CHANGE_LINK_PREFIX,
   ChangeLinkError,
+  type ChangeSet,
   type ChangeWire,
+  decodeChangeLink,
+  encodeChangeLink,
   fencedChangeBlock,
   findChangeToken,
   fromBase64Url,
   isValidBranchName,
   isValidRepoSlug,
+  MAX_CHANGE_EDITS,
+  MAX_INFLATED_BYTES,
+  MAX_TOKEN_CHARS,
   parseChangeSet,
+  streamDeflate,
+  streamInflate,
   toBase64Url,
   toWire,
 } from '../../src/core/change-link.js';
@@ -239,4 +249,190 @@ describe('change-set schema', () => {
     'rejects branch name %j',
     (b) => expect(isValidBranchName(b)).toBe(false)
   );
+});
+
+describe('encode/decode', () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const set: ChangeSet = {
+    branch: 'main',
+    base: 'a'.repeat(40),
+    src: 'en',
+    by: 'منى',
+    note: 'Checked on mobile.\nThanks!',
+    edits: [
+      { locale: 'ar', key: 'home.title', from: 'الرئيسية', to: 'الصفحة الرئيسية', force: false },
+      { locale: 'fa', key: 'cta', from: null, to: 'می‌خواهم', force: true }, // ZWNJ survives
+      { locale: 'fr', key: 'accent', from: 'é', to: 'é 😀', force: false },
+    ],
+  }; // NFD and astral kept as-is
+
+  it('round-trips exactly', async () =>
+    expect(await decodeChangeLink(await encodeChangeLink(set))).toEqual(set));
+
+  it('emits lc1 + base64url of a zlib stream', async () => {
+    const t = await encodeChangeLink(set);
+    expect(t).toMatch(/^lc1\.[A-Za-z0-9_-]+$/);
+    expect(fromBase64Url(t.slice(4))[0]).toBe(0x78);
+  });
+
+  it('carries no repo field unless given', async () => {
+    const t = await encodeChangeLink(set);
+    const wire = JSON.parse(
+      new TextDecoder().decode(await streamInflate(fromBase64Url(t.slice(4)), MAX_INFLATED_BYTES))
+    );
+    expect(wire).not.toHaveProperty('repo');
+    expect(wire.v).toBe(1);
+    expect(
+      (await decodeChangeLink(await encodeChangeLink({ ...set, repo: 'acme/shop' }))).repo
+    ).toBe('acme/shop');
+  });
+
+  it('keeps 20 Arabic edits under 1,900 characters', async () => {
+    const edits = Array.from({ length: 20 }, (_, i) => ({
+      locale: 'ar',
+      key: `shop.product${i}.title`,
+      from: `منتج رقم ${i} في المتجر`,
+      to: `المنتج رقم ${i} متوفر الآن في متجرنا`,
+      force: false,
+    }));
+    expect((await encodeChangeLink({ ...set, edits })).length).toBeLessThan(1_900);
+  });
+
+  it('decodes from a full Studio link', async () =>
+    expect(
+      await decodeChangeLink(
+        `https://www.acme.com/livelocale/index.html#${await encodeChangeLink(set)}`
+      )
+    ).toEqual(set));
+
+  it('fails loudly on a truncated link', async () => {
+    const t = await encodeChangeLink(set);
+    for (const cut of [1, 2, 3, 5, 10])
+      await expect(decodeChangeLink(t.slice(0, -cut))).rejects.toMatchObject({ code: 'CORRUPT' });
+  });
+
+  it('fails loudly on a link hard-wrapped by a mail client', async () => {
+    // Review Focus 2
+    const t = await encodeChangeLink(set);
+    for (const mangled of [
+      `${t.slice(0, 40)}\n${t.slice(40)}`,
+      `${t.slice(0, 40)}=\n${t.slice(40)}`,
+      `${t.slice(0, 40)}\r\n  ${t.slice(40)}`,
+    ])
+      await expect(decodeChangeLink(`Here are my fixes: ${mangled}`)).rejects.toMatchObject({
+        code: 'CORRUPT',
+      });
+  });
+
+  it('fails loudly on an altered link', async () => {
+    const t = await encodeChangeLink(set);
+    const i = Math.floor(t.length / 2);
+    await expect(
+      decodeChangeLink(t.slice(0, i) + (t[i] === 'A' ? 'B' : 'A') + t.slice(i + 1))
+    ).rejects.toMatchObject({ code: 'CORRUPT' });
+  });
+
+  it('refuses more than 500 edits on encode', async () =>
+    await expect(
+      encodeChangeLink({
+        ...set,
+        edits: Array.from({ length: 501 }, (_, i) => ({
+          locale: 'ar',
+          key: `k${i}`,
+          from: null,
+          to: 'x',
+          force: false,
+        })),
+      })
+    ).rejects.toMatchObject({ code: 'TOO_MANY_EDITS' }));
+
+  it('refuses a payload over 512 KB on encode', async () =>
+    await expect(
+      encodeChangeLink({
+        ...set,
+        edits: Array.from({ length: 40 }, (_, i) => ({
+          locale: 'ar',
+          key: `k${i}`,
+          from: null,
+          to: 'ب'.repeat(9_000),
+          force: false,
+        })),
+      })
+    ).rejects.toMatchObject({ code: 'TOO_LARGE' }));
+
+  it('round-trips a payload just under the cap', async () => {
+    const L = 'ابتثجحخدذرزسشصضطظعغفقكلمنهوي';
+    let s = 1;
+    const rnd = () => L[(s = (s * 1103515245 + 12345) % 2 ** 31) % L.length];
+    const edits = Array.from({ length: 27 }, (_, i) => ({
+      locale: 'ar',
+      key: `k${i}`,
+      from: null,
+      to: Array.from({ length: 9_000 }, rnd).join(''),
+      force: false,
+    }));
+    expect(await decodeChangeLink(await encodeChangeLink({ ...set, edits }))).toEqual({
+      ...set,
+      edits,
+    });
+  });
+
+  it('refuses a decompression bomb', async () =>
+    await expect(
+      decodeChangeLink(
+        'lc1.' + toBase64Url(await streamDeflate(new Uint8Array(600 * 1024).fill(0x20)))
+      )
+    ).rejects.toMatchObject({ code: 'TOO_LARGE' }));
+
+  it('refuses an over-long token before inflating', async () => {
+    const inflate = vi.fn();
+    await expect(
+      decodeChangeLink('lc1.' + 'A'.repeat(MAX_TOKEN_CHARS), inflate)
+    ).rejects.toMatchObject({ code: 'TOO_LARGE' });
+    expect(inflate).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['not JSON', new TextEncoder().encode('hello')],
+    ['invalid UTF-8', new Uint8Array([0xff, 0xfe])],
+  ])(
+    'rejects %s as CORRUPT',
+    async (_, bytes) =>
+      await expect(
+        decodeChangeLink('lc1.' + toBase64Url(await streamDeflate(bytes)))
+      ).rejects.toMatchObject({ code: 'CORRUPT' })
+  );
+
+  it('rejects valid JSON of the wrong shape as INVALID', async () =>
+    await expect(
+      decodeChangeLink(
+        'lc1.' + toBase64Url(await streamDeflate(new TextEncoder().encode('{"v":1}')))
+      )
+    ).rejects.toMatchObject({ code: 'INVALID' }));
+
+  it('passes the 512 KB cap to an injected inflater', async () => {
+    const inflate = vi.fn(streamInflate);
+    await decodeChangeLink(await encodeChangeLink(set), inflate);
+    expect(inflate).toHaveBeenCalledWith(expect.any(Uint8Array), 524_288);
+  });
+
+  it('reports a browser without CompressionStream', async () => {
+    vi.stubGlobal('CompressionStream', undefined);
+    await expect(encodeChangeLink(set)).rejects.toMatchObject({ code: 'UNSUPPORTED_ENVIRONMENT' });
+  });
+
+  it('reports a browser without DecompressionStream', async () => {
+    const t = await encodeChangeLink(set);
+    vi.stubGlobal('DecompressionStream', undefined);
+    await expect(decodeChangeLink(t)).rejects.toMatchObject({ code: 'UNSUPPORTED_ENVIRONMENT' });
+  });
+
+  it('pins the spec limits', () =>
+    expect([
+      CHANGE_LINK_PREFIX,
+      MAX_CHANGE_EDITS,
+      MAX_INFLATED_BYTES,
+      CHANGE_LINK_FILE_THRESHOLD,
+    ]).toEqual(['lc1.', 500, 524_288, 6_000]));
 });

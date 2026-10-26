@@ -1,8 +1,8 @@
 /**
- * Text layer of the `lc1.` change link: the error type every codec step
- * throws, base64url, finding a token in pasted text, the fenced block GitHub
- * issues carry, the repository slug and branch name rules, and the change-set
- * schema with its caps.
+ * The `lc1.` change link: the error type every codec step throws, base64url,
+ * finding a token in pasted text, the fenced block GitHub issues carry, the
+ * repository slug and branch name rules, the change-set schema with its caps,
+ * and encoding and decoding through Web Streams deflate.
  *
  * Browser-safe, as tests/unit/core-browser-safe.test.ts checks.
  */
@@ -353,4 +353,139 @@ export function parseChangeSet(value: unknown): ChangeSet {
   });
 
   return { ...(repo === undefined ? {} : { repo }), branch, base, src, by, note, edits };
+}
+
+/** At most this many bytes of JSON after inflation, on encode and on decode. */
+export const MAX_INFLATED_BYTES = 512 * 1024;
+
+/** A longer token is refused before any base64 or inflate work. */
+export const MAX_TOKEN_CHARS = 1_000_000;
+
+/** Above this many link characters, Send offers a file instead of a link. */
+export const CHANGE_LINK_FILE_THRESHOLD = 6_000;
+
+/** Compresses to the zlib format (RFC 1950). */
+export type Deflater = (bytes: Uint8Array) => Promise<Uint8Array>;
+
+/**
+ * Inflates the zlib format (RFC 1950). Throws `TOO_LARGE` once the output
+ * passes `maxOutputLength`, and `CORRUPT` on bad or truncated data.
+ */
+export type Inflater = (bytes: Uint8Array, maxOutputLength: number) => Promise<Uint8Array>;
+
+const TOO_LARGE_MESSAGE = `A change link holds at most ${MAX_INFLATED_BYTES / 1024} KB of text. Send the changes in smaller links.`;
+
+const UNSUPPORTED_ENVIRONMENT_MESSAGE =
+  'This browser cannot create or read change links. Use a current Chrome, Edge or Firefox, or Safari 16.4 or later.';
+
+/**
+ * Feeds `bytes` through a compression or decompression stream and collects
+ * the output, throwing `TOO_LARGE` as soon as it passes `maxOutputLength`.
+ * A failed read rejects with the stream's own error.
+ */
+async function pipeBytes(
+  stream: CompressionStream | DecompressionStream,
+  bytes: Uint8Array,
+  maxOutputLength: number
+): Promise<Uint8Array> {
+  // Not awaited: a transform stream takes more input only once its output is
+  // read. These promises reject when the stream errors or is cancelled, which
+  // the reads below report, so they are silenced here.
+  const writer = stream.writable.getWriter();
+  writer.write(new Uint8Array(bytes)).catch(() => {});
+  writer.close().catch(() => {});
+
+  const reader = stream.readable.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    total += value.length;
+    if (total > maxOutputLength) {
+      await reader.cancel().catch(() => {});
+      throw new ChangeLinkError('TOO_LARGE', TOO_LARGE_MESSAGE);
+    }
+    chunks.push(value);
+  }
+
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    out.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return out;
+}
+
+/** Deflates with `CompressionStream('deflate')`. */
+export const streamDeflate: Deflater = async (bytes) => {
+  if (typeof globalThis.CompressionStream !== 'function') {
+    throw new ChangeLinkError('UNSUPPORTED_ENVIRONMENT', UNSUPPORTED_ENVIRONMENT_MESSAGE);
+  }
+  return pipeBytes(new CompressionStream('deflate'), bytes, Infinity);
+};
+
+/**
+ * Inflates with `DecompressionStream('deflate')`. Trailing data after the
+ * zlib stream is rejected only where the runtime rejects it (browsers, Node
+ * 24); `nodeInflate` checks it everywhere.
+ */
+export const streamInflate: Inflater = async (bytes, maxOutputLength) => {
+  if (typeof globalThis.DecompressionStream !== 'function') {
+    throw new ChangeLinkError('UNSUPPORTED_ENVIRONMENT', UNSUPPORTED_ENVIRONMENT_MESSAGE);
+  }
+  try {
+    return await pipeBytes(new DecompressionStream('deflate'), bytes, maxOutputLength);
+  } catch (err) {
+    if (err instanceof ChangeLinkError) throw err;
+    throw new ChangeLinkError('CORRUPT', CORRUPT_MESSAGE);
+  }
+};
+
+/**
+ * Encodes a change set as `lc1.<base64url>`. The set is validated against
+ * the schema first, so every link this returns also decodes. Throws the
+ * schema's codes, `TOO_LARGE` above `MAX_INFLATED_BYTES` of JSON, and
+ * `UNSUPPORTED_ENVIRONMENT` without `CompressionStream`.
+ */
+export async function encodeChangeLink(
+  set: ChangeSet,
+  deflate: Deflater = streamDeflate
+): Promise<string> {
+  // Serialize the validated copy, so the link holds exactly what was checked.
+  const json = JSON.stringify(toWire(parseChangeSet(toWire(set))));
+  const bytes = new TextEncoder().encode(json);
+  if (bytes.length > MAX_INFLATED_BYTES) {
+    throw new ChangeLinkError('TOO_LARGE', TOO_LARGE_MESSAGE);
+  }
+  return CHANGE_LINK_PREFIX + toBase64Url(await deflate(bytes));
+}
+
+/**
+ * Decodes the one change link in `text`: a token, a Studio link, a change
+ * file or a GitHub issue body. Throws `findChangeToken`'s and the schema's
+ * codes, `TOO_LARGE` for a token over `MAX_TOKEN_CHARS` (before any other
+ * work) or a payload over `MAX_INFLATED_BYTES`, and `CORRUPT` for anything
+ * that does not decode to JSON.
+ */
+export async function decodeChangeLink(
+  text: string,
+  inflate: Inflater = streamInflate
+): Promise<ChangeSet> {
+  const token = findChangeToken(text);
+  if (token.length > MAX_TOKEN_CHARS) {
+    throw new ChangeLinkError('TOO_LARGE', TOO_LARGE_MESSAGE);
+  }
+  try {
+    const bytes = await inflate(
+      fromBase64Url(token.slice(CHANGE_LINK_PREFIX.length)),
+      MAX_INFLATED_BYTES
+    );
+    const json = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    return parseChangeSet(JSON.parse(json));
+  } catch (err) {
+    if (err instanceof ChangeLinkError) throw err;
+    throw new ChangeLinkError('CORRUPT', CORRUPT_MESSAGE);
+  }
 }
