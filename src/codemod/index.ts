@@ -5,6 +5,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures } from './doctor.js';
+import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
 
 const getDirname = () => {
   if (typeof __dirname !== 'undefined') {
@@ -28,6 +29,7 @@ Commands:
   init        Initialize the API route handler inside a Next.js project automatically.
   studio      Start the visual editing studio local web server.
   doctor      Check the project for common integration problems (route, provider, middleware, CSP, locales).
+  check       Check translations for missing keys, placeholder drift, broken ICU syntax and unused keys (CI-friendly).
 
 Options for migrate:
   --dir <path>       Directory to scan (default: current directory)
@@ -46,6 +48,14 @@ Options for doctor:
   --dir <path>       Project directory to inspect (default: current directory)
   --locales <path>   Locales directory relative to the project (default: locales)
   --app <origin>     Also probe the running app, e.g. http://localhost:3000
+
+Options for check:
+  --dir <path>       Project directory to scan (default: current directory)
+  --locales <path>   Locales directory relative to the project (default: locales)
+  --source <locale>  Locale the others are compared against (default: en, else the first locale)
+  --no-unused        Do not report keys that code never references
+  --strict           Treat warnings (unused keys, empty values) as failures
+  --json             Print the full report as JSON
 
 Global Options:
   -h, --help         Show help information
@@ -360,6 +370,75 @@ async function runDoctorCommand(args: string[]) {
   }
 }
 
+async function runCheckCommand(args: string[]) {
+  let dir = '.';
+  let localesPath: string | undefined;
+  let sourceLocale: string | undefined;
+  let unused = true;
+  let strict = false;
+  let json = false;
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--dir') {
+      dir = args[++i] || '.';
+    } else if (arg === '--locales') {
+      localesPath = args[++i];
+    } else if (arg === '--source') {
+      sourceLocale = args[++i];
+    } else if (arg === '--no-unused') {
+      unused = false;
+    } else if (arg === '--strict') {
+      strict = true;
+    } else if (arg === '--json') {
+      json = true;
+    } else if (arg && !arg.startsWith('--')) {
+      dir = arg;
+    }
+  }
+
+  const projectDir = path.resolve(dir);
+  if (!fs.existsSync(projectDir)) {
+    console.error(`Error: Directory "${dir}" does not exist.`);
+    process.exit(1);
+  }
+
+  let report;
+  try {
+    report = await runCheck({ projectDir, localesPath, sourceLocale, unused, strict });
+  } catch (err: any) {
+    console.error(`❌ ${err.message}`);
+    process.exit(1);
+  }
+
+  const failed = hasCheckFailures(report);
+  if (json) {
+    console.log(JSON.stringify(report, null, 2));
+    process.exit(failed ? 1 : 0);
+  }
+
+  console.log(`\n🔎 i18n Lens check — ${projectDir}`);
+  console.log(
+    `🌐 Locales: ${report.locales.join(', ') || 'none'}` +
+      (report.sourceLocale ? ` (source: ${report.sourceLocale})` : '') +
+      ` · ${report.codeKeyCount} key(s) referenced in code`
+  );
+  console.log('--------------------------------------------------');
+  if (report.issues.length > 0) {
+    console.log(formatCheckReport(report));
+    console.log('--------------------------------------------------');
+  }
+
+  const fails = report.issues.filter((i) => i.level === 'fail').length;
+  const warns = report.issues.filter((i) => i.level === 'warn').length;
+  if (failed) {
+    console.log(`❌ ${fails} problem(s), ${warns} warning(s).`);
+    process.exit(1);
+  }
+  console.log(
+    warns > 0 ? `✅ No problems, ${warns} warning(s) worth a look.` : `✅ Translations look good.`
+  );
+}
+
 async function run() {
   const args = process.argv.slice(2);
 
@@ -368,7 +447,7 @@ async function run() {
     process.exit(0);
   }
 
-  const COMMANDS = ['migrate', 'init', 'studio', 'doctor'];
+  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check'];
   if (!args[0] || !COMMANDS.includes(args[0])) {
     console.error(`Unknown command: "${args[0]}". Expected one of: ${COMMANDS.join(', ')}.`);
     printHelp();
@@ -377,6 +456,11 @@ async function run() {
 
   if (args[0] === 'doctor') {
     await runDoctorCommand(args);
+    return;
+  }
+
+  if (args[0] === 'check') {
+    await runCheckCommand(args);
     return;
   }
 

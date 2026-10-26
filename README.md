@@ -41,6 +41,7 @@
 - 🌍 **Preview mode for non-developers:** Run a token-protected Studio against a preview deployment; every save becomes a commit on a GitHub branch and one click opens the pull request.
 - 🧾 **Review, commit, undo:** The Studio's Changes panel shows git status and a diff of your locale files, commits them with a message, discards them, and undoes any edit from the session.
 - 🩺 **Doctor:** `npx next-i18n-lens doctor` finds the usual integration mistakes before you open the Studio.
+- ✅ **Translation check for CI:** `npx next-i18n-lens check` fails the build on missing keys, placeholder drift between locales, and broken ICU syntax, and lists keys nothing uses.
 - 🛑 **Safety switches:** `I18N_LENS=off` kill switch, and automatic shut-off on hosting platforms so a staging build can never leak watermarks.
 - 🧭 **App Router and Pages Router:** One handler works with both `route.ts` and `pages/api` signatures.
 - 🌐 **Works beyond localhost:3000:** Point the Studio at any port or hostname with `--app` or `?app=`, and allow Codespaces or custom origins with one env var.
@@ -216,6 +217,40 @@ npx next-i18n-lens doctor [--dir <path>] [--locales <path>] [--app <origin>]
 
 - `--locales` — locales directory relative to the project (default `locales`).
 - `--app` — also check that the mutation API answers and that pages are embeddable.
+
+### `check`
+
+A read-only consistency check of your translations, built for CI. It runs in any `NODE_ENV`.
+
+```bash
+npx next-i18n-lens check [--dir <path>] [--locales <path>] [--source <locale>] [--no-unused] [--strict] [--json]
+```
+
+| Finding                                                                         | Level   |
+| ------------------------------------------------------------------------------- | ------- |
+| Locale file is not valid JSON                                                   | problem |
+| Broken ICU syntax (unbalanced braces, `plural` without `other`)                 | problem |
+| Key used in code but missing from a locale                                      | problem |
+| Key in the source locale but missing from another locale                        | problem |
+| Placeholders differ from the source locale (`{name}`, `{{count}}`, `%s`, `<b>`) | problem |
+| Empty value                                                                     | warning |
+| Key never referenced in code                                                    | warning |
+
+- `--source` — locale the others are compared against (default `en`, else the first locale).
+- `--no-unused` — skip the unused-key report. Keys built at run time (``t(`status.${s}`)``) cannot be
+  detected, so review this list before deleting anything.
+- `--strict` — treat warnings as problems.
+- `--json` — print the full report for other tools.
+
+The command exits with code 1 when there are problems. Code references resolve namespaces the same
+way the Studio does, an object access such as `t.home` covers every key under `home`, and i18next
+plural families (`items_one`, `items_other`, …) count as one key, so Arabic's six forms against
+English's two are not reported.
+
+```yaml
+# .github/workflows/i18n.yml
+- run: npx next-i18n-lens check
+```
 
 ### `migrate`
 

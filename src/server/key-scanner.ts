@@ -152,11 +152,25 @@ const NO_IGNORES: GitignoreMatcher = { ignores: () => false };
  * mtime and size, so a rescan only re-reads files that changed. The project's
  * root `.gitignore` is honoured in addition to the built-in ignore list.
  */
+export interface KeyScannerOptions {
+  /**
+   * Refuse to scan unless i18n Lens is enabled (development or preview mode).
+   * Defaults to true; read-only tooling such as `check` turns it off so it can run in CI.
+   */
+  requireEnabled?: boolean;
+}
+
 export class KeyScanner {
   private fileCache = new Map<string, CachedFile<string[]>>();
   private gitignoreCache: CachedFile<GitignoreMatcher> | null = null;
+  private readonly requireEnabled: boolean;
+
+  constructor(options: KeyScannerOptions = {}) {
+    this.requireEnabled = options.requireEnabled ?? true;
+  }
 
   private assertEnabled(): void {
+    if (!this.requireEnabled) return;
     const reason = getDisabledReason();
     if (reason !== null) {
       throw new Error(
@@ -192,10 +206,14 @@ export class KeyScanner {
    * Scans the project (the parent directory of `basePath`) for translation key references.
    */
   async scanCodebaseKeys(basePath: string): Promise<string[]> {
+    return this.scanSourceKeys(path.dirname(path.resolve(basePath)));
+  }
+
+  /** Scans every source file under `projectRoot` for translation key references. */
+  async scanSourceKeys(projectRoot: string): Promise<string[]> {
     this.assertEnabled();
 
-    const resolvedBasePath = path.resolve(basePath);
-    const projectRoot = path.dirname(resolvedBasePath);
+    projectRoot = path.resolve(projectRoot);
     const gitignore = await this.loadGitignore(projectRoot);
     const keysSet = new Set<string>();
     const seen = new Set<string>();
