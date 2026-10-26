@@ -1,7 +1,7 @@
 'use client';
 
 import { DOMInterceptor } from './dom-interceptor.js';
-import { IframeBridge } from './iframe-bridge.js';
+import { IframeBridge, resolveStudioOrigin } from './iframe-bridge.js';
 import { decodeKey } from './watermark.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
 
@@ -91,8 +91,11 @@ if (
   isLiveLocaleEnabled() &&
   window.parent !== window // <-- iframe guard: only activate inside the studio
 ) {
-  const urlParams = new URLSearchParams(window.location.search);
-  const allowedOrigin = urlParams.get('livelocale-origin') || 'http://localhost:3010';
+  let storage: Storage | null = null;
+  try {
+    storage = window.sessionStorage;
+  } catch {}
+  const allowedOrigin = resolveStudioOrigin(window.location.search, storage);
 
   const bridge = new IframeBridge(allowedOrigin);
   const interceptor = new DOMInterceptor(

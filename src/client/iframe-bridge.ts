@@ -1,6 +1,43 @@
 export type ClientMessageType = 'ELEMENT_SELECTED' | 'READY' | 'ERROR' | 'VISIBLE_KEYS_CHANGED';
 export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION';
 
+/** Where `livelocale studio` runs unless the Studio says otherwise. */
+export const DEFAULT_STUDIO_ORIGIN = 'http://localhost:3010';
+
+/** Session key that keeps the Studio origin across in-app navigation within one tab. */
+export const STUDIO_ORIGIN_STORAGE_KEY = 'livelocale-studio-origin';
+
+function toHttpOrigin(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The origin of the Studio that embeds this page. The Studio passes it as
+ * `?livelocale-origin=` on the iframe URL, but the app's own links drop that
+ * parameter, so it is remembered for the tab; without it, messages after the
+ * first navigation would go to the default origin and be discarded.
+ */
+export function resolveStudioOrigin(search: string, storage: Storage | null): string {
+  const fromQuery = toHttpOrigin(new URLSearchParams(search).get('livelocale-origin'));
+  if (fromQuery) {
+    try {
+      storage?.setItem(STUDIO_ORIGIN_STORAGE_KEY, fromQuery);
+    } catch {}
+    return fromQuery;
+  }
+  let remembered: string | null = null;
+  try {
+    remembered = toHttpOrigin(storage?.getItem(STUDIO_ORIGIN_STORAGE_KEY));
+  } catch {}
+  return remembered ?? DEFAULT_STUDIO_ORIGIN;
+}
+
 export interface TranslationPayload {
   key: string;
   fallbackValue: string;
