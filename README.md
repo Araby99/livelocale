@@ -422,6 +422,13 @@ Behaviour worth knowing:
   another server instance or another Studio re-reads the file and retries.
 - **Discard closes the pull request.** Resetting the branch to the base leaves the pull request
   with no changes, and GitHub closes it.
+- **Every save is a commit, and most hosts build every commit.** To save build minutes, skip builds
+  for commits that only touch locale files; the Studio already shows saved edits. On Vercel, set
+  _Project Settings → Git → Ignored Build Step_ to
+  `git diff --quiet HEAD^ HEAD -- . ':(exclude)locales'`.
+- **Hosting login walls block the Studio.** Vercel's Deployment Protection (on by default for
+  previews) sends the iframe and the API calls to a Vercel login page. Turn off Vercel
+  Authentication for the preview deployments you edit; `doctor --app` reports it.
 
 ### What preview mode does not do
 

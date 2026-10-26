@@ -236,6 +236,28 @@ describe('runDoctor — live checks', () => {
     });
   });
 
+  it('recognises a hosting login wall instead of blaming middleware', async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response('Protected by Vercel Authentication', {
+          status: 302,
+          headers: {
+            location: 'https://vercel.com/sso-api?url=https%3A%2F%2Fdemo.vercel.app',
+            'x-frame-options': 'DENY',
+          },
+        })
+    );
+    const findings = await runDoctor({
+      projectDir: project,
+      appOrigin: 'https://demo.vercel.app',
+      fetchImpl: fetchImpl as any,
+    });
+    expect(byTitle(findings, 'mutation api')?.detail).toMatch(/Vercel Deployment Protection/);
+    expect(byTitle(findings, 'mutation api')?.detail).not.toMatch(/middleware/);
+    expect(byTitle(findings, 'embed')).toMatchObject({ level: 'fail' });
+    expect(byTitle(findings, 'embed')?.detail).not.toMatch(/X-Frame-Options/);
+  });
+
   it('fails clearly when the app is not running', async () => {
     const fetchImpl = vi.fn(async () => {
       throw new Error('ECONNREFUSED');

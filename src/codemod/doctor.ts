@@ -250,6 +250,26 @@ async function probe(
   }
 }
 
+/**
+ * Describes a redirect to a hosting provider's login page (Vercel Deployment
+ * Protection, Netlify password protection, …), or returns null for any other response.
+ */
+function loginWall(res: Response, origin: string): string | null {
+  if (res.status < 300 || res.status >= 400) return null;
+  const location = res.headers.get('location') || '';
+  let target: URL;
+  try {
+    target = new URL(location, origin);
+  } catch {
+    return null;
+  }
+  if (target.origin === new URL(origin).origin) return null;
+  if (/(^|\.)vercel\.com$/i.test(target.hostname)) {
+    return 'Vercel Deployment Protection redirects visitors to a Vercel login. Turn off Vercel Authentication for preview deployments (Project Settings → Deployment Protection).';
+  }
+  return `The app redirects to ${target.host}, which looks like a hosting login wall. Allow the Studio through it or turn it off for this deployment.`;
+}
+
 async function checkServerInfo(
   origin: string,
   fetchImpl: typeof fetch,
@@ -324,10 +344,13 @@ async function checkLive(
         detail: `HTTP 404 at ${origin}${API_ROUTE}. The route handler is not served; run npx next-i18n-lens init and restart the dev server.`,
       });
     } else if (res.status >= 300 && res.status < 400) {
+      const wall = loginWall(res, origin);
       findings.push({
         level: 'fail',
         title: 'Mutation API',
-        detail: `HTTP ${res.status} redirect at ${API_ROUTE}; auth middleware is probably intercepting it. Exclude api/i18n-lens from the matcher.`,
+        detail: wall
+          ? `${wall} The Studio cannot reach the app through it.`
+          : `HTTP ${res.status} redirect at ${API_ROUTE}; auth middleware is probably intercepting it. Exclude api/i18n-lens from the matcher.`,
       });
     } else {
       findings.push({
@@ -339,7 +362,10 @@ async function checkLive(
   }
 
   const page = await probe(fetchImpl, `${origin}/`);
-  if (page.ok) {
+  const pageWall = page.ok ? loginWall(page.res, origin) : null;
+  if (pageWall) {
+    findings.push({ level: 'fail', title: 'Studio can embed the app', detail: pageWall });
+  } else if (page.ok) {
     const csp = page.res.headers.get('content-security-policy') || '';
     const xfo = page.res.headers.get('x-frame-options') || '';
     const blockers: string[] = [];
