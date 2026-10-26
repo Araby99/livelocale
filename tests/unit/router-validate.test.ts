@@ -100,4 +100,71 @@ describe('mutation router — placeholder and syntax validation', () => {
     );
     expect(res.status).toBe(200);
   });
+
+  it.each([
+    [
+      { locale: 'e', key: 'a', value: 'x' },
+      400,
+      { error: 'Invalid locale string parameter.', code: 'INVALID_LOCALE_FORMAT' },
+    ],
+    [
+      { locale: 'en', key: 'a b', value: 'x' },
+      400,
+      {
+        error:
+          'Invalid key path. Must be 1-200 characters containing alphanumeric, dots, underscores, or hyphens.',
+        code: 'INVALID_KEY_FORMAT',
+      },
+    ],
+    [
+      { locale: 'en', key: 'a.__proto__', value: 'x' },
+      400,
+      {
+        error:
+          'Forbidden key path: segments like __proto__, constructor, or prototype are not allowed.',
+        code: 'INVALID_KEY_FORMAT',
+      },
+    ],
+    [
+      { locale: 'en', key: 'a', value: 5 },
+      400,
+      {
+        error: 'Invalid value. Must be a string less than 10000 characters.',
+        code: 'INVALID_VALUE_FORMAT',
+      },
+    ],
+    [
+      { locale: 'en', key: 'a', value: 'Hello {name' },
+      422,
+      { error: 'Message syntax: Unbalanced braces: missing "}".', code: 'MESSAGE_SYNTAX' },
+    ],
+    [
+      { locale: 'ar', key: 'g', value: 'x {a}', reference: 'Hi {name}' },
+      422,
+      {
+        error: 'Placeholders differ from the reference: missing {name}; unexpected {a}.',
+        code: 'PLACEHOLDER_MISMATCH',
+        details: { missing: ['{name}'], extra: ['{a}'] },
+      },
+    ],
+    [
+      { locale: 'en', key: 'a', value: 'Hello {name', force: 'true' },
+      422,
+      { error: 'Message syntax: Unbalanced braces: missing "}".', code: 'MESSAGE_SYNTAX' },
+    ],
+  ])('POST %o keeps a byte-identical response', async (body, status, expected) => {
+    const res = await createMutationRouter(mutator, { localesPath: LOCALES }).handle(post(body));
+    expect(res.status).toBe(status);
+    expect(res.body).toBe(JSON.stringify(expected));
+    expect(mutator.updateLocaleKey).not.toHaveBeenCalled();
+  });
+
+  it('still ignores a non-string reference and saves', async () => {
+    const res = await createMutationRouter(mutator, { localesPath: LOCALES }).handle(
+      post({ locale: 'ar', key: 'g', value: 'x {a}', reference: 5 })
+    );
+    expect(res.status).toBe(200);
+    expect(res.body).toBe(JSON.stringify({ success: true, key: 'g', locale: 'ar' }));
+    expect(mutator.updateLocaleKey).toHaveBeenCalledWith(LOCALES, 'ar', 'g', 'x {a}');
+  });
 });

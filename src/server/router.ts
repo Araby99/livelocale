@@ -1,11 +1,6 @@
 import { getDisabledReason, getLiveLocaleMode } from '../core/env.js';
-import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
-import {
-  isValidKeyFormat,
-  isValidLocaleFormat,
-  isValidValueFormat,
-  isSafeKeyPath,
-} from '../core/validate.js';
+import { validateWrite } from '../core/save-rules.js';
+import { isValidLocaleFormat } from '../core/validate.js';
 
 /**
  * Platform-agnostic port for translation file operations. The Next.js and
@@ -341,62 +336,18 @@ export function createMutationRouter(
       return json(200, headers, { success: true, locale });
     }
 
-    if (!isValidLocaleFormat(locale)) {
-      return json(400, headers, {
-        error: 'Invalid locale string parameter.',
-        code: 'INVALID_LOCALE_FORMAT',
+    const verdict = validateWrite(
+      { locale, key, value },
+      { reference: typeof reference === 'string' ? reference : null, force: force === true }
+    );
+    if (!verdict.ok) {
+      return json(verdict.status, headers, {
+        error: verdict.error,
+        code: verdict.code,
+        details: verdict.details,
       });
     }
-
-    if (!isValidKeyFormat(key)) {
-      return json(400, headers, {
-        error:
-          'Invalid key path. Must be 1-200 characters containing alphanumeric, dots, underscores, or hyphens.',
-        code: 'INVALID_KEY_FORMAT',
-      });
-    }
-
-    if (!isSafeKeyPath(key)) {
-      return json(400, headers, {
-        error:
-          'Forbidden key path: segments like __proto__, constructor, or prototype are not allowed.',
-        code: 'INVALID_KEY_FORMAT',
-      });
-    }
-
-    if (!isValidValueFormat(value)) {
-      return json(400, headers, {
-        error: 'Invalid value. Must be a string less than 10000 characters.',
-        code: 'INVALID_VALUE_FORMAT',
-      });
-    }
-
-    // RULE SRV-007: PLACEHOLDER SAFETY — a translation must keep the placeholders
-    // of its reference and stay structurally valid, unless the author forces it.
-    if (force !== true) {
-      const syntaxError = validateMessageSyntax(value);
-      if (syntaxError) {
-        return json(422, headers, {
-          error: `Message syntax: ${syntaxError}.`,
-          code: 'MESSAGE_SYNTAX',
-        });
-      }
-      if (typeof reference === 'string') {
-        const comparison = comparePlaceholders(reference, value);
-        if (!comparison.ok) {
-          const parts: string[] = [];
-          if (comparison.missing.length) parts.push(`missing ${comparison.missing.join(', ')}`);
-          if (comparison.extra.length) parts.push(`unexpected ${comparison.extra.join(', ')}`);
-          return json(422, headers, {
-            error: `Placeholders differ from the reference: ${parts.join('; ')}.`,
-            code: 'PLACEHOLDER_MISMATCH',
-            details: { missing: comparison.missing, extra: comparison.extra },
-          });
-        }
-      }
-    }
-
-    await mutator.updateLocaleKey(basePath, locale, key, value);
+    await mutator.updateLocaleKey(basePath, verdict.locale, verdict.key, verdict.value);
 
     return json(200, headers, { success: true, key, locale });
   }

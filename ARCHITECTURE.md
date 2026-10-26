@@ -100,8 +100,8 @@ The Studio's `PluralEditor` edits one branch per field and rebuilds the message 
 `{{name}}`, `%s`, `<b>`, `$t(key)`) using a small recursive-descent ICU walker that understands
 typed arguments, `plural`/`select` branches and apostrophe quoting. `comparePlaceholders` diffs
 two sets; `validateMessageSyntax` reports unbalanced braces or a `plural`/`select` without
-`other`. The router runs both on every write unless `force: true`; the Studio runs the first one
-live for the placeholder chips.
+`other`. The Studio runs the first one live for the placeholder chips; `validateWrite` in
+`src/core/save-rules.ts` runs both on every write unless `force: true`.
 
 ### 4. Mutation router (`src/server/router.ts`)
 
@@ -111,9 +111,10 @@ adapters that translate their request shape into `RouterRequest` and back. Rules
 - development-only (403 otherwise),
 - POST origin must be localhost, in `allowedOrigins`, or in `LIVELOCALE_ALLOWED_ORIGINS`,
 - POST content-type must be JSON,
-- locale, key, and value are validated by `src/core/validate.ts`,
-- the value must keep the reference's placeholders and parse as ICU (422 otherwise, bypass with
-  `force`),
+- locale, key, and value are validated by `src/core/validate.ts`, and the value must keep the
+  reference's placeholders and parse as ICU (422 otherwise, bypass with `force`); these rules live
+  in `validateWrite` (`src/core/save-rules.ts`), so code outside the router can apply the same
+  ones,
 - `GET` lists locales, returns a locale dictionary, or `?action=keys` returns key metadata.
 
 `MutationGateway` is the port the router writes through; `FileMutator` is its adapter.
