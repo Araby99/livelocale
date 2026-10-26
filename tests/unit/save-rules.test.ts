@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
+  detectRiskFlags,
+  RISK_FLAG_MESSAGES,
   sourceReference,
   validateEdit,
   validateWrite,
@@ -188,4 +190,63 @@ describe('validateEdit', () => {
     expect(sourceReference('home', ctx)).toBeNull();
     expect(sourceReference('nope', ctx)).toBeNull();
   });
+});
+
+describe('detectRiskFlags', () => {
+  it('flags script links', () =>
+    expect(detectRiskFlags('Go', 'javascript:alert(1)')).toEqual(['javascript-url']));
+
+  it('keeps URLs and markup the reference already has', () => {
+    expect(detectRiskFlags('Visit https://acme.com', 'زر https://acme.com')).toEqual([]);
+    expect(detectRiskFlags('<b>Hi</b>', '<b>مرحبا</b>')).toEqual([]);
+  });
+
+  it('flags new markup and new URLs', () => {
+    expect(detectRiskFlags('Hi', 'Hi <img src=x>')).toEqual(['markup']);
+    expect(detectRiskFlags('Read', 'اقرأ https://evil.example')).toEqual(['new-url']);
+  });
+
+  it('flags bidi overrides but not LRM or RLM', () => {
+    expect(detectRiskFlags('x', 'abc\u202Edef')).toEqual(['bidi-control']);
+    expect(detectRiskFlags('x', 'abc\u200Fdef')).toEqual([]);
+  });
+
+  it('treats a missing reference as empty', () =>
+    expect(detectRiskFlags(undefined, '<b>x</b>')).toEqual(['markup']));
+
+  it('flags vbscript and data links and bare www addresses', () => {
+    expect(detectRiskFlags('Go', 'VBScript :msgbox(1)')).toEqual(['javascript-url']);
+    expect(detectRiskFlags('Go', 'data:text/html,hi')).toEqual(['javascript-url']);
+    expect(detectRiskFlags('Go', 'www.evil.example/login')).toEqual(['new-url']);
+  });
+
+  it('checks each script-link kind on its own', () =>
+    // A data: link in the reference does not excuse a new javascript: link.
+    expect(detectRiskFlags('data:image/png', 'data:image/png javascript:alert(1)')).toEqual([
+      'javascript-url',
+    ]));
+
+  it('compares tag names without regard to case', () => {
+    expect(detectRiskFlags('<B>Hi</B>', '<b>مرحبا</b>')).toEqual([]);
+    expect(detectRiskFlags('<b>Hi</b>', '<b>مرحبا</b><SCRIPT>x</SCRIPT>')).toEqual(['markup']);
+  });
+
+  it('flags a bidi control the reference lacks even when it has another', () =>
+    expect(detectRiskFlags('a\u202Ab', 'a\u202Ab\u2067')).toEqual(['bidi-control']));
+
+  it('reports each flag once, in the order of the union', () =>
+    expect(
+      detectRiskFlags(
+        'x',
+        '<b>a</b><i>b</i> https://a.example https://b.example javascript:1 data:text/html \u202E\u202D'
+      )
+    ).toEqual(['markup', 'javascript-url', 'new-url', 'bidi-control']));
+
+  it('has a message for every flag', () =>
+    expect(Object.keys(RISK_FLAG_MESSAGES).sort()).toEqual([
+      'bidi-control',
+      'javascript-url',
+      'markup',
+      'new-url',
+    ]));
 });

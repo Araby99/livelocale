@@ -184,3 +184,61 @@ export function validateEdit(
     force: options?.force === true,
   });
 }
+
+export type ContentRiskFlag = 'markup' | 'javascript-url' | 'new-url' | 'bidi-control';
+
+export const RISK_FLAG_MESSAGES: Record<ContentRiskFlag, string> = {
+  markup: 'Adds markup that the source text does not have.',
+  'javascript-url': 'Adds a javascript:, vbscript: or data: link.',
+  'new-url': 'Adds a web address that the source text does not have.',
+  'bidi-control': 'Contains invisible text-direction control characters.',
+};
+
+// Global patterns are only ever read through String.match and String.matchAll,
+// which never leave state behind on a shared regex. No lookbehind: the core
+// must run in every browser the Studio supports.
+const TAG_PATTERN = /<\/?([A-Za-z][\w-]*)\b[^<>]*>/g;
+const SCRIPT_LINK_PATTERNS = [/\b(?:javascript|vbscript)\s*:/i, /\bdata:[a-z]+\/[\w.+-]+/i];
+const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"')]+/gi;
+// U+202A-U+202E (embeddings and overrides) and U+2066-U+2069 (isolates).
+// LRM and RLM are ordinary Arabic and Hebrew typography, so they are left out.
+const BIDI_CONTROL_PATTERN = /[\u202A-\u202E\u2066-\u2069]/g;
+
+/** Tag names are case-insensitive in HTML, so `<B>` and `<b>` are one name. */
+const tagNames = (text: string): string[] =>
+  Array.from(text.matchAll(TAG_PATTERN), (m) => m[1]!.toLowerCase());
+
+const allMatches = (pattern: RegExp, text: string): string[] => text.match(pattern) ?? [];
+
+/** True when `found` holds an item that `known` lacks. */
+const hasNew = (known: string[], found: string[]): boolean => {
+  const set = new Set(known);
+  return found.some((item) => !set.has(item));
+};
+
+/**
+ * Flags only what `value` adds compared with `reference`, in the order of
+ * the union above, each at most once. A missing reference counts as empty,
+ * so a source-locale edit or a new key is judged against nothing. Flags warn
+ * a reviewer; they never reject a write.
+ */
+export function detectRiskFlags(reference: string | undefined, value: string): ContentRiskFlag[] {
+  const ref = reference ?? '';
+  const flags: ContentRiskFlag[] = [];
+
+  if (hasNew(tagNames(ref), tagNames(value))) flags.push('markup');
+
+  // Each pattern is checked on its own, so a reference holding a data: link
+  // does not excuse a new javascript: link.
+  if (SCRIPT_LINK_PATTERNS.some((pattern) => pattern.test(value) && !pattern.test(ref))) {
+    flags.push('javascript-url');
+  }
+
+  if (hasNew(allMatches(URL_PATTERN, ref), allMatches(URL_PATTERN, value))) flags.push('new-url');
+
+  if (hasNew(allMatches(BIDI_CONTROL_PATTERN, ref), allMatches(BIDI_CONTROL_PATTERN, value))) {
+    flags.push('bidi-control');
+  }
+
+  return flags;
+}
