@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as net from 'net';
 import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
-import { runDoctor, formatFindings, hasFailures } from './doctor.js';
+import { runDoctor, formatFindings, hasFailures, normalizeAppUrl } from './doctor.js';
 import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
 import {
   BUILD_USAGE,
@@ -53,7 +53,9 @@ Options for studio:
 Options for doctor:
   --dir <path>       Project directory to inspect (default: current directory)
   --locales <path>   Locales directory relative to the project (default: locales)
-  --app <origin>     Also probe the running app, e.g. http://localhost:3000
+  --app <url>        Also probe the running app or deployed site, e.g. http://localhost:3000
+                     or https://user.github.io/repo/ (a path is the app base)
+  --share            Run the share link probes even when livelocale/manifest.json is missing
   --token <token>    Access token for a preview deployment (default: LIVELOCALE_TOKEN)
 
 Options for check:
@@ -101,6 +103,18 @@ function normalizeOriginArg(value: string, flag: string): string {
   } catch {
     console.error(
       `Error: ${flag} must be an http(s) origin such as http://localhost:3001 (got "${value}").`
+    );
+    process.exit(1);
+  }
+}
+
+/** `doctor --app`: an http(s) URL whose path, when given, is the app base. */
+function normalizeAppArg(value: string): { origin: string; base: string } {
+  try {
+    return normalizeAppUrl(value);
+  } catch {
+    console.error(
+      `Error: --app must be an http(s) URL such as http://localhost:3000 or https://user.github.io/repo/ (got "${value}").`
     );
     process.exit(1);
   }
@@ -379,7 +393,8 @@ async function runMigrate(args: string[]) {
 async function runDoctorCommand(args: string[]) {
   let dir = '.';
   let localesPath: string | undefined;
-  let appOrigin: string | undefined;
+  let app: { origin: string; base: string } | undefined;
+  let share = false;
   let token: string | undefined;
   for (let i = 1; i < args.length; i++) {
     const arg = args[i];
@@ -388,7 +403,9 @@ async function runDoctorCommand(args: string[]) {
     } else if (arg === '--locales') {
       localesPath = args[++i];
     } else if (arg === '--app') {
-      appOrigin = normalizeOriginArg(args[++i] || '', '--app');
+      app = normalizeAppArg(args[++i] || '');
+    } else if (arg === '--share') {
+      share = true;
     } else if (arg === '--token') {
       token = args[++i];
     } else if (arg && !arg.startsWith('--')) {
@@ -404,10 +421,17 @@ async function runDoctorCommand(args: string[]) {
 
   console.log(`
 🩺 LiveLocale doctor — ${projectDir}`);
-  if (appOrigin) console.log(`🔗 Probing app at ${appOrigin}`);
+  if (app) console.log(`🔗 Probing app at ${app.base}`);
   console.log('--------------------------------------------------');
 
-  const findings = await runDoctor({ projectDir, localesPath, appOrigin, token });
+  const findings = await runDoctor({
+    projectDir,
+    localesPath,
+    appOrigin: app?.origin,
+    appBase: app?.base,
+    share,
+    token,
+  });
   console.log(formatFindings(findings));
   console.log('--------------------------------------------------');
 
@@ -424,7 +448,9 @@ async function runDoctorCommand(args: string[]) {
       ? `✅ No blocking problems, ${warns} warning(s) worth a look.`
       : `✅ Everything looks good.`
   );
-  if (!appOrigin) {
+  const shareLink = findings.find((f) => f.title === 'Share link')?.detail;
+  if (shareLink) console.log(`🔗 Share link: ${shareLink}`);
+  if (!app) {
     console.log(
       `💡 Start your dev server and re-run with --app http://localhost:3000 for live checks.`
     );

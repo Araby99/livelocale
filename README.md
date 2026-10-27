@@ -212,11 +212,21 @@ Inspects the project for the integration problems the Studio cannot recover from
 probes the running app.
 
 ```bash
-npx livelocale doctor [--dir <path>] [--locales <path>] [--app <origin>] [--token <token>]
+npx livelocale doctor [--dir <path>] [--locales <path>] [--app <url>] [--share] [--token <token>]
 ```
 
 - `--locales` — locales directory relative to the project (default `locales`).
-- `--app` — also check that the mutation API answers and that pages are embeddable.
+- `--app` — also check that the mutation API answers and that pages are embeddable. A path is
+  the app base: `--app https://user.github.io/repo/` probes a GitHub Pages project site (a
+  trailing `index.html` is dropped).
+- `--share` — run the share link probes even when `<base>livelocale/manifest.json` does not
+  answer. They also run on their own whenever the manifest answers with JSON. They check the
+  Studio page, the manifest, `flag.js` and its tag first in `<head>`, frame headers
+  (`X-Frame-Options: DENY` or `frame-ancestors 'none'` breaks the Studio; `SAMEORIGIN` is fine),
+  `script-src`, and service workers, then print `🔗 Share link: <base>livelocale/index.html`.
+  When a Workbox service worker (vite-plugin-pwa, workbox-webpack-plugin) would answer the Studio
+  with your app shell, add this line to its Workbox options:
+  `navigateFallbackDenylist: [/^\/livelocale\//]`.
 - `--token` — access token for a preview deployment (defaults to `LIVELOCALE_TOKEN`); with it the
   doctor also reports the server mode and repository access problems.
 
