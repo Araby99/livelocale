@@ -1,6 +1,7 @@
 import React from 'react';
 import type { LiveLocaleMode } from '../../../api.js';
 import { unsentLabel } from '../hooks/useDrafts.js';
+import type { LocaleSource } from '../../../locale-inference.js';
 
 // Injected by Vite at build/dev time from package.json version (see vite.config.ts).
 declare const __STUDIO_VERSION__: string;
@@ -14,7 +15,19 @@ interface HeaderProps {
   onToggleChanges: () => void;
   /** Share-link drafts not sent yet; the counter shows only when above zero. */
   unsentCount?: number;
+  /** The locale share-link edits are written to; null or absent on server stacks. */
+  targetLocale?: { locale: string; source: LocaleSource | null; mismatch: string | null } | null;
+  /** The listed locales; a mismatch is offered only for one of them. */
+  locales?: string[];
+  onChooseLocale?: (locale: string) => void;
 }
+
+const SOURCE_HINTS: Record<LocaleSource, string> = {
+  content: 'detected from page text',
+  url: 'from the page address',
+  manual: 'chosen by you',
+  remembered: 'from your last visit',
+};
 
 export const Header = ({
   coveragePercentage,
@@ -23,7 +36,15 @@ export const Header = ({
   isChangesOpen,
   onToggleChanges,
   unsentCount = 0,
+  targetLocale = null,
+  locales,
+  onChooseLocale,
 }: HeaderProps) => {
+  const mismatch =
+    targetLocale?.mismatch && (!locales || locales.includes(targetLocale.mismatch))
+      ? targetLocale.mismatch
+      : null;
+
   return (
     <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-8 flex items-center justify-between shrink-0 select-none">
       <div className="flex items-center gap-3">
@@ -55,6 +76,33 @@ export const Header = ({
 
       {/* Coverage progress bar + version badge */}
       <div className="flex items-center gap-5">
+        {targetLocale && (
+          <div data-testid="target-locale" className="flex items-center gap-2 select-none">
+            {targetLocale.source === null ? (
+              <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+                Language: not chosen yet
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] whitespace-nowrap">
+                <span className="font-bold text-indigo-200">{`Editing: ${targetLocale.locale}`}</span>
+                <span className="text-slate-400">{SOURCE_HINTS[targetLocale.source]}</span>
+              </span>
+            )}
+            {mismatch && (
+              <span className="flex items-center gap-1.5 text-[10px] text-amber-300 whitespace-nowrap">
+                <span>{`This text looks like ${mismatch}.`}</span>
+                <button
+                  type="button"
+                  onClick={() => onChooseLocale?.(mismatch)}
+                  className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 font-semibold hover:bg-amber-500/20 transition duration-150"
+                >
+                  {`Switch to ${mismatch}`}
+                </button>
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Translation coverage metric */}
         <div
           className="flex items-center gap-2.5"

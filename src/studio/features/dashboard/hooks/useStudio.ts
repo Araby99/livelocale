@@ -14,6 +14,8 @@ import { useAuth } from './useAuth.js';
 import { useDrafts } from './useDrafts.js';
 import { useUnsentGuard } from './useUnsentGuard.js';
 import { valuesToReapply } from './reapply.js';
+import { useTargetLocale } from './useTargetLocale.js';
+import type { VisibleText } from '../../../../client/iframe-bridge.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
@@ -40,11 +42,13 @@ export const useStudio = () => {
   const selectElementRef = useRef<(el: SelectedElement) => void>(() => {});
   const setLocaleRef = useRef<(locale: string) => void>(() => {});
   const setErrorRef = useRef<(message: string) => void>(() => {});
+  const visibleTextsRef = useRef<(texts: VisibleText[]) => void>(() => {});
 
   const { connectionStatus, currentPath, visibleKeys, iframeRef, sendToIframe } = useConnection({
     onElementSelected: (el) => selectElementRef.current(el),
     onLocaleDetected: (locale) => setLocaleRef.current(locale),
     onError: (message) => setErrorRef.current(message),
+    onVisibleTexts: (texts) => visibleTextsRef.current(texts),
   });
 
   const {
@@ -54,9 +58,10 @@ export const useStudio = () => {
     allKeys,
     codeKeys,
     localeData,
+    dataLocale,
     enLocaleData,
     coveragePercentage,
-    handleLocaleChange,
+    handleLocaleChange: setLocaleAndNavigate,
     fetchKeysMetadata,
     refreshAll,
     updateLocaleDataCache,
@@ -69,6 +74,18 @@ export const useStudio = () => {
   const history = useHistory();
   const staticTransport = getStaticTransport();
   const drafts = useDrafts(staticTransport);
+
+  // The locale edits go to: inferred and always shown on a share link; today's behaviour otherwise.
+  const target = useTargetLocale({
+    enabled: staticTransport !== null,
+    scope: staticTransport?.scope ?? null,
+    locale,
+    setLocale,
+    setMenuLocale: setLocaleAndNavigate,
+    locales,
+    getCandidates: async () => (staticTransport ? staticTransport.textCandidates() : {}),
+  });
+  const handleLocaleChange = target.onMenuLocale;
 
   const {
     selected,
@@ -137,12 +154,47 @@ export const useStudio = () => {
     const values = valuesToReapply({
       mode,
       locale,
-      localeConfirmed: true,
+      localeConfirmed: target.confirmed,
       history: history.entries,
       drafts: drafts.drafts,
     });
     values.forEach((value, key) => sendToIframe('COMMIT_PREVIEW', { key, value }));
-  }, [mode, connectionStatus, currentPath, visibleKeys, locale, history.entries, drafts.drafts]);
+  }, [
+    mode,
+    connectionStatus,
+    currentPath,
+    visibleKeys,
+    locale,
+    target.confirmed,
+    history.entries,
+    drafts.drafts,
+  ]);
+
+  // Share link: an Alt+Click is shown only once the dictionary of its target locale has loaded.
+  const [queuedSelection, setQueuedSelection] = useState<SelectedElement | null>(null);
+  useEffect(() => {
+    if (queuedSelection === null || dataLocale !== locale) return;
+    setQueuedSelection(null);
+    selectElement(queuedSelection);
+  }, [queuedSelection, dataLocale, locale]);
+
+  const handleElementSelected = (el: SelectedElement) => {
+    if (!staticTransport) {
+      selectElement(el);
+      return;
+    }
+    target
+      .resolveForSelection(el)
+      .then((resolved) => {
+        if (resolved) setQueuedSelection(el);
+      })
+      .catch((err: any) => setError(err?.message || 'Could not tell which language to edit.'));
+  };
+
+  const chooseTargetLocale = (chosen: string) => {
+    const pending = target.choose(chosen);
+    if (pending) setQueuedSelection(pending);
+  };
 
   // Unsent drafts live only in this browser: ask before the tab is closed.
   useUnsentGuard(mode === 'static' && drafts.unsentCount > 0);
@@ -167,14 +219,17 @@ export const useStudio = () => {
     }
   };
 
-  selectElementRef.current = selectElement;
-  setLocaleRef.current = setLocale;
+  selectElementRef.current = handleElementSelected;
+  setLocaleRef.current = target.onUrlLocale;
+  visibleTextsRef.current = (texts) => {
+    target.onVisibleTexts(texts).catch(() => {});
+  };
   setErrorRef.current = setError;
 
   const { handleAddLocale, handleRenameLocale, handleDeleteLocale } = useLocaleActions({
     locale,
     locales,
-    handleLocaleChange,
+    handleLocaleChange: setLocaleAndNavigate,
     refreshAll,
     handleClearSelection,
     setLoading: setIsLoading,
@@ -243,6 +298,13 @@ export const useStudio = () => {
     sentCount: drafts.sentCount,
     markDraftsSent: drafts.markSent,
     staticManifest: staticTransport?.manifest ?? null,
+    // Target locale (share link only)
+    targetLocale: staticTransport
+      ? { locale, source: target.source, mismatch: target.mismatch }
+      : null,
+    localePickerCandidates: target.pickerCandidates,
+    chooseTargetLocale,
+    cancelLocalePick: target.cancelPick,
     // Preview mode / auth
     mode,
     needsToken: auth.needsToken,

@@ -8,6 +8,7 @@ import {
   ChangesPanel,
   TokenModal,
   SetupProblems,
+  LocalePicker,
   useStudio,
 } from './features/dashboard/index.js';
 import { isAppPreviewBlocked } from './runtime.js';
@@ -67,6 +68,10 @@ export const App = () => {
     setupProblems,
     drafts,
     unsentCount,
+    targetLocale,
+    localePickerCandidates,
+    chooseTargetLocale,
+    cancelLocalePick,
   } = useStudio();
 
   return (
@@ -80,6 +85,9 @@ export const App = () => {
         isChangesOpen={isChangesOpen}
         onToggleChanges={toggleChanges}
         unsentCount={unsentCount}
+        targetLocale={targetLocale}
+        locales={locales}
+        onChooseLocale={chooseTargetLocale}
       />
 
       <ChangesPanel
@@ -160,6 +168,12 @@ export const App = () => {
         showConfirmModal={showConfirmModal}
         onConfirm={confirmDiscard}
         onCancel={cancelDiscard}
+      />
+
+      <LocalePicker
+        candidates={localePickerCandidates}
+        onChoose={chooseTargetLocale}
+        onCancel={cancelLocalePick}
       />
     </div>
   );
