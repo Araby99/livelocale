@@ -1,11 +1,13 @@
 # Dependencies
 node_modules/
 /playground/node_modules/
+/playground-vite/node_modules/
 
 # Build outputs
 /dist/
 /playground/.next/
 /playground/out/
+/playground-vite/dist/
 
 # Testing
 /coverage/

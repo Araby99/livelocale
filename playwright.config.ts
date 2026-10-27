@@ -33,5 +33,13 @@ export default defineConfig({
       stdout: 'ignore',
       stderr: 'pipe',
     },
+    {
+      command:
+        'npm run build --prefix playground-vite && node tests/e2e/fixtures/static-server.mjs playground-vite/dist 3020',
+      port: 3020,
+      reuseExistingServer: !process.env.CI,
+      stdout: 'ignore',
+      stderr: 'pipe',
+    },
   ],
 });
