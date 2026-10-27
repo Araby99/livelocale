@@ -205,12 +205,21 @@ All HTTP calls live in `src/studio/api.ts`, which attaches the token from sessio
 announces 401s on `window` so the token modal can appear.
 Undo is implemented in the composer: it re-saves the previous value through the normal mutation
 path and removes the history entry, so disk, cache, and git status stay consistent. The app origin is resolved
-at start-up by `src/studio/config.ts` from `?app=`, then the CLI-injected
-`window.__LIVELOCALE_CONFIG__`, then build-time `VITE_APP_ORIGIN`, then `http://localhost:3000`.
-In preview mode a deployment keeps serving the text it was built with, so `useStudio` resends the
+at start-up by `startStudio` (`src/studio/bootstrap.ts`) through `detectStudioRuntime`
+(`src/studio/config.ts`) before the first render. A CLI-injected `window.__LIVELOCALE_CONFIG__`
+means a server stack and nothing is probed. Otherwise, when `./manifest.json` next to the Studio is
+a LiveLocale manifest, the Studio runs in static mode: the app is the folder above the Studio,
+`?app=` is ignored, and `api.ts` is switched to the static transport, which keeps drafts in
+IndexedDB (in memory, with a warning, when IndexedDB is unavailable) instead of using the HTTP API.
+Anything else resolves the origin from `?app=`, then the CLI-injected config, then build-time
+`VITE_APP_ORIGIN`, then `http://localhost:3000`. A Studio under `/livelocale/` without a usable
+manifest stays in server mode with the setup problem `STATIC_MANIFEST_MISSING`, which names the
+fix, and renders no app preview (`isAppPreviewBlocked`), so it never silently points at localhost.
+In preview and static mode the app keeps serving the text it was built with, so `useStudio` resends the
 session's saved values (`COMMIT_PREVIEW`, newest wins per key) whenever the page reloads,
-navigates, or its visible keys change. Setup problems from `?action=info` render in
-`SetupProblems`; `IframeViewer` lists likely causes when the bridge has not answered in eight
+navigates, or its visible keys change. Setup problems render in `SetupProblems`: the runtime's own
+problems from start-up, shown before any connection, followed by those from `?action=info` once
+connected; `IframeViewer` lists likely causes when the bridge has not answered in eight
 seconds, because a blocked frame is only reported in the browser console.
 
 ### 9. CLI (`src/codemod`)

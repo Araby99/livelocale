@@ -9,7 +9,14 @@ import { useKeySearch } from './useKeySearch.js';
 import { useGit } from './useGit.js';
 import { useHistory, type HistoryEntry } from './useHistory.js';
 import { saveTranslation, fetchInfo, type LiveLocaleMode } from '../../../api.js';
+import { getStudioRuntime } from '../../../runtime.js';
 import { useAuth } from './useAuth.js';
+
+/** Start-up problems found before any connection, e.g. a share folder without a manifest. */
+const runtimeProblems = (): string[] => {
+  const runtime = getStudioRuntime();
+  return runtime.kind === 'server' ? runtime.problems : [];
+};
 
 /**
  * Composer hook: wires the focused feature hooks together and owns the
@@ -21,7 +28,7 @@ export const useStudio = () => {
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
   const [isUndoing, setIsUndoing] = useState<boolean>(false);
   const [mode, setMode] = useState<LiveLocaleMode | null>(null);
-  const [setupProblems, setSetupProblems] = useState<string[]>([]);
+  const [setupProblems, setSetupProblems] = useState<string[]>(runtimeProblems);
 
   const auth = useAuth();
 
@@ -99,7 +106,7 @@ export const useStudio = () => {
     fetchInfo()
       .then((info) => {
         setMode(info.mode);
-        setSetupProblems(info.problems ?? []);
+        setSetupProblems([...runtimeProblems(), ...(info.problems ?? [])]);
       })
       .catch(() => {});
   }, [connectionStatus, auth.tokenVersion]);
@@ -113,11 +120,11 @@ export const useStudio = () => {
     git.refresh();
   }, [auth.tokenVersion]);
 
-  // A preview deployment keeps serving the text it was built with, so a reload
+  // A preview deployment or a share link keeps serving the text it was built with, so a reload
   // or navigation would bring back pre-edit values. Re-apply this session's
   // saved values for the current locale (oldest first, so the newest wins).
   useEffect(() => {
-    if (mode !== 'preview' || connectionStatus !== 'connected') return;
+    if ((mode !== 'preview' && mode !== 'static') || connectionStatus !== 'connected') return;
     const latest = new Map<string, string>();
     for (const entry of [...history.entries].reverse()) {
       if (entry.locale === locale) latest.set(entry.key, entry.nextValue);

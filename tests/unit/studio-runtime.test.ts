@@ -7,6 +7,7 @@ import {
   setStudioRuntime,
 } from '../../src/studio/runtime.js';
 import { fetchLocales } from '../../src/studio/api.js';
+import type { StaticTransport } from '../../src/studio/transport/static.js';
 import { APP_URL, MANIFEST } from './helpers/share-fixtures.js';
 
 afterEach(() => {
@@ -28,6 +29,7 @@ describe('studio runtime', () => {
       appUrl: APP_URL,
       manifest: MANIFEST,
       manifestText: '',
+      transport: {} as StaticTransport,
     });
     expect(getAppOrigin()).toBe('https://www.acme.com');
     expect(getAppUrl()).toBe('https://www.acme.com/');

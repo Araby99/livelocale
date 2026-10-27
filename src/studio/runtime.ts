@@ -1,5 +1,6 @@
 import type { ShareManifest } from '../core/share-manifest.js';
-import { resolveAppOrigin } from './config.js';
+import { resolveAppOrigin, STATIC_MANIFEST_MISSING } from './config.js';
+import type { StaticTransport } from './transport/static.js';
 
 declare global {
   interface Window {
@@ -7,7 +8,7 @@ declare global {
   }
 }
 
-/** What detection finds. Task 32 adds the draft transport to the static variant of StudioRuntime. */
+/** What detection finds; `StudioRuntime` adds the draft transport to the static variant. */
 export type DetectedRuntime =
   | { kind: 'server'; appOrigin: string; appUrl: string; problems: string[] }
   | {
@@ -18,7 +19,10 @@ export type DetectedRuntime =
       manifestText: string;
     };
 
-export type StudioRuntime = DetectedRuntime;
+/** The runtime the Studio runs with. Only `startStudio` builds a static one. */
+export type StudioRuntime =
+  | Exclude<DetectedRuntime, { kind: 'static' }>
+  | (Extract<DetectedRuntime, { kind: 'static' }> & { transport: StaticTransport });
 
 let current: StudioRuntime | null = null;
 
@@ -54,4 +58,16 @@ export function getAppOrigin(): string {
 /** URL the preview iframe loads: the origin on server stacks, the folder above the Studio when static. */
 export function getAppUrl(): string {
   return getStudioRuntime().appUrl;
+}
+
+/** The static draft transport, or null on a server stack. */
+export function getStaticTransport(): StaticTransport | null {
+  const runtime = getStudioRuntime();
+  return runtime.kind === 'static' ? runtime.transport : null;
+}
+
+/** True when getStudioRuntime() is a server runtime whose problems include STATIC_MANIFEST_MISSING. */
+export function isAppPreviewBlocked(): boolean {
+  const runtime = getStudioRuntime();
+  return runtime.kind === 'server' && runtime.problems.includes(STATIC_MANIFEST_MISSING);
 }

@@ -10,6 +10,7 @@ import {
   SetupProblems,
   useStudio,
 } from './features/dashboard/index.js';
+import { isAppPreviewBlocked } from './runtime.js';
 
 export const App = () => {
   const {
@@ -110,14 +111,24 @@ export const App = () => {
           selectKeyDirectly={selectKeyDirectly}
         />
 
-        {/* Column 2: App Preview Frame */}
-        <IframeViewer
-          iframeRef={iframeRef}
-          appOrigin={appOrigin}
-          appUrl={appUrl}
-          connectionStatus={connectionStatus}
-          currentPath={currentPath}
-        />
+        {/* Column 2: App Preview Frame. A share-folder Studio without a usable manifest
+            has no app to point at, so it shows only the setup problem above. */}
+        {isAppPreviewBlocked() ? (
+          <section
+            data-testid="app-preview-blocked"
+            className="flex-1 flex items-center justify-center h-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-sm text-slate-400"
+          >
+            The app preview is unavailable until the setup problem above is fixed.
+          </section>
+        ) : (
+          <IframeViewer
+            iframeRef={iframeRef}
+            appOrigin={appOrigin}
+            appUrl={appUrl}
+            connectionStatus={connectionStatus}
+            currentPath={currentPath}
+          />
+        )}
 
         {/* Column 3: Value Editing Panel */}
         <EditorPanel
