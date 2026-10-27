@@ -200,8 +200,10 @@ incremental (per-file mtime and size cache), honour the root `.gitignore` throug
 `data-i18n-key` and `data-i18n-template`, draws a fixed-position highlight overlay, intercepts
 Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
 watermarks never leave the page. `IframeBridge` validates origins both ways. `index.ts`
-auto-initializes only when running inside an iframe in development and resolves the Studio origin
-in this order: a readable same-origin parent (a Studio served from the same host), the
+auto-initializes only inside an iframe, and only when LiveLocale is enabled: in development, or
+in a build made with `LIVELOCALE=preview`, or in a production build when `flag.js` set `window.__LIVELOCALE_FLAG__ = 'preview'` because the
+page is framed by a same-origin Studio under its `livelocale/` folder (the share link). It
+resolves the Studio origin in this order: a readable same-origin parent (a Studio served from the same host), the
 `livelocale-origin` query parameter (remembered for the tab), the origin remembered for the tab,
 then `http://localhost:3010`. `APPLY_PREVIEW` swaps the visible text after the
 watermark and remembers the original; `CLEAR_SELECTION` restores it; `COMMIT_PREVIEW` applies a
