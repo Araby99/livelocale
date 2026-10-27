@@ -1,7 +1,7 @@
 'use client';
 
 import { DOMInterceptor } from './dom-interceptor.js';
-import { IframeBridge, resolveStudioOrigin } from './iframe-bridge.js';
+import { IframeBridge, readSameOriginParent, resolveStudioOrigin } from './iframe-bridge.js';
 import { decodeKey } from './watermark.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
 
@@ -96,7 +96,11 @@ if (
   try {
     storage = window.sessionStorage;
   } catch {}
-  const allowedOrigin = resolveStudioOrigin(window.location.search, storage);
+  const allowedOrigin = resolveStudioOrigin(
+    window.location.search,
+    storage,
+    readSameOriginParent(window)
+  );
 
   const bridge = new IframeBridge(allowedOrigin);
   const interceptor = new DOMInterceptor(
