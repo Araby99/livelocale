@@ -18,6 +18,7 @@ import { useTargetLocale } from './useTargetLocale.js';
 import type { VisibleText } from '../../../../client/iframe-bridge.js';
 import { createDraftActions } from './draftActions.js';
 import { downloadText, readPref } from '../../../share/browser.js';
+import { useFirstRun } from './useFirstRun.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
@@ -200,6 +201,8 @@ export const useStudio = () => {
     if (pending) setQueuedSelection(pending);
   };
 
+  const firstRun = useFirstRun(mode === 'static');
+
   // Unsent drafts live only in this browser: ask before the tab is closed.
   useUnsentGuard(mode === 'static' && drafts.unsentCount > 0);
 
@@ -330,6 +333,11 @@ export const useStudio = () => {
     localePickerCandidates: target.pickerCandidates,
     chooseTargetLocale,
     cancelLocalePick: target.cancelPick,
+    // First-run tips (share link only)
+    showTips: firstRun.showTips,
+    dismissTips: firstRun.dismiss,
+    translatorName: firstRun.name,
+    setTranslatorName: firstRun.setName,
     // Preview mode / auth
     mode,
     needsToken: auth.needsToken,

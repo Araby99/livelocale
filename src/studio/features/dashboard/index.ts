@@ -7,6 +7,7 @@ export { ChangesPanel } from './components/ChangesPanel.jsx';
 export { TokenModal } from './components/TokenModal.jsx';
 export { SetupProblems } from './components/SetupProblems.jsx';
 export { LocalePicker } from './components/LocalePicker.jsx';
+export { FirstRunTips } from './components/FirstRunTips.jsx';
 export { SendDialog } from './components/SendDialog.jsx';
 export { StudioLayout, type StudioPanel } from './components/StudioLayout.jsx';
 export { useStudio } from './hooks/useStudio.js';

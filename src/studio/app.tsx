@@ -10,6 +10,7 @@ import {
   SetupProblems,
   LocalePicker,
   SendDialog,
+  FirstRunTips,
   StudioLayout,
   useStudio,
   useMediaQuery,
@@ -87,6 +88,10 @@ export const App = () => {
     localePickerCandidates,
     chooseTargetLocale,
     cancelLocalePick,
+    showTips,
+    dismissTips,
+    translatorName,
+    setTranslatorName,
   } = useStudio();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
@@ -225,6 +230,13 @@ export const App = () => {
         manifest={staticManifest}
         studioHref={window.location.href}
         onMarkSent={markDraftsSent}
+      />
+
+      <FirstRunTips
+        open={showTips}
+        name={translatorName}
+        onNameChange={setTranslatorName}
+        onDismiss={dismissTips}
       />
 
       <LocalePicker
