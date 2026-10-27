@@ -21,6 +21,7 @@ const MAX_BODY_CHARS = 60_000;
 const MAX_NOTE_CHARS = 2_000;
 const MAX_NAME_CHARS = 64;
 const MAX_CHECK_LINES = 50;
+const MAX_CHECK_SUMMARY_CHARS = 10_000;
 /** Room the table never uses, so the separators around it always fit. */
 const BODY_MARGIN = 200;
 
@@ -43,6 +44,24 @@ function cut(text: string, max: number): string {
   const last = out.charCodeAt(out.length - 1);
   if (last >= 0xd800 && last <= 0xdbff) out = out.slice(0, -1);
   return out;
+}
+
+/**
+ * Cuts `text` to at most `max` characters by dropping whole lines from the end
+ * and adding a `…` line, so a code span is never cut in half.
+ */
+function cutLines(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const kept: string[] = [];
+  let length = 0;
+  for (const line of text.split('\n')) {
+    const added = (kept.length > 0 ? 1 : 0) + line.length;
+    // Leave room for the "\n…" line.
+    if (length + added + 2 > max) break;
+    kept.push(line);
+    length += added;
+  }
+  return [...kept, '…'].join('\n');
 }
 
 function longestBacktickRun(text: string): number {
@@ -205,7 +224,7 @@ export function renderPullRequestBody(ctx: ReportContext): string {
   if (ctx.note?.trim()) head.push(fencedNote(ctx.note));
 
   const tail: string[] = [];
-  if (ctx.checkSummary) tail.push(cut(ctx.checkSummary, 10_000));
+  if (ctx.checkSummary) tail.push(cutLines(ctx.checkSummary, MAX_CHECK_SUMMARY_CHARS));
   if (ctx.runUrl) tail.push(`Run log: ${ctx.runUrl}`);
   const closing = closingLine(ctx);
   if (closing) tail.push(closing);

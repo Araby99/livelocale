@@ -176,6 +176,31 @@ describe('renderPullRequestBody', () => {
     );
   });
 
+  it('cuts a long check summary only at a line boundary', () => {
+    const many: CheckReport = {
+      ...reportWith2Issues,
+      issues: Array.from({ length: 60 }, (_, i) => ({
+        kind: 'placeholder-mismatch' as const,
+        level: 'fail' as const,
+        locale: 'ar',
+        key: `k${i}.${'|'.repeat(110)}`,
+        message: `@octocat fixes #12 ${'|'.repeat(200)}`,
+      })),
+    };
+    const summary = summarizeCheck(
+      many,
+      many.issues.map((issue) => [issue.locale ?? '', issue.key ?? ''])
+    );
+    expect(summary.length).toBeGreaterThan(10_000);
+    const body = renderPullRequestBody(ctx({ checkSummary: summary }));
+    // Drops every balanced code span (a run of N backticks up to the next run of exactly N).
+    const outsideSpans = body.replace(/(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)/g, '');
+    expect(outsideSpans).not.toContain('`');
+    expect(outsideSpans).not.toContain('@octocat');
+    expect(outsideSpans).not.toContain('#12');
+    expect(body.endsWith('\n…')).toBe(true); // the summary is the last part here
+  });
+
   it('stays within 60,000 characters', () => {
     expect(
       renderPullRequestBody(ctx({ plan: bigPlan(500, 'x`|'.repeat(3334)) })).length
