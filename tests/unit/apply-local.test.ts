@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { encodeChangeLink, type ChangeSet } from '../../src/core/change-link.js';
 import { runLocalApply } from '../../src/codemod/apply/local.js';
+import { renderTerminalSummary } from '../../src/codemod/apply/report.js';
 
 const tempDirs: string[] = [];
 
@@ -20,9 +21,11 @@ function makeProject(files: Record<string, string>): string {
   return dir;
 }
 
+let consoleLog: ReturnType<typeof vi.spyOn>;
+
 beforeEach(() => {
-  // FileMutator logs each updated key (no values); keep the test output clean.
-  vi.spyOn(console, 'log').mockImplementation(() => {});
+  // Catches any console line outside the summary; apply prints the summary only.
+  consoleLog = vi.spyOn(console, 'log').mockImplementation(() => {});
 });
 
 afterEach(() => {
@@ -64,10 +67,17 @@ describe('runLocalApply', () => {
 
     // Dry run first, against the fresh project.
     const arBefore = fs.readFileSync(arFile, 'utf-8');
-    const dry = await runLocalApply({ projectDir, input: token, dryRun: true, log: () => {} });
+    const dryLogs: string[] = [];
+    const dry = await runLocalApply({
+      projectDir,
+      input: token,
+      dryRun: true,
+      log: (l) => dryLogs.push(l),
+    });
     expect(dry.plan.counts).toMatchObject({ apply: 1, invalid: 1 });
     expect(dry.written).toEqual([]);
     expect(fs.readFileSync(arFile, 'utf-8')).toBe(arBefore);
+    expect(dryLogs).toEqual([renderTerminalSummary(dry.plan)]);
 
     const r = await runLocalApply({
       projectDir,
@@ -84,6 +94,9 @@ describe('runLocalApply', () => {
     expect(ar.endsWith('\n')).toBe(false);
     expect(fs.readFileSync(enFile, 'utf-8')).toBe(enBefore);
     expect(logs.join('\n')).toContain('Applied 1');
+    // The terminal summary is the only output: no per-key FileMutator lines.
+    expect(logs).toEqual([renderTerminalSummary(r.plan)]);
+    expect(consoleLog).not.toHaveBeenCalled();
     expect(logs.join('\n')).not.toContain('مرحبًا');
   });
 

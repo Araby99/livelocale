@@ -27,15 +27,19 @@ class FileMutex {
 export interface FileMutatorOptions {
   /** Refuse to run unless LiveLocale is enabled. Default true; only CLI tooling passes false. */
   requireEnabled?: boolean;
+  /** Skip the console line each `updateLocaleKey` write prints. Default false. */
+  quiet?: boolean;
 }
 
 export class FileMutator {
   private fileLocks = new Map<string, FileMutex>();
   private readonly requireEnabled: boolean;
+  private readonly quiet: boolean;
   private readonly scanner: KeyScanner;
 
   constructor(options: FileMutatorOptions = {}) {
     this.requireEnabled = options.requireEnabled ?? true;
+    this.quiet = options.quiet ?? false;
     this.scanner = new KeyScanner({ requireEnabled: this.requireEnabled });
   }
 
@@ -202,7 +206,9 @@ export class FileMutator {
       }
 
       // RULE SEC-001: NEVER LOG TRANSLATION VALUES
-      console.log(`[livelocale] Updated key '${keyPath}' in locale '${locale}'`);
+      if (!this.quiet) {
+        console.log(`[livelocale] Updated key '${keyPath}' in locale '${locale}'`);
+      }
     });
   }
 

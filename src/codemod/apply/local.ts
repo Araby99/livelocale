@@ -107,7 +107,8 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
   }
 
   // The local developer runs this, so the CLI-only option is allowed here.
-  const mutator = new FileMutator({ requireEnabled: false });
+  // Quiet: the terminal summary is the only output.
+  const mutator = new FileMutator({ requireEnabled: false, quiet: true });
   let sourceLocale = options.sourceLocale;
   if (sourceLocale === undefined) {
     const locales = await mutator.listLocales(localesDir);
@@ -142,7 +143,6 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
   }
 
   log(renderTerminalSummary(plan));
-  if (options.dryRun) log('Dry run: no files were written.');
 
   const c = plan.counts;
   const exitCode = c.conflict + c.invalid + c['needs-force'] > 0 ? 1 : 0;

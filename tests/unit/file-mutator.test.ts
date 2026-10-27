@@ -53,6 +53,22 @@ describe('FileMutator', () => {
     );
   });
 
+  it('should log the updated key unless quiet is set', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({ greeting: 'Hello' }));
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+    try {
+      await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+      expect(log).toHaveBeenCalledWith("[livelocale] Updated key 'greeting' in locale 'en'");
+      log.mockClear();
+      await new FileMutator({ quiet: true }).updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+      expect(log).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it('should update a nested key when path has 3 segments', async () => {
     const initial = { dashboard: { header: { title: 'Old' } } };
     vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify(initial));

@@ -163,6 +163,7 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(r.status).toBe(0);
     expect(r.stdout).toContain('Applied 1');
     expect(r.stdout).not.toContain('مرحبا');
+    expect(r.stdout).not.toContain('Updated key');
     expect(readJson('locales/ar.json')).toEqual({ hello: 'مرحبا' });
   });
 });
