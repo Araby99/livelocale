@@ -7,11 +7,18 @@ export const SLOW_CONNECTION_MS = 8000;
 interface IframeViewerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   appOrigin: string;
+  /** The URL the preview loads: the app origin, or the folder above a static Studio. */
+  appUrl: string;
   connectionStatus: ConnectionStatus;
   currentPath: string;
 }
 
-export const IframeViewer = ({ iframeRef, appOrigin, connectionStatus }: IframeViewerProps) => {
+export const IframeViewer = ({
+  iframeRef,
+  appOrigin,
+  appUrl,
+  connectionStatus,
+}: IframeViewerProps) => {
   // The browser never tells the parent page why a frame stayed blank (a CSP
   // frame-ancestors block only reaches the console), so after a while list the usual causes.
   const [isSlow, setIsSlow] = useState(false);
@@ -86,7 +93,7 @@ export const IframeViewer = ({ iframeRef, appOrigin, connectionStatus }: IframeV
         <iframe
           id="app-preview-iframe"
           ref={iframeRef}
-          src={`${appOrigin}?livelocale-origin=${encodeURIComponent(window.location.origin)}`}
+          src={`${appUrl}?livelocale-origin=${encodeURIComponent(window.location.origin)}`}
           className="w-full h-full border-none bg-white"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
         />

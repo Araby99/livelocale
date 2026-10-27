@@ -13,6 +13,7 @@ const renderViewer = (connectionStatus: 'connecting' | 'connected') =>
     <IframeViewer
       iframeRef={React.createRef<HTMLIFrameElement>()}
       appOrigin="https://preview.example.com"
+      appUrl="https://preview.example.com"
       connectionStatus={connectionStatus}
       currentPath="/"
     />
@@ -45,6 +46,7 @@ describe('IframeViewer slow-connection help', () => {
       <IframeViewer
         iframeRef={React.createRef<HTMLIFrameElement>()}
         appOrigin="https://preview.example.com"
+        appUrl="https://preview.example.com"
         connectionStatus="connected"
         currentPath="/"
       />

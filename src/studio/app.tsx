@@ -23,6 +23,7 @@ export const App = () => {
     currentPath,
     iframeRef,
     appOrigin,
+    appUrl,
     showConfirmModal,
     searchTerm,
     filteredKeys,
@@ -113,6 +114,7 @@ export const App = () => {
         <IframeViewer
           iframeRef={iframeRef}
           appOrigin={appOrigin}
+          appUrl={appUrl}
           connectionStatus={connectionStatus}
           currentPath={currentPath}
         />

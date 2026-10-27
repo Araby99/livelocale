@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { SelectedElement } from '../types/index.js';
-import { APP_ORIGIN } from '../constants.js';
+import { getAppOrigin, getAppUrl } from '../constants.js';
 import { useConnection } from './useConnection.js';
 import { useLocaleData } from './useLocaleData.js';
 import { useSelection } from './useSelection.js';
@@ -172,7 +172,8 @@ export const useStudio = () => {
     error,
     currentPath,
     iframeRef,
-    appOrigin: APP_ORIGIN,
+    appOrigin: getAppOrigin(),
+    appUrl: getAppUrl(),
     showConfirmModal,
     localeData,
     searchTerm,

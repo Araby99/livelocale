@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConnectionStatus, SelectedElement } from '../types/index.js';
-import { APP_ORIGIN } from '../constants.js';
+import { getAppOrigin } from '../constants.js';
 
 export interface ConnectionHandlers {
   onElementSelected: (element: SelectedElement) => void;
@@ -27,7 +27,7 @@ export const useConnection = (handlers: ConnectionHandlers) => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       // Validate incoming message origin
-      if (event.origin !== APP_ORIGIN) {
+      if (event.origin !== getAppOrigin()) {
         return;
       }
 
@@ -44,7 +44,7 @@ export const useConnection = (handlers: ConnectionHandlers) => {
         setVisibleKeys(null);
         // Extract locale if embedded in URL path or query params
         try {
-          const urlObj = new URL(payload.url, APP_ORIGIN);
+          const urlObj = new URL(payload.url, getAppOrigin());
           const qLocale = urlObj.searchParams.get('locale');
           if (qLocale) {
             handlersRef.current.onLocaleDetected(qLocale);
@@ -79,7 +79,7 @@ export const useConnection = (handlers: ConnectionHandlers) => {
     if (iframeRef.current && iframeRef.current.contentWindow) {
       iframeRef.current.contentWindow.postMessage(
         { source: 'livelocale-studio', type, payload },
-        APP_ORIGIN
+        getAppOrigin()
       );
     }
   }, []);

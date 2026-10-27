@@ -1,6 +1,7 @@
-import { APP_ORIGIN } from './features/dashboard/constants.js';
+import { getAppOrigin } from './runtime.js';
 
-const API = `${APP_ORIGIN}/api/livelocale`;
+/** The app's LiveLocale API, read from the runtime on every request. */
+const apiUrl = () => `${getAppOrigin()}/api/livelocale`;
 
 /** sessionStorage key for the bearer token (preview mode). */
 export const TOKEN_STORAGE_KEY = 'livelocale-token';
@@ -110,13 +111,13 @@ async function parse<T>(response: Response): Promise<T> {
 }
 
 function get<T>(query = ''): Promise<T> {
-  const url = `${API}${query}`;
+  const url = `${apiUrl()}${query}`;
   const request = getToken() ? fetch(url, { headers: headers() }) : fetch(url);
   return request.then((r) => parse<T>(r));
 }
 
 async function post<T>(payload: Record<string, unknown>): Promise<T> {
-  const response = await fetch(API, {
+  const response = await fetch(apiUrl(), {
     method: 'POST',
     headers: headers({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),

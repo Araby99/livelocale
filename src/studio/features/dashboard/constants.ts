@@ -1,18 +1,5 @@
-import { resolveAppOrigin } from '../../config.js';
-
-declare global {
-  interface Window {
-    __LIVELOCALE_CONFIG__?: { appOrigin?: string };
-  }
-}
-
 /**
- * Origin of the application under edit. Resolved once at Studio start-up from
- * the `?app=` query parameter, the CLI-injected config, or the build-time
- * `VITE_APP_ORIGIN`, falling back to `http://localhost:3000`.
+ * Origin and URL of the application under edit, read from the Studio runtime
+ * at call time (see `src/studio/runtime.ts`).
  */
-export const APP_ORIGIN = resolveAppOrigin({
-  search: typeof window !== 'undefined' ? window.location.search : undefined,
-  injected: typeof window !== 'undefined' ? window.__LIVELOCALE_CONFIG__?.appOrigin : undefined,
-  buildTime: (import.meta as any).env?.VITE_APP_ORIGIN,
-});
+export { getAppOrigin, getAppUrl } from '../../runtime.js';
