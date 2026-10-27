@@ -16,13 +16,13 @@ no-op and every server entry point returns 403.
 
 The library ships one npm package with five entry points (see `tsup.config.ts`):
 
-| Entry                  | Source                      | Runs in                | Purpose                                     |
-| ---------------------- | --------------------------- | ---------------------- | ------------------------------------------- |
-| `livelocale/server`    | `src/server/index.ts`       | Node (Next.js server)  | Route handler, loader, mutator, watermark   |
-| `livelocale/client`    | `src/client/index.ts`       | Browser                | DOM scanner, bridge, auto-init              |
-| `livelocale/react`     | `src/react/index.tsx`       | Browser (React)        | `LiveLocaleProvider` that lazy-loads client |
-| `livelocale/vite`      | `src/server/vite-plugin.ts` | Node (Vite dev server) | Mutation API as Vite middleware             |
-| `npx livelocale` (bin) | `src/codemod/index.ts`      | Node CLI               | `init`, `studio`, `migrate`                 |
+| Entry                  | Source                      | Runs in                          | Purpose                                     |
+| ---------------------- | --------------------------- | -------------------------------- | ------------------------------------------- |
+| `livelocale/server`    | `src/server/index.ts`       | Node (Next.js server)            | Route handler, loader, mutator, watermark   |
+| `livelocale/client`    | `src/client/index.ts`       | Browser                          | DOM scanner, bridge, auto-init              |
+| `livelocale/react`     | `src/react/index.tsx`       | Browser (React)                  | `LiveLocaleProvider` that lazy-loads client |
+| `livelocale/vite`      | `src/server/vite-plugin.ts` | Node (Vite dev server and build) | Mutation API as Vite middleware             |
+| `npx livelocale` (bin) | `src/codemod/index.ts`      | Node CLI                         | `init`, `studio`, `migrate`                 |
 
 The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and served by the CLI.
 
@@ -253,6 +253,15 @@ under the Studio folder; every app HTML file outside `livelocale/` (symlinks ski
 absolute base and per-file relative for a relative one, which also adds `RELATIVE_BASE_WARNING`.
 Pack never writes outside `<outDir>/livelocale/` except that flag tag. Next.js outputs (a Next
 project, or an output with `_next/`) skip the injection by default.
+
+The Vite plugin's build half runs only with `share: true` (`apply` is true in serve, and in build
+only for a share client build). `configResolved` records the root, the absolute `outDir` and the
+base (`shareBase ?? base`, checked with `normalizeBase`, so a full-URL `base` without `shareBase`
+stops with `BAD_BASE`); SSR and library builds are left alone. `transformIndexHtml` puts the flag
+tag first in each HTML file Vite emits (and skips the dev fallback data), and `writeBundle` calls
+`packOutput` once per build (`buildStart` resets the guard, so watch mode packs again) with
+`injectHtml: false`, forwarding pack warnings such as `RELATIVE_BASE_WARNING` to Vite's logger.
+`localesPath` is resolved against the working directory, as in the serve half.
 
 ## Security rules at a glance
 

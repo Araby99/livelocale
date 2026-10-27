@@ -5,6 +5,9 @@ export default defineConfig({
     environment: 'node', // Default to node; client tests will override to jsdom or use it where needed
     globals: true,
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**'],
+    // A real `vite build` loads Rolldown's native binding, which segfaults the whole run when loaded
+    // in a worker thread; a child process is safe.
+    poolMatchGlobs: [['**/tests/integration/vite-share-build.test.ts', 'forks']],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

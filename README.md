@@ -334,6 +334,33 @@ export default defineConfig({
 });
 ```
 
+### Share link from `vite build`
+
+Set `share: true` and `vite build` also writes a share link: the Studio, `manifest.json`, the
+locale files and `flag.js` go into `<outDir>/livelocale/`, and `index.html` loads
+`<base>livelocale/flag.js` first in `<head>`. Deploy the output anywhere static and send
+`<origin><base>livelocale/index.html`. Without `share` the build output is unchanged.
+
+```typescript
+liveLocaleVite({
+  localesPath: './locales',
+  share: true, // write <outDir>/livelocale/ on vite build (default: false)
+  exposeRepo: false, // put the GitHub owner/repo into the manifest (default: false)
+  sourceLocale: 'en', // default: en when present, else the first locale
+  shareBase: '/app/', // the site path the HTML is served from (default: Vite base)
+});
+```
+
+| Option         | Default                                  | What it does                                                                                                                               |
+| -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `share`        | `false`                                  | Write the share Studio into `<outDir>/livelocale/` on `vite build`. SSR and library builds are skipped.                                    |
+| `exposeRepo`   | `false`                                  | Put the GitHub `owner/repo` into the published manifest, which shows "Open on GitHub". Leave it off for a private repository.              |
+| `sourceLocale` | `en` when present, else the first locale | The locale placeholders are checked against.                                                                                               |
+| `shareBase`    | Vite `base`                              | The path the HTML is served from. Set it when `base` is a full URL (a CDN), which the build otherwise rejects with `BAD_BASE`, or differs. |
+
+A relative `base` (`./`) links `flag.js` per HTML file and prints a warning: pages served by a
+client-side route fallback cannot load it, so prefer an absolute `base` for apps with such routes.
+
 ---
 
 ## 🧾 Reviewing and committing from the Studio
