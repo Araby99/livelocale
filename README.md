@@ -462,6 +462,114 @@ value when you edit the source language itself.
 For API clients: send `reference` with the POST to enable the check, and `force: true` to bypass
 it. Without `reference` only the syntax check runs.
 
+## 🔗 Share link on any host
+
+A share link lets a translator fix copy on your deployed site, with no server, no account and no
+credential anywhere. The Studio ships inside your build at `<base>livelocale/`, so any host that
+serves the site serves the Studio too: Apache, Nginx, S3, GitHub Pages, Netlify, Cloudflare Pages
+or Vercel. The translator's fixes stay in their own browser until they send you a change link, and
+you turn that link into a pull request with one command.
+
+### Setup
+
+| Stack                      | Build change                                                                                                                            |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Vite                       | `share: true` in `liveLocaleVite(...)` (see [Share link from `vite build`](#share-link-from-vite-build)).                               |
+| CRA, webpack and Rsbuild   | `"build": "<bundler> && livelocale pack build"`, for example `"build": "react-scripts build && livelocale pack build"`.                 |
+| Next.js `output: 'export'` | `livelocale build --preview -- next build`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked.   |
+| Next.js on Vercel/Node     | `livelocale build --preview -- next build` as the Preview environment's build command. It packs into a gitignored `public/livelocale/`. |
+| Custom CI                  | `LIVELOCALE=preview <build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                   |
+
+For CRA, webpack and Rsbuild, use an explicit `&&`, not a `postbuild` script: Yarn Berry and some
+pnpm versions skip pre/post scripts, and hosts that call the bundler directly skip them too.
+
+Deploy the output as usual, then check it and print the share link:
+
+```bash
+npx livelocale doctor --app <url>
+```
+
+The doctor checks the Studio page, the manifest, `flag.js`, frame headers and service workers, then
+prints `🔗 Share link: <base>livelocale/index.html`. Pin that link for your translators.
+
+### Translator steps
+
+1. Open the share link in a desktop browser. There is no sign-up, no password and nothing to
+   install. If the site has its own login, sign in as usual.
+2. On the first visit, read the three tips and, optionally, type your name so you are credited in
+   the pull request.
+3. Check the language shown at the top. It is detected from the page text; change it if it is
+   wrong.
+4. Hold **Alt** (Option on Mac) and click the wrong text. The editor shows the source text, the
+   current translation, the placeholders that must stay, and one field per plural form.
+5. Type the fix and press **Save** (Ctrl+Enter). When a placeholder is missing, a message explains
+   it, and **Save anyway** stays available; it marks the edit for the developer.
+6. Keep browsing and fixing. Changes survive reloads and closing the tab. A counter shows how many
+   are not sent yet ("5 changes not sent"), and **Changes** lists each one with Undo.
+7. Click **Send to developer** and add an optional note. Then choose **Copy link** and paste it in
+   any chat or email, or **Download file** for a large batch.
+8. Sent changes stay in the list, marked "Sent".
+
+### Developer
+
+Open the change link. The Studio opens in **Review mode**, with the proposed edits shown read-only
+on the real page and a before/after table with the check results. Then apply it:
+
+```bash
+npx livelocale apply "<link or file>" --pr
+```
+
+This works on any git host, with your own `git` login: it commits only the locale files on a new
+`livelocale/apply-<time>` branch and pushes it. On GitHub it opens the pull request with `gh`;
+elsewhere it prints the branch to open a pull or merge request from. Every edit is checked again
+against your own files first. For a long link, use `npx livelocale apply --clipboard`, or pass `-` and pipe
+the link in (`npx livelocale apply - < changes.txt`). See [`apply`](#apply) for every option.
+
+### What "Sent" means
+
+In this mode "Sent" means the translator handed the link over; it is not a pull request until a developer applies it.
+
+### Hosting notes
+
+- **S3 and CloudFront:** the link must end in `index.html`, because an S3 REST origin does not
+  resolve folder indexes.
+- **GitHub Pages:** the folder is `livelocale/`, with no underscore for Jekyll to drop, and a
+  project site's `/repo/` base path is handled.
+- **Netlify and Cloudflare Pages:** `_headers` must not send DENY (`X-Frame-Options: DENY` or
+  `frame-ancestors 'none'`); SAMEORIGIN is fine. Every per-deploy URL is a separate origin with its
+  own drafts, so share the branch alias (for example
+  `https://staging--site.netlify.app/livelocale/index.html`), not a per-deploy URL.
+- **Basic auth and host password protection** carry over, because the Studio is on the same site.
+- **Vercel:** Deployment Protection must be off for the deployment you share, or the translator
+  must have access to it. `doctor --app` reports the login wall.
+- **PWA:** a Workbox service worker (vite-plugin-pwa, workbox-webpack-plugin) can answer the Studio
+  with your app shell. Add `navigateFallbackDenylist: [/^\/livelocale\//]` to its Workbox options.
+- **Relative bases** (`base: './'`, CRA `homepage: '.'`): pages served by a client-side route
+  fallback cannot load `flag.js`, so pack prints `RELATIVE_BASE_WARNING`. Build with an absolute
+  base (`--base /path/`) if the app has such routes.
+
+### Security
+
+- **No credential anywhere.** The share link, the build, the host and the browser hold no token.
+  Write access stays with the developer's own git login.
+- **A leaked link only proposes text.** A developer still has to apply it, and a person has to
+  merge the pull request. `apply` re-validates every edit against your own source locale.
+- **`exposeRepo: false` by default.** The GitHub `owner/repo` is published only with
+  `exposeRepo: true` (or `pack --expose-repo`).
+- **The Studio is `noindex`**, so search engines do not list it.
+- **`manifest.json` is public.** `<base>livelocale/manifest.json` makes every string and key name
+  public, including keys the app does not show.
+- **The same-origin risk is accepted.** The Studio frames your app on the same origin, so app
+  scripts can read and alter drafts. This is accepted because no secret is stored, and you review
+  every edit before it is merged.
+
+### Limits
+
+- **Desktop only.** Alt+Click needs a keyboard; phones and tablets can only view.
+- **Drafts live in one browser.** Clearing site data, a private window, or Safari's 7-day cap on
+  script-writable storage can lose unsent work. Send often, or use **Download backup** in Changes.
+- **One app per repository.**
+
 ## 🌍 Preview mode: editing without a checkout
 
 Development mode needs a developer's machine. Preview mode lets a product manager, translator, or
@@ -513,9 +621,9 @@ The app must also let the Studio embed it. Next.js evaluates `headers()` in `nex
 preview is built, not only at run time.
 
 For a Vite app, the Vite plugin mirrors the server's `LIVELOCALE` flag into the page, so
-`LIVELOCALE=preview` alone is enough; no `NEXT_PUBLIC_` variable is needed there. The plugin runs
-on the Vite dev server only: a static `vite build` served by Apache, Nginx or a CDN has no server for
-the Studio to save through, so preview mode does not work there yet.
+`LIVELOCALE=preview` alone is enough; no `NEXT_PUBLIC_` variable is needed there. Preview mode
+runs on the Vite dev server only. For a static `vite build` served by Apache, Nginx or a CDN, use
+the share link instead; see [Share link on any host](#-share-link-on-any-host).
 
 Then open the Studio with `?app=https://<preview-url>` (or `studio --app`). It shows a
 **PREVIEW** badge, asks for the access token, and the Changes panel switches to branch and

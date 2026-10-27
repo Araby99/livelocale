@@ -12,6 +12,21 @@ receives the clicked key over `postMessage`, and saves edits through a mutation 
 lives inside the app and writes the locale JSON file atomically. In production every wrapper is a
 no-op and every server entry point returns 403.
 
+## Share link (static mode)
+
+A share link needs no server. The build (`liveLocaleVite({ share: true })`, `livelocale pack` or
+`livelocale build`) writes `<outDir>/<base>livelocale/`: the Studio, `manifest.json`, the locale
+files and `flag.js`, and links `flag.js` first in every app page's `<head>`. Opened at
+`<base>livelocale/index.html`, the Studio frames the app on the same origin; the framed flag
+(`flag.js`) sets `window.__LIVELOCALE_FLAG__ = 'preview'` only inside that same-origin parent, so
+the app watermarks its text there and stays off for ordinary visitors. Because there is no API,
+the Studio switches `api.ts` to the static transport: saves become drafts in the translator's
+IndexedDB, checked by the same `save-rules` as the server, and are re-applied to the page with
+`COMMIT_PREVIEW`. **Send** encodes the drafts as an `lc1.` change link (or a file), and the
+developer runs `livelocale apply`, which decodes the link, re-validates every edit against the
+project's own source locale (`planApply`), writes the locale files and, with `--pr`, opens a pull
+request with the developer's own git and gh.
+
 ## Packages and entry points
 
 The library ships one npm package with five entry points (see `tsup.config.ts`):
@@ -290,6 +305,8 @@ tag first in each HTML file Vite emits (and skips the dev fallback data), and `w
 | Atomic writes               | file-mutator                                |
 | Script injection escaping   | vite-plugin, studio-server                  |
 | postMessage origin checks   | iframe-bridge, useConnection                |
+| Framed-only activation      | core/flag-script                            |
+| Edits re-validated on apply | core/apply-plan, codemod/apply              |
 
 ## Testing strategy
 
@@ -298,6 +315,10 @@ tag first in each HTML file Vite emits (and skips the dev fallback data), and `w
   `dist` placed outside the repo so missing optional dependencies are caught.
 - `tests/e2e`: Playwright drives the Studio against the `playground` Next.js app and restores the
   locale file afterwards.
+- `tests/e2e/static-share.spec.ts`: Playwright builds `playground-vite` with `share: true`, serves
+  `dist/` from a plain static server on port 3020, and covers the share link round trip: no
+  watermarks for unframed visitors, Alt+Click, drafts in IndexedDB across reloads, Send, `apply`
+  turning the link into the JSON diff, Review mode, and the missing-manifest setup problem.
 
 CI runs format, lint, typecheck, unit tests with coverage thresholds, and E2E.
 
