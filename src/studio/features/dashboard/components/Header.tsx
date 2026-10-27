@@ -24,7 +24,14 @@ interface HeaderProps {
   canSend?: boolean;
   /** Opens the Send dialog; the Send button renders only when set (static mode). */
   onSend?: () => void;
+  /** The number of edits in the open change link; null or absent when no review is open. */
+  reviewCount?: number | null;
+  /** Leaves Review mode; the "Close review" button renders only while reviewing. */
+  onCloseReview?: () => void;
 }
+
+const reviewingLabel = (n: number) =>
+  n === 1 ? 'Reviewing 1 proposed change' : `Reviewing ${n} proposed changes`;
 
 const SOURCE_HINTS: Record<LocaleSource, string> = {
   content: 'detected from page text',
@@ -45,7 +52,10 @@ export const Header = ({
   onChooseLocale,
   canSend = false,
   onSend,
+  reviewCount = null,
+  onCloseReview,
 }: HeaderProps) => {
+  const isReviewing = reviewCount !== null;
   const mismatch =
     targetLocale?.mismatch && (!locales || locales.includes(targetLocale.mismatch))
       ? targetLocale.mismatch
@@ -145,7 +155,27 @@ export const Header = ({
           </span>
         )}
 
-        {unsentCount > 0 && (
+        {isReviewing && (
+          <span
+            data-testid="review-chip"
+            className="px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] font-semibold text-indigo-200 select-none whitespace-nowrap"
+          >
+            {reviewingLabel(reviewCount)}
+          </span>
+        )}
+
+        {isReviewing && onCloseReview && (
+          <button
+            id="studio-close-review"
+            type="button"
+            onClick={onCloseReview}
+            className="px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
+          >
+            Close review
+          </button>
+        )}
+
+        {!isReviewing && unsentCount > 0 && (
           <span
             data-testid="unsent-counter"
             className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-300 select-none whitespace-nowrap"
@@ -155,7 +185,7 @@ export const Header = ({
           </span>
         )}
 
-        {onSend && (
+        {!isReviewing && onSend && (
           <button
             id="studio-send-button"
             onClick={onSend}

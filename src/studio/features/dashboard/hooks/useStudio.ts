@@ -377,6 +377,8 @@ export const useStudio = () => {
     setReviewFocusKey: reviewMode.setFocusKey,
     openReview: reviewMode.openReview,
     closeReview: reviewMode.closeReview,
+    // A row's language button switches the page language only; the edit target is untouched.
+    selectReviewLocale: setLocaleAndNavigate,
     // Preview mode / auth
     mode,
     needsToken: auth.needsToken,

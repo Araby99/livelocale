@@ -10,6 +10,7 @@ import {
   SetupProblems,
   LocalePicker,
   SendDialog,
+  ReviewPanel,
   FirstRunTips,
   StudioLayout,
   useStudio,
@@ -92,6 +93,12 @@ export const App = () => {
     dismissTips,
     translatorName,
     setTranslatorName,
+    review,
+    reviewError,
+    isReviewLoading,
+    reviewFocusKey,
+    closeReview,
+    selectReviewLocale,
   } = useStudio();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
@@ -104,6 +111,12 @@ export const App = () => {
   useEffect(() => {
     if (selectionCount > 0) setOpenPanel('side');
   }, [selectionCount]);
+
+  // A change link replaces the editor with the Review panel and brings it forward in a drawer.
+  const isReviewing = review !== null || reviewError !== null;
+  useEffect(() => {
+    if (isReviewing) setOpenPanel('side');
+  }, [isReviewing]);
 
   const pickKey = useCallback(
     (key: string) => {
@@ -129,6 +142,8 @@ export const App = () => {
         onChooseLocale={chooseTargetLocale}
         canSend={unsentCount + sentCount > 0}
         onSend={mode === 'static' ? openSend : undefined}
+        reviewCount={review ? review.rows.length : null}
+        onCloseReview={closeReview}
       />
 
       <ChangesPanel
@@ -157,7 +172,7 @@ export const App = () => {
         isWide={isWide}
         openPanel={openPanel}
         onOpenPanelChange={setOpenPanel}
-        sideLabel="Editor"
+        sideLabel={isReviewing ? 'Review' : 'Editor'}
         keys={
           <KeysDirectory
             className={isWide ? undefined : 'w-full'}
@@ -193,26 +208,39 @@ export const App = () => {
           )
         }
         side={
-          <EditorPanel
-            className={isWide ? undefined : 'w-full'}
-            selected={selected}
-            inputValue={inputValue}
-            locale={locale}
-            isLoading={isLoading}
-            isSuccess={isSuccess}
-            error={error}
-            onInputChange={handleInputChange}
-            onLocaleChange={handleLocaleChange}
-            onSave={() => handleSave()}
-            saveWarning={saveWarning}
-            onForceSave={handleForceSave}
-            onDismissWarning={dismissSaveWarning}
-            onClear={handleClearSelection}
-            locales={locales}
-            onAddLocale={handleAddLocale}
-            onRenameLocale={handleRenameLocale}
-            onDeleteLocale={handleDeleteLocale}
-          />
+          isReviewing ? (
+            <ReviewPanel
+              className={isWide ? undefined : 'w-full'}
+              review={review}
+              error={reviewError}
+              isLoading={isReviewLoading}
+              focusKey={reviewFocusKey}
+              onSelectLocale={selectReviewLocale}
+              onClose={closeReview}
+              studioHref={window.location.href}
+            />
+          ) : (
+            <EditorPanel
+              className={isWide ? undefined : 'w-full'}
+              selected={selected}
+              inputValue={inputValue}
+              locale={locale}
+              isLoading={isLoading}
+              isSuccess={isSuccess}
+              error={error}
+              onInputChange={handleInputChange}
+              onLocaleChange={handleLocaleChange}
+              onSave={() => handleSave()}
+              saveWarning={saveWarning}
+              onForceSave={handleForceSave}
+              onDismissWarning={dismissSaveWarning}
+              onClear={handleClearSelection}
+              locales={locales}
+              onAddLocale={handleAddLocale}
+              onRenameLocale={handleRenameLocale}
+              onDeleteLocale={handleDeleteLocale}
+            />
+          )
         }
       />
 

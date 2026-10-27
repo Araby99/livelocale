@@ -69,4 +69,15 @@ describe('SetupProblems', () => {
     expect(banner.querySelectorAll('li')).toHaveLength(2);
     expect(banner.textContent).toContain('The token cannot write.');
   });
+
+  it('SetupProblems uses a custom title', () => {
+    const { rerender } = render(
+      <SetupProblems title="This change link cannot be opened:" problems={['Damaged.']} />
+    );
+    expect(screen.getByRole('alert').textContent).toContain('This change link cannot be opened:');
+    rerender(<SetupProblems problems={['Damaged.']} />);
+    const banner = screen.getByRole('alert');
+    expect(banner.textContent).toContain('Saving will fail until the server setup is fixed:');
+    expect(banner.textContent).not.toContain('This change link cannot be opened:');
+  });
 });

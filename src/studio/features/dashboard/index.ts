@@ -9,6 +9,11 @@ export { SetupProblems } from './components/SetupProblems.jsx';
 export { LocalePicker } from './components/LocalePicker.jsx';
 export { FirstRunTips } from './components/FirstRunTips.jsx';
 export { SendDialog } from './components/SendDialog.jsx';
+export {
+  ReviewPanel,
+  applyCommandFor,
+  APPLY_COMMAND_MAX_CHARS,
+} from './components/ReviewPanel.jsx';
 export { StudioLayout, type StudioPanel } from './components/StudioLayout.jsx';
 export { useStudio } from './hooks/useStudio.js';
 export { useMediaQuery, WIDE_LAYOUT_QUERY } from './hooks/useMediaQuery.js';
