@@ -46,7 +46,7 @@ export const Header = ({
       : null;
 
   return (
-    <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-8 flex items-center justify-between shrink-0 select-none">
+    <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-4 xl:px-8 flex items-center justify-between shrink-0 select-none">
       <div className="flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -68,7 +68,7 @@ export const Header = ({
           <h1 className="text-base font-extrabold tracking-wide font-outfit bg-linear-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
             LiveLocale
           </h1>
-          <p className="text-[10px] text-slate-500 font-medium tracking-wider uppercase mt-0.5">
+          <p className="hidden xl:block text-[10px] text-slate-500 font-medium tracking-wider uppercase mt-0.5">
             Live Visual Translation Studio
           </p>
         </div>
@@ -111,7 +111,7 @@ export const Header = ({
           <span className="text-[10px] text-slate-500 font-medium select-none whitespace-nowrap">
             Coverage
           </span>
-          <div className="w-28 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-16 xl:w-28 h-1.5 bg-slate-800 rounded-full overflow-hidden">
             <div
               className="h-full rounded-full transition-all duration-700 ease-out"
               style={{
@@ -179,7 +179,7 @@ export const Header = ({
           )}
         </button>
 
-        <span className="px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 select-none">
+        <span className="hidden xl:block px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 select-none">
           v{__STUDIO_VERSION__} (BETA)
         </span>
       </div>

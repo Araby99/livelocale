@@ -11,6 +11,8 @@ interface KeysDirectoryProps {
   setFilterPageOnly: (filter: boolean) => void;
   visibleKeys: string[] | null;
   selectKeyDirectly: (key: string) => void;
+  /** Width and flex classes; defaults to the fixed column width. */
+  className?: string;
 }
 
 export const KeysDirectory = ({
@@ -23,9 +25,13 @@ export const KeysDirectory = ({
   setFilterPageOnly,
   visibleKeys,
   selectKeyDirectly,
+  className = 'w-[300px] shrink-0',
 }: KeysDirectoryProps) => {
   return (
-    <div className="w-[300px] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden shrink-0">
+    <div
+      data-testid="keys-directory"
+      className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+    >
       <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
         <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">
           Locale Directory

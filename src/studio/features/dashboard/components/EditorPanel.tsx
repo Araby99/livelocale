@@ -43,6 +43,8 @@ interface EditorPanelProps {
   onAddLocale: (newLocale: string) => Promise<void>;
   onRenameLocale: (oldLocale: string, newLocale: string) => Promise<void>;
   onDeleteLocale: (locale: string) => Promise<void>;
+  /** Width and flex classes; defaults to the fixed column width. */
+  className?: string;
 }
 
 /**
@@ -67,11 +69,15 @@ export const EditorPanel = ({
   onAddLocale,
   onRenameLocale,
   onDeleteLocale,
+  className = 'w-[420px] shrink-0',
 }: EditorPanelProps) => {
   const [isManageOpen, setIsManageOpen] = useState(false);
 
   return (
-    <div className="w-[420px] bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden shrink-0">
+    <div
+      data-testid="editor-panel"
+      className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+    >
       {/* Panel Header */}
       <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
         <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">

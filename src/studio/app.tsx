@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Header,
   KeysDirectory,
@@ -9,7 +9,11 @@ import {
   TokenModal,
   SetupProblems,
   LocalePicker,
+  StudioLayout,
   useStudio,
+  useMediaQuery,
+  WIDE_LAYOUT_QUERY,
+  type StudioPanel,
 } from './features/dashboard/index.js';
 import { isAppPreviewBlocked } from './runtime.js';
 
@@ -74,6 +78,23 @@ export const App = () => {
     cancelLocalePick,
   } = useStudio();
 
+  const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
+  const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
+
+  // A selected key brings the editor forward when it lives in a drawer.
+  const selectedKey = selected?.key ?? null;
+  useEffect(() => {
+    if (selectedKey !== null) setOpenPanel('side');
+  }, [selectedKey]);
+
+  const pickKey = useCallback(
+    (key: string) => {
+      selectKeyDirectly(key);
+      setOpenPanel('side');
+    },
+    [selectKeyDirectly]
+  );
+
   return (
     <div className="w-screen h-screen flex flex-col bg-[#0b0f19] text-slate-100 font-sans select-none overflow-hidden antialiased">
       <TokenModal isOpen={needsToken} onSubmit={submitToken} />
@@ -107,61 +128,69 @@ export const App = () => {
 
       <SetupProblems problems={setupProblems} />
 
-      {/* Main Studio Viewport (Upgraded to 3-column layout) */}
-      <main className="flex-1 flex gap-6 p-6 overflow-hidden min-h-0 bg-linear-to-b from-[#0b0f19] to-[#070a10]">
-        {/* Column 1: Searchable Keys Directory */}
-        <KeysDirectory
-          filteredKeys={filteredKeys}
-          selected={selected}
-          localeData={localeData}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          filterPageOnly={filterPageOnly}
-          setFilterPageOnly={setFilterPageOnly}
-          visibleKeys={visibleKeys}
-          selectKeyDirectly={selectKeyDirectly}
-        />
-
-        {/* Column 2: App Preview Frame. A share-folder Studio without a usable manifest
-            has no app to point at, so it shows only the setup problem above. */}
-        {isAppPreviewBlocked() ? (
-          <section
-            data-testid="app-preview-blocked"
-            className="flex-1 flex items-center justify-center h-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-sm text-slate-400"
-          >
-            The app preview is unavailable until the setup problem above is fixed.
-          </section>
-        ) : (
-          <IframeViewer
-            iframeRef={iframeRef}
-            appOrigin={appOrigin}
-            appUrl={appUrl}
-            connectionStatus={connectionStatus}
-            currentPath={currentPath}
+      {/* Main Studio Viewport: three columns from 1280px, drawers below. */}
+      <StudioLayout
+        isWide={isWide}
+        openPanel={openPanel}
+        onOpenPanelChange={setOpenPanel}
+        sideLabel="Editor"
+        keys={
+          <KeysDirectory
+            className={isWide ? undefined : 'w-full'}
+            filteredKeys={filteredKeys}
+            selected={selected}
+            localeData={localeData}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filterPageOnly={filterPageOnly}
+            setFilterPageOnly={setFilterPageOnly}
+            visibleKeys={visibleKeys}
+            selectKeyDirectly={pickKey}
           />
-        )}
-
-        {/* Column 3: Value Editing Panel */}
-        <EditorPanel
-          selected={selected}
-          inputValue={inputValue}
-          locale={locale}
-          isLoading={isLoading}
-          isSuccess={isSuccess}
-          error={error}
-          onInputChange={handleInputChange}
-          onLocaleChange={handleLocaleChange}
-          onSave={() => handleSave()}
-          saveWarning={saveWarning}
-          onForceSave={handleForceSave}
-          onDismissWarning={dismissSaveWarning}
-          onClear={handleClearSelection}
-          locales={locales}
-          onAddLocale={handleAddLocale}
-          onRenameLocale={handleRenameLocale}
-          onDeleteLocale={handleDeleteLocale}
-        />
-      </main>
+        }
+        viewer={
+          /* A share-folder Studio without a usable manifest has no app to point at,
+             so it shows only the setup problem above. */
+          isAppPreviewBlocked() ? (
+            <section
+              data-testid="app-preview-blocked"
+              className="flex-1 flex items-center justify-center h-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-sm text-slate-400"
+            >
+              The app preview is unavailable until the setup problem above is fixed.
+            </section>
+          ) : (
+            <IframeViewer
+              iframeRef={iframeRef}
+              appOrigin={appOrigin}
+              appUrl={appUrl}
+              connectionStatus={connectionStatus}
+              currentPath={currentPath}
+            />
+          )
+        }
+        side={
+          <EditorPanel
+            className={isWide ? undefined : 'w-full'}
+            selected={selected}
+            inputValue={inputValue}
+            locale={locale}
+            isLoading={isLoading}
+            isSuccess={isSuccess}
+            error={error}
+            onInputChange={handleInputChange}
+            onLocaleChange={handleLocaleChange}
+            onSave={() => handleSave()}
+            saveWarning={saveWarning}
+            onForceSave={handleForceSave}
+            onDismissWarning={dismissSaveWarning}
+            onClear={handleClearSelection}
+            locales={locales}
+            onAddLocale={handleAddLocale}
+            onRenameLocale={handleRenameLocale}
+            onDeleteLocale={handleDeleteLocale}
+          />
+        }
+      />
 
       {/* Custom Confirmation Modal (replacing window.confirm) */}
       <ConfirmModal
