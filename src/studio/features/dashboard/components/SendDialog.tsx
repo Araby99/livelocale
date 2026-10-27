@@ -55,10 +55,13 @@ export const SendDialog = ({
   const [actionError, setActionError] = useState<string | null>(null);
   const encodeSeq = useRef(0);
 
-  // A fresh dialog each time it opens.
+  // A fresh dialog each time it opens: a note or "include sent" from an earlier batch
+  // must not ride along into the next link.
   useEffect(() => {
     if (!isOpen) return;
     setName(readPref('translator-name') ?? '');
+    setNote('');
+    setIncludeSent(false);
     setOutcome(null);
     setActionError(null);
   }, [isOpen]);

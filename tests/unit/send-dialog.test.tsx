@@ -110,6 +110,30 @@ describe('SendDialog', () => {
     expect(writePref).toHaveBeenCalledWith('translator-name', 'Sara');
   });
 
+  it('starts each opening with an empty note and without already-sent changes', async () => {
+    const drafts = [draft(1), draft(2, 'sent')];
+    const props = {
+      onClose: vi.fn(),
+      drafts,
+      manifest: MANIFEST,
+      studioHref: STUDIO_URL,
+      onMarkSent: vi.fn(async () => {}),
+    };
+    const { rerender } = render(<SendDialog isOpen {...props} />);
+    await linkField();
+    fireEvent.change(document.getElementById('studio-send-note')!, {
+      target: { value: 'these fix the checkout page' },
+    });
+    fireEvent.click(screen.getByLabelText('Also include 1 change already sent'));
+    await waitFor(() => expect(encode.mock.lastCall?.[0].edits).toHaveLength(2));
+
+    rerender(<SendDialog isOpen={false} {...props} />);
+    rerender(<SendDialog isOpen {...props} />);
+    await waitFor(() => expect(encode.mock.lastCall?.[0].edits).toHaveLength(1));
+    expect(encode.mock.lastCall?.[0].note ?? '').toBe('');
+    expect((document.getElementById('studio-send-note') as HTMLTextAreaElement).value).toBe('');
+  });
+
   it('offers only Download above 6000 characters', async () => {
     encode.mockResolvedValue('lc1.' + 'A'.repeat(6000));
     renderDialog();
