@@ -33,6 +33,7 @@ export const useStudio = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
+  const [isSendOpen, setIsSendOpen] = useState<boolean>(false);
   const [isUndoing, setIsUndoing] = useState<boolean>(false);
   const [mode, setMode] = useState<LiveLocaleMode | null>(null);
   const [setupProblems, setSetupProblems] = useState<string[]>(runtimeProblems);
@@ -315,6 +316,9 @@ export const useStudio = () => {
     unsentCount: drafts.unsentCount,
     sentCount: drafts.sentCount,
     markDraftsSent: drafts.markSent,
+    isSendOpen,
+    openSend: () => setIsSendOpen(true),
+    closeSend: () => setIsSendOpen(false),
     undoDraft,
     downloadBackup,
     restoreBackupFile,

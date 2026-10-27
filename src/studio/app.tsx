@@ -9,6 +9,7 @@ import {
   TokenModal,
   SetupProblems,
   LocalePicker,
+  SendDialog,
   StudioLayout,
   useStudio,
   useMediaQuery,
@@ -76,6 +77,12 @@ export const App = () => {
     downloadBackup,
     restoreBackupFile,
     unsentCount,
+    sentCount,
+    markDraftsSent,
+    staticManifest,
+    isSendOpen,
+    openSend,
+    closeSend,
     targetLocale,
     localePickerCandidates,
     chooseTargetLocale,
@@ -115,6 +122,8 @@ export const App = () => {
         targetLocale={targetLocale}
         locales={locales}
         onChooseLocale={chooseTargetLocale}
+        canSend={unsentCount + sentCount > 0}
+        onSend={mode === 'static' ? openSend : undefined}
       />
 
       <ChangesPanel
@@ -207,6 +216,15 @@ export const App = () => {
         showConfirmModal={showConfirmModal}
         onConfirm={confirmDiscard}
         onCancel={cancelDiscard}
+      />
+
+      <SendDialog
+        isOpen={mode === 'static' && isSendOpen}
+        onClose={closeSend}
+        drafts={drafts}
+        manifest={staticManifest}
+        studioHref={window.location.href}
+        onMarkSent={markDraftsSent}
       />
 
       <LocalePicker

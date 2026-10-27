@@ -20,6 +20,10 @@ interface HeaderProps {
   /** The listed locales; a mismatch is offered only for one of them. */
   locales?: string[];
   onChooseLocale?: (locale: string) => void;
+  /** Whether there is anything to send; the Send button is disabled otherwise. */
+  canSend?: boolean;
+  /** Opens the Send dialog; the Send button renders only when set (static mode). */
+  onSend?: () => void;
 }
 
 const SOURCE_HINTS: Record<LocaleSource, string> = {
@@ -39,6 +43,8 @@ export const Header = ({
   targetLocale = null,
   locales,
   onChooseLocale,
+  canSend = false,
+  onSend,
 }: HeaderProps) => {
   const mismatch =
     targetLocale?.mismatch && (!locales || locales.includes(targetLocale.mismatch))
@@ -147,6 +153,18 @@ export const Header = ({
           >
             {unsentLabel(unsentCount)}
           </span>
+        )}
+
+        {onSend && (
+          <button
+            id="studio-send-button"
+            onClick={onSend}
+            disabled={!canSend}
+            className="px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-indigo-600 border-indigo-500 text-indigo-50 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
+            title="Turn your changes into a link or file for your developer"
+          >
+            Send to developer
+          </button>
         )}
 
         <button
