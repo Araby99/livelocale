@@ -4,6 +4,10 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useKeySearch } from '../../src/studio/features/dashboard/hooks/useKeySearch.js';
 import { useSelection } from '../../src/studio/features/dashboard/hooks/useSelection.js';
 import { useConnection } from '../../src/studio/features/dashboard/hooks/useConnection.js';
+import { MAX_VISIBLE_TEXTS } from '../../src/client/iframe-bridge.js';
+import { resetStudioRuntime, setStudioRuntime } from '../../src/studio/runtime.js';
+import type { StaticTransport } from '../../src/studio/transport/static.js';
+import { MANIFEST } from './helpers/share-fixtures.js';
 
 // jsdom's default location is http://localhost:3000, which is also the default
 // APP_ORIGIN, so postMessage origin checks line up without extra configuration.
@@ -296,5 +300,60 @@ describe('useConnection', () => {
 
     post({ source: 'livelocale-client', type: 'VISIBLE_KEYS_CHANGED', payload: ['home.title'] });
     expect(result.current.visibleKeys).toEqual(['home.title']);
+  });
+
+  it('forwards VISIBLE_TEXTS_CHANGED from the app origin only', () => {
+    const onVisibleTexts = vi.fn();
+    renderHook(() => useConnection({ ...makeHandlers(), onVisibleTexts }));
+    const texts = [{ key: 'home.title', text: 'مرحبا' }];
+
+    post(
+      { source: 'livelocale-client', type: 'VISIBLE_TEXTS_CHANGED', payload: texts },
+      'https://evil.example.com'
+    );
+    post({ source: 'livelocale-client', type: 'VISIBLE_TEXTS_CHANGED', payload: { 0: texts[0] } });
+    expect(onVisibleTexts).not.toHaveBeenCalled();
+
+    post({ source: 'livelocale-client', type: 'VISIBLE_TEXTS_CHANGED', payload: texts });
+    expect(onVisibleTexts).toHaveBeenCalledTimes(1);
+    expect(onVisibleTexts).toHaveBeenCalledWith(texts);
+  });
+
+  it('caps VISIBLE_TEXTS_CHANGED at MAX_VISIBLE_TEXTS valid entries', () => {
+    const onVisibleTexts = vi.fn();
+    renderHook(() => useConnection({ ...makeHandlers(), onVisibleTexts }));
+    const many = Array.from({ length: MAX_VISIBLE_TEXTS + 5 }, (_, i) => ({
+      key: `k${i}`,
+      text: `t${i}`,
+    }));
+    post({
+      source: 'livelocale-client',
+      type: 'VISIBLE_TEXTS_CHANGED',
+      payload: [null, { key: 1, text: 'x' }, ...many],
+    });
+    const forwarded = onVisibleTexts.mock.calls[0]?.[0] as unknown[];
+    expect(forwarded).toHaveLength(MAX_VISIBLE_TEXTS);
+    expect(forwarded[0]).toEqual({ key: 'k0', text: 't0' });
+  });
+
+  it('reads the URL locale against the static manifest', () => {
+    setStudioRuntime({
+      kind: 'static',
+      appOrigin: APP_ORIGIN,
+      appUrl: `${APP_ORIGIN}/repo/`,
+      manifest: { ...MANIFEST, basePath: '/repo/', locales: ['ar', 'en', 'pt-BR'] },
+      manifestText: '',
+      transport: {} as StaticTransport,
+    });
+    try {
+      const handlers = makeHandlers();
+      renderHook(() => useConnection(handlers));
+      post({ source: 'livelocale-client', type: 'READY', payload: { url: '/repo/pt-br/x' } });
+      expect(handlers.onLocaleDetected).toHaveBeenCalledWith('pt-BR');
+      post({ source: 'livelocale-client', type: 'READY', payload: { url: '/repo/fr/x' } });
+      expect(handlers.onLocaleDetected).toHaveBeenCalledTimes(1);
+    } finally {
+      resetStudioRuntime();
+    }
   });
 });

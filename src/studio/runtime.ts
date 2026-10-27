@@ -66,6 +66,18 @@ export function getStaticTransport(): StaticTransport | null {
   return runtime.kind === 'static' ? runtime.transport : null;
 }
 
+/**
+ * Options for `localeFromUrl`: `{}` on a server stack (today's heuristic).
+ * Static, the manifest's locales and base path; a relative build
+ * (`basePath: null`) falls back to the app URL's path.
+ */
+export function urlLocaleOptions(): { basePath?: string; locales?: readonly string[] } {
+  const runtime = getStudioRuntime();
+  if (runtime.kind !== 'static') return {};
+  const { basePath, locales } = runtime.manifest;
+  return { basePath: basePath ?? new URL(runtime.appUrl).pathname, locales };
+}
+
 /** True when getStudioRuntime() is a server runtime whose problems include STATIC_MANIFEST_MISSING. */
 export function isAppPreviewBlocked(): boolean {
   const runtime = getStudioRuntime();
