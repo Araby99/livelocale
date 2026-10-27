@@ -36,3 +36,44 @@ export function draftScope(manifest: Pick<ShareManifest, 'repo'>, appUrl: string
   if (manifest.repo) return manifest.repo;
   return 'path:' + new URL(appUrl).pathname;
 }
+
+/**
+ * The repository-relative file that holds `key` for `locale`: one file per
+ * locale (`flat`) or one file per top-level group (`namespaced`). A
+ * `localesPath` of '.' means the locale files sit at the repository root.
+ */
+export function localeFilePath(
+  m: Pick<ShareManifest, 'localesPath' | 'layout'>,
+  locale: string,
+  key: string
+): string {
+  const file = m.layout === 'namespaced' ? `${locale}/${key.split('.')[0]}.json` : `${locale}.json`;
+  return m.localesPath === '.' ? file : `${m.localesPath}/${file}`;
+}
+
+const byCodeUnits = (a: string, b: string): number => (a < b ? -1 : a > b ? 1 : 0);
+
+/**
+ * A read-only, line-based diff of `drafts`, grouped by locale file and sorted
+ * by file then key. Values are JSON strings, so each one stays on one line.
+ */
+export function buildDraftDiff(
+  drafts: readonly Draft[],
+  m: Pick<ShareManifest, 'localesPath' | 'layout'>
+): string {
+  const rows = drafts
+    .map((d) => ({ path: localeFilePath(m, d.locale, d.key), draft: d }))
+    .sort((a, b) => byCodeUnits(a.path, b.path) || byCodeUnits(a.draft.key, b.draft.key));
+  const lines: string[] = [];
+  let currentPath: string | null = null;
+  for (const { path, draft } of rows) {
+    if (path !== currentPath) {
+      lines.push(`--- a/${path}`, `+++ b/${path}`);
+      currentPath = path;
+    }
+    lines.push(`@@ ${draft.key} @@`);
+    if (draft.from !== null) lines.push(`-${JSON.stringify(draft.from)}`);
+    lines.push(`+${JSON.stringify(draft.to)}`);
+  }
+  return lines.join('\n');
+}

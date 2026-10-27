@@ -3,9 +3,9 @@ import { flattenKeys, lookupKey, setNestedProperty } from '../../core/json-path.
 import { validateEdit } from '../../core/save-rules.js';
 import type { ShareManifest } from '../../core/share-manifest.js';
 import { isSafeLocaleSegment, isValidLocaleFormat } from '../../core/validate.js';
-import { ValidationError, type ServerInfo, type StudioTransport } from '../api.js';
+import { ValidationError, type GitState, type ServerInfo, type StudioTransport } from '../api.js';
 import type { DraftStore } from './draft-store.js';
-import { draftScope, type Draft, type DraftId } from './drafts.js';
+import { buildDraftDiff, draftScope, localeFilePath, type Draft, type DraftId } from './drafts.js';
 
 /** Dispatched on the transport's `events` target whenever drafts change. */
 export const DRAFTS_CHANGED_EVENT = 'livelocale:drafts-changed';
@@ -104,8 +104,6 @@ export async function createStaticTransport(
     });
     return loaded;
   }
-
-  const notImplemented = (): Promise<never> => Promise.reject(new Error('not implemented'));
 
   return {
     manifest,
@@ -238,7 +236,19 @@ export async function createStaticTransport(
       return { success: true };
     },
 
-    fetchGitState: notImplemented,
+    async fetchGitState(): Promise<GitState> {
+      const drafts = await store.list(scope);
+      const paths = new Set(drafts.map((d) => localeFilePath(manifest, d.locale, d.key)));
+      return {
+        available: true,
+        isRepo: true,
+        branch: manifest.branch,
+        mode: 'static',
+        changes: [...paths].sort().map((path) => ({ path, status: 'modified' })),
+        diff: buildDraftDiff(drafts, manifest),
+        pullRequestUrl: null,
+      };
+    },
 
     addLocaleRequest: () => Promise.reject(new Error(LOCALE_ACTIONS_UNSUPPORTED)),
     renameLocaleRequest: () => Promise.reject(new Error(LOCALE_ACTIONS_UNSUPPORTED)),

@@ -312,3 +312,33 @@ describe('static transport saves', () => {
     expect(await t.discardDraft('ar', 'home.unknown')).toBeUndefined();
   });
 });
+
+describe('static transport git state', () => {
+  it('reports drafts as static git state', async () => {
+    const { t, store } = await make();
+    await store.put(draft(t.scope));
+    await store.put(draft(t.scope, { key: 'home.new', from: null, to: 'جديد', status: 'sent' }));
+    expect(await t.fetchGitState()).toEqual({
+      available: true,
+      isRepo: true,
+      branch: 'main',
+      mode: 'static',
+      changes: [{ path: 'src/locales/ar.json', status: 'modified' }],
+      diff: [
+        '--- a/src/locales/ar.json',
+        '+++ b/src/locales/ar.json',
+        '@@ home.new @@',
+        '+"جديد"',
+        '@@ home.title @@',
+        '-"مرحبا"',
+        '+"أهلاً"',
+      ].join('\n'),
+      pullRequestUrl: null,
+    });
+  });
+
+  it('reports a clean state without drafts', async () => {
+    const { t } = await make();
+    expect(await t.fetchGitState()).toMatchObject({ changes: [], diff: '' });
+  });
+});
