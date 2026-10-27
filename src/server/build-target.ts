@@ -21,11 +21,13 @@ const VITE_CONFIG_FILES = [
 export type BuildTarget =
   | { kind: 'next'; staticExport: boolean; base: string | null } // base = Next basePath
   | { kind: 'cra'; base: string | null } // from package.json homepage ('./' for '.')
-  | { kind: 'vite'; base: null }
+  | { kind: 'vite'; base: string | null } // from vite.config base (site path or './')
   | { kind: 'other'; base: null };
 
 const OUTPUT_EXPORT = /\boutput\s*:\s*['"`]export['"`]/;
 const BASE_PATH = /\bbasePath\s*:\s*['"`](\/[^'"`]*)['"`]/;
+/** Vite `base`: a site path ('/repo/') or a relative base ('./', ''). Full URLs are not a site path. */
+const VITE_BASE = /\bbase\s*:\s*['"`](\/[^'"`]*|\.\/?|)['"`]/;
 const EXPORTS_POST =
   /export\s+(?:const|let|var|async\s+function|function)\s+POST\b|export\s*\{[^}]*\bPOST\b[^}]*\}/;
 
@@ -104,7 +106,9 @@ export function detectBuildTarget(projectDir: string): BuildTarget {
   if (hasDependency(pkg, 'react-scripts')) return { kind: 'cra', base: craBase(pkg.homepage) };
 
   if (hasDependency(pkg, 'vite') || firstExisting(projectDir, VITE_CONFIG_FILES)) {
-    return { kind: 'vite', base: null };
+    const viteConfig = firstExisting(projectDir, VITE_CONFIG_FILES);
+    const source = stripComments((viteConfig && readText(viteConfig)) ?? '');
+    return { kind: 'vite', base: VITE_BASE.exec(source)?.[1] ?? null };
   }
 
   return { kind: 'other', base: null };

@@ -85,6 +85,16 @@ describe('detectBuildTarget', () => {
     });
   });
 
+  it('reads the Vite base from the config file', () => {
+    const config = (body: string) =>
+      detectBuildTarget(write('vite.config.ts', `export default defineConfig({\n${body}\n});\n`));
+    expect(config("plugins: [react()], base: '/repo/'")).toEqual({ kind: 'vite', base: '/repo/' });
+    expect(config('base: "./"')).toEqual({ kind: 'vite', base: './' });
+    expect(config("// base: '/old/'")).toEqual({ kind: 'vite', base: null });
+    expect(config("base: 'https://cdn.example/app/'")).toEqual({ kind: 'vite', base: null });
+    expect(config("shareBase: '/x/', database: '/y/'")).toEqual({ kind: 'vite', base: null });
+  });
+
   it('falls back to other', () => {
     expect(detectBuildTarget(pkg({ dependencies: { react: '^18' } }))).toEqual({
       kind: 'other',

@@ -68,6 +68,14 @@ describe('packOutput', () => {
     expect(r.shareUrlPath).toBe('/repo/livelocale/index.html');
   });
 
+  it('reads the base from a Vite config when --base is not given', async () => {
+    fs.writeFileSync(file('vite.config.ts'), "export default defineConfig({ base: '/repo/' });\n");
+    const r = await pack();
+    expect(read('out/index.html')).toContain('<script src="/repo/livelocale/flag.js"></script>');
+    expect(r.manifest.basePath).toBe('/repo/');
+    expect(r.shareUrlPath).toBe('/repo/livelocale/index.html');
+  });
+
   it('uses per-file relative paths for a relative base', async () => {
     const r = await packOutput({
       projectDir,
