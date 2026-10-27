@@ -2,6 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DOMInterceptor } from '../../src/client/dom-interceptor.js';
 import { encodeKey } from '../../src/client/watermark.js';
+import { MAX_VISIBLE_TEXTS, MAX_VISIBLE_TEXT_LENGTH } from '../../src/client/iframe-bridge.js';
 
 describe('DOMInterceptor', () => {
   let onElementSelected: ReturnType<typeof vi.fn>;
@@ -383,5 +384,40 @@ describe('DOMInterceptor', () => {
     expect(mockGetData).toHaveBeenCalledWith('text/plain');
     expect(mockPreventDefault).toHaveBeenCalled();
     expect(input.value).toBe('Existing Pasted text');
+  });
+
+  describe('getVisibleTexts', () => {
+    it('returns one entry per key, in document order, with the clean text shown now', () => {
+      document.body.innerHTML = `<h1>${encodeKey('Hello', 'home.title')}</h1><p>${encodeKey('Bye', 'home.bye')}</p><span>${encodeKey('Hello again', 'home.title')}</span>`;
+      interceptor.init();
+      expect(interceptor.getVisibleTexts()).toEqual([
+        { key: 'home.title', text: 'Hello' },
+        { key: 'home.bye', text: 'Bye' },
+      ]);
+    });
+
+    it('reflects text replaced after the first scan (in-app language switch)', () => {
+      document.body.innerHTML = `<h1>${encodeKey('Hello', 'home.title')}</h1>`;
+      interceptor.init();
+      document.querySelector('h1')!.firstChild!.nodeValue = encodeKey('مرحبا', 'home.title');
+      expect(interceptor.getVisibleTexts()).toEqual([{ key: 'home.title', text: 'مرحبا' }]);
+    });
+
+    it('skips keyed elements without a matching watermark or with blank text', () => {
+      document.body.innerHTML = `<div data-i18n-key="legacy.key">Plain</div><p>${encodeKey('   ', 'home.blank')}</p>`;
+      interceptor.init();
+      expect(interceptor.getVisibleTexts()).toEqual([]);
+    });
+
+    it('caps the count and the length', () => {
+      document.body.innerHTML = Array.from(
+        { length: 150 },
+        (_, i) => `<p>${encodeKey('x'.repeat(500), `k.n${i}`)}</p>`
+      ).join('');
+      interceptor.init();
+      const texts = interceptor.getVisibleTexts();
+      expect(texts).toHaveLength(MAX_VISIBLE_TEXTS);
+      expect(texts[0]!.text).toHaveLength(MAX_VISIBLE_TEXT_LENGTH);
+    });
   });
 });

@@ -32,7 +32,8 @@ The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and
 ┌────────────────────────── Studio (localhost:3010) ───────────────────────────┐
 │  React UI ── fetch ──▶ {appOrigin}/api/livelocale  (GET list / POST)  │
 │      ▲                                                                       │
-│      │ postMessage (ELEMENT_SELECTED, READY, VISIBLE_KEYS_CHANGED)           │
+│      │ postMessage (ELEMENT_SELECTED, READY, VISIBLE_KEYS_CHANGED,           │
+│      │              VISIBLE_TEXTS_CHANGED)                                   │
 │      ▼                                                                       │
 │  <iframe src="{appOrigin}?livelocale-origin=http://localhost:3010">           │
 │    ┌───────────────── Your app (localhost:3000) ─────────────────┐           │
@@ -190,7 +191,9 @@ in this order: a readable same-origin parent (a Studio served from the same host
 then `http://localhost:3010`. `APPLY_PREVIEW` swaps the visible text after the
 watermark and remembers the original; `CLEAR_SELECTION` restores it; `COMMIT_PREVIEW` applies a
 saved value and forgets the original so it stays. Re-applying an unchanged value is a no-op, so
-the Studio can resend saved values without triggering mutation loops.
+the Studio can resend saved values without triggering mutation loops. Right after each
+`VISIBLE_KEYS_CHANGED`, the client reports up to 100 visible key/text pairs
+(`VISIBLE_TEXTS_CHANGED`) so the Studio can infer the page locale before the first click.
 
 ### 8. Studio (`src/studio`)
 

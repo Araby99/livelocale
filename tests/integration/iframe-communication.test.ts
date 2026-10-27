@@ -1,6 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { IframeBridge } from '../../src/client/iframe-bridge.js';
+import {
+  IframeBridge,
+  MAX_VISIBLE_TEXTS,
+  MAX_VISIBLE_TEXT_LENGTH,
+} from '../../src/client/iframe-bridge.js';
 
 describe('IframeBridge', () => {
   const ALLOWED_ORIGIN = 'http://localhost:3010';
@@ -106,5 +110,38 @@ describe('IframeBridge', () => {
 
     expect(callback).not.toHaveBeenCalled();
     cleanup();
+  });
+
+  it('sanitises VISIBLE_TEXTS_CHANGED payloads', () => {
+    bridge.sendToParent('VISIBLE_TEXTS_CHANGED', [
+      { key: 'home.title', text: 'Hello' },
+      { key: 'bad key!', text: 'x' },
+      { key: 'home.n', text: 42 },
+      { key: 'home.long', text: 'y'.repeat(MAX_VISIBLE_TEXT_LENGTH + 50) },
+      'junk',
+    ]);
+    expect(window.parent.postMessage).toHaveBeenCalledWith(
+      {
+        source: 'livelocale-client',
+        type: 'VISIBLE_TEXTS_CHANGED',
+        payload: [
+          { key: 'home.title', text: 'Hello' },
+          { key: 'home.long', text: 'y'.repeat(MAX_VISIBLE_TEXT_LENGTH) },
+        ],
+      },
+      ALLOWED_ORIGIN
+    );
+  });
+
+  it('caps VISIBLE_TEXTS_CHANGED and drops non-array payloads', () => {
+    bridge.sendToParent('VISIBLE_TEXTS_CHANGED', 'nope');
+    expect(window.parent.postMessage).not.toHaveBeenCalled();
+    bridge.sendToParent(
+      'VISIBLE_TEXTS_CHANGED',
+      Array.from({ length: 150 }, (_, i) => ({ key: `k.n${i}`, text: 't' }))
+    );
+    expect((window.parent.postMessage as any).mock.calls[0][0].payload).toHaveLength(
+      MAX_VISIBLE_TEXTS
+    );
   });
 });

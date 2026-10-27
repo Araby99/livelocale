@@ -107,4 +107,26 @@ describe('client inside a same-origin Studio', () => {
       'https://studio.example.com'
     );
   });
+
+  it('reports visible keys and then visible texts after the debounce', async () => {
+    vi.useFakeTimers();
+    const parent = studioParent();
+    setParent(parent);
+    runFlag();
+    await bootClient();
+    vi.advanceTimersByTime(200);
+    expect(parent.postMessage.mock.calls.map(([m]) => m.type)).toEqual([
+      'READY',
+      'VISIBLE_KEYS_CHANGED',
+      'VISIBLE_TEXTS_CHANGED',
+    ]);
+    expect(parent.postMessage).toHaveBeenLastCalledWith(
+      {
+        source: 'livelocale-client',
+        type: 'VISIBLE_TEXTS_CHANGED',
+        payload: [{ key: 'home.title', text: 'Hello' }],
+      },
+      OWN
+    );
+  });
 });

@@ -1,4 +1,9 @@
-export type ClientMessageType = 'ELEMENT_SELECTED' | 'READY' | 'ERROR' | 'VISIBLE_KEYS_CHANGED';
+export type ClientMessageType =
+  | 'ELEMENT_SELECTED'
+  | 'READY'
+  | 'ERROR'
+  | 'VISIBLE_KEYS_CHANGED'
+  | 'VISIBLE_TEXTS_CHANGED';
 export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION';
 
 /** Where `livelocale studio` runs unless the Studio says otherwise. */
@@ -72,6 +77,20 @@ export function resolveStudioOrigin(
   return remembered ?? DEFAULT_STUDIO_ORIGIN;
 }
 
+/** A key on the page with the text it shows now; the Studio infers the page locale from these. */
+export interface VisibleText {
+  key: string;
+  text: string;
+}
+
+/** Most visible key/text pairs one VISIBLE_TEXTS_CHANGED message carries. */
+export const MAX_VISIBLE_TEXTS = 100;
+
+/** Longest text, in UTF-16 code units, one visible key/text pair carries. */
+export const MAX_VISIBLE_TEXT_LENGTH = 200;
+
+const KEY_PATTERN = /^[a-zA-Z0-9._-]+$/;
+
 export interface TranslationPayload {
   key: string;
   fallbackValue: string;
@@ -117,6 +136,21 @@ export class IframeBridge {
       );
       // Replace the payload with the sanitized array
       payload = validKeys;
+    }
+
+    if (type === 'VISIBLE_TEXTS_CHANGED') {
+      if (!Array.isArray(payload)) return;
+      const texts: VisibleText[] = [];
+      for (const entry of payload as unknown[]) {
+        if (texts.length >= MAX_VISIBLE_TEXTS) break;
+        if (!entry || typeof entry !== 'object') continue;
+        const { key, text } = entry as { key?: unknown; text?: unknown };
+        if (typeof key !== 'string' || !KEY_PATTERN.test(key) || typeof text !== 'string') {
+          continue;
+        }
+        texts.push({ key, text: text.slice(0, MAX_VISIBLE_TEXT_LENGTH) });
+      }
+      payload = texts;
     }
 
     const message = {

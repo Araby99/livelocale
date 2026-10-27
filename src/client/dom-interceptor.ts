@@ -6,6 +6,7 @@ import {
   WATERMARK_DELIMITER,
 } from './watermark.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
+import { MAX_VISIBLE_TEXTS, MAX_VISIBLE_TEXT_LENGTH, type VisibleText } from './iframe-bridge.js';
 
 // Debounce helper: delays executing fn until after wait ms have elapsed
 // since the last call. Returns a cancel function.
@@ -78,6 +79,36 @@ export class DOMInterceptor {
       if (key) keys.add(key);
     });
     return Array.from(keys);
+  }
+
+  /**
+   * Returns one `{ key, text }` per translation key on the page, in document
+   * order, with the text it shows now (watermark removed, trimmed, cut to
+   * `MAX_VISIBLE_TEXT_LENGTH`). The first element carrying a key wins; its
+   * text is the first descendant text node whose watermark names that key.
+   * Elements without such a node, and blank texts, are skipped. At most
+   * `limit` entries are returned.
+   */
+  getVisibleTexts(limit: number = MAX_VISIBLE_TEXTS): VisibleText[] {
+    const texts: VisibleText[] = [];
+    const seen = new Set<string>();
+    const elements = document.querySelectorAll<HTMLElement>('[data-i18n-key]');
+    for (const el of elements) {
+      if (texts.length >= limit) break;
+      const key = el.getAttribute('data-i18n-key');
+      if (!key || seen.has(key)) continue;
+      seen.add(key);
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+      let node: Text | null;
+      while ((node = walker.nextNode() as Text | null) !== null) {
+        const decoded = decodeKey(node.nodeValue ?? '');
+        if (decoded?.key !== key) continue;
+        const text = decoded.cleanText.trim().slice(0, MAX_VISIBLE_TEXT_LENGTH);
+        if (text) texts.push({ key, text });
+        break;
+      }
+    }
+    return texts;
   }
 
   /**

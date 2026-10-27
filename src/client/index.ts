@@ -11,6 +11,7 @@ export {
   type TranslationPayload,
   type ClientMessageType,
   type StudioMessageType,
+  type VisibleText,
 } from './iframe-bridge.js';
 export {
   encodeKey,
@@ -109,6 +110,7 @@ if (
     },
     (keys) => {
       bridge.sendToParent('VISIBLE_KEYS_CHANGED', keys);
+      bridge.sendToParent('VISIBLE_TEXTS_CHANGED', interceptor.getVisibleTexts());
     }
   );
 
