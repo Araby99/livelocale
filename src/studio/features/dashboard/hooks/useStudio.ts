@@ -16,9 +16,7 @@ import { useUnsentGuard } from './useUnsentGuard.js';
 import { valuesToReapply } from './reapply.js';
 import { useTargetLocale } from './useTargetLocale.js';
 import type { VisibleText } from '../../../../client/iframe-bridge.js';
-import { lookupKey } from '../../../../core/json-path.js';
-import type { Draft } from '../../../transport/drafts.js';
-import { createBackup, restoreBackup } from '../../../share/backup.js';
+import { createDraftActions } from './draftActions.js';
 import { downloadText, readPref } from '../../../share/browser.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
@@ -224,42 +222,19 @@ export const useStudio = () => {
     }
   };
 
-  // Undo drops the draft and shows the built value again (or the draft's `from`
-  // when the build no longer has a text there).
-  const undoDraft = async (d: Draft) => {
-    if (!staticTransport) return;
-    setIsUndoing(true);
-    setError(null);
-    try {
-      await drafts.discard(d);
-      const found = lookupKey(await staticTransport.readBuiltLocale(d.locale), d.key);
-      const value = found.state === 'string' ? found.value : (d.from ?? '');
-      if (d.locale === locale) {
-        updateLocaleDataCache(d.key, value);
-        sendToIframe('COMMIT_PREVIEW', { key: d.key, value });
-      }
-    } catch (err: any) {
-      setError(err.message || 'Undo failed.');
-    } finally {
-      setIsUndoing(false);
-    }
-  };
-
-  const downloadBackup = async () => {
-    if (!staticTransport) return;
-    const backup = await createBackup({
-      drafts: drafts.drafts,
-      manifest: staticTransport.manifest,
-      studioHref: window.location.href,
-      by: readPref('translator-name') ?? undefined,
-    });
-    downloadText(backup.fileName, backup.text);
-  };
-
-  const restoreBackupFile = async (file: File): Promise<string> => {
-    if (!staticTransport) throw new Error('Backups work only on a share link.');
-    return restoreBackup(await file.text(), staticTransport);
-  };
+  const { undoDraft, downloadBackup, restoreBackupFile } = createDraftActions({
+    transport: staticTransport,
+    drafts: drafts.drafts,
+    locale,
+    discard: drafts.discard,
+    updateLocaleDataCache,
+    sendToIframe,
+    setError,
+    setIsUndoing,
+    studioHref: () => window.location.href,
+    translatorName: () => readPref('translator-name'),
+    download: downloadText,
+  });
 
   selectElementRef.current = handleElementSelected;
   setLocaleRef.current = target.onUrlLocale;
