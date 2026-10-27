@@ -105,6 +105,8 @@
   },
   "devDependencies": {
     "@changesets/cli": "^2.31.1",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/outfit": "^5.3.0",
     "@playwright/test": "^1.60.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/dom": "^10.4.2",

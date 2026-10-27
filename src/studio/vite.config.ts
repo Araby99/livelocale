@@ -32,6 +32,8 @@ export default defineConfig(({ command }) => {
   return {
     plugins: [react()],
     root: path.resolve(__dirname),
+    // Relative asset URLs so the built Studio works from any folder on any static host.
+    base: './',
     define: {
       // Inject the package version as a compile-time constant.
       // Use JSON.stringify to produce a valid JS string literal.
