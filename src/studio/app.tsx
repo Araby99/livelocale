@@ -72,6 +72,9 @@ export const App = () => {
     submitToken,
     setupProblems,
     drafts,
+    undoDraft,
+    downloadBackup,
+    restoreBackupFile,
     unsentCount,
     targetLocale,
     localePickerCandidates,
@@ -127,6 +130,10 @@ export const App = () => {
         history={history}
         onUndo={undoEntry}
         isUndoing={isUndoing}
+        drafts={mode === 'static' ? drafts : undefined}
+        onUndoDraft={undoDraft}
+        onDownloadBackup={downloadBackup}
+        onRestoreBackup={restoreBackupFile}
       />
 
       <SetupProblems problems={setupProblems} />

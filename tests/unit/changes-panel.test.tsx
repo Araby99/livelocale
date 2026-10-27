@@ -133,3 +133,13 @@ describe('ChangesPanel — GitHub mode', () => {
     cleanup();
   });
 });
+
+describe('ChangesPanel — share link drafts', () => {
+  it('renders the draft list instead of git when drafts are given', () => {
+    renderPanel({ drafts: [] });
+    expect(screen.queryByText('Locale files')).toBeNull();
+    expect(screen.queryByText('This session')).toBeNull();
+    expect(screen.getByText('Download backup')).toBeTruthy();
+    cleanup();
+  });
+});

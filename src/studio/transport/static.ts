@@ -1,3 +1,4 @@
+import type { ChangeEdit } from '../../core/change-link.js';
 import { deepMerge } from '../../core/deep-merge.js';
 import { flattenKeys, lookupKey, setNestedProperty } from '../../core/json-path.js';
 import { validateEdit } from '../../core/save-rules.js';
@@ -42,6 +43,12 @@ export interface StaticTransport extends StudioTransport {
   discardDraft(locale: string, key: string): Promise<Draft | undefined>;
   /** Marks these drafts as sent now. */
   markDraftsSent(ids: readonly DraftId[]): Promise<void>;
+  /**
+   * Adds each edit as an unsent draft against this build. Skips an edit for a
+   * locale the manifest does not list, or whose key already has a draft or
+   * overlaps one (`promo` and `promo.banner`) in the same locale.
+   */
+  restoreDrafts(edits: readonly ChangeEdit[]): Promise<{ added: number; skipped: number }>;
 }
 
 /** True when one dotted key contains the other as a group (`promo` and `promo.banner`). */
@@ -174,6 +181,36 @@ export async function createStaticTransport(
         if (existing) await store.put({ ...existing, status: 'sent', sentAt });
       }
       draftsChanged();
+    },
+
+    async restoreDrafts(edits) {
+      const existing = await store.list(scope);
+      let added = 0;
+      for (const { locale, key, from, to, force } of edits) {
+        const taken = existing.some(
+          (d) => d.locale === locale && (d.key === key || keysOverlap(d.key, key))
+        );
+        if (!isKnownLocale(locale) || taken) continue;
+        const restored: Draft = {
+          scope,
+          locale,
+          key,
+          from,
+          to,
+          force,
+          base: manifest.base,
+          branch: manifest.branch,
+          status: 'unsent',
+          conflict: false,
+          updatedAt: now(),
+          sentAt: null,
+        };
+        await store.put(restored);
+        existing.push(restored);
+        added++;
+      }
+      if (added > 0) draftsChanged();
+      return { added, skipped: edits.length - added };
     },
 
     async saveTranslation(locale, key, value, saveOptions = {}) {

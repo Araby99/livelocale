@@ -313,6 +313,55 @@ describe('static transport saves', () => {
   });
 });
 
+describe('static transport restore', () => {
+  it('restoreDrafts skips existing keys and unknown locales', async () => {
+    const { t, store, dispatched } = await make({ now: () => 5000 });
+    await store.put(draft(t.scope));
+    const result = await t.restoreDrafts([
+      { locale: 'ar', key: 'home.title', from: 'مرحبا', to: 'X', force: false },
+      { locale: 'ar', key: 'home.greet', from: 'أهلا {name}', to: 'هلا {name}', force: true },
+      { locale: 'fr', key: 'x', from: null, to: 'Y', force: false },
+    ]);
+    expect(result).toEqual({ added: 1, skipped: 2 });
+    expect(await store.get(t.scope, 'ar', 'home.greet')).toEqual({
+      scope: t.scope,
+      locale: 'ar',
+      key: 'home.greet',
+      from: 'أهلا {name}',
+      to: 'هلا {name}',
+      force: true,
+      base: SHA_A,
+      branch: 'main',
+      status: 'unsent',
+      conflict: false,
+      updatedAt: 5000,
+      sentAt: null,
+    });
+    expect(await store.get(t.scope, 'ar', 'home.title')).toMatchObject({ to: 'أهلاً' });
+    expect(dispatched).toEqual([DRAFTS_CHANGED_EVENT]);
+  });
+
+  it('restoreDrafts skips a key that overlaps an existing draft key', async () => {
+    const { t, store, dispatched } = await make();
+    await store.put(draft(t.scope, { key: 'promo' }));
+    const result = await t.restoreDrafts([
+      { locale: 'ar', key: 'promo.banner', from: null, to: 'A', force: false },
+      { locale: 'en', key: 'promo.banner', from: null, to: 'B', force: false },
+    ]);
+    expect(result).toEqual({ added: 1, skipped: 1 });
+    expect(await store.get(t.scope, 'ar', 'promo.banner')).toBeUndefined();
+    expect(dispatched).toEqual([DRAFTS_CHANGED_EVENT]);
+  });
+
+  it('restoreDrafts dispatches nothing when every edit is skipped', async () => {
+    const { t, dispatched } = await make();
+    expect(
+      await t.restoreDrafts([{ locale: 'fr', key: 'x', from: null, to: 'Y', force: false }])
+    ).toEqual({ added: 0, skipped: 1 });
+    expect(dispatched).toEqual([]);
+  });
+});
+
 describe('static transport git state', () => {
   it('reports drafts as static git state', async () => {
     const { t, store } = await make();
