@@ -41,6 +41,23 @@ describe('normalizeBase', () => {
     );
   });
 
+  it.each(['C:/Program Files/Git/repo/', 'C:\\msys64\\repo\\'])(
+    'explains a Windows path the shell made from --base: %s',
+    (value) => {
+      let caught: unknown;
+      try {
+        normalizeBase(value);
+      } catch (error) {
+        caught = error;
+      }
+      expect(caught).toMatchObject({ code: 'BAD_BASE' });
+      const message = (caught as Error).message;
+      expect(message).not.toContain('full URL');
+      expect(message).toContain('Windows path');
+      expect(message).toContain('MSYS_NO_PATHCONV=1');
+    }
+  );
+
   it('names the accepted forms for any other bad base', () => {
     let caught: unknown;
     try {

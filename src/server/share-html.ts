@@ -6,6 +6,8 @@ export type AppBase = { kind: 'absolute'; path: string } | { kind: 'relative' };
 
 /** A URL scheme (`https:`) or a protocol-relative start (`//`). */
 const FULL_URL = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+/** A Windows drive path (`C:/...`), which Git Bash/MSYS makes from a `/repo/` argument. */
+const WINDOWS_PATH = /^[A-Za-z]:[\\/]/;
 /** One path segment: unreserved characters, a few safe sub-delimiters and valid percent escapes. */
 const SEGMENT = /^(?:[A-Za-z0-9._~@+-]|%[0-9A-Fa-f]{2})+$/;
 
@@ -15,6 +17,12 @@ const SEGMENT = /^(?:[A-Za-z0-9._~@+-]|%[0-9A-Fa-f]{2})+$/;
  */
 export function normalizeBase(value: string): AppBase {
   if (value === '' || value === '.' || value === './') return { kind: 'relative' };
+  if (WINDOWS_PATH.test(value)) {
+    throw new PackError(
+      'BAD_BASE',
+      `The app base "${value}" is a Windows path. Your shell (Git Bash/MSYS) probably converted a site path such as /repo/ into it. Run the command with MSYS_NO_PATHCONV=1, or from an npm script, and pass the site path, for example --base /app/.`
+    );
+  }
   if (FULL_URL.test(value)) {
     throw new PackError(
       'BAD_BASE',
