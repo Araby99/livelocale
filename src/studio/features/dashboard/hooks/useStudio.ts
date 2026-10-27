@@ -8,7 +8,12 @@ import { useLocaleActions } from './useLocaleActions.js';
 import { useKeySearch } from './useKeySearch.js';
 import { useGit } from './useGit.js';
 import { useHistory, type HistoryEntry } from './useHistory.js';
-import { saveTranslation, fetchInfo, type LiveLocaleMode } from '../../../api.js';
+import {
+  saveTranslation,
+  fetchInfo,
+  fetchLocaleDictionary,
+  type LiveLocaleMode,
+} from '../../../api.js';
 import { getStudioRuntime, getStaticTransport } from '../../../runtime.js';
 import { useAuth } from './useAuth.js';
 import { useDrafts } from './useDrafts.js';
@@ -19,6 +24,7 @@ import type { VisibleText } from '../../../../client/iframe-bridge.js';
 import { createDraftActions } from './draftActions.js';
 import { downloadText, readPref } from '../../../share/browser.js';
 import { useFirstRun } from './useFirstRun.js';
+import { useReview } from './useReview.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
@@ -151,11 +157,32 @@ export const useStudio = () => {
     git.refresh();
   }, [auth.tokenVersion]);
 
+  // Review mode: a change link in the URL hash (or pasted) shown read-only over the app.
+  const reloadFrame = () => {
+    if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
+  };
+  const reviewMode = useReview({
+    mode,
+    locale,
+    locales,
+    sourceLocale: staticTransport?.manifest.sourceLocale ?? null,
+    layout: staticTransport?.manifest.layout ?? 'flat',
+    readLocale: staticTransport
+      ? (l) => staticTransport.readBuiltLocale(l)
+      : (l) => fetchLocaleDictionary(l),
+    connectionStatus,
+    currentPath,
+    visibleKeys,
+    sendToIframe,
+    reloadFrame,
+  });
+  const { review } = reviewMode;
+
   // A preview deployment or a share link keeps serving the text it was built with, so a reload
   // or navigation would bring back pre-edit values. Re-apply this session's history (preview)
-  // or the saved drafts (static) for the current locale.
+  // or the saved drafts (static) for the current locale. Paused while a review is open.
   useEffect(() => {
-    if (connectionStatus !== 'connected') return;
+    if (connectionStatus !== 'connected' || review !== null) return;
     const values = valuesToReapply({
       mode,
       locale,
@@ -173,6 +200,7 @@ export const useStudio = () => {
     target.confirmed,
     history.entries,
     drafts.drafts,
+    review,
   ]);
 
   // Share link: an Alt+Click is shown only once the dictionary of its target locale has loaded.
@@ -201,10 +229,10 @@ export const useStudio = () => {
     if (pending) setQueuedSelection(pending);
   };
 
-  const firstRun = useFirstRun(mode === 'static');
+  const firstRun = useFirstRun(mode === 'static' && !review);
 
   // Unsent drafts live only in this browser: ask before the tab is closed.
-  useUnsentGuard(mode === 'static' && drafts.unsentCount > 0);
+  useUnsentGuard(mode === 'static' && drafts.unsentCount > 0 && !review);
 
   // Undo re-saves the previous value through the normal mutation path, so the
   // file on disk, the dictionary cache, and git status all stay consistent.
@@ -240,7 +268,10 @@ export const useStudio = () => {
     download: downloadText,
   });
 
-  selectElementRef.current = handleElementSelected;
+  // During a review Alt+Click only points at the row; nothing is edited.
+  selectElementRef.current = review
+    ? (el) => reviewMode.setFocusKey(el.key)
+    : handleElementSelected;
   setLocaleRef.current = target.onUrlLocale;
   visibleTextsRef.current = (texts) => {
     target.onVisibleTexts(texts).catch(() => {});
@@ -338,6 +369,14 @@ export const useStudio = () => {
     dismissTips: firstRun.dismiss,
     translatorName: firstRun.name,
     setTranslatorName: firstRun.setName,
+    // Review mode (change links)
+    review,
+    reviewError: reviewMode.error,
+    isReviewLoading: reviewMode.isLoading,
+    reviewFocusKey: reviewMode.focusKey,
+    setReviewFocusKey: reviewMode.setFocusKey,
+    openReview: reviewMode.openReview,
+    closeReview: reviewMode.closeReview,
     // Preview mode / auth
     mode,
     needsToken: auth.needsToken,
