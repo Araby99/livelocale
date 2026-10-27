@@ -97,6 +97,36 @@ describe('useTargetLocale', () => {
     expect(result.current.pickerCandidates).toBeNull();
   });
 
+  it('requires a pick for a key chosen from the list while no language is chosen', async () => {
+    const { result } = setup();
+    const picked = el('Welcome');
+    let resolved: boolean | undefined;
+    act(() => {
+      resolved = result.current.resolveForDirectPick(picked);
+    });
+    expect(resolved).toBe(false);
+    expect(result.current.pickerCandidates).toEqual(['ar', 'en']);
+    let pending: SelectedElement | null = null;
+    act(() => {
+      pending = result.current.choose('ar');
+    });
+    expect(pending).toBe(picked);
+    expect(result.current.source).toBe('manual');
+  });
+
+  it('lets a key from the list through once the language is known, and in server mode', async () => {
+    const { result } = setup();
+    await act(async () => {
+      await result.current.onVisibleTexts([{ key: 'home.title', text: 'مرحبا' }]);
+    });
+    expect(result.current.resolveForDirectPick(el('مرحبا'))).toBe(true);
+    expect(result.current.pickerCandidates).toBeNull();
+
+    const server = setup({ enabled: false });
+    expect(server.result.current.resolveForDirectPick(el('Welcome'))).toBe(true);
+    expect(server.result.current.pickerCandidates).toBeNull();
+  });
+
   it('keeps a manual choice and reports a mismatch', async () => {
     const { result, setLocale } = setup();
     act(() => {

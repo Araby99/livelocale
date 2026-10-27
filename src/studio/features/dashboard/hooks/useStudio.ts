@@ -224,6 +224,17 @@ export const useStudio = () => {
       .catch((err: any) => setError(err?.message || 'Could not tell which language to edit.'));
   };
 
+  // Share link: a key from the Keys list waits for the required language pick, like Alt+Click.
+  const pickKeyFromList = (key: string) => {
+    if (!staticTransport) {
+      selectKeyDirectly(key);
+      return;
+    }
+    const value = localeData[key] || '';
+    const el: SelectedElement = { key, fallbackValue: value, currentValue: value };
+    if (target.resolveForDirectPick(el)) selectKeyDirectly(key);
+  };
+
   const chooseTargetLocale = (chosen: string) => {
     const pending = target.choose(chosen);
     if (pending) setQueuedSelection(pending);
@@ -310,7 +321,7 @@ export const useStudio = () => {
     filteredKeys,
     coveragePercentage,
     setSearchTerm,
-    selectKeyDirectly,
+    selectKeyDirectly: pickKeyFromList,
     handleInputChange,
     handleLocaleChange,
     handleSave,

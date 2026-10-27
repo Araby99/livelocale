@@ -267,6 +267,29 @@ describe('useStudio in Review mode', () => {
     return { ...hook, sendToIframe, transport, handlers };
   };
 
+  it('asks which language to edit before opening a key from the list on a share link', async () => {
+    const { result } = setupStudio();
+    await waitFor(() => expect(result.current.mode).toBe('static'));
+    await waitFor(() => expect(result.current.locales).toEqual(['ar', 'en']));
+    expect(result.current.targetLocale?.source).toBeNull();
+
+    act(() => result.current.selectKeyDirectly('home.title'));
+    expect(result.current.selected).toBeNull();
+    expect(result.current.localePickerCandidates).toEqual(['ar', 'en']);
+
+    act(() => result.current.chooseTargetLocale('ar'));
+    await waitFor(() => expect(result.current.selected?.key).toBe('home.title'));
+    expect(result.current.locale).toBe('ar');
+    expect(result.current.selected?.currentValue).toBe('مرحبا');
+    expect(result.current.targetLocale?.source).toBe('manual');
+
+    // Once the language is chosen, a later pick from the list opens straight away.
+    act(() => result.current.handleClearSelection());
+    act(() => result.current.selectKeyDirectly('home.greet'));
+    await waitFor(() => expect(result.current.selected?.key).toBe('home.greet'));
+    expect(result.current.localePickerCandidates).toBeNull();
+  });
+
   it('focuses a row instead of editing on Alt+Click', async () => {
     const { result, handlers, transport } = setupStudio();
     await waitFor(() => expect(result.current.mode).toBe('static'));

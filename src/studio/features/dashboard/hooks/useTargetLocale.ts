@@ -136,6 +136,18 @@ export const useTargetLocale = ({
     return true;
   };
 
+  /**
+   * A key picked from the Keys list has no page text to infer from. While no language
+   * is chosen yet, it waits for the same required pick as an Alt+Click, so a save never
+   * lands silently in whatever locale the Studio happened to start on.
+   */
+  const resolveForDirectPick = (el: SelectedElement): boolean => {
+    if (!enabled || sourceRef.current !== null || locales.length === 0) return true;
+    pendingRef.current = el;
+    setPickerCandidates([...locales]);
+    return false;
+  };
+
   const choose = (chosen: string): SelectedElement | null => {
     // A manual choice always goes through, even when the locale is unchanged.
     localeRef.current = chosen;
@@ -168,6 +180,7 @@ export const useTargetLocale = ({
     onUrlLocale,
     onVisibleTexts,
     resolveForSelection,
+    resolveForDirectPick,
     choose,
     onMenuLocale,
     cancelPick,
