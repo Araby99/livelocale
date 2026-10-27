@@ -358,3 +358,71 @@ export async function packOutput(options: PackOptions): Promise<PackResult> {
     warnings,
   };
 }
+
+/** Command-line options shared by `livelocale pack` and `livelocale build`. */
+export interface ShareCliArgs {
+  positional: string[];
+  dir: string;
+  locales?: string;
+  source?: string;
+  base?: string;
+  out?: string;
+  exposeRepo: boolean;
+  inject: boolean;
+  preview: boolean;
+  command: string[];
+}
+
+const VALUE_OPTIONS = {
+  '--dir': 'dir',
+  '--locales': 'locales',
+  '--source': 'source',
+  '--base': 'base',
+  '--out': 'out',
+} as const;
+
+/**
+ * Parses `pack`/`build` arguments (`argv` excludes the command name). Tokens after the first
+ * `--` go to `command` verbatim. Throws `PackError('USAGE')` for an unknown option or a
+ * missing value.
+ */
+export function parseShareArgs(argv: string[]): ShareCliArgs {
+  const args: ShareCliArgs = {
+    positional: [],
+    dir: '.',
+    locales: undefined,
+    source: undefined,
+    base: undefined,
+    out: undefined,
+    exposeRepo: false,
+    inject: true,
+    preview: false,
+    command: [],
+  };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i]!;
+    if (arg === '--') {
+      args.command = argv.slice(i + 1);
+      break;
+    }
+    if (Object.prototype.hasOwnProperty.call(VALUE_OPTIONS, arg)) {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith('--')) {
+        throw new PackError('USAGE', `${arg} needs a value.`);
+      }
+      args[VALUE_OPTIONS[arg as keyof typeof VALUE_OPTIONS]] = value;
+      i++;
+    } else if (arg === '--expose-repo') {
+      args.exposeRepo = true;
+    } else if (arg === '--no-inject') {
+      args.inject = false;
+    } else if (arg === '--preview') {
+      args.preview = true;
+    } else if (arg.startsWith('-') && arg !== '-') {
+      throw new PackError('USAGE', `Unknown option "${arg}".`);
+    } else {
+      args.positional.push(arg);
+    }
+  }
+  return args;
+}

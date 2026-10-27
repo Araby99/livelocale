@@ -7,6 +7,8 @@ import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures } from './doctor.js';
 import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
+import { packOutput, parseShareArgs, type PackResult } from '../server/pack.js';
+import { PackError } from '../server/pack-error.js';
 
 const DEFAULT_STUDIO_PORT = 3010;
 const DEFAULT_APP_ORIGIN = 'http://localhost:3000';
@@ -24,6 +26,7 @@ Commands:
   studio      Start the visual editing studio local web server.
   doctor      Check the project for common integration problems (route, provider, middleware, CSP, locales).
   check       Check translations for missing keys, placeholder drift, broken ICU syntax and unused keys (CI-friendly).
+  pack        Write the share Studio (livelocale/) into a built site folder and link every HTML page to it.
 
 Options for migrate:
   --dir <path>       Directory to scan (default: current directory)
@@ -51,6 +54,15 @@ Options for check:
   --no-unused        Do not report keys that code never references
   --strict           Treat warnings (unused keys, empty values) as failures
   --json             Print the full report as JSON
+
+Options for pack:
+  pack <outDir>      Built site folder, relative to --dir (e.g. dist, build, out)
+  --dir <path>       Project directory (default: current directory)
+  --locales <path>   Locales directory relative to the project (default: locales)
+  --source <locale>  Source locale (default: en, else the first locale)
+  --base <path>      Site path the app is served from, e.g. /repo/ (default: detected, else /)
+  --expose-repo      Put the GitHub owner/repo into livelocale/manifest.json
+  --no-inject        Do not add the flag.js script to HTML files
 
 Global Options:
   -h, --help         Show help information
@@ -467,6 +479,48 @@ async function runCheckCommand(args: string[]) {
   );
 }
 
+const PACK_USAGE = 'Usage: livelocale pack <outDir> [options]';
+
+/** Prints each pack warning, then where the share folder went and the link path to open. */
+function printPackSummary(result: PackResult, projectDir: string, warnings: string[]) {
+  for (const warning of warnings) console.log(`⚠️  ${warning}`);
+  const outRel =
+    path.relative(projectDir, path.dirname(result.shareDir)).split(path.sep).join('/') || '.';
+  console.log(
+    `✅ LiveLocale share folder written to ${outRel}/livelocale/ (${result.manifest.locales.length} locales, ${result.manifest.codeKeys.length} code keys, ${result.htmlInjected.length} HTML files linked).`
+  );
+  console.log(`🔗 Open ${result.shareUrlPath} on the deployed site.`);
+}
+
+async function runPackCommand(args: string[]) {
+  try {
+    const options = parseShareArgs(args.slice(1));
+    if (
+      options.positional.length !== 1 ||
+      options.out !== undefined ||
+      options.preview ||
+      options.command.length > 0
+    ) {
+      throw new PackError('USAGE', PACK_USAGE);
+    }
+    const projectDir = path.resolve(options.dir);
+    const result = await packOutput({
+      projectDir,
+      outDir: options.positional[0]!,
+      localesPath: options.locales,
+      sourceLocale: options.source,
+      base: options.base,
+      exposeRepo: options.exposeRepo,
+      injectHtml: options.inject ? 'auto' : false,
+    });
+    printPackSummary(result, projectDir, result.warnings);
+  } catch (err) {
+    if (!(err instanceof PackError)) throw err;
+    console.error(`❌ ${err.message}`);
+    process.exitCode = 1;
+  }
+}
+
 async function run() {
   const args = process.argv.slice(2);
 
@@ -475,7 +529,7 @@ async function run() {
     process.exit(0);
   }
 
-  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check'];
+  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack'];
   if (!args[0] || !COMMANDS.includes(args[0])) {
     console.error(`Unknown command: "${args[0]}". Expected one of: ${COMMANDS.join(', ')}.`);
     printHelp();
@@ -489,6 +543,11 @@ async function run() {
 
   if (args[0] === 'check') {
     await runCheckCommand(args);
+    return;
+  }
+
+  if (args[0] === 'pack') {
+    await runPackCommand(args);
     return;
   }
 

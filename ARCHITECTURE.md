@@ -228,6 +228,8 @@ drift against the source locale, ICU syntax errors, empty values and unused keys
 refuses to start when something already answers on `localhost:<port>`, because on Windows a
 second server can bind beside it. Commands set `process.exitCode` rather than calling
 `process.exit()` after network probes or large output.
+`pack` parses its options with `parseShareArgs` and calls `packOutput` (§10), printing each
+`PackError` as one `❌` line with exit code 1.
 
 ### 10. Share output (`src/server/pack.ts`)
 

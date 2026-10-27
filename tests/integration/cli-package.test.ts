@@ -23,10 +23,29 @@ function runCli(pkgDir: string, cwd: string, args: string[]) {
   });
 }
 
+/** The consumer project the suite runs the CLI in; set in `beforeAll`. */
+let projectDir: string;
+
+/** Writes `rel` (relative to the consumer project), creating its parent folders. */
+function write(rel: string, text: string): void {
+  const file = path.join(projectDir, rel);
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, text, 'utf-8');
+}
+
+/** Reads `rel` (relative to the consumer project) as UTF-8. */
+function read(rel: string): string {
+  return fs.readFileSync(path.join(projectDir, rel), 'utf-8');
+}
+
+/** Reads `rel` (relative to the consumer project) as JSON. */
+function readJson(rel: string): any {
+  return JSON.parse(read(rel));
+}
+
 describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
   let sandbox: string;
   let pkgDir: string;
-  let projectDir: string;
 
   beforeAll(() => {
     sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-pkg-'));
@@ -84,6 +103,27 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     const result = runCli(pkgDir, projectDir, ['migrate', '--dry-run']);
     expect(result.status).not.toBe(0);
     expect(result.stderr).toContain("The 'typescript' package is required for the migrate command");
+  });
+
+  it('should run `pack` against a built folder', () => {
+    write(
+      'out/index.html',
+      '<!doctype html><html><head><title>x</title></head><body></body></html>'
+    );
+    const r = runCli(pkgDir, projectDir, ['pack', 'out']);
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    expect(fs.existsSync(path.join(projectDir, 'out/livelocale/index.html'))).toBe(true);
+    expect('repo' in readJson('out/livelocale/manifest.json')).toBe(false);
+    expect(read('out/index.html')).toMatch(/<head><script src="\/livelocale\/flag\.js"><\/script>/);
+    expect(r.stdout).toContain('✅ LiveLocale share folder written to out/livelocale/');
+    expect(r.stdout).toContain('🔗 Open /livelocale/index.html on the deployed site.');
+  });
+
+  it('should fail `pack` without an output folder', () => {
+    const r = runCli(pkgDir, projectDir, ['pack']);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toContain('Usage: livelocale pack <outDir>');
   });
 });
 

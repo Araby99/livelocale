@@ -254,6 +254,29 @@ English's two are not reported.
 - run: npx livelocale check
 ```
 
+### `pack`
+
+Turns a finished static build into a share link: it writes the Studio, `manifest.json`, the locale
+files and `flag.js` into `<outDir>/livelocale/` and links `flag.js` from every HTML page. Run it
+after your build, for example `"build": "vite build && livelocale pack dist"`.
+
+```bash
+npx livelocale pack <outDir> [--dir <path>] [--locales <path>] [--source <locale>] [--base <path>] [--expose-repo] [--no-inject]
+```
+
+- `<outDir>` — the built site folder, relative to `--dir` (for example `dist`, `build` or `out`).
+- `--locales` — locales directory relative to the project (default `locales`).
+- `--source` — source locale (default `en`, else the first locale).
+- `--base` — site path the app is served from, such as `/repo/` (default: detected from the
+  project, else `/`). A relative base (`./`) prints a warning; pass an absolute one if the app has
+  client-side routes.
+- `--expose-repo` — put the GitHub `owner/repo` into `livelocale/manifest.json` (off by default).
+- `--no-inject` — do not add the `flag.js` script to HTML files. Next.js outputs are never injected.
+
+The share link is `<your site><base>livelocale/index.html`. Nothing is written outside
+`<outDir>/livelocale/` except that one script tag, and an existing `livelocale/` folder is replaced
+only when pack wrote it.
+
 ### `migrate`
 
 Performs static analysis to scan and automatically wrap existing `react-i18next` hooks with `wrapTranslationEngine`.
