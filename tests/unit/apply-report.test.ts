@@ -112,6 +112,21 @@ describe('codeSpan', () => {
     expect(codeSpan('abc‮def')).toBe('`abc⟨U+202E⟩def`');
     expect(codeSpan('a'.repeat(300)).endsWith('…`')).toBe(true);
   });
+
+  it('turns a lone carriage return into ⏎ so @mentions and #refs stay inside the span', () => {
+    const span = codeSpan('hi\r@octocat see #1 [x](https://evil.example)');
+    expect(span).toBe('`hi⏎@octocat see #1 [x](https://evil.example)`');
+    expect(codeSpan('a\r\nb\rc\nd')).toBe('`a⏎b⏎c⏎d`');
+  });
+
+  it('shows other control characters as ⟨U+XXXX⟩', () => {
+    expect(codeSpan('a\u0000b\u000bc\u000cd\u001be\u0085f')).toBe(
+      '`a⟨U+0000⟩b⟨U+000B⟩c⟨U+000C⟩d⟨U+001B⟩e⟨U+0085⟩f`'
+    );
+    for (const ch of ['\r', '\u000b', '\u000c', '\u0085']) {
+      expect(codeSpan(`x${ch}@team`)).not.toContain(ch);
+    }
+  });
 });
 
 describe('sanitizeName', () => {

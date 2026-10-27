@@ -34,7 +34,10 @@ const STATUS_LABELS: Record<EditStatus, string> = {
 };
 
 const BIDI_CONTROL_RE = /[‪-‮⁦-⁩]/g;
-const NEWLINE_RE = /\r?\n/g;
+// Every CommonMark line ending: a lone CR ends a table row just like LF does.
+const NEWLINE_RE = /\r\n|\r|\n/g;
+// Control characters left after newlines are mapped (tab is kept: it is harmless in a span).
+const SPAN_CONTROL_RE = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
 const CONTROL_RE = /[\u0000-\u001f\u007f-\u009f]/g;
 
 /** Cuts `text` to `max` code units without leaving half a surrogate pair. */
@@ -70,15 +73,17 @@ function longestBacktickRun(text: string): number {
   return longest;
 }
 
+function codePointLabel(ch: string): string {
+  return `⟨U+${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}⟩`;
+}
+
 /** Renders translator text as one inline code span that is safe in a table cell. */
 export function codeSpan(text: string, maxLength: number = DEFAULT_SPAN_LENGTH): string {
   const truncated = text.length > maxLength ? `${cut(text, maxLength)}…` : text;
   const content = truncated
     .replace(NEWLINE_RE, '⏎')
-    .replace(
-      BIDI_CONTROL_RE,
-      (ch) => `⟨U+${ch.charCodeAt(0).toString(16).toUpperCase().padStart(4, '0')}⟩`
-    )
+    .replace(BIDI_CONTROL_RE, codePointLabel)
+    .replace(SPAN_CONTROL_RE, codePointLabel)
     .replace(/\|/g, '\\|');
   if (content === '') return '` `';
 
