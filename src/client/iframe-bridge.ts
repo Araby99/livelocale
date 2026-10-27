@@ -18,12 +18,46 @@ function toHttpOrigin(value: string | null | undefined): string | null {
 }
 
 /**
- * The origin of the Studio that embeds this page. The Studio passes it as
- * `?livelocale-origin=` on the iframe URL, but the app's own links drop that
- * parameter, so it is remembered for the tab; without it, messages after the
- * first navigation would go to the default origin and be discarded.
+ * The origin of this page when its parent window is a different window with
+ * the identical readable origin (a Studio served from the same host), else
+ * `null`. Returns `toHttpOrigin(win.location.origin)` only when that is
+ * non-null and equals `win.parent.location.origin`; a top-level page, a
+ * missing parent, a cross-origin parent (whose `location` throws), a parent
+ * on another origin and an opaque `'null'` origin all give `null`. Never throws.
  */
-export function resolveStudioOrigin(search: string, storage: Storage | null): string {
+export function readSameOriginParent(win: Window): string | null {
+  try {
+    const parent = win.parent;
+    if (!parent || parent === win) return null;
+    const own = toHttpOrigin(win.location.origin);
+    if (!own) return null;
+    return parent.location.origin === own ? own : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The origin of the Studio that embeds this page, in this order:
+ *
+ * 1. `sameOriginParent`, when it is an http(s) origin. `sendToParent` always
+ *    posts to `window.parent`, so a readable same-origin parent is the only
+ *    origin that can receive the messages; it wins over a stale query value or
+ *    remembered origin. This branch neither reads nor writes storage.
+ * 2. `?livelocale-origin=` on the iframe URL, which the Studio passes. The
+ *    app's own links drop that parameter, so it is remembered for the tab;
+ *    without it, messages after the first navigation would go to the default
+ *    origin and be discarded.
+ * 3. The origin remembered for the tab.
+ * 4. `DEFAULT_STUDIO_ORIGIN`.
+ */
+export function resolveStudioOrigin(
+  search: string,
+  storage: Storage | null,
+  sameOriginParent?: string | null
+): string {
+  const fromParent = toHttpOrigin(sameOriginParent);
+  if (fromParent) return fromParent;
   const fromQuery = toHttpOrigin(new URLSearchParams(search).get('livelocale-origin'));
   if (fromQuery) {
     try {
