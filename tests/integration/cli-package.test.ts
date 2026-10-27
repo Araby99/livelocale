@@ -125,6 +125,25 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(r.status).toBe(1);
     expect(r.stderr).toContain('Usage: livelocale pack <outDir>');
   });
+
+  it('should run `build --preview` around a build command', () => {
+    write(
+      'fake-build.cjs',
+      [
+        "const fs = require('fs');",
+        "fs.mkdirSync('dist', { recursive: true });",
+        "fs.writeFileSync('dist/index.html', '<!doctype html><html><head></head><body></body></html>');",
+        "fs.writeFileSync('dist/env.txt', String(process.env.LIVELOCALE));",
+        '',
+      ].join('\n')
+    );
+    const r = runCli(pkgDir, projectDir, ['build', '--preview', '--', 'node', 'fake-build.cjs']);
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    expect(read('dist/env.txt')).toBe('preview');
+    expect(fs.existsSync(path.join(projectDir, 'dist/livelocale/manifest.json'))).toBe(true);
+    expect(r.stdout).toContain('✅ LiveLocale share folder written to dist/livelocale/');
+  });
 });
 
 describe.skipIf(hasBuild)('packaged CLI (skipped)', () => {

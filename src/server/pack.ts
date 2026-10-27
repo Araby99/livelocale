@@ -1,4 +1,5 @@
-import { existsSync, statSync, promises as fs } from 'fs';
+import { spawn } from 'child_process';
+import { existsSync, readFileSync, statSync, promises as fs } from 'fs';
 import * as path from 'path';
 import { FLAG_SCRIPT } from '../core/flag-script.js';
 import { LOCALE_RE } from '../core/validate.js';
@@ -12,7 +13,8 @@ import {
   type ShareManifest,
 } from '../core/share-manifest.js';
 import { resolveBuildInfo, type GitRunner } from './build-info.js';
-import { detectBuildTarget } from './build-target.js';
+import { parseGitignore } from '../core/gitignore.js';
+import { detectBuildTarget, findExportBlockingRoute, outputCandidates } from './build-target.js';
 import { KeyScanner } from './key-scanner.js';
 import { moduleDir } from './module-dir.js';
 import { PackError } from './pack-error.js';
@@ -425,4 +427,170 @@ export function parseShareArgs(argv: string[]): ShareCliArgs {
     }
   }
   return args;
+}
+
+/** Runs one command and resolves with its exit code. */
+export type RunCommand = (
+  command: string,
+  args: string[],
+  options: { cwd: string; env: NodeJS.ProcessEnv }
+) => Promise<number>;
+
+const WINDOWS_NEEDS_QUOTES = /[\s"&|<>^()]/;
+
+/**
+ * Quotes one argument for a Windows command line: wrapped in double quotes when it is empty or
+ * holds whitespace, a quote or a cmd.exe operator; quotes are escaped with `\`, and backslashes
+ * before a quote (or the closing quote) are doubled.
+ */
+export function quoteWindowsArg(arg: string): string {
+  if (arg !== '' && !WINDOWS_NEEDS_QUOTES.test(arg)) return arg;
+  let out = '"';
+  let backslashes = 0;
+  for (const ch of arg) {
+    if (ch === '\\') {
+      backslashes++;
+      continue;
+    }
+    if (ch === '"') {
+      out += '\\'.repeat(backslashes * 2 + 1) + '"';
+    } else {
+      out += '\\'.repeat(backslashes) + ch;
+    }
+    backslashes = 0;
+  }
+  return out + '\\'.repeat(backslashes * 2) + '"';
+}
+
+/**
+ * Runs the command with inherited stdio. On Windows it runs one quoted command line through the
+ * shell, so `.cmd` shims such as `next` and `vite` resolve. A missing program resolves with 127.
+ */
+export const spawnInherit: RunCommand = (command, args, { cwd, env }) =>
+  new Promise((resolve, reject) => {
+    const child =
+      process.platform === 'win32'
+        ? spawn([command, ...args].map(quoteWindowsArg).join(' '), {
+            cwd,
+            env,
+            stdio: 'inherit',
+            shell: true,
+          })
+        : spawn(command, args, { cwd, env, stdio: 'inherit' });
+    child.on('error', (error: NodeJS.ErrnoException) => {
+      if (error.code === 'ENOENT') resolve(127);
+      else reject(error);
+    });
+    child.on('close', (code) => resolve(code ?? 1));
+  });
+
+export interface BuildCommandOptions extends Omit<PackOptions, 'outDir' | 'injectHtml'> {
+  /** The build command and its arguments. */
+  command: string[];
+  /** Run the command with `LIVELOCALE=preview` and `NEXT_PUBLIC_LIVELOCALE=preview`. */
+  preview?: boolean;
+  /** The static build output folder. Defaults to the first fresh `outputCandidates` entry. */
+  outDir?: string;
+  /** Defaults to `spawnInherit`. */
+  run?: RunCommand;
+  /** Defaults to `Date.now`. */
+  now?: () => number;
+}
+
+export interface BuildResult {
+  exitCode: number;
+  pack: PackResult | null;
+  /** This command's own warnings, then every `pack.warnings` entry. */
+  warnings: string[];
+}
+
+export const BUILD_USAGE = 'Usage: livelocale build [--preview] -- <your build command>';
+const NEXT_PREVIEW_WARNING =
+  'Next.js pages have no watermarks without --preview; the Studio will open but nothing is editable.';
+const NEXT_GITIGNORE_WARNING =
+  'Add public/livelocale/ to .gitignore; it is generated on every build.';
+/** How much older than the build start a fresh `index.html` may be (coarse file-system clocks). */
+const FRESH_SLACK_MS = 2000;
+
+function gitignoresShareDir(projectDir: string): boolean {
+  let content: string;
+  try {
+    content = readFileSync(path.join(projectDir, '.gitignore'), 'utf-8');
+  } catch {
+    return false;
+  }
+  return parseGitignore(content).ignores(`public/${SHARE_DIR}`, true);
+}
+
+function freshOutput(projectDir: string, candidates: string[], startMs: number): string | null {
+  for (const candidate of candidates) {
+    try {
+      const stat = statSync(path.join(projectDir, candidate, 'index.html'));
+      if (stat.isFile() && stat.mtimeMs >= startMs - FRESH_SLACK_MS) return candidate;
+    } catch {
+      // not built here
+    }
+  }
+  return null;
+}
+
+/**
+ * `livelocale build`: runs the build command and packs its output. Next.js projects are packed
+ * into `public/` first (Next copies it into the build); static stacks are packed after a
+ * successful build, into `outDir` or the freshly written output folder.
+ */
+export async function runBuildCommand(options: BuildCommandOptions): Promise<BuildResult> {
+  const {
+    command,
+    preview = false,
+    outDir,
+    run = spawnInherit,
+    now = Date.now,
+    ...packOptions
+  } = options;
+  if (command.length === 0) throw new PackError('USAGE', BUILD_USAGE);
+  const projectDir = path.resolve(options.projectDir);
+  const target = detectBuildTarget(projectDir);
+  const env = options.env ?? process.env;
+  const childEnv = preview
+    ? { ...env, LIVELOCALE: 'preview', NEXT_PUBLIC_LIVELOCALE: 'preview' }
+    : env;
+  const runBuild = () => run(command[0]!, command.slice(1), { cwd: projectDir, env: childEnv });
+
+  if (target.kind === 'next') {
+    const blocking = target.staticExport ? findExportBlockingRoute(projectDir) : null;
+    if (blocking !== null) {
+      throw new PackError(
+        'NEXT_EXPORT_POST_ROUTE',
+        `Next.js static export (output: 'export') cannot build ${blocking}: it exports POST, and export mode only allows GET route handlers. The share link does not need this route. Delete ${blocking} (or move it out of this build) and run again.`
+      );
+    }
+    await fs.mkdir(path.join(projectDir, 'public'), { recursive: true });
+    const pack = await packOutput({
+      ...packOptions,
+      projectDir,
+      outDir: 'public',
+      injectHtml: false,
+    });
+    const warnings: string[] = [];
+    if (!preview) warnings.push(NEXT_PREVIEW_WARNING);
+    if (!gitignoresShareDir(projectDir)) warnings.push(NEXT_GITIGNORE_WARNING);
+    const exitCode = await runBuild();
+    return { exitCode, pack, warnings: [...warnings, ...pack.warnings] };
+  }
+
+  const startMs = now();
+  const exitCode = await runBuild();
+  if (exitCode !== 0) return { exitCode, pack: null, warnings: [] };
+
+  const candidates = outputCandidates(target);
+  const output = outDir ?? freshOutput(projectDir, candidates, startMs);
+  if (output === null) {
+    throw new PackError(
+      'OUTPUT_NOT_FOUND',
+      `Could not find the build output (looked for a fresh index.html in ${candidates.map((c) => `${c}/`).join(', ')}). Pass --out <dir>.`
+    );
+  }
+  const pack = await packOutput({ ...packOptions, projectDir, outDir: output, injectHtml: 'auto' });
+  return { exitCode, pack, warnings: [...pack.warnings] };
 }

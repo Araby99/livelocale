@@ -277,6 +277,31 @@ The share link is `<your site><base>livelocale/index.html`. Nothing is written o
 `<outDir>/livelocale/` except that one script tag, and an existing `livelocale/` folder is replaced
 only when pack wrote it.
 
+### `build`
+
+Runs your build command and packs its output in one step. The environment variables work the same
+on Windows, macOS and Linux, so no `cross-env` is needed.
+
+```bash
+npx livelocale build [--preview] [--out <dir>] [pack options] -- <your build command>
+```
+
+- `--preview` — run the command with `LIVELOCALE=preview` and `NEXT_PUBLIC_LIVELOCALE=preview`, so
+  server-rendered and pre-rendered pages carry watermarks.
+- `--out` — the build output folder (default: the first of `dist/`, `build/` or `out/` that holds an
+  `index.html` written by this build). Next.js projects always pack into `public/livelocale/`
+  before the build runs, so Next copies it into the output.
+- `--dir`, `--locales`, `--source`, `--base` and `--expose-repo` work as they do for `pack`.
+
+| Stack                      | Build change                                                                                                                                                           |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js `output: 'export'` | `"build:preview": "livelocale build --preview -- next build"`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked at build time. |
+| Next.js on Vercel/Node     | For the Preview environment, use the build command `livelocale build --preview -- next build`. It packs into a gitignored `public/livelocale/`.                        |
+| Custom CI                  | `LIVELOCALE=preview <your build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                                             |
+
+A static export stops before building when `app/api/livelocale/route.*` exports POST, because export
+mode only allows GET route handlers; the share link does not need that route.
+
 ### `migrate`
 
 Performs static analysis to scan and automatically wrap existing `react-i18next` hooks with `wrapTranslationEngine`.

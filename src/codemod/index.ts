@@ -7,7 +7,13 @@ import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures } from './doctor.js';
 import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
-import { packOutput, parseShareArgs, type PackResult } from '../server/pack.js';
+import {
+  BUILD_USAGE,
+  packOutput,
+  parseShareArgs,
+  runBuildCommand,
+  type PackResult,
+} from '../server/pack.js';
 import { PackError } from '../server/pack-error.js';
 
 const DEFAULT_STUDIO_PORT = 3010;
@@ -27,6 +33,7 @@ Commands:
   doctor      Check the project for common integration problems (route, provider, middleware, CSP, locales).
   check       Check translations for missing keys, placeholder drift, broken ICU syntax and unused keys (CI-friendly).
   pack        Write the share Studio (livelocale/) into a built site folder and link every HTML page to it.
+  build       Run your build command, then pack its output (Next.js: packs into public/livelocale/ first).
 
 Options for migrate:
   --dir <path>       Directory to scan (default: current directory)
@@ -63,6 +70,11 @@ Options for pack:
   --base <path>      Site path the app is served from, e.g. /repo/ (default: detected, else /)
   --expose-repo      Put the GitHub owner/repo into livelocale/manifest.json
   --no-inject        Do not add the flag.js script to HTML files
+
+Options for build:
+  build [--preview] [--out <dir>] [pack options] -- <command...>
+  --preview          Run the command with LIVELOCALE=preview and NEXT_PUBLIC_LIVELOCALE=preview
+  --out <dir>        Build output folder (default: detected from dist/, build/, out/)
 
 Global Options:
   -h, --help         Show help information
@@ -521,6 +533,36 @@ async function runPackCommand(args: string[]) {
   }
 }
 
+async function runBuildCli(args: string[]) {
+  try {
+    const options = parseShareArgs(args.slice(1));
+    if (options.positional.length > 0 || !options.inject) {
+      throw new PackError('USAGE', BUILD_USAGE);
+    }
+    const projectDir = path.resolve(options.dir);
+    const result = await runBuildCommand({
+      projectDir,
+      command: options.command,
+      preview: options.preview,
+      outDir: options.out,
+      localesPath: options.locales,
+      sourceLocale: options.source,
+      base: options.base,
+      exposeRepo: options.exposeRepo,
+    });
+    if (result.pack !== null) {
+      printPackSummary(result.pack, projectDir, result.warnings);
+    } else {
+      for (const warning of result.warnings) console.log(`⚠️  ${warning}`);
+    }
+    process.exitCode = result.exitCode;
+  } catch (err) {
+    if (!(err instanceof PackError)) throw err;
+    console.error(`❌ ${err.message}`);
+    process.exitCode = 1;
+  }
+}
+
 async function run() {
   const args = process.argv.slice(2);
 
@@ -529,7 +571,7 @@ async function run() {
     process.exit(0);
   }
 
-  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack'];
+  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack', 'build'];
   if (!args[0] || !COMMANDS.includes(args[0])) {
     console.error(`Unknown command: "${args[0]}". Expected one of: ${COMMANDS.join(', ')}.`);
     printHelp();
@@ -548,6 +590,11 @@ async function run() {
 
   if (args[0] === 'pack') {
     await runPackCommand(args);
+    return;
+  }
+
+  if (args[0] === 'build') {
+    await runBuildCli(args);
     return;
   }
 

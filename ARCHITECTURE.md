@@ -229,7 +229,12 @@ refuses to start when something already answers on `localhost:<port>`, because o
 second server can bind beside it. Commands set `process.exitCode` rather than calling
 `process.exit()` after network probes or large output.
 `pack` parses its options with `parseShareArgs` and calls `packOutput` (§10), printing each
-`PackError` as one `❌` line with exit code 1.
+`PackError` as one `❌` line with exit code 1. `build` (`runBuildCommand`) runs the user's build
+command through `spawnInherit` (on Windows one quoted command line through the shell) with
+`--preview` setting `LIVELOCALE` and `NEXT_PUBLIC_LIVELOCALE`. Next projects are packed into
+`public/` first without HTML injection (a static export with a POST route stops first with
+`NEXT_EXPORT_POST_ROUTE`); static stacks are packed after a zero exit, into `--out` or the first
+`outputCandidates` folder whose `index.html` was written by this build.
 
 ### 10. Share output (`src/server/pack.ts`)
 
