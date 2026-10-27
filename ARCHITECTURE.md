@@ -244,6 +244,10 @@ command through `spawnInherit` (on Windows one quoted command line through the s
 `public/` first without HTML injection (a static export with a POST route stops first with
 `NEXT_EXPORT_POST_ROUTE`); static stacks are packed after a zero exit, into `--out` or the first
 `outputCandidates` folder whose `index.html` was written by this build.
+`apply` (`src/codemod/apply/`) reads the link with `readApplyInput`, decodes it with `nodeInflate`,
+plans it with `planApply` against `FileMutator({ requireEnabled: false }).readLocale`, writes the
+`apply` edits through `updateLocaleKey` and prints `renderTerminalSummary` (exit 1 on any conflict,
+invalid or needs-force edit).
 
 ### 10. Share output (`src/server/pack.ts`)
 

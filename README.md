@@ -302,6 +302,37 @@ npx livelocale build [--preview] [--out <dir>] [pack options] -- <your build com
 A static export stops before building when `app/api/livelocale/route.*` exports POST, because export
 mode only allows GET route handlers; the share link does not need that route.
 
+### `apply`
+
+Applies a LiveLocale change link (the `lc1.` link a translator sends from the share link) to your
+locale files. Every edit is checked again against your own files and source locale before anything
+is written.
+
+```bash
+npx livelocale apply "<link>" [--pr] [--dir <path>] [--locales <path>] [--source <locale>] [--force] [--dry-run]
+npx livelocale apply changes.txt
+npx livelocale apply - < changes.txt
+npx livelocale apply --clipboard
+```
+
+- The input is the change link itself (or the Studio link that carries it), a file that holds it
+  (the change file Send offers, or a saved email or issue), `-` to read standard input, or
+  `--clipboard` to read the clipboard. Pass the link or `--clipboard`, not both.
+- cmd.exe cuts command lines at 8,191 characters, so on Windows pass a long link as a file or with
+  `--clipboard`.
+- `--pr` — commit the changes on a new `livelocale/apply-<time>` branch, push it and open a pull
+  request.
+- `--locales` and `--source` work as they do for `check` (default `locales`, and `en`, else the
+  first locale).
+- `--dry-run` — plan the edits and print the summary without writing any file.
+- `--force` — also apply edits the translator saved with "Save anyway" (for example a dropped
+  placeholder). Without it they are reported as `needs --force` and skipped.
+
+The summary lists each edit's locale, key and status (applied, already done, conflict, needs
+--force or rejected) and never prints translation values. The exit code is 0 when every edit was
+applied or already done, and 1 when any edit is a conflict, needs `--force` or was rejected, or
+when the link cannot be read.
+
 ### `migrate`
 
 Performs static analysis to scan and automatically wrap existing `react-i18next` hooks with `wrapTranslationEngine`.

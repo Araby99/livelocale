@@ -15,6 +15,7 @@ import {
   type PackResult,
 } from '../server/pack.js';
 import { PackError } from '../server/pack-error.js';
+import { runApplyCommand } from './apply/cli.js';
 
 const DEFAULT_STUDIO_PORT = 3010;
 const DEFAULT_APP_ORIGIN = 'http://localhost:3000';
@@ -34,6 +35,7 @@ Commands:
   check       Check translations for missing keys, placeholder drift, broken ICU syntax and unused keys (CI-friendly).
   pack        Write the share Studio (livelocale/) into a built site folder and link every HTML page to it.
   build       Run your build command, then pack its output (Next.js: packs into public/livelocale/ first).
+  apply       Apply a LiveLocale change link to your locale files (--pr opens a pull request)
 
 Options for migrate:
   --dir <path>       Directory to scan (default: current directory)
@@ -75,6 +77,16 @@ Options for build:
   build [--preview] [--out <dir>] [pack options] -- <command...>
   --preview          Run the command with LIVELOCALE=preview and NEXT_PUBLIC_LIVELOCALE=preview
   --out <dir>        Build output folder (default: detected from dist/, build/, out/)
+
+Options for apply:
+  apply <link|file|->  The change link, a file that holds it, or - to read stdin
+  --clipboard        Read the change link from the clipboard instead
+  --pr               Commit the changes on a new branch and open a pull request
+  --dir <path>       Project directory (default: current directory)
+  --locales <path>   Locales directory relative to the project (default: locales)
+  --source <locale>  Source locale (default: en, else the first locale)
+  --force            Apply edits the translator saved with "Save anyway"
+  --dry-run          Show what would change without writing files
 
 Global Options:
   -h, --help         Show help information
@@ -571,7 +583,7 @@ async function run() {
     process.exit(0);
   }
 
-  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack', 'build'];
+  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack', 'build', 'apply'];
   if (!args[0] || !COMMANDS.includes(args[0])) {
     console.error(`Unknown command: "${args[0]}". Expected one of: ${COMMANDS.join(', ')}.`);
     printHelp();
@@ -595,6 +607,11 @@ async function run() {
 
   if (args[0] === 'build') {
     await runBuildCli(args);
+    return;
+  }
+
+  if (args[0] === 'apply') {
+    await runApplyCommand(args.slice(1));
     return;
   }
 

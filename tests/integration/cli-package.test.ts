@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
+import { encodeChangeLink } from '../../src/core/change-link.js';
 
 /**
  * Runs the BUILT CLI from a copy of the package placed outside the repository,
@@ -143,6 +144,26 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(read('dist/env.txt')).toBe('preview');
     expect(fs.existsSync(path.join(projectDir, 'dist/livelocale/manifest.json'))).toBe(true);
     expect(r.stdout).toContain('✅ LiveLocale share folder written to dist/livelocale/');
+  });
+
+  it('should run apply with a change-link file', async () => {
+    write('locales/en.json', '{"hello":"Hi"}');
+    write('locales/ar.json', '{"hello":"أهلا"}');
+    const token = await encodeChangeLink({
+      branch: '',
+      base: '',
+      src: 'en',
+      by: 'Mona',
+      note: '',
+      edits: [{ locale: 'ar', key: 'hello', from: 'أهلا', to: 'مرحبا', force: false }],
+    });
+    write('changes.txt', `${token}\n`);
+    const r = runCli(pkgDir, projectDir, ['apply', 'changes.txt', '--source', 'en']);
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    expect(r.stdout).toContain('Applied 1');
+    expect(r.stdout).not.toContain('مرحبا');
+    expect(readJson('locales/ar.json')).toEqual({ hello: 'مرحبا' });
   });
 });
 
