@@ -192,6 +192,28 @@ test('the static Studio keeps the app wide at 800x600', async ({ page }) => {
   );
 });
 
+test('keeps Send to developer and Changes on screen at 800x600 with a draft', async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await openStudio(page);
+  const frame = page.frameLocator('#app-preview-iframe');
+  await frame.locator('#lang-ar').click();
+  await expect(page.getByText('Editing: ar')).toBeVisible();
+  await frame.locator('[data-i18n-key="home.title"]').click({ modifiers: ['Alt'] });
+  await page.locator('#studio-translation-input').fill('أهلاً');
+  await page.keyboard.press('Control+Enter');
+  await expect(page.getByTestId('unsent-counter')).toBeVisible();
+
+  const width = await page.evaluate(() => window.innerWidth);
+  for (const id of ['#studio-send-button', '#studio-changes-button']) {
+    const box = (await page.locator(id).boundingBox())!;
+    expect(box.x).toBeGreaterThanOrEqual(0);
+    expect(box.x + box.width).toBeLessThanOrEqual(width);
+  }
+  await page.locator('#studio-changes-button').click({ trial: true, timeout: 5_000 });
+  await page.locator('#studio-send-button').click({ timeout: 5_000 });
+  await expect(page.locator('#studio-send-note')).toBeVisible();
+});
+
 test('names the fix instead of pointing at localhost when the manifest is missing', async ({
   page,
 }) => {

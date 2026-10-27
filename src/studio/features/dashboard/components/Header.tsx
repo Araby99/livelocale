@@ -62,8 +62,8 @@ export const Header = ({
       : null;
 
   return (
-    <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-4 xl:px-8 flex items-center justify-between shrink-0 select-none">
-      <div className="flex items-center gap-3">
+    <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
+      <div className="flex items-center gap-3 shrink-0">
         <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
@@ -90,26 +90,33 @@ export const Header = ({
         </div>
       </div>
 
-      {/* Coverage progress bar + version badge */}
-      <div className="flex items-center gap-5">
+      {/* Coverage progress bar + version badge. Below xl the hints and Coverage hide and the
+          locale chip shrinks first, so Send to developer and Changes always stay on screen. */}
+      <div className="flex items-center justify-end gap-3 xl:gap-5 min-w-0">
         {targetLocale && (
-          <div data-testid="target-locale" className="flex items-center gap-2 select-none">
+          <div
+            data-testid="target-locale"
+            className="flex items-center gap-2 select-none min-w-0 overflow-hidden"
+          >
             {targetLocale.source === null ? (
-              <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+              <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-semibold text-slate-400 whitespace-nowrap truncate min-w-0">
                 Language: not chosen yet
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] whitespace-nowrap">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] whitespace-nowrap min-w-0">
                 <span className="font-bold text-indigo-200">{`Editing: ${targetLocale.locale}`}</span>
-                <span className="text-slate-400">{SOURCE_HINTS[targetLocale.source]}</span>
+                <span className="hidden xl:inline text-slate-400">
+                  {SOURCE_HINTS[targetLocale.source]}
+                </span>
               </span>
             )}
             {mismatch && (
-              <span className="flex items-center gap-1.5 text-[10px] text-amber-300 whitespace-nowrap">
-                <span>{`This text looks like ${mismatch}.`}</span>
+              <span className="flex items-center gap-1.5 text-[10px] text-amber-300 whitespace-nowrap shrink-0">
+                <span className="hidden xl:inline">{`This text looks like ${mismatch}.`}</span>
                 <button
                   type="button"
                   onClick={() => onChooseLocale?.(mismatch)}
+                  title={`This text looks like ${mismatch}.`}
                   className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 font-semibold hover:bg-amber-500/20 transition duration-150"
                 >
                   {`Switch to ${mismatch}`}
@@ -121,7 +128,7 @@ export const Header = ({
 
         {/* Translation coverage metric */}
         <div
-          className="flex items-center gap-2.5"
+          className={`items-center gap-2.5 shrink-0 ${targetLocale ? 'hidden xl:flex' : 'flex'}`}
           title={`${coveragePercentage}% of keys translated`}
         >
           <span className="text-[10px] text-slate-500 font-medium select-none whitespace-nowrap">
@@ -158,7 +165,7 @@ export const Header = ({
         {isReviewing && (
           <span
             data-testid="review-chip"
-            className="px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] font-semibold text-indigo-200 select-none whitespace-nowrap"
+            className="shrink-0 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] font-semibold text-indigo-200 select-none whitespace-nowrap"
           >
             {reviewingLabel(reviewCount)}
           </span>
@@ -169,7 +176,7 @@ export const Header = ({
             id="studio-close-review"
             type="button"
             onClick={onCloseReview}
-            className="px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
           >
             Close review
           </button>
@@ -178,7 +185,7 @@ export const Header = ({
         {!isReviewing && unsentCount > 0 && (
           <span
             data-testid="unsent-counter"
-            className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-300 select-none whitespace-nowrap"
+            className="shrink-0 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-300 select-none whitespace-nowrap"
             title="Saved in this browser only. Send them to your developer before you leave."
           >
             {unsentLabel(unsentCount)}
@@ -190,7 +197,7 @@ export const Header = ({
             id="studio-send-button"
             onClick={onSend}
             disabled={!canSend}
-            className="px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-indigo-600 border-indigo-500 text-indigo-50 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-indigo-600 border-indigo-500 text-indigo-50 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
             title="Turn your changes into a link or file for your developer"
           >
             Send to developer
@@ -200,7 +207,7 @@ export const Header = ({
         <button
           id="studio-changes-button"
           onClick={onToggleChanges}
-          className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition duration-150 ${
+          className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold whitespace-nowrap transition duration-150 ${
             isChangesOpen
               ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
               : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700'
