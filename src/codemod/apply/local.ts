@@ -126,8 +126,8 @@ const defaultGit: GitExec = (args, cwd, opts) => {
 /** Runs the GitHub CLI without a shell. */
 const defaultGh: GhExec = (args, cwd) =>
   new Promise((resolve, reject) => {
-    execFile('gh', args, { cwd, windowsHide: true }, (error, stdout) =>
-      error ? reject(error) : resolve(String(stdout))
+    execFile('gh', args, { cwd, windowsHide: true }, (error, stdout, stderr) =>
+      error ? reject(Object.assign(error, { stderr: String(stderr) })) : resolve(String(stdout))
     );
   });
 
@@ -222,8 +222,13 @@ async function preparePullRequest(
   return { root, original };
 }
 
-/** Runs `gh pr create`; undefined when gh is not installed. */
+/**
+ * Runs `gh pr create`. Undefined when gh is missing or fails (not logged in, a pull
+ * request already exists, ...): the branch is already pushed, so the caller prints the
+ * manual fallback instead of failing.
+ */
 async function createPullRequest(
+  log: (line: string) => void,
   gh: GhExec,
   root: string,
   base: string,
@@ -255,8 +260,13 @@ async function createPullRequest(
       .filter(Boolean);
     return lines[lines.length - 1];
   } catch (err) {
-    if ((err as NodeJS.ErrnoException | undefined)?.code === 'ENOENT') return undefined;
-    throw err;
+    if ((err as NodeJS.ErrnoException | undefined)?.code !== 'ENOENT') {
+      const stderr = (err as { stderr?: unknown } | undefined)?.stderr;
+      const reason =
+        typeof stderr === 'string' && stderr.trim() ? stderr.trim() : errorMessage(err);
+      log(`gh could not open the pull request: ${reason}`);
+    }
+    return undefined;
   } finally {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   }
@@ -363,7 +373,14 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
         checkSummary,
         target: { branch: original, isDefault: false, reason: 'local' },
       });
-      prUrl = await createPullRequest(options.exec?.gh ?? defaultGh, root, original, branch, body);
+      prUrl = await createPullRequest(
+        log,
+        options.exec?.gh ?? defaultGh,
+        root,
+        original,
+        branch,
+        body
+      );
     }
     if (prUrl) {
       log(`Opened ${prUrl}`);

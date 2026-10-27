@@ -126,4 +126,35 @@ describe('runLocalApply --pr', () => {
         .branch
     ).toBeUndefined();
   }, 60_000);
+
+  it('prints the manual pull request fallback and switches back when gh fails after the push', async () => {
+    const { repo, bare } = makeRepo();
+    git(repo, 'remote', 'set-url', 'origin', 'https://github.com/acme/site.git');
+    git(repo, 'remote', 'set-url', '--push', 'origin', bare);
+    const logs: string[] = [];
+    const r = await runLocalApply({
+      projectDir: repo,
+      input: await encodeChangeLink(SET),
+      pr: true,
+      log: (l) => logs.push(l),
+      now: () => new Date('2026-10-26T10:00:00Z'),
+      exec: {
+        gh: async () => {
+          throw Object.assign(new Error('Command failed: gh pr create'), {
+            code: 1,
+            stderr: 'To get started with GitHub CLI, please run:  gh auth login\n',
+          });
+        },
+      },
+    });
+    const branch = r.branch!;
+    expect(r.prUrl).toBeUndefined();
+    expect(git(bare, 'branch', '--list', branch)).toContain(branch);
+    expect(git(repo, 'rev-parse', '--abbrev-ref', 'HEAD')).toBe('main');
+    const out = logs.join('\n');
+    expect(out).toContain('gh auth login');
+    expect(out).toContain(`Pushed ${branch}. Open a pull/merge request from it into main.`);
+    expect(out).toContain(`https://github.com/acme/site/compare/main...${branch}?expand=1`);
+    expect(out).not.toContain('You are on');
+  }, 60_000);
 });
