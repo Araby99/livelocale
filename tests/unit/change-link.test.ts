@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { deflateSync } from 'node:zlib';
+import { constants, createInflate, deflateRawSync, inflateSync } from 'node:zlib';
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import {
   CHANGE_LINK_FILE_THRESHOLD,
@@ -31,6 +31,24 @@ const codeOf = (fn: () => unknown) => {
   } catch (e) {
     return (e as ChangeLinkError).code;
   }
+};
+
+/**
+ * A zlib stream of `mib` MB of zeros, built from one deflated megabyte so the
+ * zeros are never allocated: fully flushed raw deflate blocks concatenate.
+ */
+const zeroBomb = (mib: number) => {
+  const piece = deflateRawSync(new Uint8Array(1024 * 1024), {
+    finishFlush: constants.Z_FULL_FLUSH,
+  });
+  const end = deflateRawSync(new Uint8Array(0));
+  const out = new Uint8Array(2 + piece.length * mib + end.length + 4);
+  out.set([0x78, 0x9c]);
+  for (let i = 0; i < mib; i++) out.set(piece, 2 + i * piece.length);
+  out.set(end, 2 + piece.length * mib);
+  // Adler-32 of n zeros: a stays 1, b is n mod 65521.
+  new DataView(out.buffer).setUint32(out.length - 4, ((mib * 1024 * 1024) % 65521) * 65536 + 1);
+  return out;
 };
 
 describe('base64url', () => {
@@ -398,13 +416,20 @@ describe('encode/decode', () => {
       )
     ).rejects.toMatchObject({ code: 'TOO_LARGE' }));
 
+  it('builds a valid zlib bomb of zeros', () => {
+    const zeros = inflateSync(zeroBomb(3));
+    expect(zeros.length).toBe(3 * 1024 * 1024);
+    expect(zeros.every((b) => b === 0)).toBe(true);
+  });
+
   it('feeds a bomb to the inflater in 4 KB slices and stops feeding at the cap', async () => {
     // A browser inflates each written chunk whole before the reader sees the
-    // cap, so one big write of a bomb spikes memory far past 512 KB. 64 MB of
-    // zeros deflates to about 64 KB, which is 16 slices.
-    const bomb = deflateSync(new Uint8Array(64 * 1024 * 1024));
+    // cap, so one big write of a bomb spikes memory far past 512 KB. 1 GB of
+    // zeros deflates to about 1 MB, which is 250 slices.
+    const bomb = zeroBomb(1024);
     const Real = globalThis.DecompressionStream;
     const writes: number[] = [];
+    let produced = 0;
     vi.stubGlobal(
       'DecompressionStream',
       class {
@@ -413,7 +438,19 @@ describe('encode/decode', () => {
         constructor(format: CompressionFormat) {
           const real = new Real(format);
           const writer = real.writable.getWriter();
-          this.readable = real.readable;
+          const reader = real.readable.getReader();
+          this.readable = new ReadableStream<Uint8Array>(
+            {
+              pull: async (controller) => {
+                const { done, value } = await reader.read();
+                if (done) return controller.close();
+                produced += value.byteLength;
+                controller.enqueue(value);
+              },
+              cancel: (reason) => reader.cancel(reason),
+            },
+            { highWaterMark: 0 }
+          );
           this.writable = new WritableStream<BufferSource>({
             write: (chunk) => {
               writes.push(chunk.byteLength);
@@ -428,10 +465,19 @@ describe('encode/decode', () => {
     await expect(streamInflate(bomb, MAX_INFLATED_BYTES)).rejects.toMatchObject({
       code: 'TOO_LARGE',
     });
+    const writtenAtCap = writes.length;
     // A write still queued when the read failed would have landed by now.
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(writes.length).toBe(writtenAtCap);
     expect(Math.max(...writes)).toBeLessThanOrEqual(4096);
-    expect(writes.reduce((a, b) => a + b, 0)).toBeLessThan(bomb.length / 2);
+    // Ahead of the reads, the stream holds at most what its runtime buffers
+    // (Node: its zlib stream's highWaterMark of input, 16 KB or 64 KB) and the
+    // one slice in flight. Both are far below the 1 MB bomb.
+    const fed = writes.reduce((a, b) => a + b, 0);
+    expect(fed).toBeLessThanOrEqual(createInflate().writableHighWaterMark + 2 * 4096);
+    expect(fed).toBeLessThan(bomb.length / 8);
+    // The 1 GB of output stays a few chunks past the cap, never materialised.
+    expect(produced).toBeLessThan(2 * MAX_INFLATED_BYTES);
   });
 
   it('refuses an over-long token before inflating', async () => {

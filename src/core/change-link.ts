@@ -399,29 +399,44 @@ async function pipeBytes(
   // The copy keeps a caller's later change to `bytes` out of the stream.
   const input = new Uint8Array(bytes);
   const writer = stream.writable.getWriter();
+  const reader = stream.readable.getReader();
+  // Set once the reads below stop for any reason. The feeding loop checks it
+  // before every write, so no slice is written after the reads stop, however
+  // far ahead of the reads the runtime lets writes resolve.
+  let stopped = false;
   // Runs alongside the reads below and is not awaited: a transform stream
   // takes more input only once its output is read. Each write waits for the
-  // one before, so feeding stops once the stream errors or is cancelled. The
-  // reads report that error, so the loop's rejection is silenced here.
+  // one before, so at most one slice is in flight. How many written slices
+  // the stream buffers before inflating them is up to the runtime: a browser
+  // takes the next one only once the reader asks for more output, Node's
+  // zlib-backed stream up to its highWaterMark of input (16 KB or 64 KB). The
+  // reads report the stream's error, so the loop's rejection is silenced.
   void (async () => {
     for (let at = 0; at < input.length; at += FEED_SLICE_BYTES) {
+      if (stopped) return;
       await writer.write(input.subarray(at, at + FEED_SLICE_BYTES));
     }
-    await writer.close();
+    if (!stopped) await writer.close();
   })().catch(() => {});
 
-  const reader = stream.readable.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.length;
-    if (total > maxOutputLength) {
-      await reader.cancel().catch(() => {});
-      throw new ChangeLinkError('TOO_LARGE', TOO_LARGE_MESSAGE);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > maxOutputLength) throw new ChangeLinkError('TOO_LARGE', TOO_LARGE_MESSAGE);
+      chunks.push(value);
     }
-    chunks.push(value);
+  } catch (err) {
+    // Tear down both sides: the cancel discards inflated output not yet
+    // read, the abort drops input written but not yet taken. Neither waits
+    // on the other's pending work.
+    stopped = true;
+    void writer.abort(err).catch(() => {});
+    await reader.cancel(err).catch(() => {});
+    throw err;
   }
 
   const out = new Uint8Array(total);
