@@ -1,4 +1,5 @@
 import React from 'react';
+import type { LiveLocaleMode } from '../../../api.js';
 
 // Injected by Vite at build/dev time from package.json version (see vite.config.ts).
 declare const __STUDIO_VERSION__: string;
@@ -6,7 +7,7 @@ declare const __STUDIO_VERSION__: string;
 interface HeaderProps {
   coveragePercentage: number;
   /** Reported by the app's API; `preview` means a hosted, token-protected session. */
-  mode?: 'off' | 'development' | 'preview' | null;
+  mode?: LiveLocaleMode | null;
   changesCount: number;
   isChangesOpen: boolean;
   onToggleChanges: () => void;
