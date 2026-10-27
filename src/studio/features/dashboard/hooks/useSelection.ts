@@ -46,6 +46,9 @@ export const useSelection = ({
   const [inputValue, setInputValue] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
   const [saveWarning, setSaveWarning] = useState<SaveWarning | null>(null);
+  // Counts completed picks, so a repeat pick of the same key is still visible
+  // to consumers that react to "a key was picked" (the editor drawer).
+  const [selectionCount, setSelectionCount] = useState<number>(0);
 
   // Timer for the transient success indicator — cleared on unmount and re-save
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -90,6 +93,7 @@ export const useSelection = ({
         ...newElement,
         currentValue: rawValue,
       });
+      setSelectionCount((n) => n + 1);
       setInputValue(rawValue);
       setIsSuccess(false);
       setSaveWarning(null);
@@ -106,6 +110,7 @@ export const useSelection = ({
         ...pendingElement,
         currentValue: rawValue,
       });
+      setSelectionCount((n) => n + 1);
       setInputValue(rawValue);
     } else {
       // Discarding a clear-selection with unsaved edits → deselect entirely
@@ -232,6 +237,7 @@ export const useSelection = ({
 
   return {
     selected,
+    selectionCount,
     inputValue,
     isSuccess,
     showConfirmModal,

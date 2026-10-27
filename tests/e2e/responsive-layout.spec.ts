@@ -23,6 +23,22 @@ test.describe('Responsive Studio layout', () => {
     });
   }
 
+  test('reopens the editor drawer when the same key is picked again', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto('http://localhost:3010');
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    const key = page
+      .frameLocator('#app-preview-iframe')
+      .locator('[data-i18n-key="home.welcome_msg"]');
+    await key.click({ modifiers: ['Alt'] });
+    await expect(page.locator('#studio-translation-input')).toBeVisible();
+    await page.getByTestId('studio-toggle-side').click();
+    await expect(page.getByTestId('studio-drawer-side')).toBeHidden();
+    await key.click({ modifiers: ['Alt'] });
+    await expect(page.getByTestId('studio-drawer-side')).toBeVisible();
+    await expect(page.locator('#studio-translation-input')).toBeVisible();
+  });
+
   test('shows three columns at 1440x900', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('http://localhost:3010');

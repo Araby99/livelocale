@@ -89,6 +89,7 @@ export const useStudio = () => {
 
   const {
     selected,
+    selectionCount,
     inputValue,
     isSuccess,
     showConfirmModal,
@@ -241,6 +242,7 @@ export const useStudio = () => {
 
   return {
     selected,
+    selectionCount,
     inputValue,
     locale,
     connectionStatus,

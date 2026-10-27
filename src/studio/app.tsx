@@ -20,6 +20,7 @@ import { isAppPreviewBlocked } from './runtime.js';
 export const App = () => {
   const {
     selected,
+    selectionCount,
     inputValue,
     locale,
     connectionStatus,
@@ -81,11 +82,13 @@ export const App = () => {
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
 
-  // A selected key brings the editor forward when it lives in a drawer.
-  const selectedKey = selected?.key ?? null;
+  // Every completed pick brings the editor forward when it lives in a drawer,
+  // including a repeat pick of the key that is already selected. Keyed on the
+  // pick count, not the key, so closing the drawer and picking the same key
+  // again reopens it.
   useEffect(() => {
-    if (selectedKey !== null) setOpenPanel('side');
-  }, [selectedKey]);
+    if (selectionCount > 0) setOpenPanel('side');
+  }, [selectionCount]);
 
   const pickKey = useCallback(
     (key: string) => {

@@ -86,6 +86,31 @@ describe('useSelection', () => {
     });
   });
 
+  it('counts every completed pick, including a repeat pick of the same key', () => {
+    const params = makeParams();
+    const { result } = renderHook(() => useSelection(params));
+    expect(result.current.selectionCount).toBe(0);
+
+    const el = { key: 'home.title', fallbackValue: 'x', currentValue: 'Welcome' };
+    act(() => result.current.selectElement(el));
+    expect(result.current.selectionCount).toBe(1);
+    act(() => result.current.selectElement(el));
+    expect(result.current.selectionCount).toBe(2);
+
+    // A pick held behind the discard prompt counts only once it is confirmed.
+    act(() => result.current.handleInputChange('edited'));
+    act(() => result.current.selectElement(el));
+    expect(result.current.showConfirmModal).toBe(true);
+    expect(result.current.selectionCount).toBe(2);
+    act(() => result.current.confirmDiscard());
+    expect(result.current.selectionCount).toBe(3);
+
+    // Clearing the selection does not count as a pick.
+    act(() => result.current.handleClearSelection());
+    expect(result.current.selected).toBeNull();
+    expect(result.current.selectionCount).toBe(3);
+  });
+
   it('asks for confirmation before discarding unsaved edits, then honours the choice', () => {
     const params = makeParams();
     const { result } = renderHook(() => useSelection(params));
