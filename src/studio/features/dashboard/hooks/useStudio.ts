@@ -9,7 +9,7 @@ import { useKeySearch } from './useKeySearch.js';
 import { useGit } from './useGit.js';
 import { useHistory, type HistoryEntry } from './useHistory.js';
 import { saveTranslation, fetchInfo, type LiveLocaleMode } from '../../../api.js';
-import { getStudioRuntime } from '../../../runtime.js';
+import { getStudioRuntime, getStaticTransport } from '../../../runtime.js';
 import { useAuth } from './useAuth.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
@@ -57,7 +57,11 @@ export const useStudio = () => {
     fetchKeysMetadata,
     refreshAll,
     updateLocaleDataCache,
-  } = useLocaleData({ connectionStatus, iframeRef });
+  } = useLocaleData({
+    connectionStatus,
+    iframeRef,
+    referenceLocale: getStaticTransport()?.manifest.sourceLocale ?? 'en',
+  });
 
   const history = useHistory();
 

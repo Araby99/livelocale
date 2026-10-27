@@ -87,6 +87,55 @@ describe('useLocaleData', () => {
     iframe.remove();
   });
 
+  it('reports which locale the loaded dictionary belongs to', async () => {
+    let releaseAr: () => void = () => {};
+    const arGate = new Promise<void>((r) => (releaseAr = r));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('?locale=ar')) {
+          await arGate;
+          return jsonResponse({ hello: 'مرحبا' });
+        }
+        if (url.endsWith('?locale=en')) return jsonResponse({ hello: 'Hello' });
+        if (url.endsWith('?action=keys')) return jsonResponse({ allKeys: [], codeKeys: [] });
+        return jsonResponse(['ar', 'en']);
+      })
+    );
+    const iframeRef = { current: null };
+    const { result } = renderHook(() =>
+      useLocaleData({ connectionStatus: 'connected', iframeRef })
+    );
+    expect(result.current.dataLocale).toBeNull();
+    await waitFor(() => expect(result.current.dataLocale).toBe('en'));
+
+    act(() => result.current.setLocale('ar'));
+    await waitFor(() =>
+      expect(vi.mocked(fetch).mock.calls.some(([u]) => String(u).endsWith('?locale=ar'))).toBe(true)
+    );
+    expect(result.current.dataLocale).toBe('en');
+
+    releaseAr();
+    await waitFor(() => expect(result.current.dataLocale).toBe('ar'));
+    expect(result.current.localeData.hello).toBe('مرحبا');
+  });
+
+  it('loads the reference dictionary from the given source locale', async () => {
+    const fetchMock = routeFetch({
+      '/api/livelocale': () => ['ar'],
+      '?action=keys': () => ({ allKeys: [], codeKeys: [] }),
+      '?locale=ar': () => ({ home: { title: 'مرحبا' } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const iframeRef = { current: null };
+    const { result } = renderHook(() =>
+      useLocaleData({ connectionStatus: 'connected', iframeRef, referenceLocale: 'ar' })
+    );
+    await waitFor(() => expect(result.current.enLocaleData['home.title']).toBe('مرحبا'));
+    expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith('?locale=ar'))).toBe(true);
+  });
+
   it('updates the local cache after a save without refetching', async () => {
     vi.stubGlobal(
       'fetch',

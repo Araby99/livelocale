@@ -26,13 +26,19 @@ function flattenObject(obj: any, prefix = ''): Record<string, string> {
 export interface UseLocaleDataParams {
   connectionStatus: string;
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
+  /** The project's source locale; the reference dictionary is read from it. */
+  referenceLocale?: string;
 }
 
 /**
  * Owns all translation data: active locale, locales list, full dictionaries,
  * keys metadata, fetchers, and derived coverage percentage.
  */
-export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataParams) => {
+export const useLocaleData = ({
+  connectionStatus,
+  iframeRef,
+  referenceLocale = 'en',
+}: UseLocaleDataParams) => {
   const [locale, setLocale] = useState<string>('en');
 
   // Dynamic locales list state
@@ -42,6 +48,8 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
 
   // Phase 2: Full locale keys searchable state
   const [localeData, setLocaleData] = useState<Record<string, string>>({});
+  // The locale `localeData` belongs to; null until a fetch has succeeded.
+  const [dataLocale, setDataLocale] = useState<string | null>(null);
   const [enLocaleData, setEnLocaleData] = useState<Record<string, string>>({});
 
   // Fetch locales list dynamically from the server
@@ -81,6 +89,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
     try {
       const data = await fetchLocaleDictionary(targetLocale);
       setLocaleData(flattenObject(data));
+      setDataLocale(targetLocale);
     } catch (err: any) {
       // Don't block studio UI if fetch fails
       console.warn('[livelocale] Failed to load full locale dictionary:', err.message);
@@ -101,23 +110,21 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
     }
   }, [connectionStatus, locale, fetchLocaleData]);
 
-  // Fetch English reference data once connected
+  // Fetch the reference (source locale) data once connected
   useEffect(() => {
     if (connectionStatus === 'connected') {
-      fetchLocaleDictionary('en')
+      fetchLocaleDictionary(referenceLocale)
         .then((data) => setEnLocaleData(flattenObject(data)))
-        .catch((err) =>
-          console.warn('[livelocale] Failed to load reference English locale:', err.message)
-        );
+        .catch((err) => console.warn('[livelocale] Failed to load reference locale:', err.message));
     }
-  }, [connectionStatus]);
+  }, [connectionStatus, referenceLocale]);
 
-  // Keep English reference in sync if the active locale is English and gets updated
+  // Keep the reference in sync if the active locale is the source locale and gets updated
   useEffect(() => {
-    if (locale === 'en') {
+    if (locale === referenceLocale) {
       setEnLocaleData(localeData);
     }
-  }, [locale, localeData]);
+  }, [locale, localeData, referenceLocale]);
 
   // Set the locale inside state and URL query parameter if required
   const handleLocaleChange = useCallback(
@@ -165,6 +172,7 @@ export const useLocaleData = ({ connectionStatus, iframeRef }: UseLocaleDataPara
     allKeys,
     codeKeys,
     localeData,
+    dataLocale,
     enLocaleData,
     coveragePercentage,
     handleLocaleChange,
