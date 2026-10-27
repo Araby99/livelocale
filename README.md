@@ -395,7 +395,7 @@ liveLocaleVite({
 | Option         | Default                                  | What it does                                                                                                                               |
 | -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `share`        | `false`                                  | Write the share Studio into `<outDir>/livelocale/` on `vite build`. SSR and library builds are skipped.                                    |
-| `exposeRepo`   | `false`                                  | Put the GitHub `owner/repo` into the published manifest, which shows "Open on GitHub". Leave it off for a private repository.              |
+| `exposeRepo`   | `false`                                  | Put the GitHub `owner/repo` into the published manifest and the change link. Leave it off for a private repository.                        |
 | `sourceLocale` | `en` when present, else the first locale | The locale placeholders are checked against.                                                                                               |
 | `shareBase`    | Vite `base`                              | The path the HTML is served from. Set it when `base` is a full URL (a CDN), which the build otherwise rejects with `BAD_BASE`, or differs. |
 
@@ -545,8 +545,9 @@ In this mode "Sent" means the translator handed the link over; it is not a pull 
 - **PWA:** a Workbox service worker (vite-plugin-pwa, workbox-webpack-plugin) can answer the Studio
   with your app shell. Add `navigateFallbackDenylist: [/^\/livelocale\//]` to its Workbox options.
 - **Relative bases** (`base: './'`, CRA `homepage: '.'`): pages served by a client-side route
-  fallback cannot load `flag.js`, so pack prints `RELATIVE_BASE_WARNING`. Build with an absolute
-  base (`--base /path/`) if the app has such routes.
+  fallback cannot load `flag.js`, so pack prints "The app base is relative (./), so flag.js is
+  linked per HTML file. Pages served by a client-side route fallback cannot load it; build with
+  an absolute base (--base /path/) if the app has such routes."
 
 ### Security
 
