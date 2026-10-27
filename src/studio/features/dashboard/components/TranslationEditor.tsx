@@ -59,6 +59,14 @@ export const TranslationEditor = ({
   const [showRaw, setShowRaw] = useState(false);
   const isPlural = useMemo(() => parsePluralMessage(inputValue) !== null, [inputValue]);
   const usePluralEditor = isPlural && !showRaw;
+  const canSave = !isLoading && inputValue !== selected.currentValue;
+
+  // Ctrl+Enter (Cmd+Enter on Mac) saves, exactly as the Save button would. "Save anyway" stays a click.
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey)) return;
+    e.preventDefault();
+    if (canSave) onSave();
+  };
 
   // Live placeholder parity between the reference text and the current input.
   const chips = useMemo(() => {
@@ -130,7 +138,7 @@ export const TranslationEditor = ({
       )}
 
       {/* Edit Area */}
-      <div className="space-y-2 flex-1 flex flex-col min-h-[180px]">
+      <div className="space-y-2 flex-1 flex flex-col min-h-[180px]" onKeyDown={handleEditKeyDown}>
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
             {usePluralEditor ? 'Plural forms' : 'Translation Output'}
@@ -219,7 +227,7 @@ export const TranslationEditor = ({
         <button
           id="studio-save-button"
           onClick={onSave}
-          disabled={isLoading || inputValue === selected.currentValue}
+          disabled={!canSave}
           className={`flex-1 h-11 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition duration-205 ${
             inputValue === selected.currentValue
               ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none border border-slate-850'

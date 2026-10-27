@@ -1,5 +1,6 @@
 import React from 'react';
 import type { LiveLocaleMode } from '../../../api.js';
+import { unsentLabel } from '../hooks/useDrafts.js';
 
 // Injected by Vite at build/dev time from package.json version (see vite.config.ts).
 declare const __STUDIO_VERSION__: string;
@@ -11,6 +12,8 @@ interface HeaderProps {
   changesCount: number;
   isChangesOpen: boolean;
   onToggleChanges: () => void;
+  /** Share-link drafts not sent yet; the counter shows only when above zero. */
+  unsentCount?: number;
 }
 
 export const Header = ({
@@ -19,6 +22,7 @@ export const Header = ({
   changesCount,
   isChangesOpen,
   onToggleChanges,
+  unsentCount = 0,
 }: HeaderProps) => {
   return (
     <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-8 flex items-center justify-between shrink-0 select-none">
@@ -84,6 +88,16 @@ export const Header = ({
             title="Edits go to a git branch on the server; nothing is written locally."
           >
             PREVIEW
+          </span>
+        )}
+
+        {unsentCount > 0 && (
+          <span
+            data-testid="unsent-counter"
+            className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-300 select-none whitespace-nowrap"
+            title="Saved in this browser only. Send them to your developer before you leave."
+          >
+            {unsentLabel(unsentCount)}
           </span>
         )}
 

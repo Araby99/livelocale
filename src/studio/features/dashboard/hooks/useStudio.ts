@@ -11,6 +11,9 @@ import { useHistory, type HistoryEntry } from './useHistory.js';
 import { saveTranslation, fetchInfo, type LiveLocaleMode } from '../../../api.js';
 import { getStudioRuntime, getStaticTransport } from '../../../runtime.js';
 import { useAuth } from './useAuth.js';
+import { useDrafts } from './useDrafts.js';
+import { useUnsentGuard } from './useUnsentGuard.js';
+import { valuesToReapply } from './reapply.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
@@ -64,6 +67,8 @@ export const useStudio = () => {
   });
 
   const history = useHistory();
+  const staticTransport = getStaticTransport();
+  const drafts = useDrafts(staticTransport);
 
   const {
     selected,
@@ -125,16 +130,22 @@ export const useStudio = () => {
   }, [auth.tokenVersion]);
 
   // A preview deployment or a share link keeps serving the text it was built with, so a reload
-  // or navigation would bring back pre-edit values. Re-apply this session's
-  // saved values for the current locale (oldest first, so the newest wins).
+  // or navigation would bring back pre-edit values. Re-apply this session's history (preview)
+  // or the saved drafts (static) for the current locale.
   useEffect(() => {
-    if ((mode !== 'preview' && mode !== 'static') || connectionStatus !== 'connected') return;
-    const latest = new Map<string, string>();
-    for (const entry of [...history.entries].reverse()) {
-      if (entry.locale === locale) latest.set(entry.key, entry.nextValue);
-    }
-    latest.forEach((value, key) => sendToIframe('COMMIT_PREVIEW', { key, value }));
-  }, [mode, connectionStatus, currentPath, visibleKeys, locale, history.entries]);
+    if (connectionStatus !== 'connected') return;
+    const values = valuesToReapply({
+      mode,
+      locale,
+      localeConfirmed: true,
+      history: history.entries,
+      drafts: drafts.drafts,
+    });
+    values.forEach((value, key) => sendToIframe('COMMIT_PREVIEW', { key, value }));
+  }, [mode, connectionStatus, currentPath, visibleKeys, locale, history.entries, drafts.drafts]);
+
+  // Unsent drafts live only in this browser: ask before the tab is closed.
+  useUnsentGuard(mode === 'static' && drafts.unsentCount > 0);
 
   // Undo re-saves the previous value through the normal mutation path, so the
   // file on disk, the dictionary cache, and git status all stay consistent.
@@ -226,6 +237,12 @@ export const useStudio = () => {
     saveWarning,
     handleForceSave: () => handleSave({ force: true }),
     dismissSaveWarning,
+    // Share-link drafts
+    drafts: drafts.drafts,
+    unsentCount: drafts.unsentCount,
+    sentCount: drafts.sentCount,
+    markDraftsSent: drafts.markSent,
+    staticManifest: staticTransport?.manifest ?? null,
     // Preview mode / auth
     mode,
     needsToken: auth.needsToken,

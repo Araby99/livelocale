@@ -65,6 +65,8 @@ export const App = () => {
     needsToken,
     submitToken,
     setupProblems,
+    drafts,
+    unsentCount,
   } = useStudio();
 
   return (
@@ -74,9 +76,10 @@ export const App = () => {
       <Header
         coveragePercentage={coveragePercentage}
         mode={mode}
-        changesCount={git?.changes.length ?? 0}
+        changesCount={mode === 'static' ? drafts.length : (git?.changes.length ?? 0)}
         isChangesOpen={isChangesOpen}
         onToggleChanges={toggleChanges}
+        unsentCount={unsentCount}
       />
 
       <ChangesPanel

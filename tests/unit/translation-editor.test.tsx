@@ -65,3 +65,26 @@ describe('TranslationEditor placeholders', () => {
     cleanup();
   });
 });
+
+describe('TranslationEditor keyboard', () => {
+  it('saves with Ctrl+Enter and Cmd+Enter', () => {
+    const props = renderEditor();
+    const input = screen.getByPlaceholderText(/type your translation/i);
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+    expect(props.onSave).toHaveBeenCalledTimes(1);
+    fireEvent.keyDown(input, { key: 'Enter', metaKey: true });
+    expect(props.onSave).toHaveBeenCalledTimes(2);
+    expect(props.onForceSave).not.toHaveBeenCalled();
+    cleanup();
+
+    const unchanged = renderEditor({
+      inputValue: 'Hola',
+      selected: { key: 'k', fallbackValue: 'Hi', currentValue: 'Hola' },
+    });
+    const same = screen.getByPlaceholderText(/type your translation/i);
+    fireEvent.keyDown(same, { key: 'Enter', ctrlKey: true });
+    fireEvent.keyDown(same, { key: 'Enter', metaKey: true });
+    expect(unchanged.onSave).not.toHaveBeenCalled();
+    cleanup();
+  });
+});
