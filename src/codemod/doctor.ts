@@ -688,8 +688,9 @@ function checkShareCsp(pages: Fetched[], origin: string): Finding {
   const title = 'Share CSP';
   const blocked: string[] = [];
   for (const page of pages) {
-    if (!isAnswer(page) || page.wall) continue;
-    const csp = page.headers.get('content-security-policy') || '';
+    const answer = answered(title, page);
+    if ('level' in answer) return answer;
+    const csp = answer.headers.get('content-security-policy') || '';
     const scriptSrc = cspSources(csp, 'script-src');
     const sources = scriptSrc ?? cspSources(csp, 'default-src');
     if (sources && !allowsSelf(sources, origin)) {
@@ -706,7 +707,11 @@ function checkShareCsp(pages: Fetched[], origin: string): Finding {
   return { level: 'ok', title, detail: "scripts from 'self' are allowed" };
 }
 
-/** Worker URLs worth reading: the one the app HTML registers, then the usual file names. */
+/**
+ * Worker URLs worth reading: the one the app HTML registers, then the usual file names, both
+ * under the app base and at the origin root (`/sw.js`, `/service-worker.js`). The two are the
+ * same for a root base; a project site can carry either.
+ */
 function workerCandidates(root: Fetched, base: string): string[] {
   const urls: string[] = [];
   if (isAnswer(root)) {
@@ -717,8 +722,11 @@ function workerCandidates(root: Fetched, base: string): string[] {
       } catch {}
     }
   }
-  for (const name of ['sw.js', 'service-worker.js']) {
-    const url = new URL(name, base).href;
+  const names = ['sw.js', 'service-worker.js'];
+  for (const url of [
+    ...names.map((name) => new URL(name, base).href),
+    ...names.map((name) => new URL(`/${name}`, base).href),
+  ]) {
     if (!urls.includes(url)) urls.push(url);
   }
   return urls;

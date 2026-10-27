@@ -552,6 +552,25 @@ describe('runDoctor — share probes', () => {
     expect(byTitle(await doc(spec), 'Service worker')?.level).toBe('warn');
   });
 
+  it('reads /sw.js at the origin root as well as under a project-site base', async () => {
+    const shell = script('navigateFallback: "/index.html"');
+    const run = (spec: SiteSpec) =>
+      runDoctor({
+        projectDir: project,
+        appOrigin: G,
+        appBase: `${G}/repo/`,
+        fetchImpl: site(spec),
+      });
+    expect(
+      byTitle(await run({ ...pagesSite, [`${G}/sw.js`]: shell }), 'Service worker')?.level
+    ).toBe('warn');
+    expect(
+      byTitle(await run({ ...pagesSite, [`${G}/repo/service-worker.js`]: shell }), 'Service worker')
+        ?.level
+    ).toBe('warn');
+    expect(byTitle(await run(pagesSite), 'Service worker')?.detail).toBe('none found');
+  });
+
   it('warns about a PWA plugin config that does not exclude livelocale/', async () => {
     const vitePwaProject = subProject('pwa', {
       'vite.config.ts': `import { VitePWA } from 'vite-plugin-pwa';\nexport default { plugins: [VitePWA({ registerType: 'autoUpdate' })] };`,
@@ -569,6 +588,24 @@ describe('runDoctor — share probes', () => {
 
   it('reports a login wall on the share probes', async () => {
     expect(byTitle(await doc(vercelWall), 'Share manifest')?.detail).toMatch(/Vercel/);
+    const csp = byTitle(await doc(vercelWall), 'Share CSP');
+    expect(csp?.level).toBe('fail');
+    expect(csp?.detail).toMatch(/Vercel/);
+    const studioWalled: SiteSpec = {
+      ...healthy,
+      [`${A}/livelocale/index.html`]: vercelWall[`${A}/livelocale/index.html`]!,
+    };
+    expect(byTitle(await doc(studioWalled), 'Share CSP')?.level).toBe('fail');
+    const unreachable = vi.fn(async (url: string) => {
+      if (url === `${A}/livelocale/index.html`) throw new Error('ECONNRESET');
+      return site(healthy)(url);
+    }) as unknown as typeof fetch;
+    const down = byTitle(
+      await runDoctor({ projectDir: project, appOrigin: A, share: true, fetchImpl: unreachable }),
+      'Share CSP'
+    );
+    expect(down?.level).toBe('fail');
+    expect(down?.detail).toContain('not reachable');
   });
 
   it('fails a forced share run when the manifest is missing', async () => {
