@@ -174,6 +174,19 @@ describe('parseGitHubSlug', () => {
 });
 
 describe('runGit', () => {
-  it('runGit returns null outside a repository', async () =>
-    expect(await runGit(['rev-parse', '--show-toplevel'], os.tmpdir())).toBeNull());
+  it('runGit returns null outside a repository', async () => {
+    // A fresh directory, with git discovery stopped at its parent, is outside any
+    // repository even when the temp directory itself sits inside a work tree.
+    const parent = fs.realpathSync(os.tmpdir());
+    const dir = fs.mkdtempSync(path.join(parent, 'livelocale-nogit-'));
+    tempDirs.push(dir);
+    const saved = process.env.GIT_CEILING_DIRECTORIES;
+    process.env.GIT_CEILING_DIRECTORIES = parent;
+    try {
+      expect(await runGit(['rev-parse', '--show-toplevel'], dir)).toBeNull();
+    } finally {
+      if (saved === undefined) delete process.env.GIT_CEILING_DIRECTORIES;
+      else process.env.GIT_CEILING_DIRECTORIES = saved;
+    }
+  });
 });
