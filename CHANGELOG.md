@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-10-27
+
+### Minor Changes
+
+- **Added**
+  - The share link on any host: `liveLocaleVite({ share: true })`, `livelocale pack <outDir>` and `livelocale build [--preview] -- <cmd>` write `livelocale/` (the Studio, `manifest.json`, the locale files and `flag.js`) into the build.
+  - A framed-only `flag.js`: visitors who open the site directly never get watermarks.
+  - Static Studio mode: drafts kept in IndexedDB, re-applied after reloads, the language detected from the page text, Send to developer (Copy link, Download file), Download and Restore backup, and first-run tips.
+  - Review mode for `lc1.` change links.
+  - `npx livelocale apply "<link|file|->" [--pr] [--clipboard] [--force] [--dry-run]`.
+  - `doctor --app <url>` share probes, which print the share link.
+  - The client follows a Studio on the same site after full-page navigations.
+  - The client reports visible texts.
+- **Changed**
+  - The Studio is built with a relative base and self-hosted fonts, and is `noindex`.
+  - The Studio uses drawers below 1280px.
+  - `FileMutator({ requireEnabled })`, with `FileMutatorOptions` exported from `livelocale/server`.
+  - The router's write validation moved to `save-rules` with byte-identical responses.
+
 ## [0.8.1] - 2026-10-26
 
 ### Patch Changes
