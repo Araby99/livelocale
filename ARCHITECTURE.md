@@ -57,7 +57,10 @@ Every "is this on?" decision calls `getLiveLocaleMode()` / `isLiveLocaleEnabled(
 works in production builds, skips the platform guard), and `off`. The kill switch always wins.
 `process.env.NODE_ENV` and `process.env.NEXT_PUBLIC_LIVELOCALE` are referenced literally so bundlers
 can inline them; in the browser `window.__LIVELOCALE_FLAG__` is a bundler-agnostic fallback that
-the Vite plugin injects from the server's `LIVELOCALE`.
+the Vite plugin injects from the server's `LIVELOCALE`. Static share builds load
+`<base>livelocale/flag.js` (`src/core/flag-script.ts`) first in `<head>`, and it sets the global to
+`preview` only when a same-origin parent's path is under the folder `flag.js` is served from, so
+visitors who open the site directly stay `off`.
 
 ### 1. Watermark codec (`src/client/watermark.ts`)
 

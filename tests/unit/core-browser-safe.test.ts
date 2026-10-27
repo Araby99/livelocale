@@ -10,6 +10,7 @@ const BROWSER_SAFE = [
   'src/core/validate.ts',
   'src/core/apply-plan.ts',
   'src/core/share-manifest.ts',
+  'src/core/flag-script.ts',
 ];
 
 it.each(BROWSER_SAFE)('%s stays browser-safe', (file) => {
