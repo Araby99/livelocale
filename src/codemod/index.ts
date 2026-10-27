@@ -3,17 +3,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as net from 'net';
-import { fileURLToPath } from 'url';
+import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures } from './doctor.js';
 import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
-
-const getDirname = () => {
-  if (typeof __dirname !== 'undefined') {
-    return __dirname;
-  }
-  return path.dirname(fileURLToPath((import.meta as any).url));
-};
 
 const DEFAULT_STUDIO_PORT = 3010;
 const DEFAULT_APP_ORIGIN = 'http://localhost:3000';
@@ -97,7 +90,7 @@ function isPortAnswering(port: number): Promise<boolean> {
 
 async function runStudio(port: number, appOrigin: string) {
   console.log(`\n🚀 Starting LiveLocale Studio...`);
-  const studioDir = path.resolve(getDirname(), '../studio');
+  const studioDir = path.resolve(moduleDir(), '../studio');
 
   if (!fs.existsSync(path.join(studioDir, 'index.html'))) {
     console.error(`Error: Studio assets not found at "${studioDir}".`);

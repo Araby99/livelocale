@@ -1,14 +1,28 @@
-import { promises as fs } from 'fs';
+import { existsSync, statSync, promises as fs } from 'fs';
 import * as path from 'path';
+import { FLAG_SCRIPT } from '../core/flag-script.js';
 import { LOCALE_RE } from '../core/validate.js';
 import {
+  SHARE_DIR,
+  SHARE_FLAG_FILE,
+  SHARE_LOCALES_DIR,
+  SHARE_MANIFEST_FILE,
   SHARE_MANIFEST_FORMAT,
   type LocalesLayout,
   type ShareManifest,
 } from '../core/share-manifest.js';
 import { resolveBuildInfo, type GitRunner } from './build-info.js';
+import { detectBuildTarget } from './build-target.js';
 import { KeyScanner } from './key-scanner.js';
+import { moduleDir } from './module-dir.js';
 import { PackError } from './pack-error.js';
+import {
+  basePathOf,
+  flagSrcFor,
+  injectFlagScript,
+  normalizeBase,
+  shareUrlPathFor,
+} from './share-html.js';
 
 export interface ShareDataOptions {
   projectDir: string;
@@ -171,4 +185,176 @@ export async function collectShareData(options: ShareDataOptions): Promise<Share
   };
 
   return { manifest, dictionaries, warnings };
+}
+
+export const RELATIVE_BASE_WARNING =
+  'The app base is relative (./), so flag.js is linked per HTML file. Pages served by a client-side route fallback cannot load it; build with an absolute base (--base /path/) if the app has such routes.';
+
+export interface PackOptions extends Omit<ShareDataOptions, 'basePath'> {
+  /** The build output folder: absolute, or relative to `projectDir`. */
+  outDir: string;
+  /** The raw app base (`/`, `/app/`, `./`). Defaults to the detected stack's base, else `/`. */
+  base?: string;
+  /** `'auto'` (default) skips injection for Next projects or when `<outDir>/_next` exists. */
+  injectHtml?: boolean | 'auto';
+  /** The built Studio. Defaults to `resolveStudioDir()`. */
+  studioDir?: string;
+}
+
+export interface PackResult {
+  shareDir: string;
+  manifest: ShareManifest;
+  /** POSIX paths relative to the output folder, sorted. */
+  htmlInjected: string[];
+  shareUrlPath: string;
+  warnings: string[];
+}
+
+/** Where the built Studio may sit: beside the bundle in `dist/`, or `dist/studio` from source. */
+export function defaultStudioCandidates(): string[] {
+  const here = moduleDir();
+  return [path.resolve(here, '../studio'), path.resolve(here, '../../dist/studio')];
+}
+
+function isDirectory(target: string): boolean {
+  try {
+    return statSync(target).isDirectory();
+  } catch {
+    return false;
+  }
+}
+
+/** The first candidate that holds a built Studio (`index.html` and `assets/`), or null. */
+export function resolveStudioDir(candidates: string[] = defaultStudioCandidates()): string | null {
+  for (const dir of candidates) {
+    if (existsSync(path.join(dir, 'index.html')) && isDirectory(path.join(dir, 'assets'))) {
+      return dir;
+    }
+  }
+  return null;
+}
+
+/** True when `shareDir` is absent, or holds a `manifest.json` with a numeric `format`. */
+async function ownsShareDir(shareDir: string): Promise<boolean> {
+  try {
+    await fs.lstat(shareDir);
+  } catch {
+    return true;
+  }
+  try {
+    const manifest: unknown = JSON.parse(
+      await fs.readFile(path.join(shareDir, SHARE_MANIFEST_FILE), 'utf-8')
+    );
+    return isPlainObject(manifest) && typeof manifest['format'] === 'number';
+  } catch {
+    return false;
+  }
+}
+
+/** Every `*.html` file under `outDir` outside the share folder, skipping symlinks. POSIX, sorted. */
+async function findHtmlFiles(outDir: string, shareDir: string): Promise<string[]> {
+  const found: string[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      if (entry.isSymbolicLink()) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (full !== shareDir) await walk(full);
+      } else if (entry.isFile() && entry.name.toLowerCase().endsWith('.html')) {
+        found.push(toPosix(path.relative(outDir, full)));
+      }
+    }
+  };
+  await walk(outDir);
+  return found.sort();
+}
+
+/**
+ * Writes the share folder (`<outDir>/livelocale/`): the Studio, `manifest.json`, the locale
+ * dictionaries and `flag.js`, then links `flag.js` from every app HTML file. Everything is
+ * validated before the first write, and nothing outside the share folder is written except
+ * the flag tag in HTML.
+ */
+export async function packOutput(options: PackOptions): Promise<PackResult> {
+  const {
+    outDir: outOption,
+    base: baseOption,
+    injectHtml = 'auto',
+    studioDir: studioOption,
+    ...shareOptions
+  } = options;
+  const projectDir = path.resolve(options.projectDir);
+  const outDir = path.resolve(projectDir, outOption);
+  if (!isDirectory(outDir)) {
+    throw new PackError(
+      'OUT_DIR_NOT_FOUND',
+      `Build output not found: ${outDir}. Run your build first.`
+    );
+  }
+
+  const target = detectBuildTarget(projectDir);
+  const base = normalizeBase(baseOption ?? target.base ?? '/');
+
+  const candidates =
+    studioOption !== undefined
+      ? [path.resolve(projectDir, studioOption)]
+      : defaultStudioCandidates();
+  const studioDir = resolveStudioDir(candidates);
+  if (studioDir === null) {
+    throw new PackError(
+      'STUDIO_NOT_FOUND',
+      `LiveLocale Studio files are missing from the installed package (looked in ${candidates.join(', ')}). Reinstall livelocale.`
+    );
+  }
+
+  const data = await collectShareData({ ...shareOptions, projectDir, basePath: basePathOf(base) });
+
+  const shareDir = path.join(outDir, SHARE_DIR);
+  if (!(await ownsShareDir(shareDir))) {
+    throw new PackError(
+      'SHARE_DIR_TAKEN',
+      `${toPosix(path.relative(projectDir, outDir))}/${SHARE_DIR}/ already exists and was not written by LiveLocale. Move it away and run again.`
+    );
+  }
+
+  await fs.rm(shareDir, { recursive: true, force: true });
+  await fs.cp(studioDir, shareDir, { recursive: true });
+  await fs.writeFile(
+    path.join(shareDir, SHARE_MANIFEST_FILE),
+    JSON.stringify(data.manifest, null, 2) + '\n',
+    'utf-8'
+  );
+  const localesDir = path.join(shareDir, SHARE_LOCALES_DIR);
+  await fs.mkdir(localesDir, { recursive: true });
+  for (const locale of data.manifest.locales) {
+    await fs.writeFile(
+      path.join(localesDir, `${locale}.json`),
+      JSON.stringify(data.dictionaries[locale]),
+      'utf-8'
+    );
+  }
+  await fs.writeFile(path.join(shareDir, SHARE_FLAG_FILE), FLAG_SCRIPT, 'utf-8');
+
+  const inject =
+    injectHtml === 'auto'
+      ? target.kind !== 'next' && !existsSync(path.join(outDir, '_next'))
+      : injectHtml;
+  const htmlInjected = inject ? await findHtmlFiles(outDir, shareDir) : [];
+  for (const rel of htmlInjected) {
+    const file = path.join(outDir, ...rel.split('/'));
+    const html = await fs.readFile(file, 'utf-8');
+    const injected = injectFlagScript(html, flagSrcFor(base, rel));
+    if (injected !== html) await fs.writeFile(file, injected, 'utf-8');
+  }
+
+  const warnings = [...data.warnings];
+  if (base.kind === 'relative') warnings.push(RELATIVE_BASE_WARNING);
+
+  return {
+    shareDir,
+    manifest: data.manifest,
+    htmlInjected,
+    shareUrlPath: shareUrlPathFor(base),
+    warnings,
+  };
 }

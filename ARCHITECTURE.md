@@ -229,6 +229,24 @@ refuses to start when something already answers on `localhost:<port>`, because o
 second server can bind beside it. Commands set `process.exitCode` rather than calling
 `process.exit()` after network probes or large output.
 
+### 10. Share output (`src/server/pack.ts`)
+
+`packOutput` turns a finished static build into a share link. It writes one folder,
+`<outDir>/livelocale/`, served at `<base>livelocale/index.html`: the built Studio (`index.html`,
+`assets/`), `manifest.json` (format 1, from `collectShareData`: build info, locales, layout, code
+keys and `basePath`, null for a relative base), `locales/<code>.json` (each locale's merged
+dictionary) and `flag.js`. The folder name has no underscore, because Jekyll drops such folders.
+Every check runs before the first write: the output folder exists, the base is valid, the
+Studio is found (`resolveStudioDir`: the first candidate holding `index.html` and `assets/`), the
+locales read cleanly, and pack owns the folder. An existing `livelocale/` is replaced only when its
+`manifest.json` has a numeric `format`; anything else stops with `SHARE_DIR_TAKEN`. The flag gate
+is `flag.js`, which sets `window.__LIVELOCALE_FLAG__ = 'preview'` only inside a same-origin parent
+under the Studio folder; every app HTML file outside `livelocale/` (symlinks skipped) gets
+`<script src="<base>livelocale/flag.js"></script>` as the first child of `<head>`, absolute for an
+absolute base and per-file relative for a relative one, which also adds `RELATIVE_BASE_WARNING`.
+Pack never writes outside `<outDir>/livelocale/` except that flag tag. Next.js outputs (a Next
+project, or an output with `_next/`) skip the injection by default.
+
 ## Security rules at a glance
 
 | Rule                        | Where                                       |
