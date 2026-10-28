@@ -13,6 +13,12 @@ import {
   DANGEROUS_KEY_SEGMENTS,
 } from '../core/validate.js';
 import { setNestedProperty, stringifyLike, flattenKeys } from '../core/json-path.js';
+import {
+  createGitHubRest,
+  decodeBase64Utf8,
+  encodeBase64Utf8,
+  GitHubApiError,
+} from './github-rest.js';
 
 export interface GitHubGatewayConfig {
   /** `owner/name` */
@@ -47,17 +53,6 @@ interface ContentEntry {
 }
 
 type Contents = ContentFile | ContentEntry[] | null;
-
-/** A non-2xx answer from the GitHub REST API. */
-class GitHubApiError extends Error {
-  constructor(
-    message: string,
-    readonly status: number
-  ) {
-    super(message);
-    this.name = 'GitHubApiError';
-  }
-}
 
 /** Attempts per save when another writer changed the file between our read and our write. */
 const MAX_WRITE_ATTEMPTS = 4;
@@ -98,83 +93,10 @@ function mapCompareStatus(status: string): GitChangeStatus {
  * Only paths under the locales directory are ever read or written.
  */
 export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway {
-  const repo = config.repo;
+  const rest = createGitHubRest(config);
+  const { repo, api, probeStatus, refSha } = rest;
   const branch = config.branch;
   const baseBranch = config.baseBranch ?? 'main';
-  const apiBase = (config.apiBase ?? 'https://api.github.com').replace(/\/+$/, '');
-  const fetchImpl = config.fetchImpl ?? globalThis.fetch;
-  const owner = repo.split('/')[0] ?? '';
-
-  if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
-    throw new Error(`[livelocale] github.repo must be "owner/name", got "${repo}".`);
-  }
-  if (typeof fetchImpl !== 'function') {
-    throw new Error('[livelocale] The GitHub gateway needs a global fetch (Node 18+).');
-  }
-
-  // ─── Low-level API ───────────────────────────────────────────────────────
-
-  async function api<T = any>(
-    method: string,
-    path: string,
-    options: { body?: unknown; query?: Record<string, string>; allow404?: boolean } = {}
-  ): Promise<{ status: number; data: T | null }> {
-    const url = new URL(`${apiBase}/repos/${repo}${path}`);
-    for (const [k, v] of Object.entries(options.query ?? {})) url.searchParams.set(k, v);
-    const response = await fetchImpl(url.toString(), {
-      method,
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        ...(options.body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      },
-      body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
-    });
-    let data: any = null;
-    try {
-      data = await response.json();
-    } catch {}
-    if (response.status === 404 && options.allow404) return { status: 404, data: null };
-    if (!response.ok) {
-      const detail = data?.message || 'request failed';
-      const hint = /not accessible by/i.test(detail)
-        ? ' The token lacks a permission: give it "Contents" and "Pull requests" with "Read and write" on this repository.'
-        : '';
-      throw new GitHubApiError(
-        `GitHub API ${response.status} on ${method} ${path}: ${detail}.${hint}`,
-        response.status
-      );
-    }
-    return { status: response.status, data };
-  }
-
-  /** Raw status of a request that is expected to fail validation; never throws on 4xx. */
-  async function probeStatus(method: string, path: string, body?: unknown): Promise<number> {
-    const response = await fetchImpl(`${apiBase}/repos/${repo}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${config.token}`,
-        Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-        ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      },
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-    });
-    try {
-      await response.arrayBuffer();
-    } catch {}
-    return response.status;
-  }
-
-  async function refSha(name: string): Promise<string | null> {
-    const res = await api<{ object: { sha: string } }>(
-      'GET',
-      `/git/ref/heads/${encodeURIComponent(name)}`,
-      { allow404: true }
-    );
-    return res.data?.object?.sha ?? null;
-  }
 
   let branchReady: Promise<void> | null = null;
   function ensureBranch(): Promise<void> {
@@ -204,7 +126,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
   async function readFile(path: string): Promise<{ text: string; sha: string } | null> {
     const contents = await getContents(path);
     if (!contents || Array.isArray(contents) || contents.type !== 'file') return null;
-    const text = Buffer.from(contents.content.replace(/\n/g, ''), 'base64').toString('utf-8');
+    const text = decodeBase64Utf8(contents.content);
     return { text, sha: contents.sha };
   }
 
@@ -213,7 +135,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     await api('PUT', `/contents/${encodePath(path)}`, {
       body: {
         message,
-        content: Buffer.from(text, 'utf-8').toString('base64'),
+        content: encodeBase64Utf8(text),
         branch,
         ...(sha ? { sha } : {}),
       },
@@ -457,10 +379,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
   }
 
   async function openPullRequestUrl(): Promise<string | null> {
-    const res = await api<{ html_url: string }[]>('GET', '/pulls', {
-      query: { head: `${owner}:${branch}`, base: baseBranch, state: 'open' },
-    });
-    return res.data?.[0]?.html_url ?? null;
+    return (await rest.findOpenPullRequest(branch, baseBranch))?.url ?? null;
   }
 
   async function status(basePath: string): Promise<GitStatus> {
@@ -493,17 +412,14 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     if (files.length === 0) {
       throw new Error(`No changes to propose under ${normalizeDir(basePath)} on ${branch}.`);
     }
-    const existing = await openPullRequestUrl();
-    if (existing) return { hash: existing };
-    const res = await api<{ html_url: string }>('POST', '/pulls', {
-      body: {
-        title: message,
-        head: branch,
-        base: baseBranch,
-        body: 'Translation changes proposed from the LiveLocale Studio.',
-      },
+    const pull = await rest.openOrReusePullRequest({
+      head: branch,
+      base: baseBranch,
+      title: message,
+      body: 'Translation changes proposed from the LiveLocale Studio.',
+      updateBodyIfReused: false,
     });
-    return { hash: res.data!.html_url };
+    return { hash: pull.url };
   }
 
   async function discard(): Promise<void> {
