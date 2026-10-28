@@ -146,6 +146,39 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(r.stdout).toContain('✅ LiveLocale share folder written to dist/livelocale/');
   });
 
+  it('should run `init --share` in a Vite project with a GitHub origin', () => {
+    const app = path.join(sandbox, 'vite-app');
+    const files: Record<string, string> = {
+      'package.json': JSON.stringify({ name: 'vite-app', devDependencies: { vite: '^5.0.0' } }),
+      'vite.config.ts':
+        "export default { plugins: [liveLocaleVite({ localesPath: './locales' })] };\n",
+      'locales/en.json': '{"hello":"Hi"}',
+    };
+    for (const [rel, text] of Object.entries(files)) {
+      fs.mkdirSync(path.dirname(path.join(app, rel)), { recursive: true });
+      fs.writeFileSync(path.join(app, rel), text, 'utf-8');
+    }
+    for (const gitArgs of [
+      ['init', '-q'],
+      ['remote', 'add', 'origin', 'https://github.com/acme/site.git'],
+    ]) {
+      expect(spawnSync('git', gitArgs, { cwd: app }).status).toBe(0);
+    }
+    const r = runCli(pkgDir, app, ['init', '--share', '--locales', 'locales', '--source', 'en']);
+    expect(r.stderr).toBe('');
+    expect(r.status).toBe(0);
+    const workflow = path.join(app, '.github', 'workflows', 'livelocale.yml');
+    expect(fs.existsSync(workflow)).toBe(true);
+    const version = JSON.parse(
+      fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf-8')
+    ).version;
+    expect(fs.readFileSync(workflow, 'utf-8')).toContain(`npx --yes livelocale@${version} apply`);
+    expect(fs.readFileSync(path.join(app, 'vite.config.ts'), 'utf-8')).toContain(
+      'liveLocaleVite({ share: true, '
+    );
+    expect(r.stdout).toContain('Commit and push: the workflow must be on the default branch.');
+  });
+
   it('should run apply with a change-link file', async () => {
     write('locales/en.json', '{"hello":"Hi"}');
     write('locales/ar.json', '{"hello":"أهلا"}');

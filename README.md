@@ -195,6 +195,37 @@ Generates API route handlers based on your router structure (App vs Pages Router
 npx livelocale init [--dir <path>]
 ```
 
+### `init --share`
+
+Sets up the share link for your stack and, on a GitHub remote, writes
+`.github/workflows/livelocale.yml`, which turns change links into pull requests. It prints every
+file it creates, updates, leaves unchanged or skips, then what is left for you to do.
+
+```bash
+npx livelocale init --share [--locales <path>] [--source <locale>] [--branches <a,b>] [--overwrite] [--dir <path>]
+```
+
+| Stack                      | Build change                                                                                                                                                                                                                                                                                                                       |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| CRA / webpack / Rsbuild    | `"build": "react-scripts build && livelocale pack build"`. This is an explicit `&&`, not a `postbuild` hook, because Yarn Berry and some pnpm versions skip pre/post scripts, and hosts that call the bundler directly skip them too ([yarn](https://v2.yarnpkg.com/advanced/lifecycle-scripts), [pnpm](https://pnpm.io/cli/run)). |
+| Next.js `output: 'export'` | `"build:preview": "livelocale build --preview -- next build"`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked at build time.                                                                                                                                                             |
+| Next.js on Vercel/Node     | For the Preview environment, use the build command `livelocale build --preview -- next build`. It packs into a gitignored `public/livelocale/`.                                                                                                                                                                                    |
+| Custom CI                  | `LIVELOCALE=preview <your build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                                                                                                                                                                                                         |
+
+For Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. The scripts it writes also
+pass `--locales` and `--source`; webpack and Rsbuild pack `dist`.
+
+- `--locales` — locales directory relative to the project (default: the first of `locales`,
+  `src/locales`, `public/locales`, `src/i18n/locales` and `messages` that holds locale JSON).
+- `--source` — source locale (default `en`).
+- `--branches` — branches a change link may target (default: the repository's default branch, at
+  most 10). Merge the workflow into each of them too: a pull request into a branch runs that
+  branch's copy of the workflow.
+- `--overwrite` — replace an existing workflow file whose content differs (it is skipped otherwise).
+- On another git host no workflow is written; use `npx livelocale apply "<link>" --pr`.
+
+Commit and push the result: the workflow must be on the default branch.
+
 ### `studio`
 
 Spins up a lightweight, CORS-enabled HTTP server serving the Visual Studio assets statically.

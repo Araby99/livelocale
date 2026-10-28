@@ -10,7 +10,8 @@ export const NEXT_CONFIG_FILES = [
   'next.config.mts',
 ];
 
-const VITE_CONFIG_FILES = [
+/** Vite config file names, in the order they are read. */
+export const VITE_CONFIG_FILES = [
   'vite.config.js',
   'vite.config.mjs',
   'vite.config.cjs',

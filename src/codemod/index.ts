@@ -16,6 +16,8 @@ import {
 } from '../server/pack.js';
 import { PackError } from '../server/pack-error.js';
 import { runApplyCommand } from './apply/cli.js';
+import { planInitShare, writePlannedFiles } from './init-share.js';
+import { readOwnVersion } from '../server/module-dir.js';
 
 const DEFAULT_STUDIO_PORT = 3010;
 const DEFAULT_APP_ORIGIN = 'http://localhost:3000';
@@ -44,6 +46,11 @@ Options for migrate:
 
 Options for init:
   --dir <path>       Target project directory (default: current directory)
+  --share            Set up the share link build and the GitHub workflow instead of the API route
+  --locales <path>   (--share) Locales directory relative to the project (default: detected)
+  --source <locale>  (--share) Source locale (default: en)
+  --branches <a,b>   (--share) Branches a change link may target (default: the default branch)
+  --overwrite        (--share) Replace an existing .github/workflows/livelocale.yml
 
 Options for studio:
   --port <number>    Port to run the studio server on (default: ${DEFAULT_STUDIO_PORT})
@@ -603,6 +610,61 @@ async function runBuildCli(args: string[]) {
   }
 }
 
+async function runInitShareCommand(args: string[]) {
+  let dir = '.';
+  let localesPath: string | undefined;
+  let sourceLocale: string | undefined;
+  let branches: string[] | undefined;
+  let overwrite = false;
+  for (let i = 1; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--dir') {
+      dir = args[++i] || '.';
+    } else if (arg === '--locales') {
+      localesPath = args[++i];
+    } else if (arg === '--source') {
+      sourceLocale = args[++i];
+    } else if (arg === '--branches') {
+      branches = (args[++i] ?? '')
+        .split(',')
+        .map((b) => b.trim())
+        .filter(Boolean);
+    } else if (arg === '--overwrite') {
+      overwrite = true;
+    }
+  }
+
+  const projectDir = path.resolve(dir);
+  if (!fs.existsSync(projectDir)) {
+    console.error(`Error: Directory "${dir}" does not exist.`);
+    process.exit(1);
+  }
+
+  try {
+    const plan = await planInitShare({
+      projectDir,
+      localesPath,
+      sourceLocale,
+      branches,
+      version: readOwnVersion(),
+      overwrite,
+    });
+    writePlannedFiles(projectDir, plan.files);
+    console.log(`
+🚀 LiveLocale share link setup (${plan.stack})`);
+    for (const file of plan.files) {
+      console.log(
+        `  ${file.action.padEnd(9)} ${file.path}${file.reason ? ` (${file.reason})` : ''}`
+      );
+    }
+    for (const note of plan.notes) console.log(`💡 ${note}`);
+    console.log('Commit and push: the workflow must be on the default branch.');
+  } catch (err: any) {
+    console.error(`❌ ${err.message}`);
+    process.exitCode = 1;
+  }
+}
+
 async function run() {
   const args = process.argv.slice(2);
 
@@ -640,6 +702,11 @@ async function run() {
 
   if (args[0] === 'apply') {
     await runApplyCommand(args.slice(1));
+    return;
+  }
+
+  if (args[0] === 'init' && args.includes('--share')) {
+    await runInitShareCommand(args);
     return;
   }
 
