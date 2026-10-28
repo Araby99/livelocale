@@ -1,6 +1,6 @@
 /**
  * The reports `livelocale apply` writes: the pull request body, the commit
- * message and the terminal summary.
+ * message, the terminal summary and the GitHub Action's issue comments.
  *
  * Every piece of translator text (values, `by`, `note`, check messages) is
  * escaped so it can never mention a user, link an issue, inject markup or
@@ -217,16 +217,30 @@ function closingLine(ctx: ReportContext): string | undefined {
   return `Refs #${ctx.issueNumber}. LiveLocale closes the issue when this pull request is merged or closed.`;
 }
 
+function targetNote(target: TargetInfo | undefined): string | undefined {
+  if (target?.reason !== 'not-allowed' || target.requested === undefined) return undefined;
+  return `The link was made from ${codeSpan(target.requested)}, which is not in the allowed branches, so this targets ${codeSpan(target.branch)}.`;
+}
+
+/** The `Translated by` line, the target note (when asked for) and the fenced note. */
+function creditLines(
+  ctx: Pick<Partial<ReportContext>, 'by' | 'note' | 'target'>,
+  withTarget: boolean
+): string[] {
+  const lines: string[] = [];
+  if (ctx.by?.trim()) lines.push(`Translated by ${codeSpan(ctx.by)}`);
+  const target = withTarget ? targetNote(ctx.target) : undefined;
+  if (target) lines.push(target);
+  if (ctx.note?.trim()) lines.push(fencedNote(ctx.note));
+  return lines;
+}
+
 /** The pull request body; never longer than 60,000 characters. */
 export function renderPullRequestBody(ctx: ReportContext): string {
-  const head: string[] = ['Applies translations sent with a LiveLocale change link.'];
-  if (ctx.by?.trim()) head.push(`Translated by ${codeSpan(ctx.by)}`);
-  if (ctx.target.reason === 'not-allowed' && ctx.target.requested !== undefined) {
-    head.push(
-      `The link was made from ${codeSpan(ctx.target.requested)}, which is not in the allowed branches, so this targets ${codeSpan(ctx.target.branch)}.`
-    );
-  }
-  if (ctx.note?.trim()) head.push(fencedNote(ctx.note));
+  const head: string[] = [
+    'Applies translations sent with a LiveLocale change link.',
+    ...creditLines(ctx, true),
+  ];
 
   const tail: string[] = [];
   if (ctx.checkSummary) tail.push(cutLines(ctx.checkSummary, MAX_CHECK_SUMMARY_CHARS));
@@ -269,4 +283,81 @@ export function renderTerminalSummary(plan: ApplyPlan): string {
     lines.push(`${STATUS_LABELS[edit.status]} ${edit.locale} ${edit.key}`);
   }
   return lines.join('\n');
+}
+
+export type IssueOutcome =
+  | { kind: 'pr'; url: string; reused: boolean }
+  | { kind: 'compare'; url: string; branch: string }
+  | { kind: 'nothing-to-apply' }
+  | { kind: 'waiting-for-maintainer' }
+  | { kind: 'wrong-repo'; linkRepo: string; repo: string }
+  | { kind: 'error'; message: string };
+
+const MAX_ERROR_MESSAGE_CHARS = 2_000;
+
+function needsForceHint(plan: ApplyPlan | undefined): string | undefined {
+  const n = plan?.counts['needs-force'] ?? 0;
+  if (n === 0) return undefined;
+  return `${n} change(s) were saved with "Save anyway". A maintainer can apply them with \`/livelocale apply --force\`.`;
+}
+
+/** Joins `head`, the plan's table (when there is a plan) and `tail` within the body limit. */
+function withTable(head: string[], plan: ApplyPlan | undefined, tail: string[]): string {
+  if (!plan) return [...head, ...tail].join('\n\n');
+  const fixed = [...head, ...tail].join('\n\n').length;
+  const table = renderTable(plan, DEFAULT_TABLE_ROWS, MAX_BODY_CHARS - BODY_MARGIN - fixed);
+  return [...head, table, ...tail].join('\n\n');
+}
+
+function checkTail(checkSummary: string | undefined): string[] {
+  return checkSummary ? [cutLines(checkSummary, MAX_CHECK_SUMMARY_CHARS)] : [];
+}
+
+/**
+ * The comment the GitHub Action posts on the issue; never longer than 60,000
+ * characters, and never starting with `/livelocale` (so it cannot trigger the
+ * workflow again).
+ */
+export function renderIssueComment(
+  ctx: Partial<ReportContext> & { outcome: IssueOutcome }
+): string {
+  const { outcome } = ctx;
+  switch (outcome.kind) {
+    case 'waiting-for-maintainer':
+      return 'Waiting for a maintainer: comment `/livelocale apply`';
+    case 'wrong-repo':
+      return `This change link was made for ${codeSpan(outcome.linkRepo)}, not ${codeSpan(outcome.repo)}. Nothing was applied.`;
+    case 'error': {
+      const message = cut(outcome.message, MAX_ERROR_MESSAGE_CHARS).replace(/\.$/, '');
+      const runLog = ctx.runUrl ? ` Run log: ${ctx.runUrl}` : '';
+      return `LiveLocale could not apply this link: ${message}.${runLog}`;
+    }
+    case 'nothing-to-apply': {
+      const hint = needsForceHint(ctx.plan);
+      return withTable(
+        ['Nothing to apply.', ...creditLines(ctx, false)],
+        ctx.plan,
+        hint ? [hint] : []
+      );
+    }
+    case 'pr': {
+      const headline = `${outcome.reused ? 'Updated pull request' : 'Pull request'}: ${outcome.url}`;
+      return withTable(
+        [headline, ...creditLines(ctx, true)],
+        ctx.plan,
+        checkTail(ctx.checkSummary)
+      );
+    }
+    case 'compare': {
+      const headline = [
+        `This repository does not let GitHub Actions open pull requests, so the branch ${codeSpan(outcome.branch)} was pushed instead. Create the pull request with one click: ${outcome.url}`,
+        '(Or allow it once: Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests".)',
+      ];
+      return withTable(
+        [...headline, ...creditLines(ctx, true)],
+        ctx.plan,
+        checkTail(ctx.checkSummary)
+      );
+    }
+  }
 }

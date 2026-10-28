@@ -11,10 +11,12 @@ import {
   codeSpan,
   renderChangesTable,
   renderCommitMessage,
+  renderIssueComment,
   renderPullRequestBody,
   renderTerminalSummary,
   sanitizeName,
   summarizeCheck,
+  type IssueOutcome,
   type ReportContext,
 } from '../../src/codemod/apply/report.js';
 
@@ -279,5 +281,132 @@ describe('renderTerminalSummary', () => {
       expect(s).not.toContain(e.to);
       if (e.from) expect(s).not.toContain(e.from);
     }
+  });
+});
+
+describe('renderIssueComment', () => {
+  const forcedOnly = planWith({
+    status: 'needs-force',
+    force: true,
+    code: 'PLACEHOLDER_MISMATCH',
+    message: 'Placeholders differ from the reference: missing {name}.',
+  });
+  const compareOutcome: IssueOutcome = {
+    kind: 'compare',
+    url: 'https://github.com/acme/site/compare/main...livelocale/issue-7?quick_pull=1',
+    branch: 'livelocale/issue-7',
+  };
+  const allOutcomes: IssueOutcome[] = [
+    { kind: 'pr', url: 'https://github.com/acme/site/pull/9', reused: false },
+    compareOutcome,
+    { kind: 'nothing-to-apply' },
+    { kind: 'waiting-for-maintainer' },
+    { kind: 'wrong-repo', linkRepo: 'other/repo', repo: 'acme/site' },
+    { kind: 'error', message: 'Something failed.' },
+  ];
+
+  it('asks untrusted authors to wait for a maintainer', () => {
+    expect(renderIssueComment({ outcome: { kind: 'waiting-for-maintainer' } })).toBe(
+      'Waiting for a maintainer: comment `/livelocale apply`'
+    );
+  });
+
+  it('explains the compare link and how to allow pull requests', () => {
+    const c = renderIssueComment({ outcome: compareOutcome });
+    expect(c).toContain('Allow GitHub Actions to create and approve pull requests');
+    expect(c).toContain(
+      'This repository does not let GitHub Actions open pull requests, so the branch `livelocale/issue-7` was pushed instead. Create the pull request with one click: https://github.com/acme/site/compare/main...livelocale/issue-7?quick_pull=1'
+    );
+  });
+
+  it('hints at --force when only forced changes were left', () => {
+    const c = renderIssueComment({ plan: forcedOnly, outcome: { kind: 'nothing-to-apply' } });
+    expect(c.startsWith('Nothing to apply.')).toBe(true);
+    expect(c).toContain('/livelocale apply --force');
+    expect(c).toContain(
+      '1 change(s) were saved with "Save anyway". A maintainer can apply them with `/livelocale apply --force`.'
+    );
+    expect(
+      renderIssueComment({ plan: mixed, outcome: { kind: 'nothing-to-apply' } })
+    ).not.toContain('--force`');
+  });
+
+  it('refuses a link made for another repository', () => {
+    const c = renderIssueComment({
+      outcome: { kind: 'wrong-repo', linkRepo: 'other/repo', repo: 'acme/site' },
+    });
+    expect(c).toContain('Nothing was applied.');
+    expect(c).toBe(
+      'This change link was made for `other/repo`, not `acme/site`. Nothing was applied.'
+    );
+  });
+
+  it('never starts with a /livelocale command', () => {
+    for (const outcome of allOutcomes)
+      expect(renderIssueComment({ plan: mixed, outcome }).startsWith('/livelocale')).toBe(false);
+  });
+
+  it('says so when the target is not in the allowed branches', () => {
+    const notAllowed = {
+      branch: 'main',
+      isDefault: true,
+      requested: 'staging',
+      reason: 'not-allowed',
+    } as const;
+    expect(
+      renderIssueComment({
+        plan: mixed,
+        target: notAllowed,
+        outcome: { kind: 'pr', url: 'https://github.com/acme/site/pull/9', reused: false },
+      })
+    ).toContain('not in the allowed branches');
+    expect(
+      renderIssueComment({ plan: mixed, target: notAllowed, outcome: compareOutcome })
+    ).toContain('not in the allowed branches');
+  });
+
+  it('credits the translator and fences the note', () => {
+    const c = renderIssueComment({
+      plan: mixed,
+      by: '@octocat',
+      note: '```\n@octocat fixes #1\n```',
+      outcome: { kind: 'nothing-to-apply' },
+    });
+    expect(c).toContain('Translated by `@octocat`');
+    expect(outsideFences(c)).not.toMatch(/(^|[^`])@octocat/m);
+    expect(outsideFences(c)).not.toContain('fixes #1');
+  });
+
+  it('links the pull request, then the table and the check summary', () => {
+    const c = renderIssueComment({
+      plan: mixed,
+      checkSummary: '✅ `livelocale check`: no problems in the changed keys.',
+      outcome: { kind: 'pr', url: 'u', reused: false },
+    });
+    expect(c).toContain('`livelocale check`');
+    expect(c.startsWith('Pull request: u')).toBe(true);
+    expect(c.indexOf('| Status |')).toBeLessThan(c.indexOf('`livelocale check`'));
+    expect(
+      renderIssueComment({ plan: mixed, outcome: { kind: 'pr', url: 'u', reused: true } })
+    ).toMatch(/^Updated pull request: u/);
+  });
+
+  it('reports an error with the run log and no doubled period', () => {
+    const c = renderIssueComment({ outcome: { kind: 'error', message: 'X.' }, runUrl: 'r' });
+    expect(c).toContain('X. Run log: r');
+    expect(c).not.toContain('..');
+    expect(c).toBe('LiveLocale could not apply this link: X. Run log: r');
+  });
+
+  it('stays within 60,000 characters', () => {
+    expect(
+      renderIssueComment({
+        plan: bigPlan(500, 'x`|'.repeat(3334)),
+        by: 'Mona',
+        note: 'n'.repeat(5_000),
+        checkSummary: 'c'.repeat(20_000),
+        outcome: { kind: 'pr', url: 'https://github.com/acme/site/pull/9', reused: false },
+      }).length
+    ).toBeLessThanOrEqual(60_000);
   });
 });
