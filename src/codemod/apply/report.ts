@@ -211,7 +211,10 @@ function fencedNote(note: string): string {
   return `${fence}text\n${text}\n${fence}`;
 }
 
-function closingLine(ctx: ReportContext): string | undefined {
+/** `Closes #n` into the default branch, `Refs #n…` otherwise; undefined without an issue. */
+export function closingLine(
+  ctx: Pick<ReportContext, 'target' | 'issueNumber'>
+): string | undefined {
   if (ctx.issueNumber === undefined) return undefined;
   if (ctx.target.isDefault) return `Closes #${ctx.issueNumber}`;
   return `Refs #${ctx.issueNumber}. LiveLocale closes the issue when this pull request is merged or closed.`;

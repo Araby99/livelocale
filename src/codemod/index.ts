@@ -89,6 +89,8 @@ Options for apply:
   --source <locale>  Source locale (default: en, else the first locale)
   --force            Apply edits the translator saved with "Save anyway"
   --dry-run          Show what would change without writing files
+  --github-event      Run inside the generated GitHub workflow; reads the link from the event file
+  --branches <a,b>    Branches a link may target (default: the repository's default branch)
 
 Global Options:
   -h, --help         Show help information

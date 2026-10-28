@@ -343,6 +343,28 @@ The summary lists each edit's locale, key and status (applied, already done, con
 applied or already done, and 1 when any edit is a conflict, needs `--force` or was rejected, or
 when the link cannot be read.
 
+#### `apply --github-event`
+
+```bash
+npx livelocale apply --github-event --locales <path> --source <locale> [--branches <a,b>] [--dir <path>]
+```
+
+For the generated `.github/workflows/livelocale.yml` workflow only; do not run it yourself. It reads
+the issue, comment, dispatch or pull request event from `$GITHUB_EVENT_PATH` (never from the
+command line) and needs `GITHUB_TOKEN`.
+
+- Only a maintainer (OWNER, MEMBER or COLLABORATOR, or write access) makes it write. Anyone else
+  gets the reply "Waiting for a maintainer: comment `/livelocale apply`".
+- It writes one commit on a `livelocale/issue-<n>` branch (`livelocale/run-<id>` for a manual
+  run), opens or reuses the pull request, and comments the link on the issue. When the repository
+  does not let GitHub Actions open pull requests, the comment carries a one-click compare link
+  instead.
+- `--locales` and `--dir` are relative to the repository root. `--branches` lists the branches a
+  link may target (default: the repository's default branch); a link made from any other branch
+  targets the default branch, and the comment says so.
+- `--force` is not accepted; a maintainer comments `/livelocale apply --force` instead.
+- When the pull request is merged or closed, it closes the issue.
+
 ### `migrate`
 
 Performs static analysis to scan and automatically wrap existing `react-i18next` hooks with `wrapTranslationEngine`.

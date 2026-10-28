@@ -1,6 +1,7 @@
 /** The `livelocale apply` command: argument parsing and the terminal entry point. */
 
 import * as path from 'path';
+import { runGitHubEventApply } from './github-event.js';
 import { ApplyInputError, readApplyInput } from './link-input.js';
 import { runLocalApply } from './local.js';
 
@@ -13,6 +14,8 @@ export interface ApplyArgs {
   dir: string;
   locales?: string;
   source?: string;
+  githubEvent: boolean;
+  branches?: string[];
 }
 
 const VALUE_OPTIONS = { '--dir': 'dir', '--locales': 'locales', '--source': 'source' } as const;
@@ -21,6 +24,7 @@ const FLAG_OPTIONS = {
   '--pr': 'pr',
   '--force': 'force',
   '--dry-run': 'dryRun',
+  '--github-event': 'githubEvent',
 } as const;
 
 /** Parses the arguments after `apply`. Throws `ApplyInputError` on bad combinations. */
@@ -34,10 +38,22 @@ export function parseApplyArgs(argv: string[]): ApplyArgs {
     dir: '.',
     locales: undefined,
     source: undefined,
+    githubEvent: false,
+    branches: undefined,
   };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]!;
-    if (Object.prototype.hasOwnProperty.call(VALUE_OPTIONS, arg)) {
+    if (arg === '--branches') {
+      const value = argv[i + 1];
+      if (value === undefined || value.startsWith('--')) {
+        throw new ApplyInputError(`${arg} needs a value.`);
+      }
+      args.branches = value
+        .split(',')
+        .map((branch) => branch.trim())
+        .filter(Boolean);
+      i++;
+    } else if (Object.prototype.hasOwnProperty.call(VALUE_OPTIONS, arg)) {
       const value = argv[i + 1];
       if (value === undefined || value.startsWith('--')) {
         throw new ApplyInputError(`${arg} needs a value.`);
@@ -57,6 +73,21 @@ export function parseApplyArgs(argv: string[]): ApplyArgs {
   if (args.clipboard && args.input !== undefined) {
     throw new ApplyInputError('Pass the link or --clipboard, not both.');
   }
+  if (args.githubEvent) {
+    if (args.force) {
+      throw new ApplyInputError(
+        '--force is not allowed with --github-event; a maintainer comments `/livelocale apply --force`.'
+      );
+    }
+    if (args.input !== undefined) {
+      throw new ApplyInputError(
+        '--github-event reads the link from the event file; do not pass one.'
+      );
+    }
+    if (args.locales === undefined || args.source === undefined) {
+      throw new ApplyInputError('--github-event needs --locales and --source.');
+    }
+  }
   return args;
 }
 
@@ -64,6 +95,17 @@ export function parseApplyArgs(argv: string[]): ApplyArgs {
 export async function runApplyCommand(argv: string[]): Promise<void> {
   try {
     const args = parseApplyArgs(argv);
+    if (args.githubEvent) {
+      const result = await runGitHubEventApply({
+        env: process.env,
+        localesPath: args.locales!,
+        sourceLocale: args.source!,
+        branches: args.branches,
+        dir: args.dir,
+      });
+      process.exitCode = result === 'error' || result === 'wrong-repo' ? 1 : 0;
+      return;
+    }
     const input = await readApplyInput(args.input, {
       cwd: process.cwd(),
       clipboard: args.clipboard,
