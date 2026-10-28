@@ -1,0 +1,34 @@
+{
+  "action": "closed",
+  "number": 13,
+  "pull_request": {
+    "number": 13,
+    "html_url": "https://github.com/acme/site/pull/13",
+    "state": "closed",
+    "merged": true,
+    "head": {
+      "ref": "livelocale/issue-7",
+      "repo": {
+        "full_name": "acme/site"
+      }
+    },
+    "base": {
+      "ref": "main",
+      "repo": {
+        "full_name": "acme/site"
+      }
+    }
+  },
+  "repository": {
+    "full_name": "acme/site",
+    "default_branch": "main",
+    "name": "site",
+    "owner": {
+      "login": "acme"
+    }
+  },
+  "sender": {
+    "login": "maint",
+    "id": 101
+  }
+}

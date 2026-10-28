@@ -1,0 +1,37 @@
+{
+  "action": "created",
+  "issue": {
+    "number": 7,
+    "title": "Translation fixes",
+    "state": "open",
+    "body": "Please apply these translation fixes.\n\n```livelocale\nlc1.eJyrVkrOT0lVslJKzEvMS0ksSlWqBQBBkAbr\n```\n",
+    "user": {
+      "login": "sara",
+      "id": 202,
+      "type": "User"
+    },
+    "author_association": "NONE"
+  },
+  "comment": {
+    "id": 9001,
+    "body": "/livelocale apply --force",
+    "user": {
+      "login": "maint",
+      "id": 101,
+      "type": "User"
+    },
+    "author_association": "MEMBER"
+  },
+  "repository": {
+    "full_name": "acme/site",
+    "default_branch": "main",
+    "name": "site",
+    "owner": {
+      "login": "acme"
+    }
+  },
+  "sender": {
+    "login": "maint",
+    "id": 101
+  }
+}

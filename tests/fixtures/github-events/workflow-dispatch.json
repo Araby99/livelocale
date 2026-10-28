@@ -1,0 +1,18 @@
+{
+  "inputs": {
+    "link": "https://www.acme.com/livelocale/index.html#lc1.eJyrVkrOT0lVslJKzEvMS0ksSlWqBQBBkAbr"
+  },
+  "ref": "refs/heads/main",
+  "repository": {
+    "full_name": "acme/site",
+    "default_branch": "main",
+    "name": "site",
+    "owner": {
+      "login": "acme"
+    }
+  },
+  "sender": {
+    "login": "maint",
+    "id": 101
+  }
+}
