@@ -65,7 +65,7 @@ export const LocaleRow = ({
   };
 
   return (
-    <div className="bg-slate-950/40 border border-slate-850 hover:border-slate-800/80 rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition duration-200">
+    <div className="bg-slate-950/40 border border-slate-800 hover:border-slate-800/80 rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition duration-200">
       {editing ? (
         <div className="flex-1 flex items-center gap-2">
           <input
@@ -117,7 +117,7 @@ export const LocaleRow = ({
             <button
               onClick={() => setDeleting(false)}
               disabled={isLoading}
-              className="px-2.5 py-1 text-[10px] font-semibold bg-slate-800 hover:bg-slate-750 text-slate-300 rounded-lg transition"
+              className="px-2.5 py-1 text-[10px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
             >
               Cancel
             </button>

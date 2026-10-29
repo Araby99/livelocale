@@ -36,7 +36,7 @@ export const KeysDirectory = ({
         <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">
           Locale Directory
         </h2>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-900 text-indigo-400 border border-slate-850">
+        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-900 text-indigo-400 border border-slate-800">
           {filteredKeys.length} keys
         </span>
       </div>
@@ -49,7 +49,7 @@ export const KeysDirectory = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search keys or values..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-950 border border-slate-800 hover:border-slate-750 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-lg text-xs text-slate-200 placeholder-slate-600 transition duration-150"
+            className="w-full h-9 pl-9 pr-4 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-lg text-xs text-slate-200 placeholder-slate-600 transition duration-150"
           />
           <svg
             className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-2.5"
@@ -70,7 +70,7 @@ export const KeysDirectory = ({
           <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
             Scope
           </span>
-          <div className="flex items-center gap-1 bg-slate-950 border border-slate-850 rounded-lg p-0.5 select-none shrink-0">
+          <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-0.5 select-none shrink-0">
             <button
               onClick={() => setFilterPageOnly(false)}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
@@ -129,7 +129,7 @@ export const KeysDirectory = ({
                   )}
                 </div>
                 <span dir="auto" className="text-[10px] text-slate-500 break-all line-clamp-1">
-                  {valueText || <span className="italic text-slate-750">Empty</span>}
+                  {valueText || <span className="italic text-slate-700">Empty</span>}
                 </span>
               </button>
             );

@@ -109,7 +109,7 @@ export const ImportChangeDialog = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 border border-slate-850 hover:border-slate-700 rounded-xl transition duration-150"
+            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 border border-slate-800 hover:border-slate-700 rounded-xl transition duration-150"
           >
             Cancel
           </button>

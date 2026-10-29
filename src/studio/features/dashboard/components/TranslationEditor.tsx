@@ -109,7 +109,7 @@ export const TranslationEditor = ({
         </label>
         <div
           dir="auto"
-          className="bg-slate-950/40 border border-slate-850 rounded-xl px-4 py-3 text-sm text-slate-400 select-all leading-relaxed whitespace-pre-wrap"
+          className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-400 select-all leading-relaxed whitespace-pre-wrap"
         >
           {selected.fallbackValue || <span className="italic text-slate-600">None</span>}
         </div>
@@ -172,7 +172,7 @@ export const TranslationEditor = ({
             onChange={(e) => onInputChange(e.target.value)}
             disabled={isLoading}
             placeholder="Type your translation here..."
-            className="w-full min-h-32 bg-slate-950 border border-slate-800 hover:border-slate-750 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-205 shadow-inner leading-relaxed"
+            className="w-full min-h-32 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-205 shadow-inner leading-relaxed"
           />
         )}
       </div>
@@ -230,7 +230,7 @@ export const TranslationEditor = ({
           disabled={!canSave}
           className={`flex-1 h-11 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition duration-205 ${
             inputValue === selected.currentValue
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none border border-slate-850'
+              ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none border border-slate-800'
               : 'bg-indigo-600 hover:bg-indigo-500 text-white active:bg-indigo-700'
           }`}
         >

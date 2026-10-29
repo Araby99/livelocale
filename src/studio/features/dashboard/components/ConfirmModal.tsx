@@ -20,7 +20,7 @@ export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmM
         <div className="flex items-center justify-end gap-3 mt-6">
           <button
             onClick={onCancel}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-750 border border-slate-850 hover:border-slate-700 rounded-xl transition duration-150"
+            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-800 hover:border-slate-700 rounded-xl transition duration-150"
           >
             Keep Editing
           </button>

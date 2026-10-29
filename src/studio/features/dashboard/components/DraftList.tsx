@@ -118,7 +118,7 @@ export const DraftList = ({
         <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
           Your changes
         </h3>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-850">
+        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-800">
           {drafts.length}
         </span>
       </div>

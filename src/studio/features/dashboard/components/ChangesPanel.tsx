@@ -171,7 +171,7 @@ export const ChangesPanel = ({
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   Locale files
                 </label>
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-850">
+                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-800">
                   {changes.length} changed
                 </span>
               </div>
@@ -267,7 +267,7 @@ export const ChangesPanel = ({
                         : 'i18n: describe the copy change…'
                   }
                   maxLength={500}
-                  className="w-full min-h-20 bg-slate-950 border border-slate-800 hover:border-slate-750 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-150 disabled:opacity-60"
+                  className="w-full min-h-20 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-150 disabled:opacity-60"
                 />
                 <div className="flex items-center gap-3">
                   <button
@@ -303,7 +303,7 @@ export const ChangesPanel = ({
                       </button>
                       <button
                         onClick={() => setConfirmDiscard(false)}
-                        className="h-10 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 border border-slate-850 transition duration-150"
+                        className="h-10 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 border border-slate-800 transition duration-150"
                       >
                         Keep
                       </button>
@@ -338,7 +338,7 @@ export const ChangesPanel = ({
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                   This session
                 </label>
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-850">
+                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
                   {history.length} edits
                 </span>
               </div>
