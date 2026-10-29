@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      prerelease_base:
+        description: 'Publish <base>-next.<run number> to the "next" dist-tag, e.g. 0.10.0'
+        required: false
+        type: string
 
 jobs:
   publish:
@@ -31,6 +36,13 @@ jobs:
       - name: Install Root Dependencies
         run: npm ci
 
+      # A manual run with a prerelease base publishes <base>-next.<run number> to the "next"
+      # dist-tag. The version change stays in this run: no commit, no changeset, no CHANGELOG entry.
+      - name: Set prerelease version
+        if: inputs.prerelease_base != ''
+        env: { BASE: '${{ inputs.prerelease_base }}' }
+        run: npm version "$(node scripts/dist-tag.mjs prerelease "$BASE" "$GITHUB_RUN_NUMBER")" --no-git-tag-version
+
       - name: Build Library & Studio
         run: npm run build
 
@@ -53,4 +65,4 @@ jobs:
       # Authenticated by npm trusted publishing for this repository and workflow file.
       - name: Publish Package to NPM
         if: steps.published.outputs.already == 'false'
-        run: npm publish --provenance
+        run: TAG=$(node scripts/dist-tag.mjs tag "$(node -p "require('./package.json').version")") && npm publish --provenance --tag "$TAG"
