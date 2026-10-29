@@ -636,6 +636,10 @@ on the real page and a before/after table with the check results. Then turn it i
   replies "Waiting for a maintainer: comment `/livelocale apply`", and nothing is written until a
   maintainer posts that comment on the issue. Edits the translator saved with "Save anyway" are
   skipped as `needs --force`; comment `/livelocale apply --force` to include them.
+- **Who can trigger it.** The Action trusts the issue author or the commenter when GitHub marks
+  them OWNER, MEMBER or COLLABORATOR on the repository, or when they have write access. In an
+  organization that means any member or invited collaborator, even one with read-only access, can
+  turn a link into a pull request, but only people with write access can merge it.
 - **Base branches.** By default every pull request targets the default branch. To let links made
   from other builds (for example a `staging` deployment) target their own branch, list the
   branches with `npx livelocale init --share --branches main,staging`. A link from any other
