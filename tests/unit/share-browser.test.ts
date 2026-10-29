@@ -80,6 +80,7 @@ describe('copyText', () => {
 
 describe('downloadText', () => {
   it('downloads through a temporary anchor and revokes the URL', () => {
+    vi.useFakeTimers();
     const createObjectURL = vi.fn((_blob: Blob) => 'blob:x');
     const revokeObjectURL = vi.fn();
     Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
@@ -97,7 +98,44 @@ describe('downloadText', () => {
     expect(clicked[0].download).toBe('f.txt');
     expect(clicked[0].href).toBe('blob:x');
     expect(createObjectURL.mock.calls[0][0].type).toBe('text/plain;charset=utf-8');
+    vi.runAllTimers();
+    vi.useRealTimers();
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:x');
+    expect(document.querySelector('a')).toBeNull();
+  });
+
+  it('keeps the object URL and anchor alive for 30 seconds after the click', () => {
+    vi.useFakeTimers();
+    try {
+      const revokeObjectURL = vi.fn();
+      Object.defineProperty(URL, 'createObjectURL', { value: () => 'blob:y', configurable: true });
+      Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+
+      downloadText('f.txt', 'lc1.abc');
+
+      expect(revokeObjectURL).not.toHaveBeenCalled();
+      expect(document.querySelector('a')).not.toBeNull();
+      vi.advanceTimersByTime(29_999);
+      expect(revokeObjectURL).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:y');
+      expect(document.querySelector('a')).toBeNull();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('revokes the URL at once when the click throws', () => {
+    const revokeObjectURL = vi.fn();
+    Object.defineProperty(URL, 'createObjectURL', { value: () => 'blob:z', configurable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: revokeObjectURL, configurable: true });
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+
+    expect(() => downloadText('f.txt', 'lc1.abc')).toThrow('blocked');
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:z');
     expect(document.querySelector('a')).toBeNull();
   });
 });

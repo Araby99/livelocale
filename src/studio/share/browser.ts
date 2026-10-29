@@ -59,6 +59,12 @@ export async function copyText(text: string): Promise<boolean> {
   return copyWithTextarea(text);
 }
 
+/**
+ * How long the object URL outlives the click. Some browsers (older Firefox, some Safari
+ * versions) cancel a download whose blob URL is revoked in the same tick.
+ */
+const REVOKE_DELAY_MS = 30_000;
+
 /** Saves `text` as a UTF-8 plain-text file named `fileName`. */
 export function downloadText(fileName: string, text: string): void {
   const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
@@ -66,11 +72,16 @@ export function downloadText(fileName: string, text: string): void {
   anchor.href = url;
   anchor.download = fileName;
   anchor.style.display = 'none';
+  const cleanUp = () => {
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
   try {
     document.body.appendChild(anchor);
     anchor.click();
-  } finally {
-    anchor.remove();
-    URL.revokeObjectURL(url);
+  } catch (err) {
+    cleanUp();
+    throw err;
   }
+  setTimeout(cleanUp, REVOKE_DELAY_MS);
 }
