@@ -228,3 +228,117 @@ test('names the fix instead of pointing at localhost when the manifest is missin
   await expect(page.locator('#app-preview-iframe[src^="http://localhost:3000"]')).toHaveCount(0);
   await expect(page.getByTestId('slow-connection-help')).toHaveCount(0);
 });
+
+const DIST = 'playground-vite/dist/livelocale';
+const MANIFEST_FILE = join(DIST, 'manifest.json');
+const AR_FILE = join(DIST, 'locales/ar.json');
+
+test.describe('after a rebuild', () => {
+  let manifestBefore = '';
+  let arBefore = '';
+
+  test.beforeEach(() => {
+    manifestBefore = fs.readFileSync(MANIFEST_FILE, 'utf-8');
+    arBefore = fs.readFileSync(AR_FILE, 'utf-8');
+  });
+
+  test.afterEach(() => {
+    fs.writeFileSync(MANIFEST_FILE, manifestBefore);
+    fs.writeFileSync(AR_FILE, arBefore);
+  });
+
+  /** Saves `ar/home.title` as `أهلاً` from the framed app, as the Arabic test above does. */
+  async function saveArabicTitle(page: Page): Promise<void> {
+    await openStudio(page);
+    const frame = page.frameLocator('#app-preview-iframe');
+    await frame.locator('#lang-ar').click();
+    await expect(page.getByText('Editing: ar')).toBeVisible();
+    await frame.locator('[data-i18n-key="home.title"]').click({ modifiers: ['Alt'] });
+    await page.locator('#studio-translation-input').fill('أهلاً');
+    await page.keyboard.press('Control+Enter');
+    await expect(frame.locator('[data-i18n-key="home.title"]')).toHaveText(shows('أهلاً'));
+    expect(await readDrafts(page)).toHaveLength(1);
+  }
+
+  /** Rewrites the built `ar.json` with a new `home.title`, as a rebuild would. */
+  function rebuildArabicTitle(title: string): void {
+    const ar = JSON.parse(arBefore);
+    fs.writeFileSync(AR_FILE, JSON.stringify({ ...ar, home: { ...ar.home, title } }));
+  }
+
+  test('drops a draft once the rebuilt site shows it', async ({ page }) => {
+    await saveArabicTitle(page);
+    rebuildArabicTitle('أهلاً');
+    fs.writeFileSync(
+      MANIFEST_FILE,
+      JSON.stringify({ ...JSON.parse(manifestBefore), base: 'b'.repeat(40) }, null, 2)
+    );
+    await page.reload();
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect.poll(() => readDrafts(page)).toEqual([]);
+    await page.locator('#studio-changes-button').click();
+    await expect(page.getByText('Live now', { exact: true })).toBeVisible();
+    await page.getByRole('button', { name: 'Dismiss live changes' }).click();
+    await expect(page.getByText('Live now', { exact: true })).toHaveCount(0);
+  });
+
+  test('flags a draft changed by someone else', async ({ page }) => {
+    await saveArabicTitle(page);
+    rebuildArabicTitle('سلام');
+    await page.reload();
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect
+      .poll(() => readDrafts(page))
+      .toEqual([expect.objectContaining({ locale: 'ar', key: 'home.title', conflict: true })]);
+    await page.locator('#studio-changes-button').click();
+    await expect(page.getByText('Changed by someone else, please check')).toBeVisible();
+  });
+});
+
+test('developer creates the pull request on GitHub', async ({ browser }) => {
+  const context = await browser.newContext();
+  await context.route('https://github.com/**', (r) => r.fulfill({ status: 200, body: 'ok' }));
+  const page = await context.newPage();
+  const token = await encodeChangeLink({
+    branch: '',
+    base: '',
+    src: 'en',
+    by: 'Sara',
+    note: '',
+    edits: [
+      {
+        locale: 'en',
+        key: 'home.title',
+        from: 'Welcome to the static playground',
+        to: 'Hello from Sara',
+        force: false,
+      },
+    ],
+  });
+  await page.goto(`${STATIC}/livelocale/index.html#${token}`);
+  await expect(page.getByText('Reviewing 1 proposed change')).toBeVisible({ timeout: 30_000 });
+  const repoField = page.getByPlaceholder('owner/repo');
+  await repoField.fill('acme/web');
+  await page
+    .locator('form', { has: repoField })
+    .getByRole('button', { name: 'Save', exact: true })
+    .click();
+
+  const [popup] = await Promise.all([
+    page.waitForEvent('popup'),
+    page.getByRole('link', { name: 'Create pull request' }).click(),
+  ]);
+  await popup.waitForLoadState();
+  const url = new URL(popup.url());
+  expect(url.pathname).toBe('/acme/web/issues/new');
+  expect([...url.searchParams.keys()]).toEqual(['title', 'body']);
+  expect(url.searchParams.get('title')).toBe('LiveLocale: 1 translation change from Sara');
+  expect(url.searchParams.get('body')!.startsWith('```livelocale\nlc1.')).toBe(true);
+  await popup.close();
+
+  await page.reload();
+  await expect(page.getByText('Reviewing 1 proposed change')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('link', { name: 'Create pull request' })).toBeVisible();
+  await expect(page.getByPlaceholder('owner/repo')).toHaveCount(0);
+  await context.close();
+});
