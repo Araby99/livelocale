@@ -232,7 +232,8 @@ async function applyLink(
     if (!(err instanceof ChangeLinkError)) throw err;
     throw new ExpectedFailure(err.code === 'NOT_FOUND' ? NOT_FOUND_MESSAGE : err.message);
   }
-  if (set.repo !== undefined && set.repo !== repo) {
+  // GitHub repository slugs are case-insensitive.
+  if (set.repo !== undefined && set.repo.toLowerCase() !== repo.toLowerCase()) {
     return report({ kind: 'wrong-repo', linkRepo: set.repo, repo });
   }
 

@@ -300,6 +300,12 @@ describe('runGitHubEventApply', () => {
     expect(gitWrites(gh.calls)).toBe(false);
   });
 
+  it('accepts a link whose repository differs from this one only in letter case', async () => {
+    expect(await run('issues', fxWith('issues-opened-member', tokenForRepo('Acme/Site')))).toBe(
+      'pr'
+    );
+  });
+
   it('reports a link over the edit cap as an error', async () => {
     expect(await run('issues', fxWith('issues-opened-member', rawToken501Edits))).toBe('error');
     expect(gh.comments[7]!.at(-1)).toMatch(/^LiveLocale could not apply this link: /);
