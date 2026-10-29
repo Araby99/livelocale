@@ -31,7 +31,45 @@ interface DraftListProps {
   onDownloadBackup: () => Promise<void>;
   onRestoreBackup: (file: File) => Promise<string>;
   onReviewChange?: () => void;
+  /** Drafts the rebuilt site already shows: labelled Live now, with no action. */
+  liveNow?: Draft[];
+  onDismissLiveNow?: () => void;
 }
+
+const stateBadge = (state: DraftDisplayState) => (
+  <span
+    className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
+  >
+    {DRAFT_STATUS_LABELS[state]}
+  </span>
+);
+
+const rowHeading = (d: Draft) => (
+  <span className="text-[11px] font-mono text-indigo-400 break-all">{`${d.key} · ${d.locale}`}</span>
+);
+
+/** The draft's built text struck through, then its new text. */
+const DraftValues = ({ d }: { d: Draft }) => (
+  <div className="text-[10px] leading-relaxed">
+    {d.from ? (
+      <span dir="auto" className="text-rose-400/80 line-through break-all">
+        {d.from}
+      </span>
+    ) : (
+      <em className="text-rose-400/80 line-through">empty</em>
+    )}
+    <span className="text-slate-600"> → </span>
+    {d.to ? (
+      <span dir="auto" className="text-emerald-300 break-all">
+        {d.to}
+      </span>
+    ) : (
+      <em className="text-emerald-300">empty</em>
+    )}
+  </div>
+);
+
+const rowClass = 'px-3 py-2 rounded-xl bg-slate-950/40 border border-slate-800/80 space-y-1';
 
 const footerButton =
   'h-9 px-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition duration-150 cursor-pointer';
@@ -44,6 +82,8 @@ export const DraftList = ({
   onDownloadBackup,
   onRestoreBackup,
   onReviewChange,
+  liveNow = [],
+  onDismissLiveNow,
 }: DraftListProps) => {
   const [result, setResult] = useState<string | null>(null);
 
@@ -83,7 +123,7 @@ export const DraftList = ({
         </span>
       </div>
 
-      {drafts.length === 0 ? (
+      {drafts.length === 0 && liveNow.length === 0 ? (
         <p className="text-xs text-slate-500">
           No changes yet. Alt+Click any text in the app to fix it.
         </p>
@@ -93,20 +133,11 @@ export const DraftList = ({
             const state = draftDisplayState(d);
             const isSent = state === 'sent';
             return (
-              <li
-                key={`${d.locale}/${d.key}`}
-                className="px-3 py-2 rounded-xl bg-slate-950/40 border border-slate-800/80 space-y-1"
-              >
+              <li key={`${d.locale}/${d.key}`} className={rowClass}>
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-[11px] font-mono text-indigo-400 break-all">
-                    {`${d.key} · ${d.locale}`}
-                  </span>
+                  {rowHeading(d)}
                   <div className="flex items-center gap-2 shrink-0">
-                    <span
-                      className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
-                    >
-                      {DRAFT_STATUS_LABELS[state]}
-                    </span>
+                    {stateBadge(state)}
                     <button
                       onClick={() => onUndo(d)}
                       disabled={isUndoing}
@@ -117,27 +148,28 @@ export const DraftList = ({
                     </button>
                   </div>
                 </div>
-                <div className="text-[10px] leading-relaxed">
-                  {d.from ? (
-                    <span dir="auto" className="text-rose-400/80 line-through break-all">
-                      {d.from}
-                    </span>
-                  ) : (
-                    <em className="text-rose-400/80 line-through">empty</em>
-                  )}
-                  <span className="text-slate-600"> → </span>
-                  {d.to ? (
-                    <span dir="auto" className="text-emerald-300 break-all">
-                      {d.to}
-                    </span>
-                  ) : (
-                    <em className="text-emerald-300">empty</em>
-                  )}
-                </div>
+                <DraftValues d={d} />
               </li>
             );
           })}
+          {liveNow.map((d) => (
+            <li key={`live:${d.locale}/${d.key}`} className={rowClass}>
+              <div className="flex items-center justify-between gap-3">
+                {rowHeading(d)}
+                <div className="flex items-center gap-2 shrink-0">{stateBadge('live')}</div>
+              </div>
+              <DraftValues d={d} />
+            </li>
+          ))}
         </ul>
+      )}
+      {liveNow.length > 0 && onDismissLiveNow && (
+        <button
+          onClick={onDismissLiveNow}
+          className="text-[10px] font-semibold text-slate-500 hover:text-slate-300 transition duration-150"
+        >
+          Dismiss live changes
+        </button>
       )}
 
       <div className="flex flex-wrap items-center gap-2 pt-2">

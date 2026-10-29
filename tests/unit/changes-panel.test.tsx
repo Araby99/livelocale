@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { ChangesPanel } from '../../src/studio/features/dashboard/components/ChangesPanel.jsx';
 import type { GitState } from '../../src/studio/api.js';
+import type { Draft } from '../../src/studio/transport/drafts.js';
 
 const baseGit: GitState = {
   available: true,
@@ -140,6 +141,29 @@ describe('ChangesPanel — share link drafts', () => {
     expect(screen.queryByText('Locale files')).toBeNull();
     expect(screen.queryByText('This session')).toBeNull();
     expect(screen.getByText('Download backup')).toBeTruthy();
+    cleanup();
+  });
+
+  it('shows Live now rows in Changes', () => {
+    const live: Draft = {
+      scope: 'path:/',
+      locale: 'ar',
+      key: 'home.title',
+      from: 'مرحبا',
+      to: 'أهلا',
+      force: false,
+      base: null,
+      branch: null,
+      status: 'unsent',
+      conflict: false,
+      updatedAt: 1,
+      sentAt: null,
+    };
+    const onDismissLiveNow = vi.fn();
+    renderPanel({ drafts: [], liveNow: [live], onDismissLiveNow });
+    expect(screen.getByText('Live now')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss live changes' }));
+    expect(onDismissLiveNow).toHaveBeenCalledTimes(1);
     cleanup();
   });
 });

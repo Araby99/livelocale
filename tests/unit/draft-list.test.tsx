@@ -129,4 +129,16 @@ describe('DraftList', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Review a change link or file' }));
     expect(onReviewChange).toHaveBeenCalledTimes(1);
   });
+
+  it('labels live entries "Live now" without an action button', () => {
+    const onDismissLiveNow = vi.fn();
+    renderList({ liveNow: [d({ key: 'home.live' })], onDismissLiveNow });
+    const live = within(row('home.live · ar'));
+    expect(live.getByText('Live now')).toBeTruthy();
+    expect(live.queryByRole('button', { name: 'Undo' })).toBeNull();
+    expect(live.queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(live.queryAllByRole('button')).toEqual([]);
+    fireEvent.click(screen.getByRole('button', { name: 'Dismiss live changes' }));
+    expect(onDismissLiveNow).toHaveBeenCalledTimes(1);
+  });
 });

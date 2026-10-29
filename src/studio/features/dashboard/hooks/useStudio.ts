@@ -203,6 +203,20 @@ export const useStudio = () => {
     review,
   ]);
 
+  // Share link: on each page change, check whether the site was rebuilt (at most once a
+  // minute). A rebuild reconciles the drafts, surfaces the ones now live and reloads the data.
+  useEffect(() => {
+    if (!staticTransport || connectionStatus !== 'connected') return;
+    staticTransport
+      .refreshManifest()
+      .then(async (result) => {
+        if (!result) return;
+        drafts.noteReconcile(result);
+        await refreshAll();
+      })
+      .catch(() => {});
+  }, [currentPath]);
+
   // Share link: an Alt+Click is shown only once the dictionary of its target locale has loaded.
   const [queuedSelection, setQueuedSelection] = useState<SelectedElement | null>(null);
   useEffect(() => {
@@ -358,6 +372,8 @@ export const useStudio = () => {
     dismissSaveWarning,
     // Share-link drafts
     drafts: drafts.drafts,
+    liveNow: drafts.liveNow,
+    dismissLiveNow: drafts.dismissLiveNow,
     unsentCount: drafts.unsentCount,
     sentCount: drafts.sentCount,
     markDraftsSent: drafts.markSent,

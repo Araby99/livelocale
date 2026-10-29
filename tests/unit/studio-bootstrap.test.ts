@@ -11,6 +11,7 @@ import {
 import { fetchInfo, setStudioTransport } from '../../src/studio/api.js';
 import { STATIC_MANIFEST_MISSING } from '../../src/studio/config.js';
 import { STORAGE_PROBLEM } from '../../src/studio/transport/static.js';
+import { openIndexedDbDraftStore } from '../../src/studio/transport/draft-store.js';
 import { MANIFEST, STUDIO_URL, fetchStub } from './helpers/share-fixtures.js';
 
 const MANIFEST_URL = 'https://www.acme.com/livelocale/manifest.json';
@@ -94,5 +95,37 @@ describe('startStudio', () => {
       indexedDB: new IDBFactory(),
     });
     expect(isAppPreviewBlocked()).toBe(false);
+  });
+
+  it('never rejects when start-up reconciliation cannot load a locale', async () => {
+    const indexedDB = new IDBFactory();
+    const store = await openIndexedDbDraftStore(indexedDB);
+    await store.put({
+      scope: 'path:/',
+      locale: 'ar',
+      key: 'home.title',
+      from: 'مرحبا',
+      to: 'أهلاً',
+      force: false,
+      base: MANIFEST.base,
+      branch: MANIFEST.branch,
+      status: 'unsent',
+      conflict: false,
+      updatedAt: 1000,
+      sentAt: null,
+    });
+    const rt = await startStudio({
+      href: STUDIO_URL,
+      search: '',
+      fetch: fetchStub({
+        [MANIFEST_URL]: JSON.stringify(MANIFEST),
+        'https://www.acme.com/livelocale/locales/ar.json': new Response('', { status: 500 }),
+      }),
+      indexedDB,
+    });
+    expect(rt.kind).toBe('static');
+    expect(await getStaticTransport()!.listDrafts()).toMatchObject([
+      { locale: 'ar', key: 'home.title', to: 'أهلاً' },
+    ]);
   });
 });

@@ -4,6 +4,7 @@ import {
   buildDraftDiff,
   draftScope,
   localeFilePath,
+  reconcileDraft,
   type Draft,
 } from '../../src/studio/transport/drafts.js';
 
@@ -71,3 +72,18 @@ it('escapes newlines so every value stays on one diff line', () =>
     '-"مرحبا"',
     '+"a\\nb"',
   ]));
+
+it.each([
+  ['Bonjour', 'live'],
+  ['Hello', 'pending'],
+  ['Salut', 'conflict'],
+  [undefined, 'conflict'],
+] as const)('current %s -> %s', (cur, v) =>
+  expect(reconcileDraft({ from: 'Hello', to: 'Bonjour' }, cur)).toBe(v)
+);
+
+it('treats a new key (from null) as pending until the build contains it', () => {
+  expect(reconcileDraft({ from: null, to: 'Bonjour' }, undefined)).toBe('pending');
+  expect(reconcileDraft({ from: null, to: 'Bonjour' }, 'Bonjour')).toBe('live');
+  expect(reconcileDraft({ from: null, to: 'Bonjour' }, 'Salut')).toBe('conflict');
+});

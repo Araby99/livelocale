@@ -252,6 +252,8 @@ describe('useStudio in Review mode', () => {
       readBuiltLocale: vi.fn(async (l: string) => BUILT[l] ?? {}),
       textCandidates: vi.fn(async () => ({})),
       listDrafts: vi.fn(async () => [draft]),
+      initialReconcile: { live: [], conflicts: [] },
+      refreshManifest: vi.fn(async () => null),
     };
     setStudioTransport(transport as unknown as StaticTransport);
     setStudioRuntime({

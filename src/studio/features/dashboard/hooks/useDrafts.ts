@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Draft } from '../../../transport/drafts.js';
-import { DRAFTS_CHANGED_EVENT, type StaticTransport } from '../../../transport/static.js';
+import {
+  DRAFTS_CHANGED_EVENT,
+  type ReconcileResult,
+  type StaticTransport,
+} from '../../../transport/static.js';
 
 /** The header counter's text: '1 change not sent' or '<n> changes not sent'. */
 export function unsentLabel(n: number): string {
@@ -10,9 +14,17 @@ export function unsentLabel(n: number): string {
 /**
  * The share link's saved drafts, reloaded whenever the transport announces a
  * change. Without a transport (server stacks) it holds nothing and calls nothing.
+ * `liveNow` holds drafts the rebuilt site already shows, until dismissed.
  */
 export function useDrafts(transport: StaticTransport | null) {
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [liveNow, setLiveNow] = useState<Draft[]>(() => transport?.initialReconcile?.live ?? []);
+
+  const noteReconcile = useCallback((result: ReconcileResult) => {
+    if (result.live.length > 0) setLiveNow((current) => [...current, ...result.live]);
+  }, []);
+
+  const dismissLiveNow = useCallback(() => setLiveNow([]), []);
 
   const refresh = useCallback(async () => {
     if (!transport) return;
@@ -56,5 +68,15 @@ export function useDrafts(transport: StaticTransport | null) {
     return { unsentCount: unsent, sentCount: drafts.length - unsent };
   }, [drafts]);
 
-  return { drafts, unsentCount, sentCount, refresh, discard, markSent };
+  return {
+    drafts,
+    unsentCount,
+    sentCount,
+    refresh,
+    discard,
+    markSent,
+    liveNow,
+    noteReconcile,
+    dismissLiveNow,
+  };
 }

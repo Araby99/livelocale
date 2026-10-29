@@ -23,6 +23,9 @@ interface ChangesPanelProps {
   onDownloadBackup?: () => Promise<void>;
   onRestoreBackup?: (file: File) => Promise<string>;
   onReviewChange?: () => void;
+  /** Share link only: drafts the rebuilt site already shows. */
+  liveNow?: Draft[];
+  onDismissLiveNow?: () => void;
 }
 
 const noop = async (): Promise<void> => {};
@@ -69,6 +72,8 @@ export const ChangesPanel = ({
   onDownloadBackup = noop,
   onRestoreBackup = noRestore,
   onReviewChange,
+  liveNow,
+  onDismissLiveNow,
 }: ChangesPanelProps) => {
   const [message, setMessage] = useState('');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -154,6 +159,8 @@ export const ChangesPanel = ({
               onDownloadBackup={onDownloadBackup}
               onRestoreBackup={onRestoreBackup}
               onReviewChange={onReviewChange}
+              liveNow={liveNow}
+              onDismissLiveNow={onDismissLiveNow}
             />
           </div>
         ) : (

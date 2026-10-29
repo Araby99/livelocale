@@ -77,3 +77,20 @@ export function buildDraftDiff(
   }
   return lines.join('\n');
 }
+
+/** How a draft compares with what the current build shows. */
+export type DraftVerdict = 'pending' | 'live' | 'conflict';
+
+/**
+ * Compares a draft with the built value of its key (`undefined` when the build
+ * has no text there): `live` once the build shows `to`, `pending` while it
+ * still shows `from`, and `conflict` when someone else changed it meanwhile.
+ */
+export function reconcileDraft(
+  draft: Pick<Draft, 'from' | 'to'>,
+  current: string | undefined
+): DraftVerdict {
+  if (current === draft.to) return 'live';
+  if ((current ?? null) === draft.from) return 'pending';
+  return 'conflict';
+}

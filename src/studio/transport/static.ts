@@ -2,11 +2,19 @@ import type { ChangeEdit } from '../../core/change-link.js';
 import { deepMerge } from '../../core/deep-merge.js';
 import { flattenKeys, lookupKey, setNestedProperty } from '../../core/json-path.js';
 import { validateEdit } from '../../core/save-rules.js';
-import type { ShareManifest } from '../../core/share-manifest.js';
+import { parseShareManifest, type ShareManifest } from '../../core/share-manifest.js';
 import { isSafeLocaleSegment, isValidLocaleFormat } from '../../core/validate.js';
 import { ValidationError, type GitState, type ServerInfo, type StudioTransport } from '../api.js';
 import type { DraftStore } from './draft-store.js';
-import { buildDraftDiff, draftScope, localeFilePath, type Draft, type DraftId } from './drafts.js';
+import {
+  buildDraftDiff,
+  draftScope,
+  localeFilePath,
+  reconcileDraft,
+  type Draft,
+  type DraftId,
+  type DraftVerdict,
+} from './drafts.js';
 
 /** Dispatched on the transport's `events` target whenever drafts change. */
 export const DRAFTS_CHANGED_EVENT = 'livelocale:drafts-changed';
@@ -15,6 +23,14 @@ export const STORAGE_PROBLEM =
 export const LOCALE_ACTIONS_UNSUPPORTED =
   'Adding, renaming or deleting languages is not available on a share link. Ask your developer.';
 export const COMMIT_UNSUPPORTED = 'Use "Send to developer" to hand your changes over.';
+/** The shortest time between two manifest checks; creating the transport counts as one. */
+export const MANIFEST_REFRESH_INTERVAL_MS = 60_000;
+
+/** Drafts the build now shows (removed) and drafts changed under the translator (flagged). */
+export interface ReconcileResult {
+  live: Draft[];
+  conflicts: Draft[];
+}
 
 export interface StaticTransportOptions {
   manifest: ShareManifest;
@@ -29,6 +45,7 @@ export interface StaticTransportOptions {
 }
 
 export interface StaticTransport extends StudioTransport {
+  /** The current manifest; replaced when `refreshManifest` finds a rebuild. */
   readonly manifest: ShareManifest;
   readonly scope: string;
   readonly persistent: boolean;
@@ -49,6 +66,14 @@ export interface StaticTransport extends StudioTransport {
    * overlaps one (`promo` and `promo.banner`) in the same locale.
    */
   restoreDrafts(edits: readonly ChangeEdit[]): Promise<{ added: number; skipped: number }>;
+  /** What reconciling the saved drafts against the build found at start-up. */
+  readonly initialReconcile: ReconcileResult;
+  /**
+   * Re-reads `manifest.json` at most once per `MANIFEST_REFRESH_INTERVAL_MS`. When it
+   * changed, switches to the new build and reconciles the drafts against it. Null when
+   * not due, unchanged, invalid or unreachable.
+   */
+  refreshManifest(): Promise<ReconcileResult | null>;
 }
 
 /** True when one dotted key contains the other as a group (`promo` and `promo.banner`). */
@@ -59,7 +84,9 @@ const keysOverlap = (a: string, b: string): boolean =>
 export async function createStaticTransport(
   options: StaticTransportOptions
 ): Promise<StaticTransport> {
-  const { manifest, studioUrl, appUrl, store } = options;
+  const { studioUrl, appUrl, store } = options;
+  let manifest = options.manifest;
+  let manifestText = options.manifestText;
   const fetchFn = options.fetch ?? ((input, init) => globalThis.fetch(input, init));
   const now = options.now ?? (() => Date.now());
   const events = options.events ?? (typeof window !== 'undefined' ? window : new EventTarget());
@@ -112,9 +139,71 @@ export async function createStaticTransport(
     return loaded;
   }
 
+  /**
+   * Compares every draft in this scope with the built value of its key: drafts the
+   * build shows are deleted, drafts changed under them are flagged. Drafts whose
+   * locale file fails to load are left untouched.
+   */
+  async function reconcile(): Promise<ReconcileResult> {
+    const drafts = await store.list(scope);
+    const locales = [...new Set(drafts.map((d) => d.locale).filter(isKnownLocale))];
+    const loaded = await Promise.allSettled(locales.map((l) => readBuiltLocale(l)));
+    const dictionaries = new Map<string, Record<string, unknown>>();
+    loaded.forEach((result, i) => {
+      if (result.status === 'fulfilled') dictionaries.set(locales[i]!, result.value);
+    });
+
+    const result: ReconcileResult = { live: [], conflicts: [] };
+    let changed = false;
+    for (const d of drafts) {
+      let verdict: DraftVerdict = 'conflict';
+      if (isKnownLocale(d.locale)) {
+        const dictionary = dictionaries.get(d.locale);
+        if (!dictionary) continue;
+        const found = lookupKey(dictionary, d.key);
+        verdict = reconcileDraft(d, found.state === 'string' ? found.value : undefined);
+      }
+      if (verdict === 'live') {
+        await store.delete(scope, d.locale, d.key);
+        result.live.push(d);
+        changed = true;
+      } else if (verdict === 'conflict') {
+        const flagged = d.conflict ? d : { ...d, conflict: true };
+        if (!d.conflict) {
+          await store.put(flagged);
+          changed = true;
+        }
+        result.conflicts.push(flagged);
+      }
+    }
+    if (changed) draftsChanged();
+    return result;
+  }
+
+  let lastManifestFetch = now();
+  // A store that cannot be read must not keep the Studio from starting.
+  const initialReconcile = await reconcile().catch(
+    (): ReconcileResult => ({ live: [], conflicts: [] })
+  );
+
+  async function fetchManifestText(): Promise<string | null> {
+    try {
+      const response = await fetchFn(new URL('manifest.json', studioUrl).href, {
+        cache: 'no-store',
+        credentials: 'same-origin',
+      });
+      return response.ok ? await response.text() : null;
+    } catch {
+      return null;
+    }
+  }
+
   return {
-    manifest,
+    get manifest() {
+      return manifest;
+    },
     scope,
+    initialReconcile,
     persistent: store.persistent,
     events,
     readBuiltLocale,
@@ -285,6 +374,24 @@ export async function createStaticTransport(
         diff: buildDraftDiff(drafts, manifest),
         pullRequestUrl: null,
       };
+    },
+
+    async refreshManifest() {
+      if (now() - lastManifestFetch < MANIFEST_REFRESH_INTERVAL_MS) return null;
+      lastManifestFetch = now();
+      const text = await fetchManifestText();
+      if (text === null || text === manifestText) return null;
+      let next: ShareManifest | null;
+      try {
+        next = parseShareManifest(JSON.parse(text));
+      } catch {
+        next = null;
+      }
+      if (!next) return null;
+      manifest = next;
+      manifestText = text;
+      built.clear();
+      return reconcile();
     },
 
     addLocaleRequest: () => Promise.reject(new Error(LOCALE_ACTIONS_UNSUPPORTED)),

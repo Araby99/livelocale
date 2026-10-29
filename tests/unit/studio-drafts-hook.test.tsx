@@ -24,9 +24,10 @@ const draft = (overrides: Partial<Draft> = {}): Draft => ({
   ...overrides,
 });
 
-const fakeTransport = (drafts: Draft[]) => {
+const fakeTransport = (drafts: Draft[], live: Draft[] = []) => {
   const fake = {
     events: new EventTarget(),
+    initialReconcile: { live, conflicts: [] as Draft[] },
     listDrafts: vi.fn(async () => drafts),
     discardDraft: vi.fn(async () => undefined),
     markDraftsSent: vi.fn(async () => {}),
@@ -81,6 +82,26 @@ describe('useDrafts', () => {
       await result.current.markSent([draft()]);
     });
     expect(fake.markDraftsSent).toHaveBeenCalledWith([{ locale: 'ar', key: 'home.title' }]);
+  });
+
+  it('surfaces start-up live drafts and lets the translator dismiss them', async () => {
+    const live = draft({ key: 'home.live' });
+    const { transport } = fakeTransport([], [live]);
+    const { result } = renderHook(() => useDrafts(transport));
+    await act(async () => {});
+    expect(result.current.liveNow).toEqual([live]);
+    act(() => result.current.dismissLiveNow());
+    expect(result.current.liveNow).toEqual([]);
+  });
+
+  it('adds live drafts from a later reconcile', async () => {
+    const first = draft({ key: 'home.a' });
+    const later = draft({ key: 'home.b' });
+    const { transport } = fakeTransport([], [first]);
+    const { result } = renderHook(() => useDrafts(transport));
+    await act(async () => {});
+    act(() => result.current.noteReconcile({ live: [later], conflicts: [] }));
+    expect(result.current.liveNow).toEqual([first, later]);
   });
 
   it('labels the counter', () => {

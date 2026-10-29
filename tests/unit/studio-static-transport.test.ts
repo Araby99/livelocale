@@ -6,6 +6,7 @@ import {
   COMMIT_UNSUPPORTED,
   DRAFTS_CHANGED_EVENT,
   LOCALE_ACTIONS_UNSUPPORTED,
+  MANIFEST_REFRESH_INTERVAL_MS,
   STORAGE_PROBLEM,
   type StaticTransport,
 } from '../../src/studio/transport/static.js';
@@ -23,12 +24,14 @@ import {
   EN,
   MANIFEST,
   SHA_A,
+  SHA_B,
   STUDIO_URL,
   fetchStub,
   type FetchStub,
 } from './helpers/share-fixtures.js';
 
 const LOCALES_URL = 'https://www.acme.com/livelocale/locales/';
+const MANIFEST_URL = 'https://www.acme.com/livelocale/manifest.json';
 
 interface Fixture {
   t: StaticTransport;
@@ -36,6 +39,8 @@ interface Fixture {
   store: DraftStore;
   /** Event types dispatched on the transport's `events`, in order. */
   dispatched: string[];
+  /** What the stub serves, by absolute URL; changes apply to later fetches. */
+  served: Record<string, string | Response>;
 }
 
 async function make(
@@ -48,6 +53,7 @@ async function make(
 ): Promise<Fixture> {
   const manifest = options.manifest ?? MANIFEST;
   const served: Record<string, string | Response> = {
+    [MANIFEST_URL]: JSON.stringify(manifest),
     [`${LOCALES_URL}en.json`]: JSON.stringify(EN),
     [`${LOCALES_URL}ar.json`]: JSON.stringify(AR),
   };
@@ -69,7 +75,7 @@ async function make(
     now: options.now ?? (() => 1000),
     events,
   });
-  return { t, fetch, store, dispatched };
+  return { t, fetch, store, dispatched, served };
 }
 
 function draft(scope: string, overrides: Partial<Draft> = {}): Draft {
@@ -389,5 +395,106 @@ describe('static transport git state', () => {
   it('reports a clean state without drafts', async () => {
     const { t } = await make();
     expect(await t.fetchGitState()).toMatchObject({ changes: [], diff: '' });
+  });
+});
+
+describe('static transport reconciliation', () => {
+  const seeded = async (...drafts: Draft[]): Promise<DraftStore> => {
+    const store = await openIndexedDbDraftStore(new IDBFactory());
+    for (const d of drafts) await store.put(d);
+    return store;
+  };
+
+  it('drops drafts the rebuilt site already shows', async () => {
+    const store = await seeded(draft('path:/', { from: 'Hello', to: 'مرحبا' }));
+    const { t, dispatched } = await make({ store });
+    expect(t.initialReconcile.live.map((d) => d.key)).toEqual(['home.title']);
+    expect(t.initialReconcile.conflicts).toEqual([]);
+    expect(await t.listDrafts()).toEqual([]);
+    expect(dispatched).toEqual([DRAFTS_CHANGED_EVENT]);
+  });
+
+  it('flags drafts whose built value changed under them', async () => {
+    const store = await seeded(draft('path:/', { from: 'Old', to: 'X' }));
+    const { t, dispatched } = await make({ store });
+    expect(t.initialReconcile.live).toEqual([]);
+    expect(t.initialReconcile.conflicts).toHaveLength(1);
+    expect(t.initialReconcile.conflicts[0]!.conflict).toBe(true);
+    expect(await t.listDrafts()).toMatchObject([{ key: 'home.title', to: 'X', conflict: true }]);
+    expect(dispatched).toEqual([DRAFTS_CHANGED_EVENT]);
+  });
+
+  it('leaves pending drafts alone', async () => {
+    const store = await seeded(draft('path:/', { from: 'مرحبا', to: 'X' }));
+    const { t, dispatched } = await make({ store });
+    expect(t.initialReconcile).toEqual({ live: [], conflicts: [] });
+    expect(await t.listDrafts()).toMatchObject([{ key: 'home.title', conflict: false }]);
+    expect(dispatched).toEqual([]);
+  });
+
+  it('flags drafts for a locale the build no longer has', async () => {
+    const store = await seeded(draft('path:/', { locale: 'fr', from: 'Bonjour', to: 'Salut' }));
+    const { t } = await make({ store });
+    expect(t.initialReconcile.conflicts).toMatchObject([{ locale: 'fr', conflict: true }]);
+    expect(await t.listDrafts()).toMatchObject([{ locale: 'fr', conflict: true }]);
+  });
+
+  it('never drops drafts when a locale file fails to load', async () => {
+    const store = await seeded(draft('path:/', { from: 'Hello', to: 'مرحبا' }));
+    const { t } = await make({
+      store,
+      files: { 'ar.json': new Response('', { status: 500 }) },
+    });
+    expect(t.initialReconcile).toEqual({ live: [], conflicts: [] });
+    expect(await t.listDrafts()).toMatchObject([{ key: 'home.title', conflict: false }]);
+  });
+
+  it('ignores drafts from another scope', async () => {
+    const other = draft('acme/other', { from: 'Hello', to: 'مرحبا' });
+    const store = await seeded(other);
+    const { t } = await make({ store });
+    expect(t.initialReconcile.live).toEqual([]);
+    expect(await store.list('acme/other')).toEqual([other]);
+  });
+
+  it('refreshes at most once a minute and only when the manifest changed', async () => {
+    let now = 1000;
+    const { t, fetch } = await make({ now: () => now });
+    now = 1000 + 1_000;
+    expect(await t.refreshManifest()).toBeNull();
+    expect(fetch).not.toHaveBeenCalledWith(MANIFEST_URL, expect.anything());
+    now = 1000 + 60_000;
+    expect(await t.refreshManifest()).toBeNull();
+    expect(fetch).toHaveBeenCalledWith(MANIFEST_URL, {
+      cache: 'no-store',
+      credentials: 'same-origin',
+    });
+    expect(MANIFEST_REFRESH_INTERVAL_MS).toBe(60_000);
+  });
+
+  it('reconciles against a rebuilt manifest and refetches locale files', async () => {
+    let now = 1000;
+    const stored = draft('path:/');
+    const store = await seeded(stored);
+    const { t, served, fetch } = await make({ store, now: () => now });
+    expect(t.initialReconcile).toEqual({ live: [], conflicts: [] });
+    served[MANIFEST_URL] = JSON.stringify({ ...MANIFEST, base: SHA_B });
+    served[`${LOCALES_URL}ar.json`] = JSON.stringify({
+      home: { title: 'أهلاً', greet: 'أهلا {name}' },
+    });
+    now = 1000 + 60_000;
+    expect(await t.refreshManifest()).toEqual({ live: [stored], conflicts: [] });
+    expect(t.manifest.base).toBe(SHA_B);
+    expect(await t.listDrafts()).toEqual([]);
+    expect(fetch.mock.calls.filter(([url]) => url === `${LOCALES_URL}ar.json`)).toHaveLength(2);
+  });
+
+  it('keeps the old manifest when the new one is invalid', async () => {
+    let now = 1000;
+    const { t, served } = await make({ now: () => now });
+    served[MANIFEST_URL] = '{"format":9}';
+    now = 1000 + 60_000;
+    expect(await t.refreshManifest()).toBeNull();
+    expect(t.manifest.base).toBe(SHA_A);
   });
 });

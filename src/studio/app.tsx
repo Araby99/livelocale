@@ -75,6 +75,8 @@ export const App = () => {
     submitToken,
     setupProblems,
     drafts,
+    liveNow,
+    dismissLiveNow,
     undoDraft,
     downloadBackup,
     restoreBackupFile,
@@ -163,6 +165,8 @@ export const App = () => {
         onUndoDraft={undoDraft}
         onDownloadBackup={downloadBackup}
         onRestoreBackup={restoreBackupFile}
+        liveNow={mode === 'static' ? liveNow : undefined}
+        onDismissLiveNow={mode === 'static' ? dismissLiveNow : undefined}
       />
 
       <SetupProblems problems={setupProblems} />
