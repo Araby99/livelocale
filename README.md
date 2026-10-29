@@ -517,13 +517,59 @@ it. Without `reference` only the syntax check runs.
 
 ## 🔗 Share link on any host
 
-A share link lets a translator fix copy on your deployed site, with no server, no account and no
-credential anywhere. The Studio ships inside your build at `<base>livelocale/`, so any host that
-serves the site serves the Studio too: Apache, Nginx, S3, GitHub Pages, Netlify, Cloudflare Pages
-or Vercel. The translator's fixes stay in their own browser until they send you a change link, and
-you turn that link into a pull request with one command.
+Translators fix text on your live site with no account, and every fix becomes a pull request with one click.
+
+A share link needs no server, no account and no credential anywhere. The Studio ships inside your
+build at `<base>livelocale/`, so any host that serves the site serves the Studio too: Apache,
+Nginx, S3, GitHub Pages, Netlify, Cloudflare Pages or Vercel. The translator's fixes stay in their
+own browser until they send you a change link. On GitHub you turn that link into a pull request
+with one click; on any other git host, with one command.
 
 ### Setup
+
+1. Run `npx livelocale init --share` in your project. It sets up the build for your stack (see the
+   table below) and, on a GitHub remote, writes `.github/workflows/livelocale.yml`. See
+   [`init --share`](#init---share) for its options.
+2. Commit and push the result. The workflow must be on the default branch, because GitHub runs
+   issue and comment workflows only from there.
+3. On GitHub, tick the one setting below.
+4. Deploy as usual, then check the deployment and print the share link (next step).
+
+On a GitHub remote, `init --share` writes this workflow (`X.Y.Z` is the livelocale version you
+installed, `locales`, `en` and `main` come from your project):
+
+````yaml
+# Written by `npx livelocale init --share`. Turns LiveLocale change links into pull requests.
+# livelocale reads the link from the event file; it never reaches a shell command.
+name: LiveLocale
+on:
+  issues: { types: [opened] }
+  issue_comment: { types: [created] }
+  pull_request: { types: [closed] }
+  workflow_dispatch: { inputs: { link: { description: 'LiveLocale change link', required: true } } }
+permissions: { contents: write, pull-requests: write, issues: write }
+concurrency: { group: 'livelocale-${{ github.event.issue.number || github.run_id }}', queue: max }
+jobs:
+  apply:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && contains(github.event.issue.body, '```livelocale')) ||
+      (github.event_name == 'issue_comment' && !github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/livelocale')) ||
+      (github.event_name == 'pull_request' && startsWith(github.event.pull_request.head.ref, 'livelocale/issue-') &&
+       github.event.pull_request.base.ref != github.event.repository.default_branch)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with: { persist-credentials: false }
+      - run: npx --yes livelocale@X.Y.Z apply --github-event --locales locales --source en --branches main
+        env: { GITHUB_TOKEN: '${{ github.token }}' }
+````
+
+It reads the change link only from the event file, never from a shell command, and it has no
+`pull_request_target` trigger.
+
+To set up the build by hand instead:
 
 | Stack                      | Build change                                                                                                                            |
 | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
@@ -544,6 +590,14 @@ npx livelocale doctor --app <url>
 
 The doctor checks the Studio page, the manifest, `flag.js`, frame headers and service workers, then
 prints `🔗 Share link: <base>livelocale/index.html`. Pin that link for your translators.
+
+#### The one-checkbox setting
+
+In the repository's **Settings → Actions → General → Workflow permissions**, tick
+**Allow GitHub Actions to create and approve pull requests**. Without it the workflow still
+commits the branch, but GitHub refuses to let it open the pull request; the issue comment then
+carries a one-click compare link that opens the pull request form already filled in, and you
+press **Create pull request** there.
 
 ### Translator steps
 
@@ -566,17 +620,78 @@ prints `🔗 Share link: <base>livelocale/index.html`. Pin that link for your tr
 ### Developer
 
 Open the change link. The Studio opens in **Review mode**, with the proposed edits shown read-only
-on the real page and a before/after table with the check results. Then apply it:
+on the real page and a before/after table with the check results. Then turn it into a pull request.
+
+**On GitHub, with the workflow:**
+
+- Press **Create pull request** in Review mode. It opens a GitHub issue already filled in with the
+  change link; press **Submit new issue**. About a minute later the workflow has committed the
+  edits on a `livelocale/issue-<n>` branch, opened the pull request and commented its link on the
+  issue. Without `exposeRepo: true`, Review mode asks for `owner/repo` the first time and remembers
+  it in that browser.
+- With issues turned off, or for a link you would rather not file: **Actions → LiveLocale → Run
+  workflow**, paste the link and run it. The result is on the run's summary page.
+- **The trust gate.** The workflow writes only for a maintainer: the issue author or the
+  commenter must be an owner, member or collaborator, or have write access. For anyone else it
+  replies "Waiting for a maintainer: comment `/livelocale apply`", and nothing is written until a
+  maintainer posts that comment on the issue. Edits the translator saved with "Save anyway" are
+  skipped as `needs --force`; comment `/livelocale apply --force` to include them.
+- **Base branches.** By default every pull request targets the default branch. To let links made
+  from other builds (for example a `staging` deployment) target their own branch, list the
+  branches with `npx livelocale init --share --branches main,staging`. A link from any other
+  branch targets the default branch, and the comment says so. A pull request into the default
+  branch says `Closes #n`, so merging it closes the issue; into another branch it says `Refs #n`,
+  because GitHub only closes issues from the default branch, and LiveLocale closes the issue
+  itself when that pull request is merged or closed.
+  Also merge .github/workflows/livelocale.yml into each extra branch; pull requests into it run workflows from that branch, so LiveLocale cannot close their issues otherwise.
+
+**On any git host, from your machine:**
 
 ```bash
 npx livelocale apply "<link or file>" --pr
 ```
 
-This works on any git host, with your own `git` login: it commits only the locale files on a new
+This works with your own `git` login: it commits only the locale files on a new
 `livelocale/apply-<time>` branch and pushes it. On GitHub it opens the pull request with `gh`;
 elsewhere it prints the branch to open a pull or merge request from. Every edit is checked again
 against your own files first. For a long link, use `npx livelocale apply --clipboard`, or pass `-` and pipe
 the link in (`npx livelocale apply - < changes.txt`). See [`apply`](#apply) for every option.
+
+#### Run CI on LiveLocale PRs without the approval click
+
+Pull requests opened with the workflow's `GITHUB_TOKEN` start their CI in an approval-required
+state: someone has to press **Approve workflows to run** on each one. Pull requests opened with a
+GitHub App token start CI as usual. To use one:
+
+1. Create a GitHub App with **Contents**, **Pull requests** and **Issues** set to read and write,
+   and install it on the repository.
+2. Store its ID as the repository variable `LIVELOCALE_APP_ID` and its private key as the secret
+   `LIVELOCALE_APP_PRIVATE_KEY`.
+3. In `.github/workflows/livelocale.yml`, add this step before the `apply` step and give its token
+   to the `apply` step as `GITHUB_TOKEN`:
+
+```yaml
+- id: app-token
+  uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+  with:
+    {
+      app-id: '${{ vars.LIVELOCALE_APP_ID }}',
+      private-key: '${{ secrets.LIVELOCALE_APP_PRIVATE_KEY }}',
+    }
+- run: npx --yes livelocale@X.Y.Z apply --github-event --locales locales --source en --branches main
+  env: { GITHUB_TOKEN: '${{ steps.app-token.outputs.token }}' }
+```
+
+`init --share` leaves an edited workflow alone unless you pass `--overwrite`.
+
+### Translators with GitHub access
+
+**Open on GitHub** in the Send dialog lets a translator file the issue themselves, so the pull
+request opens with no developer click when the translator is a collaborator (otherwise a
+maintainer comments `/livelocale apply`). It is available only with `exposeRepo: true`, because it
+needs the repository's `owner/repo` in the public manifest. Turn it on for a private repository
+whose translators already have GitHub access; with the default, translators use **Copy link** or
+**Download file**, and the developer path is unchanged.
 
 ### What "Sent" means
 
@@ -616,6 +731,19 @@ In this mode "Sent" means the translator handed the link over; it is not a pull 
 - **The same-origin risk is accepted.** The Studio frames your app on the same origin, so app
   scripts can read and alter drafts. This is accepted because no secret is stored, and you review
   every edit before it is merged.
+
+### Honest risks
+
+- **Issues in public repositories are public.** A change link filed as an issue, with its text,
+  the translator's name and note, is visible to everyone.
+- **Bot pull requests wait for a click.** CI on a pull request the workflow opens waits until
+  someone presses **Approve workflows to run**, unless you use the
+  [App token](#run-ci-on-livelocale-prs-without-the-approval-click).
+- **Vercel may refuse the commit.** Vercel can block deployments of commits whose author is not a
+  member of the Vercel team. The commit author is the maintainer who triggered the run, with a
+  `Translated-by:` trailer for the translator.
+- **One-click automation is GitHub-only.** Other git hosts use
+  `npx livelocale apply "<link>" --pr`, which works anywhere git works.
 
 ### Limits
 

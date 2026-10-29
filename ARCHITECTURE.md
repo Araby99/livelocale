@@ -27,6 +27,47 @@ developer runs `livelocale apply`, which decodes the link, re-validates every ed
 project's own source locale (`planApply`), writes the locale files and, with `--pr`, opens a pull
 request with the developer's own git and gh.
 
+## `apply` and the workflow
+
+On GitHub, `init --share` writes `.github/workflows/livelocale.yml`, whose one step runs
+`npx --yes livelocale@<version> apply --github-event` (`src/codemod/apply/github-event.ts`).
+One run goes through these steps in order:
+
+1. **Event.** The workflow starts on an opened issue, a new issue comment, a closed pull request or
+   a manual dispatch. Its `if:` already skips issues without a fenced `livelocale` block, comments
+   that do not start with `/livelocale` and comments on pull requests.
+2. **Trigger.** `parseTrigger` (`github-trigger.ts`) reads the payload from `$GITHUB_EVENT_PATH`
+   only, never from the command line or an interpolated `run:`, and returns `apply` (issue, comment
+   or dispatch, with `force` only for a `/livelocale apply --force` comment), `close-issue` or
+   `ignore`.
+3. **Trust gate.** `isTrustedActor` lets the issue author (`issues`) or the commenter
+   (`issue_comment`) through when their `author_association` is OWNER, MEMBER or COLLABORATOR, or
+   `GET /collaborators/{user}/permission` returns write or higher. Anyone else gets "Waiting for a
+   maintainer: comment `/livelocale apply`" and nothing is written. A dispatch needs write access
+   to start at all.
+4. **Decode.** `decodeChangeLink` with `nodeInflate`, under the same caps as the browser. A link
+   whose `repo` names another repository is refused.
+5. **Plan.** `chooseTargetBranch` keeps the link's `branch` only when it is in the `--branches`
+   allow-list (default: the default branch). `readRemoteLocales` reads that branch's locale files
+   through the Git Data API, and `planApply` re-validates every edit against its source locale,
+   honouring "Save anyway" edits only with `--force` from the comment.
+6. **One commit.** `prepareBranch` picks `livelocale/issue-<n>` (or `livelocale/run-<id>`), appends
+   to it only while its pull request into the same target is open, and otherwise falls back to
+   `<name>-<runId>`. `commitFiles` writes one commit with only the changed files under
+   `localesPath`, authored by the triggering maintainer (`noreplyAuthor`) with a `Translated-by:`
+   trailer, and never updates a ref with `force: true`. `runCheck` then runs on the result.
+7. **PR or compare link.** `openOrReusePullRequest` opens the pull request or updates the open one.
+   When the repository does not let GitHub Actions create pull requests, the run builds a
+   prefilled compare link instead.
+8. **Comment.** `renderIssueComment` posts the outcome (pull request, compare link, nothing to
+   apply, wrong repository, waiting for a maintainer or an error with the run log) on the issue, or
+   on the step summary for a dispatch.
+
+The body says `Closes #n` only when the target is the default branch. For any other target it says
+`Refs #n`, and a later `pull_request: closed` event on a `livelocale/issue-<n>` branch runs
+`closeIssue`, which closes the issue as completed (merged) or not planned (closed), provided it is
+still open and still holds a change block.
+
 ## Packages and entry points
 
 The library ships one npm package with five entry points (see `tsup.config.ts`):
@@ -261,6 +302,12 @@ command through `spawnInherit` (on Windows one quoted command line through the s
 `public/` first without HTML injection (a static export with a POST route stops first with
 `NEXT_EXPORT_POST_ROUTE`); static stacks are packed after a zero exit, into `--out` or the first
 `outputCandidates` folder whose `index.html` was written by this build.
+`init --share` (`src/codemod/init-share.ts`) plans every file before writing any: the build change
+for the stack that `detectShareStack` finds through the shared `detectBuildTarget` (Vite `share:
+true`, a `livelocale pack` or `livelocale build` script, and a `public/livelocale/` gitignore entry
+for Next.js), and, only on a GitHub remote, the workflow from `renderWorkflow`. `validateShareArgs`
+limits `--locales`, `--source`, `--branches` and `--dir` to characters that cannot change the
+`run:` line, and an existing workflow that differs is skipped unless `--overwrite` is passed.
 `apply` (`src/codemod/apply/`) reads the link with `readApplyInput`, decodes it with `nodeInflate`,
 plans it with `planApply` against `FileMutator({ requireEnabled: false }).readLocale`, writes the
 `apply` edits through `updateLocaleKey` and prints `renderTerminalSummary` (exit 1 on any conflict,
@@ -295,20 +342,23 @@ tag first in each HTML file Vite emits (and skips the dev fallback data), and `w
 
 ## Security rules at a glance
 
-| Rule                        | Where                                       |
-| --------------------------- | ------------------------------------------- |
-| Development-only + guards   | core/env (all entry points)                 |
-| CSRF origin allow-list      | router (`isOriginAllowed`)                  |
-| JSON content-type on writes | router                                      |
-| Body size cap               | next-handler, node-body, vite-plugin        |
-| Change-link size caps       | core/change-link, core/change-link-node     |
-| Path containment            | core/safe-path, file-mutator, studio-server |
-| Prototype pollution         | core/validate, file-mutator                 |
-| Atomic writes               | file-mutator                                |
-| Script injection escaping   | vite-plugin, studio-server                  |
-| postMessage origin checks   | iframe-bridge, useConnection                |
-| Framed-only activation      | core/flag-script                            |
-| Edits re-validated on apply | core/apply-plan, codemod/apply              |
+| Rule                                  | Where                                       |
+| ------------------------------------- | ------------------------------------------- |
+| Development-only + guards             | core/env (all entry points)                 |
+| CSRF origin allow-list                | router (`isOriginAllowed`)                  |
+| JSON content-type on writes           | router                                      |
+| Body size cap                         | next-handler, node-body, vite-plugin        |
+| Change-link size caps                 | core/change-link, core/change-link-node     |
+| Path containment                      | core/safe-path, file-mutator, studio-server |
+| Prototype pollution                   | core/validate, file-mutator                 |
+| Atomic writes                         | file-mutator                                |
+| Script injection escaping             | vite-plugin, studio-server                  |
+| postMessage origin checks             | iframe-bridge, useConnection                |
+| Framed-only activation                | core/flag-script                            |
+| Edits re-validated on apply           | core/apply-plan, codemod/apply              |
+| Trust gate                            | codemod/apply/github-trigger                |
+| Payload only from event file          | init-share workflow template                |
+| Writes only under locales, new branch | codemod/apply/github-commit                 |
 
 ## Testing strategy
 
