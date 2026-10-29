@@ -91,6 +91,8 @@ test('detects Arabic from the page and keeps the fix across reloads', async ({ p
   await page.locator('#studio-translation-input').fill('أهلاً');
   await page.keyboard.press('Control+Enter');
   await expect(frame.locator('[data-i18n-key="home.title"]')).toHaveText(shows('أهلاً'));
+  // The live preview already shows the text while typing; the counter shows the saved draft.
+  await expect(page.getByTestId('unsent-counter')).toHaveText('1 change not sent');
   await page.reload();
   await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible();
   await frame.locator('#lang-ar').click();
@@ -257,6 +259,7 @@ test.describe('after a rebuild', () => {
     await page.locator('#studio-translation-input').fill('أهلاً');
     await page.keyboard.press('Control+Enter');
     await expect(frame.locator('[data-i18n-key="home.title"]')).toHaveText(shows('أهلاً'));
+    await expect(page.getByTestId('unsent-counter')).toHaveText('1 change not sent');
     expect(await readDrafts(page)).toHaveLength(1);
   }
 
