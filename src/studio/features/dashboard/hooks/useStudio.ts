@@ -22,7 +22,8 @@ import { valuesToReapply } from './reapply.js';
 import { useTargetLocale } from './useTargetLocale.js';
 import type { VisibleText } from '../../../../client/iframe-bridge.js';
 import { createDraftActions } from './draftActions.js';
-import { downloadText, readPref } from '../../../share/browser.js';
+import { downloadText, readPref, writePref } from '../../../share/browser.js';
+import { resolveReviewRepo } from '../../../share/github-issue.js';
 import { useFirstRun } from './useFirstRun.js';
 import { useReview } from './useReview.js';
 
@@ -177,6 +178,16 @@ export const useStudio = () => {
     reloadFrame,
   });
   const { review } = reviewMode;
+
+  // The repository Review's "Create pull request" files the issue in. A repo inside a link is
+  // never trusted: without one in the manifest, the developer enters it once per browser.
+  const [rememberedRepo, setRememberedRepo] = useState(() => readPref('github-repo'));
+  const manifestRepo = staticTransport?.manifest.repo;
+  const reviewRepo = resolveReviewRepo(manifestRepo, rememberedRepo);
+  const setReviewRepo = (slug: string) => {
+    writePref('github-repo', slug);
+    setRememberedRepo(slug);
+  };
 
   // A preview deployment or a share link keeps serving the text it was built with, so a reload
   // or navigation would bring back pre-edit values. Re-apply this session's history (preview)
@@ -404,6 +415,9 @@ export const useStudio = () => {
     setReviewFocusKey: reviewMode.setFocusKey,
     openReview: reviewMode.openReview,
     closeReview: reviewMode.closeReview,
+    reviewRepo,
+    reviewRepoFromManifest: manifestRepo !== undefined,
+    setReviewRepo,
     // A row's language button switches the page language only; the edit target is untouched.
     selectReviewLocale: setLocaleAndNavigate,
     // Preview mode / auth

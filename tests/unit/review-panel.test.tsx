@@ -21,9 +21,13 @@ const row = (r: Partial<ReviewRow> & Pick<ReviewRow, 'locale' | 'key' | 'to'>): 
   ...r,
 });
 
-const reviewOf = (rows: ReviewRow[], extra: { by?: string; note?: string } = {}): ReviewState => ({
+const reviewOf = (
+  rows: ReviewRow[],
+  extra: { by?: string; note?: string; repo?: string; target?: ReviewState['target'] } = {}
+): ReviewState => ({
   token: 'lc1.abc',
   set: {
+    ...(extra.repo === undefined ? {} : { repo: extra.repo }),
     branch: 'main',
     base: 'abc1234',
     src: 'en',
@@ -33,7 +37,7 @@ const reviewOf = (rows: ReviewRow[], extra: { by?: string; note?: string } = {})
   },
   rows,
   sourceLocale: 'en',
-  target: 'local',
+  target: extra.target ?? 'local',
 });
 
 const renderPanel = (
@@ -49,6 +53,9 @@ const renderPanel = (
       onSelectLocale={() => {}}
       onClose={() => {}}
       studioHref={STUDIO_HREF}
+      repo={null}
+      repoFromManifest={false}
+      onRepoChange={() => {}}
       {...props}
     />
   );
@@ -179,5 +186,83 @@ describe('ReviewPanel', () => {
     const banner = screen.getByRole('alert');
     expect(banner.textContent).toContain('This change link cannot be opened:');
     expect(banner.textContent).toContain('This change link is damaged.');
+  });
+
+  describe('Create pull request', () => {
+    const githubReview = (repo?: string) =>
+      reviewOf([row({ locale: 'ar', key: 'a', to: 'b' })], { target: 'github', repo });
+    const repoInput = () => screen.getByPlaceholderText<HTMLInputElement>('owner/repo');
+    const githubLinks = (container: HTMLElement) =>
+      Array.from(container.querySelectorAll('a')).filter((a) =>
+        a.href.startsWith('https://github.com/')
+      );
+
+    it('asks for the repository once and remembers it', () => {
+      const onRepoChange = vi.fn();
+      const { rerender } = renderPanel(githubReview(), { onRepoChange });
+      expect(document.body.textContent).toContain(
+        'Which GitHub repository should get the pull request?'
+      );
+      fireEvent.change(repoInput(), { target: { value: 'https://github.com/acme/web' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      expect(onRepoChange).toHaveBeenCalledTimes(1);
+      expect(onRepoChange).toHaveBeenCalledWith('acme/web');
+
+      rerender(
+        <ReviewPanel
+          review={githubReview()}
+          error={null}
+          isLoading={false}
+          focusKey={null}
+          onSelectLocale={() => {}}
+          onClose={() => {}}
+          studioHref={STUDIO_HREF}
+          repo="acme/web"
+          repoFromManifest={false}
+          onRepoChange={onRepoChange}
+        />
+      );
+      expect(screen.queryByPlaceholderText('owner/repo')).toBeNull();
+      expect(screen.getByRole('link', { name: 'Create pull request' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'Change' })).toBeTruthy();
+    });
+
+    it('rejects a malformed repository', () => {
+      const onRepoChange = vi.fn();
+      renderPanel(githubReview(), { onRepoChange });
+      fireEvent.change(repoInput(), { target: { value: 'acme' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      expect(onRepoChange).not.toHaveBeenCalled();
+      expect(document.body.textContent).toContain(
+        'Enter it as owner/repo, for example acme/website.'
+      );
+    });
+
+    it('prefills but does not trust the repo inside the link', () => {
+      const onRepoChange = vi.fn();
+      const { container } = renderPanel(githubReview('evil/x'), { onRepoChange });
+      expect(repoInput().value).toBe('evil/x');
+      expect(githubLinks(container)).toHaveLength(0);
+      expect(onRepoChange).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      expect(onRepoChange).toHaveBeenCalledWith('evil/x');
+    });
+
+    it('links Create pull request to the pre-filled issue', () => {
+      renderPanel(githubReview(), { repo: 'acme/web', repoFromManifest: true });
+      const anchor = screen.getByRole('link', { name: 'Create pull request' }) as HTMLAnchorElement;
+      expect(new URL(anchor.href).pathname).toBe('/acme/web/issues/new');
+      expect(document.body.textContent).toContain(
+        'Then press Submit on GitHub. The pull request opens in about a minute.'
+      );
+      expect(screen.queryByRole('button', { name: 'Change' })).toBeNull();
+    });
+
+    it('offers Run workflow when issues are off', () => {
+      renderPanel(githubReview(), { repo: 'acme/web' });
+      expect(document.body.textContent).toContain(
+        'Issues turned off? Actions → LiveLocale → Run workflow, then paste the link.'
+      );
+    });
   });
 });

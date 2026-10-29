@@ -7,6 +7,8 @@ import { buildShareLink } from '../../../share/send.js';
 import { copyText } from '../../../share/browser.js';
 import { PluralEditor } from './PluralEditor.js';
 import { SetupProblems } from './SetupProblems.js';
+import { GitHubIssueAction } from './GitHubIssueAction.js';
+import { RepoPrompt } from './RepoPrompt.js';
 
 /** Above this many characters the command reads the link from the clipboard (cmd.exe caps arguments at 8,191). */
 export const APPLY_COMMAND_MAX_CHARS = 8000;
@@ -29,6 +31,12 @@ interface ReviewPanelProps {
   onSelectLocale(l: string): void;
   onClose(): void;
   studioHref: string;
+  /** The repository that gets the pull request: the manifest's, else the remembered one. */
+  repo: string | null;
+  /** True when `repo` comes from the manifest; only a remembered repo can be changed here. */
+  repoFromManifest: boolean;
+  /** Called with a valid `owner/repo` the developer confirmed. */
+  onRepoChange(slug: string): void;
   /** Extra apply actions shown under the summary. */
   actions?: ReactNode;
   className?: string;
@@ -39,6 +47,9 @@ const APPLY_HINT =
   'Run it in the repository. It opens a pull request with your git and gh, on any git host.';
 const COPIED = 'Copied.';
 const COPY_FAILED = 'Copy did not work in this browser. Select the text above and copy it.';
+const GITHUB_HINT = 'Then press Submit on GitHub. The pull request opens in about a minute.';
+const RUN_WORKFLOW_HINT =
+  'Issues turned off? Actions → LiveLocale → Run workflow, then paste the link.';
 
 const STATUS_ORDER: EditStatus[] = ['apply', 'already', 'conflict', 'needs-force', 'invalid'];
 
@@ -80,10 +91,14 @@ export const ReviewPanel = ({
   onSelectLocale,
   onClose,
   studioHref,
+  repo,
+  repoFromManifest,
+  onRepoChange,
   actions,
   className = 'w-[420px] shrink-0',
 }: ReviewPanelProps) => {
   const [copied, setCopied] = useState<string | null>(null);
+  const [isChangingRepo, setIsChangingRepo] = useState(false);
   const focusedRef = useRef<HTMLTableRowElement | null>(null);
 
   const link = useMemo(
@@ -102,6 +117,11 @@ export const ReviewPanel = ({
 
   const copy = async (text: string) => {
     setCopied((await copyText(text)) ? COPIED : COPY_FAILED);
+  };
+
+  const saveRepo = (slug: string) => {
+    setIsChangingRepo(false);
+    onRepoChange(slug);
   };
 
   const by = review?.set.by ?? '';
@@ -153,6 +173,41 @@ export const ReviewPanel = ({
               ))}
             </ul>
 
+            {review.target === 'github' && (
+              <div className="space-y-2 px-3 py-3 rounded-xl bg-slate-950/40 border border-slate-800">
+                {repo === null || isChangingRepo ? (
+                  // The repo inside a link is only a suggestion: the developer confirms it first.
+                  <RepoPrompt
+                    initial={isChangingRepo ? (repo ?? undefined) : review.set.repo}
+                    onSave={saveRepo}
+                  />
+                ) : (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <GitHubIssueAction
+                        repo={repo}
+                        token={review.token}
+                        count={review.set.edits.length}
+                        by={review.set.by}
+                        label="Create pull request"
+                      />
+                      <span className="text-[11px] font-mono text-slate-400 break-all">{repo}</span>
+                      {!repoFromManifest && (
+                        <button
+                          type="button"
+                          onClick={() => setIsChangingRepo(true)}
+                          className="text-[11px] font-semibold text-slate-400 hover:text-slate-100 underline-offset-2 hover:underline"
+                        >
+                          Change
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400">{GITHUB_HINT}</p>
+                  </>
+                )}
+              </div>
+            )}
+
             {actions}
 
             <div className="space-y-2 px-3 py-3 rounded-xl bg-slate-950/40 border border-slate-800">
@@ -176,6 +231,10 @@ export const ReviewPanel = ({
               </div>
               <p className="text-[11px] text-slate-500">{APPLY_HINT}</p>
             </div>
+
+            {review.target === 'github' && (
+              <p className="text-[11px] text-slate-500">{RUN_WORKFLOW_HINT}</p>
+            )}
 
             <table className="w-full text-[11px] text-left border-collapse">
               <thead className="text-slate-500">

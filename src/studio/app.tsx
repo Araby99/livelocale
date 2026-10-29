@@ -101,6 +101,9 @@ export const App = () => {
     reviewFocusKey,
     closeReview,
     selectReviewLocale,
+    reviewRepo,
+    reviewRepoFromManifest,
+    setReviewRepo,
   } = useStudio();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
@@ -222,6 +225,9 @@ export const App = () => {
               onSelectLocale={selectReviewLocale}
               onClose={closeReview}
               studioHref={window.location.href}
+              repo={reviewRepo}
+              repoFromManifest={reviewRepoFromManifest}
+              onRepoChange={setReviewRepo}
             />
           ) : (
             <EditorPanel

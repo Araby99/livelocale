@@ -14,6 +14,7 @@ export {
   applyCommandFor,
   APPLY_COMMAND_MAX_CHARS,
 } from './components/ReviewPanel.jsx';
+export { RepoPrompt } from './components/RepoPrompt.jsx';
 export { StudioLayout, type StudioPanel } from './components/StudioLayout.jsx';
 export { useStudio } from './hooks/useStudio.js';
 export { useMediaQuery, WIDE_LAYOUT_QUERY } from './hooks/useMediaQuery.js';
