@@ -43,6 +43,21 @@ describe('publish.yml', () => {
     expect(yml).not.toMatch(/\{ \$\{\{|\{[^}\n]*: \$\{\{/);
   });
 
+  it('sets the prerelease version without lifecycle scripts', () => {
+    // package.json's "version" script is `changeset version`: run, it would consume a pending
+    // changeset and turn the prerelease into a real release published to latest.
+    const step = yml.slice(at('Set prerelease version'), at('Build Library & Studio'));
+    const runLine = step.split('\n').find((l) => /\brun:/.test(l))!;
+    expect(runLine).toContain('npm version');
+    expect(runLine).toContain('--ignore-scripts');
+  });
+
+  it('refuses to publish a prerelease run under any dist-tag but next', () => {
+    const step = yml.slice(at('Publish Package to NPM'));
+    expect(step).toContain("PRERELEASE_BASE: '${{ inputs.prerelease_base }}'");
+    expect(step).toMatch(/if \[ -n "\$PRERELEASE_BASE" \] && \[ "\$TAG" != next \]; then/);
+  });
+
   it('sets the prerelease version before the build, the tests and the published check', () => {
     expect(at('Set prerelease version')).toBeGreaterThan(at('Install Root Dependencies'));
     expect(at('Set prerelease version')).toBeLessThan(at('Build Library & Studio'));

@@ -38,10 +38,12 @@ jobs:
 
       # A manual run with a prerelease base publishes <base>-next.<run number> to the "next"
       # dist-tag. The version change stays in this run: no commit, no changeset, no CHANGELOG entry.
+      # --ignore-scripts: the "version" lifecycle script is `changeset version`, which would consume
+      # a pending changeset and turn the prerelease into a real release on "latest".
       - name: Set prerelease version
         if: inputs.prerelease_base != ''
         env: { BASE: '${{ inputs.prerelease_base }}' }
-        run: npm version "$(node scripts/dist-tag.mjs prerelease "$BASE" "$GITHUB_RUN_NUMBER")" --no-git-tag-version
+        run: npm version "$(node scripts/dist-tag.mjs prerelease "$BASE" "$GITHUB_RUN_NUMBER")" --no-git-tag-version --ignore-scripts
 
       - name: Build Library & Studio
         run: npm run build
@@ -65,4 +67,11 @@ jobs:
       # Authenticated by npm trusted publishing for this repository and workflow file.
       - name: Publish Package to NPM
         if: steps.published.outputs.already == 'false'
-        run: TAG=$(node scripts/dist-tag.mjs tag "$(node -p "require('./package.json').version")") && npm publish --provenance --tag "$TAG"
+        env: { PRERELEASE_BASE: '${{ inputs.prerelease_base }}' }
+        run: |
+          TAG=$(node scripts/dist-tag.mjs tag "$(node -p "require('./package.json').version")")
+          if [ -n "$PRERELEASE_BASE" ] && [ "$TAG" != next ]; then
+            echo "A prerelease run must publish to the next dist-tag, not $TAG."
+            exit 1
+          fi
+          npm publish --provenance --tag "$TAG"
