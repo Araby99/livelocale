@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-10-29
+
+### Minor Changes
+
+- **Added**
+  - `npx livelocale init --share`, which detects Vite, CRA/webpack, Next export or Next server, edits the build, and writes `.github/workflows/livelocale.yml`.
+  - `apply --github-event`, with:
+    - the trust gate;
+    - one commit per batch on a `livelocale/issue-<n>` branch;
+    - PR open or reuse, with the compare-link fallback;
+    - check results and escaped tables;
+    - `--branches` and closing the issue after merge.
+  - "Create pull request" in Review mode.
+  - "Open on GitHub" in Send, when `exposeRepo: true`.
+  - Import change link in the local Studio.
+  - "Live now" and "Changed by someone else" in Changes.
+  - The `next` dist-tag prerelease path.
+- **Changed**
+  - The GitHub REST helpers are shared between the preview gateway and `apply`.
+
 ## [0.9.0] - 2026-10-27
 
 ### Minor Changes

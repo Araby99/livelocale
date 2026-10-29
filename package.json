@@ -1,6 +1,6 @@
 {
   "name": "livelocale",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "description": "Click any text in your running React app to edit its translation. Edits stay as JSON in git, or arrive as a pull request from a deployed preview. Local-first, zero-dependency.",
   "license": "MIT",
   "author": "Araby99",
