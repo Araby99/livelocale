@@ -11,6 +11,7 @@ import {
   SEND_NAME_MAX_CHARS,
   SEND_NOTE_MAX_CHARS,
 } from '../../../share/send.js';
+import { GitHubIssueAction } from './GitHubIssueAction.js';
 import { copyText, downloadText, readPref, writePref } from '../../../share/browser.js';
 
 interface SendDialogProps {
@@ -29,6 +30,8 @@ const COPY_FAILED =
   'Copy did not work in this browser. Select the link above, copy it, then press “I copied it”.';
 const DOWNLOADED = 'File saved. Send it to your developer.';
 const TOO_LONG = 'This batch is too long for a chat message. Use Download file instead.';
+const GITHUB_HINT =
+  'Press “Submit new issue” on GitHub. A pull-request link appears as a comment about a minute later.';
 const NOTHING_TO_SEND = 'There are no changes to send.';
 
 const changes = (n: number) => (n === 1 ? '1 change' : `${n} changes`);
@@ -49,6 +52,7 @@ export const SendDialog = ({
   const [note, setNote] = useState('');
   const [includeSent, setIncludeSent] = useState(false);
   const [link, setLink] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [encoding, setEncoding] = useState(false);
   const [encodeError, setEncodeError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
@@ -80,6 +84,7 @@ export const SendDialog = ({
     if (!isOpen || !manifest) return;
     const seq = ++encodeSeq.current;
     setLink(null);
+    setToken(null);
     setEncodeError(null);
     if (included.length === 0) {
       setEncoding(false);
@@ -88,7 +93,9 @@ export const SendDialog = ({
     setEncoding(true);
     encodeChangeLink(buildChangeSet({ drafts: included, manifest, by: name, note }))
       .then((token) => {
-        if (seq === encodeSeq.current) setLink(buildShareLink(studioHref, token));
+        if (seq !== encodeSeq.current) return;
+        setLink(buildShareLink(studioHref, token));
+        setToken(token);
       })
       .catch((err: unknown) => {
         if (seq === encodeSeq.current) {
@@ -271,6 +278,20 @@ export const SendDialog = ({
             Close
           </button>
         </div>
+
+        {manifest.repo && token !== null && !encoding && (
+          <div className="space-y-2">
+            <GitHubIssueAction
+              repo={manifest.repo}
+              token={token}
+              count={included.length}
+              by={name}
+              label="Open on GitHub"
+              onOpened={() => void markSent(included, null)}
+            />
+            <p className="text-[11px] text-slate-400">{GITHUB_HINT}</p>
+          </div>
+        )}
 
         {outcome === 'copied' && (
           <p role="status" className="text-xs text-emerald-300">

@@ -40,14 +40,14 @@ function draft(i: number, status: Draft['status'] = 'unsent'): Draft {
   };
 }
 
-function renderDialog(drafts: Draft[] = [draft(1), draft(2)]) {
+function renderDialog(drafts: Draft[] = [draft(1), draft(2)], manifest = MANIFEST) {
   const onMarkSent = vi.fn(async () => {});
   render(
     <SendDialog
       isOpen
       onClose={vi.fn()}
       drafts={drafts}
-      manifest={MANIFEST}
+      manifest={manifest}
       studioHref={STUDIO_URL}
       onMarkSent={onMarkSent}
     />
@@ -192,9 +192,22 @@ describe('SendDialog', () => {
     expect(button('studio-send-copy').disabled).toBe(true);
   });
 
-  it('has no Open on GitHub action yet', async () => {
+  it('shows Open on GitHub only when the manifest exposes the repo', async () => {
     renderDialog();
     await linkField();
     expect(screen.queryByText('Open on GitHub')).toBeNull();
+    cleanup();
+
+    renderDialog([draft(1), draft(2)], { ...MANIFEST, repo: 'acme/web' });
+    const anchor = (await screen.findByText('Open on GitHub')) as HTMLAnchorElement;
+    expect(anchor.href.startsWith('https://github.com/acme/web/issues/new?')).toBe(true);
+    expect(screen.getByText(/Press “Submit new issue” on GitHub/)).toBeTruthy();
+  });
+
+  it('marks the drafts sent when the issue page opens', async () => {
+    const drafts = [draft(1), draft(2)];
+    const { onMarkSent } = renderDialog(drafts, { ...MANIFEST, repo: 'acme/web' });
+    fireEvent.click(await screen.findByText('Open on GitHub'));
+    await waitFor(() => expect(onMarkSent).toHaveBeenCalledWith(drafts));
   });
 });
