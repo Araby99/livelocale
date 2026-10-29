@@ -104,8 +104,23 @@ describe('DraftList', () => {
     expect(props.onRestoreBackup).toHaveBeenCalledWith(file);
   });
 
+  it('disables Download backup while there are no drafts', () => {
+    const { onDownloadBackup } = renderList({ drafts: [] });
+    const download = screen.getByRole('button', { name: 'Download backup' }) as HTMLButtonElement;
+    expect(download.disabled).toBe(true);
+    fireEvent.click(download);
+    expect(onDownloadBackup).not.toHaveBeenCalled();
+    cleanup();
+
+    renderList({ drafts: [d()] });
+    expect(
+      (screen.getByRole('button', { name: 'Download backup' }) as HTMLButtonElement).disabled
+    ).toBe(false);
+  });
+
   it('shows why a backup could not be downloaded', async () => {
     renderList({
+      drafts: [d()],
       onDownloadBackup: vi.fn(async () => {
         throw new Error(
           'More than 500 changes: send some of them first, then download the backup.'

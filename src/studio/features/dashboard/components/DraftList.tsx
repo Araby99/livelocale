@@ -173,7 +173,11 @@ export const DraftList = ({
       )}
 
       <div className="flex flex-wrap items-center gap-2 pt-2">
-        <button onClick={handleDownload} className={footerButton}>
+        <button
+          onClick={handleDownload}
+          disabled={drafts.length === 0}
+          className={`${footerButton} disabled:opacity-40 disabled:cursor-not-allowed`}
+        >
           Download backup
         </button>
         <label className={`${footerButton} inline-flex items-center`}>
