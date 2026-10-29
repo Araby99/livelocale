@@ -275,7 +275,13 @@ async function applyLink(
     targetSha,
     runId
   );
-  const changes = buildFileChanges(options.localesPath, plan, remote);
+  // Append mode writes on the open pull request branch: layer the edits on
+  // that branch's files so earlier batches and manual fixes there survive.
+  const base =
+    branchPlan.mode === 'append'
+      ? await readRemoteLocales(rest, branchPlan.parentSha, options.localesPath, locales)
+      : remote;
+  const changes = buildFileChanges(options.localesPath, plan, remote, base.files);
   const commit = await commitFiles(rest, {
     branchPlan,
     files: changes,
@@ -290,7 +296,7 @@ async function applyLink(
 
   // Check.
   const workspace = options.env.GITHUB_WORKSPACE || process.cwd();
-  const checkSummary = await checkChanges(options, workspace, remote, changes, plan);
+  const checkSummary = await checkChanges(options, workspace, base, changes, plan);
 
   // Pull request.
   const title =

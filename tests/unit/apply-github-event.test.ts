@@ -240,6 +240,53 @@ describe('runGitHubEventApply', () => {
     expect(gh.comments[7]!.at(-1)).toContain('Updated pull request');
   });
 
+  it('keeps an earlier batch on the open pull request branch when a second link touches the same file', async () => {
+    const en = '{\n  "home": {\n    "title": "Hello {name}",\n    "subtitle": "Welcome"\n  }\n}\n';
+    const ar = '{\n  "home": {\n    "title": "أهلا {name}",\n    "subtitle": "اهلا"\n  }\n}\n';
+    gh.seedBranch('main', { 'locales/en.json': en, 'locales/ar.json': ar });
+    const second = encodeChangeLink(
+      changeSet({
+        edits: [{ locale: 'ar', key: 'home.subtitle', from: 'اهلا', to: 'مرحبا بك', force: false }],
+      })
+    );
+    expect(await run('issues', fxWith('issues-opened-member', token))).toBe('pr');
+    expect(await run('issue_comment', fxWith('issue-comment-apply', second))).toBe('pr');
+    const onBranch = JSON.parse(gh.fileAt('livelocale/issue-7', 'locales/ar.json')!);
+    expect(onBranch.home.title).toBe('مرحبا {name}');
+    expect(onBranch.home.subtitle).toBe('مرحبا بك');
+    expect(gh.pulls).toHaveLength(1);
+  });
+
+  it('keeps a maintainer commit on the open pull request branch when a later link is applied', async () => {
+    const en = '{\n  "home": {\n    "title": "Hello {name}",\n    "subtitle": "Welcome"\n  }\n}\n';
+    const ar = '{\n  "home": {\n    "title": "أهلا {name}",\n    "subtitle": "اهلا"\n  }\n}\n';
+    gh.seedBranch('main', { 'locales/en.json': en, 'locales/ar.json': ar });
+    const subtitleOnly = encodeChangeLink(
+      changeSet({
+        edits: [{ locale: 'ar', key: 'home.subtitle', from: 'اهلا', to: 'مرحبا بك', force: false }],
+      })
+    );
+    expect(await run('issues', fxWith('issues-opened-member', subtitleOnly))).toBe('pr');
+    // A maintainer pushes a manual fix to the title on the pull request branch.
+    const fixed = JSON.parse(gh.fileAt('livelocale/issue-7', 'locales/ar.json')!);
+    fixed.home.title = 'يا هلا {name}';
+    gh.seedBranch('livelocale/issue-7', {
+      'locales/en.json': en,
+      'locales/ar.json': JSON.stringify(fixed, null, 2) + '\n',
+    });
+    const later = encodeChangeLink(
+      changeSet({
+        edits: [
+          { locale: 'ar', key: 'home.subtitle', from: 'اهلا', to: 'أهلا وسهلا', force: false },
+        ],
+      })
+    );
+    expect(await run('issue_comment', fxWith('issue-comment-apply', later))).toBe('pr');
+    const onBranch = JSON.parse(gh.fileAt('livelocale/issue-7', 'locales/ar.json')!);
+    expect(onBranch.home.title).toBe('يا هلا {name}');
+    expect(onBranch.home.subtitle).toBe('أهلا وسهلا');
+  });
+
   it('ignores a comment on a pull request thread without any API call', async () => {
     expect(await run('issue_comment', fx('issue-comment-on-pr'))).toBe('ignored');
     expect(gh.calls).toHaveLength(0);

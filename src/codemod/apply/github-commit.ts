@@ -170,11 +170,15 @@ export async function readRemoteLocales(
 /**
  * The new text of every locale file the plan's `apply` edits change, keyed by
  * repository path. Throws when an edit would land outside `<localesDir>/`.
+ * The edits are layered on `baseFiles` when given (the open pull request
+ * branch's head in append mode, so its earlier commits survive), falling back
+ * to the target's text for a file the branch does not hold.
  */
 export function buildFileChanges(
   localesDir: string,
   plan: ApplyPlan,
-  remote: RemoteLocales
+  remote: RemoteLocales,
+  baseFiles?: Map<string, string>
 ): Map<string, string> {
   const dir = normalizeRepoDir(localesDir);
   const prefix = dir === '' ? '' : `${dir}/`;
@@ -201,7 +205,7 @@ export function buildFileChanges(
 
   const changes = new Map<string, string>();
   for (const [file, edits] of byFile) {
-    const text = remote.files.get(file);
+    const text = baseFiles?.get(file) ?? remote.files.get(file);
     if (text === undefined) {
       throw new Error(`[livelocale] ${file} was not read from the target.`);
     }
