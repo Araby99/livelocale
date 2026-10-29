@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
+import { removeTempDir } from './temp-dir.js';
 
 export interface ShareProjectOptions {
   /** `flat` (default): `locales/<code>.json`; `namespaced`: `locales/<code>/home.json`. */
@@ -43,5 +44,5 @@ export function makeShareProject(options: ShareProjectOptions = {}): string {
 
 /** Deletes every project `makeShareProject` created. Call it in `afterEach`. */
 export function removeShareProjects(): void {
-  for (const dir of created.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  for (const dir of created.splice(0)) removeTempDir(dir);
 }

@@ -1,22 +1,22 @@
 // @vitest-environment node
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { encodeChangeLink, type ChangeSet } from '../../src/core/change-link.js';
 import { runLocalApply } from '../../src/codemod/apply/local.js';
+import { git, disableBackgroundGit } from './helpers/real-git.js';
+import { removeTempDir } from './helpers/temp-dir.js';
+
+/** Each test runs runLocalApply several times against a real repository and a bare origin. */
+const APPLY_PR_TEST_TIMEOUT = 120_000;
 
 const tempDirs: string[] = [];
 
 afterEach(() => {
   vi.restoreAllMocks();
-  for (const dir of tempDirs.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+  for (const dir of tempDirs.splice(0)) removeTempDir(dir);
 });
-
-function git(repo: string, ...args: string[]): string {
-  return execFileSync('git', args, { cwd: repo, encoding: 'utf-8' }).trim();
-}
 
 const EN = { home: { title: 'Hello' } };
 const AR = { home: { title: 'أهلا' } };
@@ -40,11 +40,13 @@ function makeRepo(): { repo: string; bare: string } {
   fs.writeFileSync(path.join(repo, 'locales', 'en.json'), JSON.stringify(EN, null, 2) + '\n');
   fs.writeFileSync(path.join(repo, 'locales', 'ar.json'), JSON.stringify(AR, null, 2) + '\n');
   git(root, 'init', '-q', '--bare', bare);
+  disableBackgroundGit(bare);
   git(repo, 'init', '-q', '-b', 'main');
   git(repo, 'config', 'user.name', 'Test');
   git(repo, 'config', 'user.email', 'test@example.com');
   git(repo, 'config', 'commit.gpgsign', 'false');
   git(repo, 'config', 'core.autocrlf', 'false');
+  disableBackgroundGit(repo);
   git(repo, 'add', '-A');
   git(repo, 'commit', '-q', '-m', 'init');
   git(repo, 'remote', 'add', 'origin', bare);
@@ -52,7 +54,7 @@ function makeRepo(): { repo: string; bare: string } {
   return { repo, bare };
 }
 
-describe('runLocalApply --pr', () => {
+describe('runLocalApply --pr', { timeout: APPLY_PR_TEST_TIMEOUT }, () => {
   it('commits to a new branch, pushes it, opens a pull request and returns to the original branch', async () => {
     const { repo, bare } = makeRepo();
     const arFile = path.join(repo, 'locales', 'ar.json');
@@ -125,7 +127,7 @@ describe('runLocalApply --pr', () => {
       (await runLocalApply({ projectDir: repo, input: alreadyDoneToken, pr: true, log, now }))
         .branch
     ).toBeUndefined();
-  }, 60_000);
+  });
 
   it('prints the manual pull request fallback and switches back when gh fails after the push', async () => {
     const { repo, bare } = makeRepo();
@@ -156,5 +158,5 @@ describe('runLocalApply --pr', () => {
     expect(out).toContain(`Pushed ${branch}. Open a pull/merge request from it into main.`);
     expect(out).toContain(`https://github.com/acme/site/compare/main...${branch}?expand=1`);
     expect(out).not.toContain('You are on');
-  }, 60_000);
+  });
 });

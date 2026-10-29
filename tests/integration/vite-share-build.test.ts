@@ -10,7 +10,11 @@ import { makeShareProject, removeShareProjects } from '../unit/helpers/share-pro
 const INDEX_HTML =
   '<!doctype html><html><head><title>App</title></head><body><div id="app"></div><script type="module" src="/src/main.js"></script></body></html>';
 
-describe.skipIf(!fs.existsSync('dist/studio/index.html'))('vite build with share', () => {
+/** A real `vite build` in a forked worker; sized for a loaded machine. */
+const BUILD_TIMEOUT = 60_000;
+const hasStudio = fs.existsSync('dist/studio/index.html');
+
+describe.skipIf(!hasStudio)('vite build with share', { timeout: BUILD_TIMEOUT }, () => {
   let tmp: string;
   const read = (rel: string) => fs.readFileSync(path.join(tmp, rel), 'utf-8');
   const readJson = (rel: string) => JSON.parse(read(rel));

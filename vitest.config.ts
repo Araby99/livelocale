@@ -8,6 +8,9 @@ export default defineConfig({
     // A real `vite build` loads Rolldown's native binding, which segfaults the whole run when loaded
     // in a worker thread; a child process is safe.
     poolMatchGlobs: [['**/tests/integration/vite-share-build.test.ts', 'forks']],
+    // How long Vitest waits for workers (and the forked Vite build process) to close before it
+    // force-stops them and exits, so a worker that hangs on shutdown cannot keep the run alive.
+    teardownTimeout: 10_000,
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

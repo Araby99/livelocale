@@ -3,12 +3,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { execFileSync } from 'child_process';
 import { GitClient } from '../../src/server/git-client.js';
-
-function git(cwd: string, ...args: string[]): string {
-  return execFileSync('git', args, { cwd, encoding: 'utf-8' }).trim();
-}
+import { git, disableBackgroundGit, REAL_GIT_TEST_TIMEOUT } from './helpers/real-git.js';
+import { removeTempDir } from './helpers/temp-dir.js';
 
 function write(root: string, rel: string, content: string) {
   const full = path.join(root, rel);
@@ -16,7 +13,7 @@ function write(root: string, rel: string, content: string) {
   fs.writeFileSync(full, content, 'utf-8');
 }
 
-describe('GitClient', () => {
+describe('GitClient', { timeout: REAL_GIT_TEST_TIMEOUT }, () => {
   let repo: string;
   let localesPath: string;
 
@@ -27,14 +24,15 @@ describe('GitClient', () => {
     git(repo, 'config', 'user.email', 'test@example.com');
     git(repo, 'config', 'user.name', 'Test');
     git(repo, 'config', 'commit.gpgsign', 'false');
+    disableBackgroundGit(repo);
     write(repo, 'locales/en.json', '{\n  "hello": "Hello"\n}\n');
     write(repo, 'src/app.ts', 'export const x = 1;\n');
     git(repo, 'add', '.');
     git(repo, 'commit', '-q', '-m', 'init');
-  });
+  }, REAL_GIT_TEST_TIMEOUT);
 
   afterEach(() => {
-    fs.rmSync(repo, { recursive: true, force: true });
+    removeTempDir(repo);
   });
 
   it('reports a clean repository with its branch name', async () => {
@@ -104,7 +102,7 @@ describe('GitClient', () => {
       expect(status.isRepo).toBe(false);
       expect(status.changes).toEqual([]);
     } finally {
-      fs.rmSync(plain, { recursive: true, force: true });
+      removeTempDir(plain);
     }
   });
 });
