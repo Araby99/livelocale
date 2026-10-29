@@ -10,6 +10,7 @@ import {
   SetupProblems,
   LocalePicker,
   SendDialog,
+  ImportChangeDialog,
   ReviewPanel,
   FirstRunTips,
   StudioLayout,
@@ -104,6 +105,14 @@ export const App = () => {
     reviewRepo,
     reviewRepoFromManifest,
     setReviewRepo,
+    applyLocal,
+    applyResults,
+    isApplying,
+    isImportOpen,
+    openImport,
+    closeImport,
+    submitImport,
+    importError,
   } = useStudio();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
@@ -149,6 +158,7 @@ export const App = () => {
         onSend={mode === 'static' ? openSend : undefined}
         reviewCount={review ? review.rows.length : null}
         onCloseReview={closeReview}
+        onImport={openImport}
       />
 
       <ChangesPanel
@@ -170,6 +180,7 @@ export const App = () => {
         onRestoreBackup={restoreBackupFile}
         liveNow={mode === 'static' ? liveNow : undefined}
         onDismissLiveNow={mode === 'static' ? dismissLiveNow : undefined}
+        onReviewChange={mode === 'static' ? openImport : undefined}
       />
 
       <SetupProblems problems={setupProblems} />
@@ -228,6 +239,9 @@ export const App = () => {
               repo={reviewRepo}
               repoFromManifest={reviewRepoFromManifest}
               onRepoChange={setReviewRepo}
+              onApplyLocal={review?.target === 'local' ? applyLocal : undefined}
+              applyResults={applyResults}
+              isApplying={isApplying}
             />
           ) : (
             <EditorPanel
@@ -268,6 +282,13 @@ export const App = () => {
         manifest={staticManifest}
         studioHref={window.location.href}
         onMarkSent={markDraftsSent}
+      />
+
+      <ImportChangeDialog
+        isOpen={isImportOpen}
+        onClose={closeImport}
+        onSubmit={submitImport}
+        error={importError}
       />
 
       <FirstRunTips

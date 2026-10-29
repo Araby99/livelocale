@@ -188,6 +188,68 @@ describe('ReviewPanel', () => {
     expect(banner.textContent).toContain('This change link is damaged.');
   });
 
+  describe('Apply to local files', () => {
+    const FORCED_REASON = 'Saved with “Save anyway”; tick the box to include it.';
+    const rows = [
+      row({ locale: 'en', key: 'home.a', from: 'A', to: 'A1', status: 'apply' }),
+      row({ locale: 'en', key: 'home.b', from: 'B', to: 'B1', status: 'apply' }),
+      row({ locale: 'en', key: 'home.c', from: 'C {n}', to: 'C', status: 'needs-force' }),
+      row({ locale: 'en', key: 'home.d', from: 'D', to: 'D1', status: 'conflict', current: 'X' }),
+    ];
+    const applyButton = (container: HTMLElement) =>
+      container.querySelector<HTMLButtonElement>('#studio-apply-local')!;
+
+    it('counts ready rows and adds forced rows when the box is ticked', () => {
+      const onApplyLocal = vi.fn();
+      const { container } = renderPanel(reviewOf(rows), { onApplyLocal });
+      expect(applyButton(container).textContent).toBe('Apply 2 changes to local files');
+      const box = screen.getByLabelText<HTMLInputElement>(
+        'Include 1 change saved with “Save anyway”'
+      );
+      expect(box.checked).toBe(false);
+      fireEvent.click(applyButton(container));
+      expect(onApplyLocal).toHaveBeenLastCalledWith({ includeForced: false });
+
+      fireEvent.click(box);
+      expect(applyButton(container).textContent).toBe('Apply 3 changes to local files');
+      fireEvent.click(applyButton(container));
+      expect(onApplyLocal).toHaveBeenLastCalledWith({ includeForced: true });
+    });
+
+    it('hides the forced box when no row needs it', () => {
+      renderPanel(reviewOf(rows.slice(0, 2)), { onApplyLocal: vi.fn() });
+      expect(document.body.textContent).not.toContain('Save anyway');
+    });
+
+    it('shows no local apply for a GitHub review', () => {
+      const { container } = renderPanel(reviewOf(rows, { target: 'github' }), {
+        onApplyLocal: vi.fn(),
+      });
+      expect(container.querySelector('#studio-apply-local')).toBeNull();
+    });
+
+    it('shows each row’s result after applying', () => {
+      const { container } = renderPanel(reviewOf(rows), {
+        onApplyLocal: vi.fn(),
+        applyResults: {
+          [rows[0]!.id]: { state: 'applied' },
+          [rows[1]!.id]: { state: 'failed', message: 'Disk full.' },
+          [rows[2]!.id]: { state: 'skipped', reason: FORCED_REASON },
+          [rows[3]!.id]: { state: 'skipped', reason: 'Changed since' },
+        },
+      });
+      const results = Array.from(container.querySelectorAll('[data-testid="apply-result"]')).map(
+        (el) => el.textContent
+      );
+      expect(results).toEqual([
+        'Applied',
+        'Failed: Disk full.',
+        `Skipped: ${FORCED_REASON}`,
+        'Skipped: Changed since',
+      ]);
+    });
+  });
+
   describe('Create pull request', () => {
     const githubReview = (repo?: string) =>
       reviewOf([row({ locale: 'ar', key: 'a', to: 'b' })], { target: 'github', repo });

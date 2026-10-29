@@ -26,6 +26,8 @@ import { downloadText, readPref, writePref } from '../../../share/browser.js';
 import { resolveReviewRepo } from '../../../share/github-issue.js';
 import { useFirstRun } from './useFirstRun.js';
 import { useReview } from './useReview.js';
+import { findChangeToken } from '../../../../core/change-link.js';
+import { describeLinkError } from '../../../share/send.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
@@ -42,6 +44,8 @@ export const useStudio = () => {
   const [error, setError] = useState<string | null>(null);
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
   const [isSendOpen, setIsSendOpen] = useState<boolean>(false);
+  const [isImportOpen, setIsImportOpen] = useState<boolean>(false);
+  const [importError, setImportError] = useState<string | null>(null);
   const [isUndoing, setIsUndoing] = useState<boolean>(false);
   const [mode, setMode] = useState<LiveLocaleMode | null>(null);
   const [setupProblems, setSetupProblems] = useState<string[]>(runtimeProblems);
@@ -176,8 +180,37 @@ export const useStudio = () => {
     visibleKeys,
     sendToIframe,
     reloadFrame,
+    // Development: a row applied to the local files is an ordinary edit of this session.
+    onApplied: (change) => {
+      history.record(change);
+      if (change.locale === locale) updateLocaleDataCache(change.key, change.nextValue);
+    },
   });
   const { review } = reviewMode;
+
+  const applyLocalChanges = async (o: { includeForced: boolean }) => {
+    await reviewMode.applyLocal(o);
+    await git.refresh();
+  };
+
+  // Import change link: development opens the review here and applies it locally; a share
+  // link puts the token in the URL hash, so the review address stays shareable.
+  const openImport = () => {
+    setImportError(null);
+    setIsChangesOpen(false);
+    setIsImportOpen(true);
+  };
+  const submitImport = async (text: string): Promise<boolean> => {
+    if (mode !== 'static') return reviewMode.openReview(text);
+    setImportError(null);
+    try {
+      window.location.hash = findChangeToken(text);
+      return true;
+    } catch (err) {
+      setImportError(describeLinkError(err));
+      return false;
+    }
+  };
 
   // The repository Review's "Create pull request" files the issue in. A repo inside a link is
   // never trusted: without one in the manifest, the developer enters it once per browser.
@@ -415,6 +448,15 @@ export const useStudio = () => {
     setReviewFocusKey: reviewMode.setFocusKey,
     openReview: reviewMode.openReview,
     closeReview: reviewMode.closeReview,
+    applyLocal: applyLocalChanges,
+    applyResults: reviewMode.applyResults,
+    isApplying: reviewMode.isApplying,
+    // Import change link
+    isImportOpen,
+    openImport,
+    closeImport: () => setIsImportOpen(false),
+    submitImport,
+    importError: mode === 'static' ? importError : reviewMode.error,
     reviewRepo,
     reviewRepoFromManifest: manifestRepo !== undefined,
     setReviewRepo,

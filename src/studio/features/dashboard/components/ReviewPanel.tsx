@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
 import type { EditStatus } from '../../../../core/apply-plan.js';
-import type { ReviewState } from '../hooks/useReview.js';
+import type { ApplyResult, ReviewState } from '../hooks/useReview.js';
 import { REVIEW_STATUS_LABELS, reviewSummary, type ReviewRow } from '../../../share/review.js';
 import { buildShareLink } from '../../../share/send.js';
 import { copyText } from '../../../share/browser.js';
@@ -37,6 +37,11 @@ interface ReviewPanelProps {
   repoFromManifest: boolean;
   /** Called with a valid `owner/repo` the developer confirmed. */
   onRepoChange(slug: string): void;
+  /** Development: saves the ready rows to the local files; the local actions render only when set. */
+  onApplyLocal?: (o: { includeForced: boolean }) => void;
+  /** Each row's result after a local apply, keyed by row id. */
+  applyResults?: Record<string, ApplyResult>;
+  isApplying?: boolean;
   /** Extra apply actions shown under the summary. */
   actions?: ReactNode;
   className?: string;
@@ -50,6 +55,21 @@ const COPY_FAILED = 'Copy did not work in this browser. Select the text above an
 const GITHUB_HINT = 'Then press Submit on GitHub. The pull request opens in about a minute.';
 const RUN_WORKFLOW_HINT =
   'Issues turned off? Actions → LiveLocale → Run workflow, then paste the link.';
+
+const changes = (n: number) => (n === 1 ? '1 change' : `${n} changes`);
+
+const RESULT_CLASS: Record<ApplyResult['state'], string> = {
+  applied: 'text-emerald-300',
+  skipped: 'text-slate-400',
+  failed: 'text-rose-300',
+};
+
+const resultText = (result: ApplyResult) =>
+  result.state === 'applied'
+    ? 'Applied'
+    : result.state === 'failed'
+      ? `Failed: ${result.message}`
+      : `Skipped: ${result.reason}`;
 
 const STATUS_ORDER: EditStatus[] = ['apply', 'already', 'conflict', 'needs-force', 'invalid'];
 
@@ -94,11 +114,15 @@ export const ReviewPanel = ({
   repo,
   repoFromManifest,
   onRepoChange,
+  onApplyLocal,
+  applyResults = {},
+  isApplying = false,
   actions,
   className = 'w-[420px] shrink-0',
 }: ReviewPanelProps) => {
   const [copied, setCopied] = useState<string | null>(null);
   const [isChangingRepo, setIsChangingRepo] = useState(false);
+  const [includeForced, setIncludeForced] = useState(false);
   const focusedRef = useRef<HTMLTableRowElement | null>(null);
 
   const link = useMemo(
@@ -110,6 +134,9 @@ export const ReviewPanel = ({
   const focusedId = review?.rows.find((r) => r.key === focusKey)?.id ?? null;
 
   useEffect(() => setCopied(null), [review]);
+  useEffect(() => setIncludeForced(false), [review?.token]);
+
+  const applyCount = counts ? counts.apply + (includeForced ? counts['needs-force'] : 0) : 0;
 
   useEffect(() => {
     focusedRef.current?.scrollIntoView?.({ block: 'nearest' });
@@ -208,6 +235,30 @@ export const ReviewPanel = ({
               </div>
             )}
 
+            {review.target === 'local' && onApplyLocal && (
+              <div className="space-y-2 px-3 py-3 rounded-xl bg-slate-950/40 border border-slate-800">
+                <button
+                  id="studio-apply-local"
+                  type="button"
+                  disabled={applyCount === 0 || isApplying}
+                  onClick={() => onApplyLocal({ includeForced })}
+                  className="h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 bg-indigo-600 border-indigo-500 text-indigo-50 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {`Apply ${changes(applyCount)} to local files`}
+                </button>
+                {counts['needs-force'] > 0 && (
+                  <label className="flex items-center gap-2 text-[11px] text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={includeForced}
+                      onChange={(e) => setIncludeForced(e.target.checked)}
+                    />
+                    {`Include ${changes(counts['needs-force'])} saved with “Save anyway”`}
+                  </label>
+                )}
+              </div>
+            )}
+
             {actions}
 
             <div className="space-y-2 px-3 py-3 rounded-xl bg-slate-950/40 border border-slate-800">
@@ -285,6 +336,14 @@ export const ReviewPanel = ({
                         <span className={`font-semibold ${STATUS_CLASS[row.status]}`}>
                           {REVIEW_STATUS_LABELS[row.status]}
                         </span>
+                        {applyResults[row.id] && (
+                          <p
+                            data-testid="apply-result"
+                            className={`mt-1 inline-block px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 ${RESULT_CLASS[applyResults[row.id]!.state]}`}
+                          >
+                            {resultText(applyResults[row.id]!)}
+                          </p>
+                        )}
                         {row.checks.length > 0 && (
                           <ul className="mt-1 space-y-0.5">
                             {row.checks.map((check) => (

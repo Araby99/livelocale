@@ -211,6 +211,108 @@ describe('useReview', () => {
   });
 });
 
+describe('useReview local apply', () => {
+  const LOCAL_SET: ChangeSet = {
+    branch: '',
+    base: '',
+    src: 'en',
+    by: '',
+    note: '',
+    edits: [
+      { locale: 'ar', key: 'home.title', from: 'مرحبا', to: 'أهلا', force: false },
+      { locale: 'fr', key: 'home.greet', from: 'Bonjour {name}', to: 'Bonjour', force: true },
+      { locale: 'fr', key: 'home.title', from: 'Autre', to: 'Salut', force: false },
+      { locale: 'ar', key: 'home.greet', from: 'أهلا {name}', to: 'هلا {name}', force: false },
+    ],
+  };
+  const FORCED_REASON = 'Saved with “Save anyway”; tick the box to include it.';
+  const id = (locale: string, key: string) => `${locale} ${key}`;
+
+  const answer = (status: number, body: unknown) => ({
+    ok: status >= 200 && status < 300,
+    status,
+    json: async () => body,
+  });
+  const postBodies = () =>
+    vi
+      .mocked(fetch)
+      .mock.calls.filter(([, init]) => init?.method === 'POST')
+      .map(([, init]) => JSON.parse(String(init!.body)));
+
+  beforeEach(() => {
+    decode.mockResolvedValue(LOCAL_SET);
+  });
+
+  it('applies ready rows locally and skips the rest', async () => {
+    vi.mocked(fetch).mockResolvedValue(answer(200, { success: true }) as unknown as Response);
+    const onApplied = vi.fn();
+    const { result, readBuiltLocale } = setupReview({ mode: 'development', onApplied });
+    await act(async () => {
+      await result.current.openReview('lc1.abc');
+    });
+    expect(result.current.review!.target).toBe('local');
+    const readsBefore = readBuiltLocale.mock.calls.length;
+
+    await act(async () => {
+      await result.current.applyLocal({ includeForced: false });
+    });
+    expect(postBodies()).toEqual([
+      { locale: 'ar', key: 'home.title', value: 'أهلا', reference: 'Welcome' },
+      { locale: 'ar', key: 'home.greet', value: 'هلا {name}', reference: 'Hello {name}' },
+    ]);
+    expect(result.current.applyResults).toEqual({
+      [id('ar', 'home.title')]: { state: 'applied' },
+      [id('fr', 'home.greet')]: { state: 'skipped', reason: FORCED_REASON },
+      [id('fr', 'home.title')]: { state: 'skipped', reason: 'Changed since' },
+      [id('ar', 'home.greet')]: { state: 'applied' },
+    });
+    expect(onApplied.mock.calls).toEqual([
+      [{ locale: 'ar', key: 'home.title', previousValue: 'مرحبا', nextValue: 'أهلا' }],
+      [{ locale: 'ar', key: 'home.greet', previousValue: 'أهلا {name}', nextValue: 'هلا {name}' }],
+    ]);
+    // The current values are read again and the rows rebuilt.
+    expect(readBuiltLocale.mock.calls.length).toBeGreaterThan(readsBefore);
+    expect(result.current.isApplying).toBe(false);
+
+    vi.mocked(fetch).mockClear();
+    await act(async () => {
+      await result.current.applyLocal({ includeForced: true });
+    });
+    expect(postBodies()).toContainEqual({
+      locale: 'fr',
+      key: 'home.greet',
+      value: 'Bonjour',
+      reference: 'Hello {name}',
+      force: true,
+    });
+    expect(result.current.applyResults[id('fr', 'home.greet')]).toEqual({ state: 'applied' });
+  });
+
+  it('records a failed save without stopping the batch', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        answer(422, {
+          error: 'Keep {name} in the text.',
+          code: 'PLACEHOLDER_MISMATCH',
+        }) as unknown as Response
+      )
+      .mockResolvedValue(answer(200, { success: true }) as unknown as Response);
+    const { result } = setupReview({ mode: 'development' });
+    await act(async () => {
+      await result.current.openReview('lc1.abc');
+    });
+    await act(async () => {
+      await result.current.applyLocal({ includeForced: false });
+    });
+    expect(postBodies()).toHaveLength(2);
+    expect(result.current.applyResults[id('ar', 'home.title')]).toEqual({
+      state: 'failed',
+      message: 'Keep {name} in the text.',
+    });
+    expect(result.current.applyResults[id('ar', 'home.greet')]).toEqual({ state: 'applied' });
+  });
+});
+
 describe('useStudio in Review mode', () => {
   const draft: Draft = {
     scope: 'path:/',

@@ -28,6 +28,8 @@ interface HeaderProps {
   reviewCount?: number | null;
   /** Leaves Review mode; the "Close review" button renders only while reviewing. */
   onCloseReview?: () => void;
+  /** Opens the Import change link dialog; the button renders only in development mode. */
+  onImport?: () => void;
 }
 
 const reviewingLabel = (n: number) =>
@@ -54,6 +56,7 @@ export const Header = ({
   onSend,
   reviewCount = null,
   onCloseReview,
+  onImport,
 }: HeaderProps) => {
   const isReviewing = reviewCount !== null;
   const mismatch =
@@ -201,6 +204,18 @@ export const Header = ({
             title="Turn your changes into a link or file for your developer"
           >
             Send to developer
+          </button>
+        )}
+
+        {mode === 'development' && onImport && (
+          <button
+            id="studio-import-button"
+            type="button"
+            onClick={onImport}
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
+            title="Review a translator's change link and apply it to your local files"
+          >
+            Import change link
           </button>
         )}
 
