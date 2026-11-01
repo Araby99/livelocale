@@ -129,6 +129,15 @@ describe('parseTrigger', () => {
     });
   });
 
+  it('ignores a comment event that carries no issue instead of throwing', () => {
+    const event = fx('issue-comment-apply');
+    delete event.issue;
+    expect(parseTrigger('issue_comment', event)).toEqual({
+      kind: 'ignore',
+      reason: 'comment without an issue',
+    });
+  });
+
   it('ignores a comment that is not a /livelocale command', () => {
     const event = fx('issue-comment-apply');
     event.comment.body = 'Looks good to me.\n/livelocale apply';
@@ -286,6 +295,13 @@ describe('chooseTargetBranch', () => {
       reason: 'default',
     });
     expect(chooseTargetBranch('', ['main'], 'main')).toEqual({ branch: 'main', reason: 'default' });
+  });
+
+  it('targets the link branch, never "not allowed", when the link names the default branch outside the allow-list', () => {
+    expect(chooseTargetBranch('main', ['staging', 'dev'], 'main')).toEqual({
+      branch: 'main',
+      reason: 'link',
+    });
   });
 
   it('allows only the default branch when the allow-list is empty', () => {

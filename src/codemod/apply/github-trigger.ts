@@ -85,7 +85,8 @@ export function parseTrigger(eventName: string, event: any): Trigger {
       if (event?.action !== 'created') return ignore('comment not created');
       const issue = event.issue;
       const comment = event.comment;
-      if (issue?.pull_request) return ignore('comment on a pull request');
+      if (!issue) return ignore('comment without an issue');
+      if (issue.pull_request) return ignore('comment on a pull request');
       if (comment?.user?.type === 'Bot') return ignore('comment by a bot');
       const body = textOf(comment?.body);
       const firstLine = body.split(/\r\n|\r|\n/)[0] ?? '';
@@ -168,8 +169,9 @@ export async function isTrustedActor(
 }
 
 /**
- * The branch the pull request targets: the link's branch only when the
- * allow-list (default: the repository's default branch) holds it.
+ * The branch the pull request targets: the link's branch when it is the
+ * default branch (always a valid target) or when the allow-list (default:
+ * the repository's default branch) holds it.
  */
 export function chooseTargetBranch(
   requested: string | undefined,
@@ -178,7 +180,9 @@ export function chooseTargetBranch(
 ): { branch: string; reason: 'link' | 'default' | 'not-allowed' } {
   if (!requested) return { branch: defaultBranch, reason: 'default' };
   const allowed = allowList.length > 0 ? allowList : [defaultBranch];
-  if (allowed.includes(requested)) return { branch: requested, reason: 'link' };
+  if (requested === defaultBranch || allowed.includes(requested)) {
+    return { branch: requested, reason: 'link' };
+  }
   return { branch: defaultBranch, reason: 'not-allowed' };
 }
 
