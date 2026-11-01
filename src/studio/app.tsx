@@ -97,6 +97,7 @@ export const App = () => {
     translatorName,
     setTranslatorName,
     review,
+    isReviewing,
     reviewError,
     isReviewLoading,
     reviewFocusKey,
@@ -128,7 +129,6 @@ export const App = () => {
   }, [selectionCount]);
 
   // A change link replaces the editor with the Review panel and brings it forward in a drawer.
-  const isReviewing = review !== null || reviewError !== null;
   useEffect(() => {
     if (isReviewing) setOpenPanel('side');
   }, [isReviewing]);
@@ -164,6 +164,7 @@ export const App = () => {
         canSend={unsentCount + sentCount > 0}
         onSend={mode === 'static' ? openSend : undefined}
         reviewCount={review ? review.rows.length : null}
+        isReviewing={isReviewing}
         onCloseReview={closeReview}
         onImport={openImport}
       />
@@ -241,6 +242,7 @@ export const App = () => {
               isLoading={isReviewLoading}
               focusKey={reviewFocusKey}
               focusSeq={reviewFocusSeq}
+              locale={locale}
               onSelectLocale={selectReviewLocale}
               onClose={closeReview}
               studioHref={window.location.href}

@@ -202,6 +202,47 @@ describe('useReview', () => {
     replaceState.mockRestore();
   });
 
+  it('stays in Review while a link from the URL hash opens or after it fails', async () => {
+    let fail: (err: unknown) => void = () => {};
+    decode.mockReturnValue(new Promise<ChangeSet>((_, reject) => (fail = reject)));
+    history.replaceState(null, '', '/livelocale/index.html#lc1.abc');
+    const { result } = setupReview();
+    await waitFor(() => expect(result.current.isLoading).toBe(true));
+    expect(result.current.isActive).toBe(true);
+    expect(result.current.openedFromHash).toBe(true);
+
+    await act(async () => fail(new ChangeLinkError('CORRUPT', 'corrupt')));
+    await waitFor(() => expect(result.current.error).not.toBeNull());
+    expect(result.current.review).toBeNull();
+    expect(result.current.isActive).toBe(true);
+  });
+
+  it('keeps a pasted link out of Review until it opens', async () => {
+    let fail: (err: unknown) => void = () => {};
+    decode.mockReturnValue(new Promise<ChangeSet>((_, reject) => (fail = reject)));
+    const { result } = setupReview({ mode: 'development' });
+    let opening: Promise<boolean> = Promise.resolve(false);
+    act(() => {
+      opening = result.current.openReview('hello');
+    });
+    expect(result.current.isLoading).toBe(true);
+    expect(result.current.isActive).toBe(false);
+
+    await act(async () => {
+      fail(new ChangeLinkError('NOT_FOUND', 'not found'));
+      await opening;
+    });
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.openedFromHash).toBe(false);
+    expect(result.current.isActive).toBe(false);
+
+    decode.mockResolvedValue(SET);
+    await act(async () => {
+      await result.current.openReview('lc1.abc');
+    });
+    expect(result.current.isActive).toBe(true);
+  });
+
   it('reopens when the hash changes to another link', async () => {
     history.replaceState(null, '', '/livelocale/index.html#lc1.abc');
     const { result } = setupReview();

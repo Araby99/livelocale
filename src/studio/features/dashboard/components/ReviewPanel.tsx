@@ -29,6 +29,8 @@ interface ReviewPanelProps {
   focusKey: string | null;
   /** Bumped on every Alt+Click, so a repeat click on the same key scrolls its row back into view. */
   focusSeq?: number;
+  /** The page's current locale; the focused row is the one for `focusKey` in it, else the first. */
+  locale?: string;
   /** Switches the page language, so the app shows that locale's proposed values. */
   onSelectLocale(l: string): void;
   onClose(): void;
@@ -111,6 +113,7 @@ export const ReviewPanel = ({
   isLoading,
   focusKey,
   focusSeq,
+  locale,
   onSelectLocale,
   onClose,
   studioHref,
@@ -134,7 +137,10 @@ export const ReviewPanel = ({
   );
   const command = link === null ? null : applyCommandFor(link);
   const counts = useMemo(() => (review ? reviewSummary(review.rows) : null), [review]);
-  const focusedId = review?.rows.find((r) => r.key === focusKey)?.id ?? null;
+  const focusedId = useMemo(() => {
+    const withKey = review?.rows.filter((r) => r.key === focusKey) ?? [];
+    return (withKey.find((r) => r.locale === locale) ?? withKey[0])?.id ?? null;
+  }, [review, focusKey, locale]);
 
   useEffect(() => setCopied(null), [review]);
   useEffect(() => setIncludeForced(false), [review?.token]);

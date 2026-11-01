@@ -24,8 +24,13 @@ interface HeaderProps {
   canSend?: boolean;
   /** Opens the Send dialog; the Send button renders only when set (static mode). */
   onSend?: () => void;
-  /** The number of edits in the open change link; null or absent when no review is open. */
+  /** The number of edits in the open change link; null or absent until a review has opened. */
   reviewCount?: number | null;
+  /**
+   * True while Review mode is shown, including while a change link opens and after it fails
+   * to open; defaults to whether `reviewCount` is set.
+   */
+  isReviewing?: boolean;
   /** Leaves Review mode; the "Close review" button renders only while reviewing. */
   onCloseReview?: () => void;
   /** Opens the Import change link dialog; the button renders only in development mode. */
@@ -55,10 +60,10 @@ export const Header = ({
   canSend = false,
   onSend,
   reviewCount = null,
+  isReviewing = reviewCount !== null,
   onCloseReview,
   onImport,
 }: HeaderProps) => {
-  const isReviewing = reviewCount !== null;
   const mismatch =
     targetLocale?.mismatch && (!locales || locales.includes(targetLocale.mismatch))
       ? targetLocale.mismatch
@@ -107,7 +112,7 @@ export const Header = ({
               </span>
             ) : (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] whitespace-nowrap min-w-0">
-                <span className="font-bold text-indigo-200">{`Editing: ${targetLocale.locale}`}</span>
+                <span className="font-bold text-indigo-200">{`${isReviewing ? 'Viewing' : 'Editing'}: ${targetLocale.locale}`}</span>
                 <span className="hidden xl:inline text-slate-400">
                   {SOURCE_HINTS[targetLocale.source]}
                 </span>
@@ -165,7 +170,7 @@ export const Header = ({
           </span>
         )}
 
-        {isReviewing && (
+        {reviewCount !== null && (
           <span
             data-testid="review-chip"
             className="shrink-0 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] font-semibold text-indigo-200 select-none whitespace-nowrap"

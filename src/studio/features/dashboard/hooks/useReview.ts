@@ -86,6 +86,13 @@ export function useReview(p: UseReviewParams): {
   review: ReviewState | null;
   error: string | null;
   isLoading: boolean;
+  /** True when the latest open came from the URL hash rather than a paste. */
+  openedFromHash: boolean;
+  /**
+   * True while Review mode is shown: a review is open, or a link from the URL hash is opening
+   * or failed to open. A paste that is opening or failed stays in its own dialog.
+   */
+  isActive: boolean;
   focusKey: string | null;
   /** Counts every `setFocusKey` call, so a repeat focus of the same key is still seen. */
   focusSeq: number;
@@ -99,6 +106,7 @@ export function useReview(p: UseReviewParams): {
   const [review, setReview] = useState<ReviewState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [openedFromHash, setOpenedFromHash] = useState(false);
   const [focusKey, setFocusKey] = useState<string | null>(null);
   const [focusSeq, setFocusSeq] = useState(0);
   const [applyResults, setApplyResults] = useState<Record<string, ApplyResult>>({});
@@ -116,9 +124,10 @@ export function useReview(p: UseReviewParams): {
     null
   );
 
-  const openReview = useCallback(async (input: string): Promise<boolean> => {
+  const open = useCallback(async (input: string, fromHash: boolean): Promise<boolean> => {
     const request = ++requestRef.current;
     const isCurrent = () => request === requestRef.current;
+    setOpenedFromHash(fromHash);
     setError(null);
     setIsLoading(true);
     try {
@@ -161,6 +170,8 @@ export function useReview(p: UseReviewParams): {
     }
   }, []);
 
+  const openReview = useCallback((input: string) => open(input, false), [open]);
+
   // Entry: a link in the URL hash, on mount and on every hash change.
   useEffect(() => {
     if (p.mode === null) return;
@@ -176,12 +187,12 @@ export function useReview(p: UseReviewParams): {
       }
       if (openedRef.current.has(token)) return;
       openedRef.current.add(token);
-      void openReview(input);
+      void open(input, true);
     };
     openFromHash();
     window.addEventListener('hashchange', openFromHash);
     return () => window.removeEventListener('hashchange', openFromHash);
-  }, [p.mode, openReview]);
+  }, [p.mode, open]);
 
   // Overlay the proposed values of the current locale; re-run after navigation.
   useEffect(() => {
@@ -267,6 +278,7 @@ export function useReview(p: UseReviewParams): {
     setError(null);
     setFocusKey(null);
     setIsLoading(false);
+    setOpenedFromHash(false);
     if (window.location.hash.startsWith(LINK_HASH_PREFIX)) {
       history.replaceState(null, '', window.location.pathname + window.location.search);
     }
@@ -277,6 +289,8 @@ export function useReview(p: UseReviewParams): {
     review,
     error,
     isLoading,
+    openedFromHash,
+    isActive: review !== null || (openedFromHash && (isLoading || error !== null)),
     focusKey,
     focusSeq,
     setFocusKey: focusOn,

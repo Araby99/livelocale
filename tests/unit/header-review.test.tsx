@@ -45,4 +45,22 @@ describe('Header in Review mode', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Close review' }));
     expect(onCloseReview).toHaveBeenCalledTimes(1);
   });
+
+  it('stays in Review while a change link opens or after it fails to open', () => {
+    const { container } = renderHeader({ isReviewing: true, onCloseReview: () => {} });
+    expect(container.querySelector('#studio-send-button')).toBeNull();
+    expect(screen.queryByTestId('unsent-counter')).toBeNull();
+    expect(screen.queryByTestId('review-chip')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Close review' })).toBeTruthy();
+  });
+
+  it('says Viewing instead of Editing during a review', () => {
+    const targetLocale = { locale: 'ar', source: 'url' as const, mismatch: null };
+    renderHeader({ targetLocale, reviewCount: 1, onCloseReview: () => {} });
+    expect(screen.getByTestId('target-locale').textContent).toContain('Viewing: ar');
+    expect(screen.getByTestId('target-locale').textContent).not.toContain('Editing');
+    cleanup();
+    renderHeader({ targetLocale });
+    expect(screen.getByTestId('target-locale').textContent).toContain('Editing: ar');
+  });
 });

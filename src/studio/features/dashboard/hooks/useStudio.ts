@@ -442,7 +442,10 @@ export const useStudio = () => {
     setTranslatorName: firstRun.setName,
     // Review mode (change links)
     review,
-    reviewError: reviewMode.error,
+    // One Review state for the header and the side panel. A failed paste in development
+    // stays in the Import dialog and never turns the Editor into a Review error panel.
+    isReviewing: reviewMode.isActive,
+    reviewError: reviewMode.openedFromHash ? reviewMode.error : null,
     isReviewLoading: reviewMode.isLoading,
     reviewFocusKey: reviewMode.focusKey,
     reviewFocusSeq: reviewMode.focusSeq,
@@ -457,7 +460,8 @@ export const useStudio = () => {
     openImport,
     closeImport: () => setIsImportOpen(false),
     submitImport,
-    importError: mode === 'static' ? importError : reviewMode.error,
+    importError:
+      mode === 'static' ? importError : reviewMode.openedFromHash ? null : reviewMode.error,
     reviewRepo,
     reviewRepoFromManifest: manifestRepo !== undefined,
     setReviewRepo,

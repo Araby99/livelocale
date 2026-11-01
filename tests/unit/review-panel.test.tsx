@@ -181,6 +181,23 @@ describe('ReviewPanel', () => {
     expect(current[0]!.textContent).toContain('home.second');
   });
 
+  it('marks the focused row in the page language when several languages change the key', () => {
+    const rows = [
+      row({ locale: 'en', key: 'home.title', to: 'Hi' }),
+      row({ locale: 'ar', key: 'home.title', to: 'أهلا' }),
+    ];
+    const marked = (locale?: string) => {
+      const { container } = renderPanel(reviewOf(rows), { focusKey: 'home.title', locale });
+      const current = Array.from(container.querySelectorAll('tbody tr[aria-current="true"]'));
+      cleanup();
+      return current.map((tr) => tr.textContent ?? '');
+    };
+    expect(marked('ar')).toEqual([expect.stringContaining('أهلا')]);
+    // No row in the page language: the first row with the key.
+    expect(marked('fr')).toEqual([expect.stringContaining('Hi')]);
+    expect(marked()).toEqual([expect.stringContaining('Hi')]);
+  });
+
   it('scrolls the focused row back into view on a repeat focus of the same key', () => {
     const scrollIntoView = vi.fn();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
