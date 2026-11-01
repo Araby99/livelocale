@@ -99,10 +99,7 @@ describe('checkPackArgs', () => {
       'pack does not run a build command: use livelocale build -- <your build command>.',
     ],
   ])('names the wrong argument in %j', (argv, problem) =>
-    expect(usageError(() => checkPackArgs(parseShareArgs(argv)))).toBe(
-      `${problem}
-${PACK_USAGE}`
-    )
+    expect(usageError(() => checkPackArgs(parseShareArgs(argv)))).toBe(`${problem}\n${PACK_USAGE}`)
   );
 
   it('accepts one <outDir>', () =>
@@ -118,8 +115,7 @@ describe('checkBuildArgs', () => {
     ],
   ])('names the wrong argument in %j', (argv, problem) =>
     expect(usageError(() => checkBuildArgs(parseShareArgs(argv)))).toBe(
-      `${problem}
-${BUILD_USAGE}`
+      `${problem}\n${BUILD_USAGE}`
     )
   );
 

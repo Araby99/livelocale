@@ -436,11 +436,7 @@ export const PACK_USAGE = 'Usage: livelocale pack <outDir> [options]';
 export const BUILD_USAGE = 'Usage: livelocale build [--preview] -- <your build command>';
 
 function usageError(problem: string, usage: string): PackError {
-  return new PackError(
-    'USAGE',
-    `${problem}
-${usage}`
-  );
+  return new PackError('USAGE', `${problem}\n${usage}`);
 }
 
 /** Throws a USAGE PackError naming the first argument `livelocale pack` cannot take. */
