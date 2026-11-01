@@ -105,7 +105,7 @@ describe('TokenModal', () => {
   it('submits the typed token and disables submit while empty', () => {
     const onSubmit = vi.fn();
     render(<TokenModal isOpen onSubmit={onSubmit} />);
-    const input = screen.getByLabelText(/access token/i) as HTMLInputElement;
+    const input = screen.getByLabelText('Access token') as HTMLInputElement;
     const button = screen.getByRole('button', { name: /connect/i }) as HTMLButtonElement;
     expect(input.type).toBe('password');
     expect(button.disabled).toBe(true);
