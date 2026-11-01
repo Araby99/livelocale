@@ -3,7 +3,13 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { hasCheckFailures, runCheck, type CheckIssue } from '../../src/codemod/check.js';
+import {
+  formatCheckReport,
+  hasCheckFailures,
+  runCheck,
+  type CheckIssue,
+  type CheckReport,
+} from '../../src/codemod/check.js';
 import {
   TYPESCRIPT_MISSING,
   typescriptUnusable,
@@ -196,4 +202,82 @@ describe('runCheck --hardcoded locale checks', () => {
       typescriptUnusable('7.0.0'),
     ]);
   });
+});
+
+describe('formatCheckReport hardcoded findings', () => {
+  const report = (issues: CheckIssue[]): CheckReport => ({
+    localesDir: '/p/locales',
+    sourceLocale: 'en',
+    locales: ['en', 'fr'],
+    codeKeyCount: 0,
+    issues,
+  });
+  const hc = (file: string, line: number, column: number, text: string): CheckIssue => ({
+    kind: 'hardcoded',
+    level: 'fail',
+    file,
+    line,
+    column,
+    text,
+    message: 'Not passed through a translation call.',
+  });
+
+  it('groups hardcoded findings by file and ends with a per-file count', () =>
+    expect(
+      formatCheckReport(
+        report([
+          hc('app/page.tsx', 3, 13, 'Save changes'),
+          hc('app/page.tsx', 9, 7, 'Cancel'),
+          hc('components/Nav.tsx', 4, 9, 'Home'),
+        ])
+      )
+    ).toBe(
+      [
+        '✖ Hardcoded text not passed through translation (3)',
+        '   app/page.tsx',
+        '      3:13  "Save changes"',
+        '      9:7  "Cancel"',
+        '   components/Nav.tsx',
+        '      4:9  "Home"',
+        '   Per file: app/page.tsx 2 · components/Nav.tsx 1',
+      ].join('\n')
+    ));
+
+  it('caps hardcoded findings per kind and still counts every file', () => {
+    const text = formatCheckReport(
+      report([...Array(30)].map((_, i) => hc('a.tsx', i + 1, 1, `Text ${i}`)))
+    );
+    expect(text.split('\n').filter((l) => l.startsWith('      ')).length).toBe(25);
+    expect(text).toContain('   …and 5 more');
+    expect(text.endsWith('   Per file: a.tsx 30')).toBe(true);
+  });
+
+  it('lists at most ten files in the per-file count', () => {
+    const issues = [...Array(12)].map((_, i) =>
+      hc(`f${String(i).padStart(2, '0')}.tsx`, 1, 1, 'Hi there')
+    );
+    expect(formatCheckReport(report(issues)).split('\n').at(-1)).toBe(
+      '   Per file: ' +
+        [...Array(10)].map((_, i) => `f${String(i).padStart(2, '0')}.tsx 1`).join(' · ') +
+        ' · +2 more files'
+    );
+  });
+
+  it('lists untranslated and wrong-script issues like other locale issues', () =>
+    expect(
+      formatCheckReport(
+        report([
+          {
+            kind: 'untranslated',
+            level: 'warn',
+            locale: 'fr',
+            key: 'home.title',
+            file: 'locales/fr.json',
+            message: 'Same text as en.',
+          },
+        ])
+      )
+    ).toBe(
+      '⚠ Translations identical to the source locale (1)\n   [fr] home.title — Same text as en.'
+    ));
 });

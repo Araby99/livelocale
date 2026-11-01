@@ -394,6 +394,30 @@ export function hasCheckFailures(report: CheckReport): boolean {
   return report.issues.some((i) => i.level === 'fail');
 }
 
+const PER_FILE_LIMIT = 10;
+
+/** Hardcoded findings: listed under their file, then a per-file count over every finding. */
+function formatHardcodedGroup(group: CheckIssue[], limit: number): string[] {
+  const lines: string[] = [];
+  let currentFile: string | undefined;
+  for (const issue of group.slice(0, limit)) {
+    if (issue.file !== currentFile) {
+      currentFile = issue.file;
+      lines.push(`   ${issue.file ?? ''}`);
+    }
+    lines.push(`      ${issue.line ?? 0}:${issue.column ?? 0}  "${issue.text ?? ''}"`);
+  }
+  if (group.length > limit) lines.push(`   …and ${group.length - limit} more`);
+
+  const counts = new Map<string, number>();
+  for (const issue of group) counts.set(issue.file ?? '', (counts.get(issue.file ?? '') ?? 0) + 1);
+  const files = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  const shown = files.slice(0, PER_FILE_LIMIT).map(([file, count]) => `${file} ${count}`);
+  if (files.length > PER_FILE_LIMIT) shown.push(`+${files.length - PER_FILE_LIMIT} more files`);
+  lines.push(`   Per file: ${shown.join(' · ')}`);
+  return lines;
+}
+
 /** Human-readable report, grouped by issue kind, with at most `limit` lines per group. */
 export function formatCheckReport(report: CheckReport, limit = 25): string {
   const lines: string[] = [];
@@ -402,6 +426,10 @@ export function formatCheckReport(report: CheckReport, limit = 25): string {
     if (group.length === 0) continue;
     const glyph = group.some((i) => i.level === 'fail') ? '✖' : '⚠';
     lines.push(`${glyph} ${KIND_TITLE[kind]} (${group.length})`);
+    if (kind === 'hardcoded') {
+      lines.push(...formatHardcodedGroup(group, limit));
+      continue;
+    }
     for (const issue of group.slice(0, limit)) {
       const where = issue.key
         ? `${issue.locale ? `[${issue.locale}] ` : ''}${issue.key}`
