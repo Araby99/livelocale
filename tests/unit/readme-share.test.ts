@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import { renderWorkflow } from '../../src/codemod/init-share.js';
 
 const readme = fs.readFileSync('README.md', 'utf-8');
+// Prose is wrapped at 100 columns, so a sentence may span lines: match it with whitespace collapsed.
+const prose = readme.replace(/\s+/g, ' ');
 
 describe('README share link section', () => {
   it('has the share link section', () => expect(readme).toMatch(/^## .*Share link on any host$/m));
@@ -21,7 +23,7 @@ describe('README share link section', () => {
     expect(readme).toContain('branch alias'));
 
   it('says what Sent means', () =>
-    expect(readme).toContain('it is not a pull request until a developer applies it'));
+    expect(prose).toContain('it is not a pull request until a developer applies it'));
 
   it('shows exactly the workflow init --share writes', () => {
     const block = /````yaml\n(# Written by `npx livelocale init --share`[\s\S]*?)````/.exec(
@@ -45,14 +47,20 @@ describe('README share link section', () => {
   });
 
   it('uses the approved positioning line', () =>
-    expect(readme).toContain('every fix becomes a pull request with one click'));
+    expect(prose).toContain('every fix becomes a pull request with one click'));
 
   it('explains the workflow must reach every extra target branch', () =>
-    expect(readme).toContain('so LiveLocale cannot close their issues otherwise'));
+    expect(prose).toContain('so LiveLocale cannot close their issues otherwise'));
 
   it('shows a pinned App-token step for CI without the approval click', () => {
     expect(readme).toContain('Run CI on LiveLocale PRs without the approval click');
     expect(readme).toMatch(/actions\/create-github-app-token@[0-9a-f]{40} # v\d+/);
     expect(readme).toContain("GITHUB_TOKEN: '${{ steps.app-token.outputs.token }}'");
+  });
+
+  // create-github-app-token v3.3.0 deprecates app-id in favour of client-id.
+  it('passes the App token step its client-id, not the deprecated app-id', () => {
+    expect(readme).toContain("client-id: '${{ vars.LIVELOCALE_APP_CLIENT_ID }}'");
+    expect(readme).not.toMatch(/^\s*app-id:/m);
   });
 });
