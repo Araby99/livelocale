@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-11-01
+
+### Patch Changes
+
+- **Fixed**
+  - Studio:
+    - Dialogs close on Escape and keep keyboard focus inside them, and the drawer stays open behind a dialog.
+    - Alt+Click reopens the Review drawer and scrolls to the row; the row is found in the page language.
+    - The language chosen in the share Studio is shown in the app preview and kept after a reload.
+    - The reference text stays in the source locale while you switch languages.
+    - A draft edited while a rebuild is reconciled is never dropped or overwritten.
+    - The copied change block resets when another review opens.
+    - The sent link and "Open on GitHub" stay on screen after sending.
+    - "Download backup" is disabled until there is a change to back up, and the downloaded file is saved in every browser.
+    - Borders and hover states render with Tailwind shades that exist.
+  - CLI and pack:
+    - `pack`, `build` and `init --share` name the wrong argument in their errors, and `--out` is refused for Next.js.
+    - `pack` leaves HTML files without page markup, such as site verification files, untouched.
+    - `init --share` keeps one `sourceLocale`, asks `origin` for its default branch and writes through linked folders.
+    - Translation keys with an empty path segment (`x.`, `a..b`, `.a`) are rejected.
+    - A new URL is flagged regardless of trailing punctuation or scheme and host case.
+    - Invisible characters in source are written as `\u` escapes, and lint fails on raw zero-width or bidi characters.
+  - apply and the Action:
+    - `apply --pr` says the edits are not committed when it fails before its commit.
+    - The Action keeps the real apply error when the error comment cannot be posted.
+    - The Action honours a link made on the default branch outside `--branches` and ignores a comment event without an issue.
+    - A later apply adds to the open fallback pull request of an issue, and a re-run suffixes the fallback branch.
+  - Docs:
+    - The README describes the Action's fallback branch and how a later apply adds to its open pull request, and finishes the `shareBase` row.
+
 ## [0.10.0] - 2026-10-29
 
 ### Minor Changes
