@@ -10,6 +10,14 @@ import {
 } from '../../src/core/save-rules.js';
 
 describe('validateWrite', () => {
+  it.each(['x.', 'a..b', '.a'])('rejects the key %j with an empty path segment', (key) =>
+    expect(validateWrite({ locale: 'en', key, value: 'x' })).toMatchObject({
+      ok: false,
+      status: 400,
+      code: 'INVALID_KEY_FORMAT',
+    })
+  );
+
   it('accepts and narrows a valid write', () =>
     expect(
       validateWrite(

@@ -7,7 +7,8 @@
 
 export const LOCALE_RE = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$/;
 
-export const KEY_RE = /^[a-zA-Z0-9._-]+$/;
+/** Dot-separated segments, none of them empty (the same shape the KeyScanner accepts). */
+export const KEY_RE = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
 
 export const MAX_LOCALE_LENGTH = 10;
 export const MAX_KEY_LENGTH = 200;
@@ -44,7 +45,7 @@ export function isValidLocaleFormat(locale: unknown): boolean {
 
 /**
  * Returns true if `key` is a 1-200 character dot-separated path containing
- * only alphanumerics, dots, underscores, or hyphens.
+ * only alphanumerics, underscores, or hyphens, with no empty segment.
  */
 export function isValidKeyFormat(key: unknown): boolean {
   return (
