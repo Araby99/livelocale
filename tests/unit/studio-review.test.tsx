@@ -112,6 +112,15 @@ afterEach(() => {
 });
 
 describe('useReview', () => {
+  it('counts every focus, including a repeat of the same key', () => {
+    const { result } = setupReview();
+    expect(result.current.focusSeq).toBe(0);
+    act(() => result.current.setFocusKey('home.title'));
+    act(() => result.current.setFocusKey('home.title'));
+    expect(result.current.focusKey).toBe('home.title');
+    expect(result.current.focusSeq).toBe(2);
+  });
+
   it('opens a review from the URL hash in static mode', async () => {
     history.replaceState(null, '', '/livelocale/index.html#lc1.abc');
     const { result, readBuiltLocale, fetchLocaleDictionary } = setupReview();
@@ -409,6 +418,15 @@ describe('useStudio in Review mode', () => {
       });
     });
     expect(result.current.reviewFocusKey).toBe('home.title');
+    expect(result.current.reviewFocusSeq).toBe(1);
+    act(() => {
+      handlers().onElementSelected({
+        key: 'home.title',
+        fallbackValue: 'مرحبا',
+        currentValue: 'مرحبا',
+      });
+    });
+    expect(result.current.reviewFocusSeq).toBe(2);
     await act(async () => {});
     expect(transport.textCandidates).not.toHaveBeenCalled();
     expect(result.current.selected).toBeNull();

@@ -27,6 +27,8 @@ interface ReviewPanelProps {
   isLoading: boolean;
   /** The key last Alt+Clicked in the app; its row is marked and scrolled into view. */
   focusKey: string | null;
+  /** Bumped on every Alt+Click, so a repeat click on the same key scrolls its row back into view. */
+  focusSeq?: number;
   /** Switches the page language, so the app shows that locale's proposed values. */
   onSelectLocale(l: string): void;
   onClose(): void;
@@ -108,6 +110,7 @@ export const ReviewPanel = ({
   error,
   isLoading,
   focusKey,
+  focusSeq,
   onSelectLocale,
   onClose,
   studioHref,
@@ -140,7 +143,7 @@ export const ReviewPanel = ({
 
   useEffect(() => {
     focusedRef.current?.scrollIntoView?.({ block: 'nearest' });
-  }, [focusedId]);
+  }, [focusedId, focusSeq]);
 
   const copy = async (text: string) => {
     setCopied((await copyText(text)) ? COPIED : COPY_FAILED);

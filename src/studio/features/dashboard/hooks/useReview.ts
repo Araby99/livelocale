@@ -87,6 +87,8 @@ export function useReview(p: UseReviewParams): {
   error: string | null;
   isLoading: boolean;
   focusKey: string | null;
+  /** Counts every `setFocusKey` call, so a repeat focus of the same key is still seen. */
+  focusSeq: number;
   setFocusKey(k: string | null): void;
   openReview(input: string): Promise<boolean>;
   closeReview(): void;
@@ -98,6 +100,7 @@ export function useReview(p: UseReviewParams): {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [focusKey, setFocusKey] = useState<string | null>(null);
+  const [focusSeq, setFocusSeq] = useState(0);
   const [applyResults, setApplyResults] = useState<Record<string, ApplyResult>>({});
   const [isApplying, setIsApplying] = useState(false);
 
@@ -249,6 +252,11 @@ export function useReview(p: UseReviewParams): {
     }
   }, []);
 
+  const focusOn = useCallback((k: string | null) => {
+    setFocusKey(k);
+    setFocusSeq((n) => n + 1);
+  }, []);
+
   const closeReview = useCallback(() => {
     requestRef.current++;
     reviewRef.current = null;
@@ -270,7 +278,8 @@ export function useReview(p: UseReviewParams): {
     error,
     isLoading,
     focusKey,
-    setFocusKey,
+    focusSeq,
+    setFocusKey: focusOn,
     openReview,
     closeReview,
     applyLocal,

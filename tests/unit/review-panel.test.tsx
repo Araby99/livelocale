@@ -181,6 +181,41 @@ describe('ReviewPanel', () => {
     expect(current[0]!.textContent).toContain('home.second');
   });
 
+  it('scrolls the focused row back into view on a repeat focus of the same key', () => {
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      value: scrollIntoView,
+      configurable: true,
+    });
+    try {
+      const review = reviewOf([
+        row({ locale: 'ar', key: 'home.first', to: 'b' }),
+        row({ locale: 'ar', key: 'home.second', to: 'd' }),
+      ]);
+      const panel = (focusSeq: number) => (
+        <ReviewPanel
+          review={review}
+          error={null}
+          isLoading={false}
+          focusKey="home.second"
+          focusSeq={focusSeq}
+          onSelectLocale={() => {}}
+          onClose={() => {}}
+          studioHref={STUDIO_HREF}
+          repo={null}
+          repoFromManifest={false}
+          onRepoChange={() => {}}
+        />
+      );
+      const { rerender } = render(panel(1));
+      expect(scrollIntoView).toHaveBeenCalledTimes(1);
+      rerender(panel(2));
+      expect(scrollIntoView).toHaveBeenCalledTimes(2);
+    } finally {
+      delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+    }
+  });
+
   it('shows the open error with its own title', () => {
     renderPanel(null, { error: 'This change link is damaged.' });
     const banner = screen.getByRole('alert');

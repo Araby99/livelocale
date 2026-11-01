@@ -445,6 +445,7 @@ export const useStudio = () => {
     reviewError: reviewMode.error,
     isReviewLoading: reviewMode.isLoading,
     reviewFocusKey: reviewMode.focusKey,
+    reviewFocusSeq: reviewMode.focusSeq,
     setReviewFocusKey: reviewMode.setFocusKey,
     openReview: reviewMode.openReview,
     closeReview: reviewMode.closeReview,

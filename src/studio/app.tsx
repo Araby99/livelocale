@@ -100,6 +100,7 @@ export const App = () => {
     reviewError,
     isReviewLoading,
     reviewFocusKey,
+    reviewFocusSeq,
     closeReview,
     selectReviewLocale,
     reviewRepo,
@@ -131,6 +132,12 @@ export const App = () => {
   useEffect(() => {
     if (isReviewing) setOpenPanel('side');
   }, [isReviewing]);
+
+  // Alt+Click during a review points at a row; bring the Review drawer forward each time,
+  // a repeat click on the same key included.
+  useEffect(() => {
+    if (reviewFocusSeq > 0) setOpenPanel('side');
+  }, [reviewFocusSeq]);
 
   const pickKey = useCallback(
     (key: string) => {
@@ -233,6 +240,7 @@ export const App = () => {
               error={reviewError}
               isLoading={isReviewLoading}
               focusKey={reviewFocusKey}
+              focusSeq={reviewFocusSeq}
               onSelectLocale={selectReviewLocale}
               onClose={closeReview}
               studioHref={window.location.href}
