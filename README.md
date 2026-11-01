@@ -722,9 +722,8 @@ developer applies it.
 - **PWA:** a Workbox service worker (vite-plugin-pwa, workbox-webpack-plugin) can answer the Studio
   with your app shell. Add `navigateFallbackDenylist: [/^\/livelocale\//]` to its Workbox options.
 - **Relative bases** (`base: './'`, CRA `homepage: '.'`): pages served by a client-side route
-  fallback cannot load `flag.js`, so pack prints "The app base is relative (./), so flag.js is
-  linked per HTML file. Pages served by a client-side route fallback cannot load it; build with
-  an absolute base (--base /path/) if the app has such routes."
+  fallback cannot load `flag.js`, so pack prints a warning recommending an absolute base
+  (`--base /path/`) when the app has such routes.
 
 ### Security
 
