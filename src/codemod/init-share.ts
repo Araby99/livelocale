@@ -261,14 +261,26 @@ function findLocalesPath(projectDir: string): string {
   return found;
 }
 
-async function defaultBranchOf(git: GitRunner, cwd: string): Promise<string> {
+const REMOTE_HEAD = /^ref: refs\/heads\/(\S+)\s+HEAD$/m;
+
+/**
+ * The repository's default branch: `origin/HEAD`, else what origin itself reports (a repository
+ * set up with `git remote add` has no `origin/HEAD`). `assumed` is true when neither answered
+ * and the current branch, or `main`, was taken instead.
+ */
+async function defaultBranchOf(
+  git: GitRunner,
+  cwd: string
+): Promise<{ branch: string; assumed: boolean }> {
   const ref = await git(['symbolic-ref', '--short', 'refs/remotes/origin/HEAD'], cwd);
   if (ref?.startsWith('origin/') && ref.length > 'origin/'.length) {
-    return ref.slice('origin/'.length);
+    return { branch: ref.slice('origin/'.length), assumed: false };
   }
+  const remote = await git(['ls-remote', '--symref', 'origin', 'HEAD'], cwd);
+  const remoteHead = REMOTE_HEAD.exec(remote ?? '');
+  if (remoteHead) return { branch: remoteHead[1]!, assumed: false };
   const head = await git(['rev-parse', '--abbrev-ref', 'HEAD'], cwd);
-  if (head && head !== 'HEAD') return head;
-  return 'main';
+  return { branch: head && head !== 'HEAD' ? head : 'main', assumed: true };
 }
 
 /** Plans a file write: `create` when missing, `unchanged` when equal, else `update`. */
@@ -306,7 +318,10 @@ function planViteConfig(c: BuildContext): PlannedFile[] {
     c.notes.push(addNote);
     return [{ path: config, action: 'skipped', reason: 'liveLocaleVite(...) has no { options }' }];
   }
-  const source2 = c.sourceLocale === 'en' ? '' : `sourceLocale: '${c.sourceLocale}', `;
+  const source2 =
+    c.sourceLocale === 'en' || /\bsourceLocale\s*:/.test(source)
+      ? ''
+      : `sourceLocale: '${c.sourceLocale}', `;
   const next = source.replace(call, () => `liveLocaleVite({ share: true, ${source2}`);
   return [{ path: config, action: 'update', content: next }];
 }
@@ -435,7 +450,12 @@ export async function planInitShare(
   const appRel = toPosix(path.relative(repoRoot, projectDir));
   const dir = appRel === '' ? undefined : appRel;
   const repoLocales = dir === undefined ? localesPath : `${dir}/${localesPath}`;
-  const defaultBranch = await defaultBranchOf(git, projectDir);
+  const { branch: defaultBranch, assumed } = await defaultBranchOf(git, projectDir);
+  if (assumed) {
+    notes.push(
+      `Could not read the default branch from origin; assumed \`${defaultBranch}\`. Pass --branches <branch> if that is wrong.`
+    );
+  }
   const branches = o.branches ?? [defaultBranch];
   const workflow = renderWorkflow({
     version: o.version,
@@ -465,13 +485,17 @@ export async function planInitShare(
   return { stack, files, notes };
 }
 
-/** Writes the `create` and `update` entries of a plan. */
+/**
+ * Writes the `create` and `update` entries of a plan. Paths resolve from the real project
+ * folder, as `planInitShare` computed them, so a linked folder writes to the right place.
+ */
 export function writePlannedFiles(projectDir: string, files: PlannedFile[]): void {
+  const root = realDir(projectDir);
   for (const file of files) {
     if ((file.action !== 'create' && file.action !== 'update') || file.content === undefined) {
       continue;
     }
-    const target = path.resolve(projectDir, file.path);
+    const target = path.resolve(root, file.path);
     fs.mkdirSync(path.dirname(target), { recursive: true });
     fs.writeFileSync(target, file.content, 'utf-8');
   }

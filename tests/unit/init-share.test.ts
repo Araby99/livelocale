@@ -340,6 +340,87 @@ describe('init --share', () => {
   });
 });
 
+describe('init --share edge cases', () => {
+  it('keeps one sourceLocale when the vite config already sets it', async () => {
+    const dir = project({
+      ...viteFiles,
+      'vite.config.ts':
+        "export default { plugins: [liveLocaleVite({ sourceLocale: 'ar', localesPath: './src/locales' })] };\n",
+    });
+    const plan = await planInitShare({
+      projectDir: dir,
+      version: '0.10.0',
+      sourceLocale: 'ar',
+      git,
+    });
+    const config = fileOf(plan, 'vite.config.ts');
+    expect(config.action).toBe('update');
+    expect(config.content).toBe(
+      "export default { plugins: [liveLocaleVite({ share: true, sourceLocale: 'ar', localesPath: './src/locales' })] };\n"
+    );
+  });
+
+  it('asks origin for its default branch when origin/HEAD is not set', async () => {
+    const dir = project(viteFiles);
+    const plan = await planInitShare({
+      projectDir: dir,
+      version: '0.10.0',
+      git: fakeGit({
+        'remote get-url origin': 'https://github.com/acme/site.git',
+        'ls-remote --symref origin HEAD': 'ref: refs/heads/trunk\tHEAD\n0123abc\tHEAD',
+        'rev-parse --abbrev-ref HEAD': 'feature/x',
+      }),
+    });
+    expect(fileOf(plan, '.github/workflows/livelocale.yml').content).toContain(
+      '--source en --branches trunk\n'
+    );
+    expect(plan.notes.join('\n')).not.toContain('default branch');
+  });
+
+  it('says so when it falls back to the current branch', async () => {
+    const dir = project(viteFiles);
+    const plan = await planInitShare({
+      projectDir: dir,
+      version: '0.10.0',
+      git: fakeGit({
+        'remote get-url origin': 'https://github.com/acme/site.git',
+        'rev-parse --abbrev-ref HEAD': 'feature/x',
+      }),
+    });
+    expect(fileOf(plan, '.github/workflows/livelocale.yml').content).toContain(
+      '--source en --branches feature/x\n'
+    );
+    expect(plan.notes).toContain(
+      'Could not read the default branch from origin; assumed `feature/x`. Pass --branches <branch> if that is wrong.'
+    );
+  });
+
+  it('writes the workflow at the repository root when the app is reached through a link', async () => {
+    const root = project({});
+    const app = path.join(root, 'apps', 'web');
+    fs.mkdirSync(path.join(app, 'locales'), { recursive: true });
+    fs.writeFileSync(path.join(app, 'locales', 'en.json'), '{}');
+    fs.writeFileSync(path.join(app, 'package.json'), pkg({}));
+    const outside = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-init-share-link-'));
+    created.push(outside);
+    const link = path.join(outside, 'a', 'b', 'web');
+    fs.mkdirSync(path.dirname(link), { recursive: true });
+    fs.symlinkSync(app, link, 'junction');
+    const plan = await planInitShare({
+      projectDir: link,
+      version: '0.10.0',
+      git: fakeGit({
+        'remote get-url origin': 'git@github.com:acme/site.git',
+        'rev-parse --show-toplevel': root,
+        'symbolic-ref --short refs/remotes/origin/HEAD': 'origin/main',
+      }),
+    });
+    writePlannedFiles(link, plan.files);
+    expect(fs.existsSync(path.join(root, '.github', 'workflows', 'livelocale.yml'))).toBe(true);
+    expect(fs.existsSync(path.join(outside, 'a', '.github'))).toBe(false);
+  });
+});
+
 describe('parseInitShareArgs', () => {
   it('reads every option', () =>
     expect(
