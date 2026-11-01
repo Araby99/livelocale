@@ -217,7 +217,43 @@ export function buildFileChanges(
 
 export type BranchPlan = { branch: string; parentSha: string; mode: 'new' | 'append' };
 
-/** base = the target branch; an existing ref is appended to only when it has an open PR into that same base. */
+/** How many `-2`, `-3`, … suffixes a fallback branch name may try. */
+const MAX_FALLBACK_SUFFIX = 100;
+
+/**
+ * The open pull request into `base` from a fallback branch of `baseName`
+ * (`<baseName>-<runId>` or `<baseName>-<runId>-<k>`) in this repository, with
+ * its branch head; null when there is none.
+ */
+async function findOpenFallbackPull(
+  rest: GitHubRest,
+  baseName: string,
+  base: string
+): Promise<{ branch: string; head: string } | null> {
+  const fallback = new RegExp(
+    `^${baseName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}-\\d+(?:-\\d+)?$`
+  );
+  const res = await rest.api<{ head?: { ref?: string; repo?: { full_name?: string } | null } }[]>(
+    'GET',
+    '/pulls',
+    { query: { base, state: 'open', per_page: '100' } }
+  );
+  for (const pull of res.data ?? []) {
+    const ref = pull.head?.ref ?? '';
+    const headRepo = pull.head?.repo?.full_name?.toLowerCase();
+    if (headRepo !== rest.repo.toLowerCase() || !fallback.test(ref)) continue;
+    const head = await rest.refSha(ref);
+    if (head !== null) return { branch: ref, head };
+  }
+  return null;
+}
+
+/**
+ * base = the target branch. An existing ref is appended to only when it has an
+ * open PR into that same base: `baseName` itself, else an open fallback PR of
+ * the same issue. Otherwise a new `<baseName>-<runId>` branch, suffixed `-2`,
+ * `-3`, … while that name exists (a re-run keeps the same run id).
+ */
 export async function prepareBranch(
   rest: GitHubRest,
   baseName: string,
@@ -230,7 +266,15 @@ export async function prepareBranch(
   if (await rest.findOpenPullRequest(baseName, base)) {
     return { branch: baseName, parentSha: head, mode: 'append' };
   }
-  return { branch: `${baseName}-${runId}`, parentSha: targetSha, mode: 'new' };
+  const open = await findOpenFallbackPull(rest, baseName, base);
+  if (open) return { branch: open.branch, parentSha: open.head, mode: 'append' };
+
+  const fallback = `${baseName}-${runId}`;
+  for (let n = 1; n <= MAX_FALLBACK_SUFFIX; n++) {
+    const branch = n === 1 ? fallback : `${fallback}-${n}`;
+    if ((await rest.refSha(branch)) === null) return { branch, parentSha: targetSha, mode: 'new' };
+  }
+  throw new Error(`[livelocale] No free branch name after ${fallback}-${MAX_FALLBACK_SUFFIX}.`);
 }
 
 /**

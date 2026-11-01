@@ -227,6 +227,51 @@ describe('the Git Data API flow', () => {
     expect(gh.calls.some((c) => (c.body as { force?: unknown })?.force === true)).toBe(false);
   });
 
+  it('appends to the open fallback pull request of the same issue instead of opening another', async () => {
+    gh.refs['livelocale/issue-7'] = mainSha; // its PR was merged, the branch kept
+    const fallbackSha = gh.seedBranch('livelocale/issue-7-55', { 'locales/en.json': EN });
+    await rest.openOrReusePullRequest({
+      head: 'livelocale/issue-7-55',
+      base: 'main',
+      title: 't',
+      body: 'b',
+    });
+    // another issue's fallback PR into main never matches issue 7
+    gh.seedBranch('livelocale/issue-70-56', { 'locales/en.json': EN });
+    await rest.openOrReusePullRequest({
+      head: 'livelocale/issue-70-56',
+      base: 'main',
+      title: 't',
+      body: 'b',
+    });
+
+    expect(await prepareBranch(rest, 'livelocale/issue-7', 'main', mainSha, '99')).toEqual({
+      branch: 'livelocale/issue-7-55',
+      parentSha: fallbackSha,
+      mode: 'append',
+    });
+    // the fallback PR targets main, so a staging target gets its own branch
+    expect(await prepareBranch(rest, 'livelocale/issue-7', 'staging', stagingSha, '99')).toEqual({
+      branch: 'livelocale/issue-7-99',
+      parentSha: stagingSha,
+      mode: 'new',
+    });
+  });
+
+  it('suffixes the fallback branch when a re-run of the same run finds it without a pull request', async () => {
+    gh.refs['livelocale/issue-7'] = mainSha;
+    gh.refs['livelocale/issue-7-99'] = mainSha; // left by the first attempt of run 99
+    expect(await prepareBranch(rest, 'livelocale/issue-7', 'main', mainSha, '99')).toEqual({
+      branch: 'livelocale/issue-7-99-2',
+      parentSha: mainSha,
+      mode: 'new',
+    });
+    gh.refs['livelocale/issue-7-99-2'] = mainSha;
+    expect((await prepareBranch(rest, 'livelocale/issue-7', 'main', mainSha, '99')).branch).toBe(
+      'livelocale/issue-7-99-3'
+    );
+  });
+
   it('refuses to write a branch outside livelocale/', async () => {
     await expect(
       commitFiles(rest, {

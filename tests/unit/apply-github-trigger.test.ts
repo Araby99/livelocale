@@ -193,6 +193,15 @@ describe('parseTrigger', () => {
     });
   });
 
+  it('reads the issue number from a suffixed -<runId>-<k> branch', () => {
+    const event = fx('pull-request-closed-merged');
+    event.pull_request.head.ref = 'livelocale/issue-7-123456-2';
+    expect(parseTrigger('pull_request', event)).toMatchObject({
+      kind: 'close-issue',
+      issueNumber: 7,
+    });
+  });
+
   it('ignores a pull request from a fork', () => {
     expect(parseTrigger('pull_request', fx('pull-request-closed-fork')).kind).toBe('ignore');
   });

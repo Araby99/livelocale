@@ -33,7 +33,8 @@ export type Trigger =
 
 const APPLY_COMMAND_RE = /^\/livelocale\s+apply(\s+--force)?\s*$/;
 const COMMAND_PREFIX = '/livelocale';
-const ISSUE_BRANCH_RE = /^livelocale\/issue-(\d+)(?:-\d+)?$/;
+/** `livelocale/issue-<n>`, `…-<runId>` or `…-<runId>-<k>` (see prepareBranch). */
+const ISSUE_BRANCH_RE = /^livelocale\/issue-(\d+)(?:-\d+){0,2}$/;
 
 const TRUSTED_ASSOCIATIONS = new Set(['OWNER', 'MEMBER', 'COLLABORATOR']);
 const TRUSTED_PERMISSIONS = new Set(['admin', 'write']);

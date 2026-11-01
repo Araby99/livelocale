@@ -151,7 +151,11 @@ export class FakeGitHub {
   }
 
   private pullJson(pull: FakePull) {
-    return { ...pull, head: { ref: pull.head }, base: { ref: pull.base } };
+    return {
+      ...pull,
+      head: { ref: pull.head, repo: { full_name: this.repo } },
+      base: { ref: pull.base },
+    };
   }
 
   private route(

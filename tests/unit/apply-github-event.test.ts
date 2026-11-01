@@ -240,6 +240,24 @@ describe('runGitHubEventApply', () => {
     expect(gh.comments[7]!.at(-1)).toContain('Updated pull request');
   });
 
+  it('adds a later link to the open fallback pull request after the first one was closed', async () => {
+    expect(await run('issues', fxWith('issues-opened-member', token))).toBe('pr');
+    gh.pulls[0]!.state = 'closed'; // closed without deleting livelocale/issue-7
+    const second = encodeChangeLink(
+      changeSet({
+        edits: [{ locale: 'ar', key: 'home.title', from: 'أهلا {name}', to: 'هلا {name}' }],
+      })
+    );
+    expect(await run('issue_comment', fxWith('issue-comment-apply', second))).toBe('pr');
+    expect(gh.pulls.filter((p) => p.state === 'open').map((p) => p.head)).toEqual([
+      'livelocale/issue-7-4242',
+    ]);
+    // a re-run keeps the run id; it lands on that open pull request instead of failing
+    expect(await run('issue_comment', fxWith('issue-comment-apply', second))).toBe('pr');
+    expect(gh.pulls).toHaveLength(2);
+    expect(gh.comments[7]!.at(-1)).toContain('Updated pull request');
+  });
+
   it('keeps an earlier batch on the open pull request branch when a second link touches the same file', async () => {
     const en = '{\n  "home": {\n    "title": "Hello {name}",\n    "subtitle": "Welcome"\n  }\n}\n';
     const ar = '{\n  "home": {\n    "title": "أهلا {name}",\n    "subtitle": "اهلا"\n  }\n}\n';
