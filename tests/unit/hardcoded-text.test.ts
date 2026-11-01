@@ -91,6 +91,10 @@ describe('isUserText', () => {
     ['MAX_ITEMS', false],
     ['onClick', false],
     ['home.title', false],
+    ['NEXT_PUBLIC_LIVELOCALE=preview', false],
+    ['npx livelocale doctor --app', false],
+    ['Wait -- then retry', true],
+    ['Run --app on GitHub', true],
   ])('%s → %s', (text, expected) => expect(isUserText(text, EMPTY_ALLOW)).toBe(expected));
 
   it('ignores text made only of allowed words', () => {

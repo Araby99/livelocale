@@ -46,7 +46,16 @@ const CODE_LIKE: RegExp[] = [
   /^[A-Z\d]+(?:_[A-Z\d]+)+$/,
   /^[a-z]+(?:[A-Z][a-z\d]*)+$/,
   /^[a-z][\w-]*(?:\.[\w-]+)+$/,
+  /^[\w.-]+=\S*$/,
 ];
+
+/** A shell command: lowercase words only, at least one of them a flag (`npx tool run --app`). */
+function isCommandLine(text: string): boolean {
+  const words = text.split(' ');
+  return (
+    words.every((w) => /^[a-z\d@.:=_/-]+$/.test(w)) && words.some((w) => /^--?[a-z][\w-]*$/.test(w))
+  );
+}
 
 /** True when the text reads as copy a user sees, after allowed words are removed. */
 export function isUserText(text: string, allow: AllowList): boolean {
@@ -54,5 +63,6 @@ export function isUserText(text: string, allow: AllowList): boolean {
   if ([...rest].length < 2) return false;
   if (!/\p{L}/u.test(rest)) return false;
   if (!/\s/.test(rest) && CODE_LIKE.some((re) => re.test(rest))) return false;
+  if (isCommandLine(rest)) return false;
   return true;
 }
