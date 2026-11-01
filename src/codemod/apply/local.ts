@@ -339,6 +339,7 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
   const branch = await pickBranchName(git, root, utcStamp(now()));
   await git(['switch', '-c', branch], root);
 
+  let committed = false;
   try {
     const written = await writeEdits(mutator, plan, targets, localesDir, localesPath);
     log(renderTerminalSummary(plan));
@@ -360,6 +361,7 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
     }
 
     await new GitClient().commit(localesDir, renderCommitMessage({ plan, by: set.by }));
+    committed = true;
     await git(['push', '-u', 'origin', branch], root, { inherit: true });
 
     const remote = (await tryRun(() => git(['remote', 'get-url', 'origin'], root)))?.trim();
@@ -392,7 +394,11 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
     await git(['switch', original], root);
     return { plan, written, branch, prUrl, exitCode };
   } catch (err) {
-    log(`You are on ${branch}; your changes are committed there.`);
+    log(
+      committed
+        ? `You are on ${branch}; your changes are committed there.`
+        : `You are on ${branch}; the edits are written but not committed.`
+    );
     throw err;
   }
 }

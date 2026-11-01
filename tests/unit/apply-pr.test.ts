@@ -159,4 +159,45 @@ describe('runLocalApply --pr', { timeout: APPLY_PR_TEST_TIMEOUT }, () => {
     expect(out).toContain(`https://github.com/acme/site/compare/main...${branch}?expand=1`);
     expect(out).not.toContain('You are on');
   });
+
+  it('says the edits are not committed when the commit fails', async () => {
+    const { repo } = makeRepo();
+    fs.writeFileSync(path.join(repo, '.git', 'hooks', 'pre-commit'), '#!/bin/sh\nexit 1\n', {
+      mode: 0o755,
+    });
+    const logs: string[] = [];
+    await expect(
+      runLocalApply({
+        projectDir: repo,
+        input: await encodeChangeLink(SET),
+        pr: true,
+        log: (l) => logs.push(l),
+        now: () => new Date('2026-10-26T10:00:00Z'),
+      })
+    ).rejects.toThrow();
+    const branch = 'livelocale/apply-20261026-100000';
+    expect(git(repo, 'rev-parse', '--abbrev-ref', 'HEAD')).toBe(branch);
+    expect(git(repo, 'status', '--porcelain')).toContain('locales/ar.json');
+    const out = logs.join('\n');
+    expect(out).toContain(`You are on ${branch}; the edits are written but not committed.`);
+    expect(out).not.toContain('your changes are committed there');
+  });
+
+  it('says the changes are committed when the push fails after the commit', async () => {
+    const { repo } = makeRepo();
+    git(repo, 'remote', 'set-url', 'origin', path.join(repo, '..', 'missing.git'));
+    const logs: string[] = [];
+    await expect(
+      runLocalApply({
+        projectDir: repo,
+        input: await encodeChangeLink(SET),
+        pr: true,
+        log: (l) => logs.push(l),
+        now: () => new Date('2026-10-26T10:00:00Z'),
+      })
+    ).rejects.toThrow();
+    const branch = 'livelocale/apply-20261026-100000';
+    expect(git(repo, 'log', '-1', '--format=%B', branch)).toContain('Translated-by: Mona');
+    expect(logs.join('\n')).toContain(`You are on ${branch}; your changes are committed there.`);
+  });
 });
