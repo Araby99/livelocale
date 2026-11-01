@@ -57,6 +57,39 @@ export function localeFromUrl(
   return listed(parsed.pathname.slice(base.length).split('/')[0]);
 }
 
+/**
+ * The app address (path, query and hash) that shows `locale`, marked the way `url` already
+ * marks its locale: the `locale` query parameter, else a listed locale as the first path
+ * segment under the base, else a new `locale` query parameter (what server stacks use).
+ * Null when `url` already shows `locale` or cannot be read.
+ */
+export function urlWithLocale(
+  url: string,
+  locale: string,
+  options: { basePath?: string; locales?: readonly string[] } = {}
+): string | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url, 'http://localhost');
+  } catch {
+    return null;
+  }
+  if (localeFromUrl(url, options) === locale) return null;
+
+  const { basePath, locales } = options;
+  const base = basePath ?? '/';
+  if (!parsed.searchParams.has('locale') && locales && parsed.pathname.startsWith(base)) {
+    const [segment, ...rest] = parsed.pathname.slice(base.length).split('/');
+    const lower = (segment ?? '').toLowerCase();
+    if (lower !== '' && locales.some((l) => l.toLowerCase() === lower)) {
+      parsed.pathname = base + [locale, ...rest].join('/');
+      return parsed.pathname + parsed.search + parsed.hash;
+    }
+  }
+  parsed.searchParams.set('locale', locale);
+  return parsed.pathname + parsed.search + parsed.hash;
+}
+
 /** Text in a comparable form: NFC, whitespace collapsed, trimmed, lower case. For matching only. */
 export function normalizeText(text: string): string {
   return text.normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();

@@ -104,6 +104,21 @@ test('detects Arabic from the page and keeps the fix across reloads', async ({ p
   ]);
 });
 
+test('the app preview follows the language chosen in the menu, also after a reload', async ({
+  page,
+}) => {
+  await openStudio(page);
+  const frame = page.frameLocator('#app-preview-iframe');
+  await expect(frame.locator('main')).toHaveAttribute('lang', 'en');
+  await page.locator('select:has(option[value="ar"])').selectOption('ar');
+  await expect(page.getByText('Editing: ar')).toBeVisible();
+  await expect(frame.locator('main')).toHaveAttribute('lang', 'ar');
+  await page.reload();
+  await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(frame.locator('main')).toHaveAttribute('lang', 'ar', { timeout: 30_000 });
+  await expect(page.getByText('Editing: ar')).toBeVisible();
+});
+
 test('translator sends a link that apply turns into the JSON diff', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await openStudio(page);

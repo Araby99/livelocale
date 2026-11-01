@@ -14,7 +14,8 @@ import {
   fetchLocaleDictionary,
   type LiveLocaleMode,
 } from '../../../api.js';
-import { getStudioRuntime, getStaticTransport } from '../../../runtime.js';
+import { getStudioRuntime, getStaticTransport, urlLocaleOptions } from '../../../runtime.js';
+import { urlWithLocale } from '../../../locale-inference.js';
 import { useAuth } from './useAuth.js';
 import { useDrafts } from './useDrafts.js';
 import { useUnsentGuard } from './useUnsentGuard.js';
@@ -91,6 +92,15 @@ export const useStudio = () => {
   const staticTransport = getStaticTransport();
   const drafts = useDrafts(staticTransport);
 
+  // Share link: point the app preview at a chosen language, marking it in the address the way
+  // the current page address already does (else `?locale=`). Server stacks keep handleLocaleChange.
+  const showLocaleInFrame = (l: string) => {
+    const frame = iframeRef.current;
+    if (!frame) return;
+    const next = urlWithLocale(currentPath, l, urlLocaleOptions());
+    if (next !== null) frame.src = new URL(next, getAppOrigin()).href;
+  };
+
   // The locale edits go to: inferred and always shown on a share link; today's behaviour otherwise.
   const target = useTargetLocale({
     enabled: staticTransport !== null,
@@ -98,6 +108,7 @@ export const useStudio = () => {
     locale,
     setLocale,
     setMenuLocale: setLocaleAndNavigate,
+    showLocale: showLocaleInFrame,
     locales,
     getCandidates: async () => (staticTransport ? staticTransport.textCandidates() : {}),
   });

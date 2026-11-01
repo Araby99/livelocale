@@ -10,6 +10,7 @@ import {
   matchLocalesByText,
   matchLocalesByVisibleTexts,
   normalizeText,
+  urlWithLocale,
   type CurrentLocale,
 } from '../../src/studio/locale-inference.js';
 
@@ -128,5 +129,35 @@ describe('locale choice', () => {
     expect(localeMismatch(['ar'], { locale: 'en', source: 'manual' })).toBe('ar');
     expect(localeMismatch(['ar', 'en'], { locale: 'en', source: 'manual' })).toBeNull();
     expect(localeMismatch(['ar'], { locale: 'en', source: 'url' })).toBeNull();
+  });
+});
+
+describe('urlWithLocale', () => {
+  const options = { basePath: '/app/', locales: ['ar', 'en', 'pt-BR'] };
+
+  it('replaces the locale query parameter and keeps the rest of the address', () => {
+    expect(urlWithLocale('/app/about?locale=en&x=1#top', 'ar', options)).toBe(
+      '/app/about?locale=ar&x=1#top'
+    );
+  });
+
+  it('replaces a locale path segment under the base', () => {
+    expect(urlWithLocale('/app/en/about?livelocale-origin=o', 'pt-BR', options)).toBe(
+      '/app/pt-BR/about?livelocale-origin=o'
+    );
+    expect(urlWithLocale('/app/EN', 'ar', options)).toBe('/app/ar');
+  });
+
+  it('adds the locale query parameter when the address names no locale', () => {
+    expect(urlWithLocale('/app/about?livelocale-origin=o', 'ar', options)).toBe(
+      '/app/about?livelocale-origin=o&locale=ar'
+    );
+    // A segment outside the base is not a locale.
+    expect(urlWithLocale('/en/about', 'ar', options)).toBe('/en/about?locale=ar');
+  });
+
+  it('returns null when the address already shows the locale', () => {
+    expect(urlWithLocale('/app/ar/about', 'ar', options)).toBeNull();
+    expect(urlWithLocale('/app/about?locale=ar', 'ar', options)).toBeNull();
   });
 });

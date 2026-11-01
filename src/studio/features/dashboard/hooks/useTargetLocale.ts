@@ -28,6 +28,12 @@ export interface UseTargetLocaleParams {
   setLocale: (locale: string) => void;
   /** What the editor's language menu calls when `enabled` is false; defaults to `setLocale`. */
   setMenuLocale?: (locale: string) => void;
+  /**
+   * Shows `locale` in the app preview (share links only): called for a choice from the
+   * language menu and for a locale remembered from an earlier visit, never for a decision
+   * that came from the page itself.
+   */
+  showLocale?: (locale: string) => void;
   locales: readonly string[];
   getCandidates: () => Promise<TextCandidates>;
 }
@@ -60,6 +66,7 @@ export const useTargetLocale = ({
   locale,
   setLocale,
   setMenuLocale = setLocale,
+  showLocale,
   locales,
   getCandidates,
 }: UseTargetLocaleParams) => {
@@ -102,6 +109,7 @@ export const useTargetLocale = ({
     sourceRef.current = 'remembered';
     setLocale(remembered);
     setSource('remembered');
+    showLocale?.(remembered);
   }, [enabled, scope, locales]);
 
   const onUrlLocale = (urlLocale: string) => {
@@ -163,8 +171,12 @@ export const useTargetLocale = ({
   };
 
   const onMenuLocale = (chosen: string) => {
-    if (enabled) choose(chosen);
-    else setMenuLocale(chosen);
+    if (!enabled) {
+      setMenuLocale(chosen);
+      return;
+    }
+    choose(chosen);
+    showLocale?.(chosen);
   };
 
   const cancelPick = useCallback(() => {

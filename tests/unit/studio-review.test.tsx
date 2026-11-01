@@ -26,6 +26,7 @@ const conn = vi.hoisted(() => ({
   },
   handlers: null as unknown,
   sendToIframe: null as unknown,
+  iframeRef: { current: null } as { current: { src: string } | null },
 }));
 
 vi.mock('../../src/studio/features/dashboard/hooks/useConnection.js', () => ({
@@ -33,7 +34,7 @@ vi.mock('../../src/studio/features/dashboard/hooks/useConnection.js', () => ({
     conn.handlers = handlers;
     return {
       ...conn.state,
-      iframeRef: { current: null },
+      iframeRef: conn.iframeRef,
       sendToIframe: conn.sendToIframe,
     };
   },
@@ -384,6 +385,7 @@ describe('useStudio in Review mode', () => {
     conn.sendToIframe = sendToIframe;
     conn.state.currentPath = '/';
     conn.state.visibleKeys = null;
+    conn.iframeRef.current = null;
     const transport = {
       manifest: MANIFEST,
       scope: 'path:/',
@@ -471,6 +473,17 @@ describe('useStudio in Review mode', () => {
     await act(async () => {});
     expect(transport.textCandidates).not.toHaveBeenCalled();
     expect(result.current.selected).toBeNull();
+  });
+
+  it('shows the language chosen in the menu in the app preview on a share link', async () => {
+    const { result } = setupStudio();
+    const frame = { src: 'https://www.acme.com/?livelocale-origin=o' };
+    conn.iframeRef.current = frame;
+    conn.state.currentPath = '/about?livelocale-origin=o';
+    await waitFor(() => expect(result.current.locales).toEqual(['ar', 'en']));
+    act(() => result.current.handleLocaleChange('ar'));
+    expect(result.current.locale).toBe('ar');
+    expect(frame.src).toBe('https://www.acme.com/about?livelocale-origin=o&locale=ar');
   });
 
   it('pauses the draft re-apply loop while reviewing', async () => {

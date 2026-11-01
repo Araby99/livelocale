@@ -24,6 +24,7 @@ const SCOPE = 'path:/';
 const setup = (overrides: { enabled?: boolean } = {}) => {
   const setLocale = vi.fn();
   const setMenuLocale = vi.fn();
+  const showLocale = vi.fn();
   const getCandidates = vi.fn(async () => candidates);
   const hook = renderHook(() =>
     useTargetLocale({
@@ -32,11 +33,12 @@ const setup = (overrides: { enabled?: boolean } = {}) => {
       locale: 'en',
       setLocale,
       setMenuLocale,
+      showLocale,
       locales: ['ar', 'en'],
       getCandidates,
     })
   );
-  return { ...hook, setLocale, setMenuLocale, getCandidates };
+  return { ...hook, setLocale, setMenuLocale, showLocale, getCandidates };
 };
 
 afterEach(() => {
@@ -188,6 +190,36 @@ describe('useTargetLocale', () => {
     const second = setup();
     expect(second.setLocale).toHaveBeenCalledWith('ar');
     expect(second.result.current.source).toBe('remembered');
+  });
+
+  it('shows a language chosen in the menu or remembered in the app preview', async () => {
+    const { result, showLocale, unmount } = setup();
+    act(() => result.current.onUrlLocale('en'));
+    await act(async () => {
+      await result.current.onVisibleTexts([{ key: 'home.title', text: 'Welcome' }]);
+      await result.current.resolveForSelection(el('مرحبا'));
+    });
+    act(() => {
+      result.current.choose('en');
+    });
+    // Page-driven decisions and a pick answer what the page shows; they never navigate it.
+    expect(showLocale).not.toHaveBeenCalled();
+
+    act(() => result.current.onMenuLocale('ar'));
+    expect(showLocale).toHaveBeenCalledWith('ar');
+    unmount();
+
+    // After a reload, the remembered language is shown again.
+    const reloaded = setup();
+    expect(reloaded.setLocale).toHaveBeenCalledWith('ar');
+    expect(reloaded.showLocale).toHaveBeenCalledWith('ar');
+  });
+
+  it('never calls showLocale in server mode', () => {
+    localStorage.setItem(TARGET_LOCALE_STORAGE_PREFIX + SCOPE, 'ar');
+    const { result, showLocale } = setup({ enabled: false });
+    act(() => result.current.onMenuLocale('fr'));
+    expect(showLocale).not.toHaveBeenCalled();
   });
 
   it('behaves as before in server mode', async () => {
