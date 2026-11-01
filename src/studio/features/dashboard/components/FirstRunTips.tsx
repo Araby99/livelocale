@@ -1,5 +1,6 @@
 import React from 'react';
 import { FIRST_RUN_TIPS } from '../hooks/useFirstRun.js';
+import { useDialog } from '../hooks/useDialog.js';
 
 interface FirstRunTipsProps {
   open: boolean;
@@ -10,11 +11,13 @@ interface FirstRunTipsProps {
 
 /** Three short tips and an optional name, shown once to a new translator. */
 export const FirstRunTips = ({ open, name, onNameChange, onDismiss }: FirstRunTipsProps) => {
+  const dialogRef = useDialog<HTMLDivElement>(open, onDismiss);
   if (!open) return null;
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-tips-title"
@@ -45,6 +48,7 @@ export const FirstRunTips = ({ open, name, onNameChange, onDismiss }: FirstRunTi
         />
         <div className="flex items-center justify-end mt-6">
           <button
+            type="button"
             onClick={onDismiss}
             className="px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition duration-150"
           >

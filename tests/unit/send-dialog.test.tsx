@@ -80,6 +80,25 @@ afterEach(() => {
 });
 
 describe('SendDialog', () => {
+  it('focuses the name field and closes on Escape', async () => {
+    const onClose = vi.fn();
+    render(
+      <SendDialog
+        isOpen
+        onClose={onClose}
+        drafts={[draft(1)]}
+        manifest={MANIFEST}
+        studioHref={STUDIO_URL}
+        onMarkSent={vi.fn(async () => {})}
+      />
+    );
+    await linkField();
+    const nameField = document.getElementById('studio-send-name')!;
+    expect(document.activeElement).toBe(nameField);
+    fireEvent.keyDown(nameField, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the link in a read-only field built from the Studio URL', async () => {
     renderDialog();
     const field = await linkField();

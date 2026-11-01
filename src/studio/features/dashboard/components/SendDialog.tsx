@@ -12,6 +12,7 @@ import {
   SEND_NOTE_MAX_CHARS,
 } from '../../../share/send.js';
 import { GitHubIssueAction } from './GitHubIssueAction.js';
+import { useDialog } from '../hooks/useDialog.js';
 import { copyText, downloadText, readPref, writePref } from '../../../share/browser.js';
 
 interface SendDialogProps {
@@ -58,6 +59,7 @@ export const SendDialog = ({
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const encodeSeq = useRef(0);
+  const dialogRef = useDialog<HTMLDivElement>(isOpen && manifest !== null, onClose);
 
   // A fresh dialog each time it opens: a note or "include sent" from an earlier batch
   // must not ride along into the next link.
@@ -151,6 +153,7 @@ export const SendDialog = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-send-title"

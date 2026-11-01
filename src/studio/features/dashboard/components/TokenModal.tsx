@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useDialog } from '../hooks/useDialog.js';
 
 interface TokenModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface TokenModalProps {
  */
 export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
   const [value, setValue] = useState('');
+  // No Escape: the Studio cannot edit anything until a token is given.
+  const dialogRef = useDialog<HTMLFormElement>(isOpen);
 
   if (!isOpen) return null;
 
@@ -22,11 +25,17 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <form
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="studio-token-title"
         onSubmit={submit}
         className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 space-y-4"
       >
         <div>
-          <h3 className="text-base font-bold text-slate-200 font-outfit">Access token required</h3>
+          <h3 id="studio-token-title" className="text-base font-bold text-slate-200 font-outfit">
+            Access token required
+          </h3>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed">
             This app runs LiveLocale in preview mode. Paste the access token configured on the
             server (<code className="font-mono text-slate-300">LIVELOCALE_TOKEN</code>) to edit

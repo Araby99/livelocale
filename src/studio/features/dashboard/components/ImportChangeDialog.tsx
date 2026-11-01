@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useDialog } from '../hooks/useDialog.js';
 
 interface ImportChangeDialogProps {
   isOpen: boolean;
@@ -30,6 +31,7 @@ export const ImportChangeDialog = ({
     setSubmitted(false);
   }, [isOpen]);
 
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose);
   if (!isOpen) return null;
 
   const chooseFile = async (file: File | undefined) => {
@@ -58,6 +60,7 @@ export const ImportChangeDialog = ({
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-import-title"
