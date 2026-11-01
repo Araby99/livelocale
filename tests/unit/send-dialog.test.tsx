@@ -55,6 +55,31 @@ function renderDialog(drafts: Draft[] = [draft(1), draft(2)], manifest = MANIFES
   return { onMarkSent };
 }
 
+/** A dialog whose drafts flip to sent when marked, as the Studio's draft store does. */
+function renderLiveDialog(manifest = { ...MANIFEST, repo: 'acme/web' }) {
+  const onMarkSent = vi.fn();
+  const Live = () => {
+    const [drafts, setDrafts] = React.useState([draft(1), draft(2)]);
+    return (
+      <SendDialog
+        isOpen
+        onClose={vi.fn()}
+        drafts={drafts}
+        manifest={manifest}
+        studioHref={STUDIO_URL}
+        onMarkSent={async (batch) => {
+          onMarkSent(batch);
+          setDrafts((ds) => ds.map((d) => ({ ...d, status: 'sent' as const, sentAt: 1 })));
+        }}
+      />
+    );
+  };
+  render(<Live />);
+  return { onMarkSent };
+}
+
+const NOTHING_TO_SEND = 'There are no changes to send.';
+
 async function linkField(): Promise<HTMLInputElement> {
   return (await screen.findByTestId('change-link')) as HTMLInputElement;
 }
@@ -221,6 +246,83 @@ describe('SendDialog', () => {
     const anchor = (await screen.findByText('Open on GitHub')) as HTMLAnchorElement;
     expect(anchor.href.startsWith('https://github.com/acme/web/issues/new?')).toBe(true);
     expect(screen.getByText(/Press “Submit new issue” on GitHub/)).toBeTruthy();
+  });
+
+  it('keeps the sent link and Open on GitHub after Copy link', async () => {
+    renderLiveDialog();
+    await linkField();
+    fireEvent.click(button('studio-send-copy'));
+    await screen.findByText('Link copied. Paste it to your developer in chat or email.');
+    expect(screen.getByText('Also include 2 changes already sent')).toBeTruthy();
+    expect((await linkField()).value).toBe(LINK);
+    expect(screen.queryByText(NOTHING_TO_SEND)).toBeNull();
+    expect(screen.getByText('Open on GitHub')).toBeTruthy();
+    expect(button('studio-send-copy').disabled).toBe(false);
+  });
+
+  it('keeps the sent link after Download file', async () => {
+    renderLiveDialog();
+    await linkField();
+    fireEvent.click(button('studio-send-download'));
+    await screen.findByText('File saved. Send it to your developer.');
+    expect((await linkField()).value).toBe(LINK);
+    expect(screen.queryByText(NOTHING_TO_SEND)).toBeNull();
+    expect(screen.getByText('Open on GitHub')).toBeTruthy();
+  });
+
+  it('copies the sent link again without marking it sent twice', async () => {
+    const { onMarkSent } = renderLiveDialog();
+    await linkField();
+    fireEvent.click(button('studio-send-copy'));
+    await screen.findByText('Link copied. Paste it to your developer in chat or email.');
+    fireEvent.click(button('studio-send-copy'));
+    await waitFor(() => expect(copyText).toHaveBeenCalledTimes(2));
+    expect(copyText).toHaveBeenLastCalledWith(LINK);
+    expect(onMarkSent).toHaveBeenCalledTimes(1);
+    expect(
+      screen.getByText('Link copied. Paste it to your developer in chat or email.')
+    ).toBeTruthy();
+  });
+
+  it('keeps the link and Open on GitHub after the issue page opens', async () => {
+    const { onMarkSent } = renderLiveDialog();
+    fireEvent.click(await screen.findByText('Open on GitHub'));
+    await screen.findByText('GitHub opened in a new tab.');
+    expect(onMarkSent).toHaveBeenCalledTimes(1);
+    expect((await linkField()).value).toBe(LINK);
+    expect(screen.getByText('Open on GitHub')).toBeTruthy();
+    expect(screen.queryByText(NOTHING_TO_SEND)).toBeNull();
+  });
+
+  it('drops the sent link once the note changes', async () => {
+    renderLiveDialog();
+    await linkField();
+    fireEvent.click(button('studio-send-copy'));
+    await screen.findByText('Link copied. Paste it to your developer in chat or email.');
+    fireEvent.change(document.getElementById('studio-send-note')!, {
+      target: { value: 'one more thing' },
+    });
+    await screen.findByText(NOTHING_TO_SEND);
+    expect(screen.queryByTestId('change-link')).toBeNull();
+    expect(screen.queryByText('Open on GitHub')).toBeNull();
+  });
+
+  it('hides Open on GitHub while the link is re-encoding', async () => {
+    renderDialog([draft(1), draft(2)], { ...MANIFEST, repo: 'acme/web' });
+    await screen.findByText('Open on GitHub');
+    encode.mockReturnValue(new Promise(() => {}));
+    fireEvent.change(document.getElementById('studio-send-note')!, {
+      target: { value: 'checkout page' },
+    });
+    await waitFor(() => expect(screen.queryByText('Open on GitHub')).toBeNull());
+    expect(button('studio-send-copy').disabled).toBe(true);
+  });
+
+  it('hides Open on GitHub after an encode failure', async () => {
+    encode.mockRejectedValue(new ChangeLinkError('TOO_LARGE', 'too large'));
+    renderDialog([draft(1), draft(2)], { ...MANIFEST, repo: 'acme/web' });
+    await screen.findByText(/^Could not create the link:/);
+    expect(screen.queryByText('Open on GitHub')).toBeNull();
   });
 
   it('marks the drafts sent when the issue page opens', async () => {

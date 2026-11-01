@@ -24,12 +24,20 @@ interface SendDialogProps {
   onMarkSent(ds: readonly Draft[]): Promise<void>;
 }
 
-type Outcome = 'copied' | 'copy-failed' | 'downloaded' | null;
+type Outcome = 'copied' | 'copy-failed' | 'downloaded' | 'opened' | null;
+
+/** A batch's link: the one being offered, or the one last copied, saved or opened on GitHub. */
+interface BatchLink {
+  link: string;
+  token: string;
+  count: number;
+}
 
 const COPIED = 'Link copied. Paste it to your developer in chat or email.';
 const COPY_FAILED =
   'Copy did not work in this browser. Select the link above, copy it, then press “I copied it”.';
 const DOWNLOADED = 'File saved. Send it to your developer.';
+const OPENED = 'GitHub opened in a new tab.';
 const TOO_LONG = 'This batch is too long for a chat message. Use Download file instead.';
 const GITHUB_HINT =
   'Press “Submit new issue” on GitHub. A pull-request link appears as a comment about a minute later.';
@@ -58,6 +66,7 @@ export const SendDialog = ({
   const [encodeError, setEncodeError] = useState<string | null>(null);
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [sent, setSent] = useState<BatchLink | null>(null);
   const encodeSeq = useRef(0);
   const dialogRef = useDialog<HTMLDivElement>(isOpen && manifest !== null, onClose);
 
@@ -70,7 +79,11 @@ export const SendDialog = ({
     setIncludeSent(false);
     setOutcome(null);
     setActionError(null);
+    setSent(null);
   }, [isOpen]);
+
+  // Another name, note or selection makes another link, so the sent one is no longer shown.
+  useEffect(() => setSent(null), [name, note, includeSent]);
 
   const alreadySent = useMemo(
     () => drafts.filter((d) => d.status === 'sent' && !d.conflict).length,
@@ -111,11 +124,27 @@ export const SendDialog = ({
 
   if (!isOpen || !manifest) return null;
 
-  const tooLong = link !== null && link.length > CHANGE_LINK_FILE_THRESHOLD;
-  const canCopy = !encoding && link !== null && !tooLong;
-  const canDownload = !encoding && link !== null;
+  // Once a batch is sent its drafts leave the selection. Until something else is selected,
+  // its link stays on screen, copyable, with Open on GitHub.
+  const showingSent = included.length === 0 && sent !== null;
+  const shown: BatchLink | null = showingSent
+    ? sent
+    : link !== null && token !== null
+      ? { link, token, count: included.length }
+      : null;
+  const shownLink = shown?.link ?? null;
+  const tooLong = shownLink !== null && shownLink.length > CHANGE_LINK_FILE_THRESHOLD;
+  const canCopy = !encoding && shownLink !== null && !tooLong;
+  const canDownload = !encoding && shownLink !== null;
 
+  /** Reports `done` and marks `batch` sent; the batch already sent is not marked again. */
   const markSent = async (batch: readonly Draft[], done: Outcome) => {
+    if (shown === null) return;
+    setSent(shown);
+    if (showingSent) {
+      setOutcome(done);
+      return;
+    }
     try {
       await onMarkSent(batch);
       setOutcome(done);
@@ -125,19 +154,19 @@ export const SendDialog = ({
   };
 
   const handleCopy = async () => {
-    if (!link) return;
+    if (!shownLink) return;
     const batch = included;
     setActionError(null);
-    if (await copyText(link)) await markSent(batch, 'copied');
+    if (await copyText(shownLink)) await markSent(batch, 'copied');
     else setOutcome('copy-failed');
   };
 
   const handleDownload = async () => {
-    if (!link) return;
+    if (!shownLink) return;
     const batch = included;
     setActionError(null);
     try {
-      downloadText(changeFileName('changes', new Date()), link + '\n');
+      downloadText(changeFileName('changes', new Date()), shownLink + '\n');
     } catch (err: any) {
       setActionError(err?.message || 'Could not save the file.');
       return;
@@ -202,7 +231,7 @@ export const SendDialog = ({
           </label>
         )}
 
-        {included.length === 0 ? (
+        {showingSent ? null : included.length === 0 ? (
           <p className="text-xs text-slate-500">{NOTHING_TO_SEND}</p>
         ) : (
           <ul data-testid="send-dialog-changes" className="max-h-48 overflow-y-auto space-y-1.5">
@@ -244,13 +273,13 @@ export const SendDialog = ({
 
         {encodeError && <p className="text-xs text-rose-400 break-words">{encodeError}</p>}
 
-        {link !== null && !tooLong && (
+        {shownLink !== null && !tooLong && (
           <input
             id="studio-send-link"
             data-testid="change-link"
             type="text"
             readOnly
-            value={link}
+            value={shownLink}
             onFocus={(e) => e.currentTarget.select()}
             className="w-full h-9 px-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300"
           />
@@ -282,15 +311,15 @@ export const SendDialog = ({
           </button>
         </div>
 
-        {manifest.repo && token !== null && !encoding && (
+        {manifest.repo && shown !== null && !encoding && (
           <div className="space-y-2">
             <GitHubIssueAction
               repo={manifest.repo}
-              token={token}
-              count={included.length}
+              token={shown.token}
+              count={shown.count}
               by={name}
               label="Open on GitHub"
-              onOpened={() => void markSent(included, null)}
+              onOpened={() => void markSent(included, 'opened')}
             />
             <p className="text-[11px] text-slate-400">{GITHUB_HINT}</p>
           </div>
@@ -304,6 +333,11 @@ export const SendDialog = ({
         {outcome === 'downloaded' && (
           <p role="status" className="text-xs text-emerald-300">
             {DOWNLOADED}
+          </p>
+        )}
+        {outcome === 'opened' && (
+          <p role="status" className="text-xs text-emerald-300">
+            {OPENED}
           </p>
         )}
         {outcome === 'copy-failed' && (
