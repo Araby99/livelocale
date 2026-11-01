@@ -111,7 +111,7 @@ describe('codeSpan', () => {
     expect(codeSpan('a|b')).toBe('`a\\|b`');
     expect(codeSpan('`tick')).toBe('`` `tick ``');
     expect(codeSpan('l1\nl2')).toBe('`l1⏎l2`');
-    expect(codeSpan('abc‮def')).toBe('`abc⟨U+202E⟩def`');
+    expect(codeSpan('abc\u202edef')).toBe('`abc⟨U+202E⟩def`');
     expect(codeSpan('a'.repeat(300)).endsWith('…`')).toBe(true);
   });
 

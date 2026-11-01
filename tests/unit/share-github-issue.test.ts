@@ -54,7 +54,7 @@ describe('buildIssueRequest', () => {
   it('titles by count and sender', () => {
     expect(issueTitle(1)).toBe('LiveLocale: 1 translation change');
     expect(issueTitle(3, 'Sara')).toBe('LiveLocale: 3 translation changes from Sara');
-    expect(issueTitle(1, '‮evil')).toBe('LiveLocale: 1 translation change from evil');
+    expect(issueTitle(1, '\u202eevil')).toBe('LiveLocale: 1 translation change from evil');
   });
 
   it('moves the block to the clipboard past 8000 characters', () => {

@@ -33,7 +33,7 @@ const STATUS_LABELS: Record<EditStatus, string> = {
   invalid: 'rejected',
 };
 
-const BIDI_CONTROL_RE = /[‪-‮⁦-⁩]/g;
+const BIDI_CONTROL_RE = /[\u202a-\u202e\u2066-\u2069]/g;
 // Every CommonMark line ending: a lone CR ends a table row just like LF does.
 const NEWLINE_RE = /\r\n|\r|\n/g;
 // Control characters left after newlines are mapped (tab is kept: it is harmless in a span).

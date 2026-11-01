@@ -34,7 +34,7 @@ export function resolveReviewRepo(
 
 function cleanSender(by: string): string {
   const cleaned = by
-    .replace(/[\x00-\x1f\x7f-\x9f‪-‮⁦-⁩]/g, '')
+    .replace(/[\x00-\x1f\x7f-\x9f\u202a-\u202e\u2066-\u2069]/g, '')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, ISSUE_BY_MAX_CHARS);

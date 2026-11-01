@@ -296,8 +296,14 @@ describe('encode/decode', () => {
     note: 'Checked on mobile.\nThanks!',
     edits: [
       { locale: 'ar', key: 'home.title', from: 'الرئيسية', to: 'الصفحة الرئيسية', force: false },
-      { locale: 'fa', key: 'cta', from: null, to: 'می‌خواهم', force: true }, // ZWNJ survives
-      { locale: 'fr', key: 'accent', from: 'é', to: 'é 😀', force: false },
+      {
+        locale: 'fa',
+        key: 'cta',
+        from: null,
+        to: '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645', // "میخواهم" with a ZWNJ, which survives
+        force: true,
+      },
+      { locale: 'fr', key: 'accent', from: 'e\u0301', to: '\u00e9 😀', force: false },
     ],
   }; // NFD and astral kept as-is
 

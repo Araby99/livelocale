@@ -75,7 +75,7 @@
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "eslint \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\"",
+    "lint": "node scripts/check-invisible-chars.mjs && eslint \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"README.md\"",
     "format:write": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"README.md\"",
     "typecheck": "tsc --noEmit",

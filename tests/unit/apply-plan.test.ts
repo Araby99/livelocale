@@ -141,7 +141,7 @@ describe('planApply', () => {
     ]);
     expect(
       planApply({
-        edits: [e('fr', 'k', 'é', 'y')],
+        edits: [e('fr', 'k', 'e\u0301', 'y')],
         sourceLocale: 'en',
         targets: t,
         allowForce: false,
@@ -149,7 +149,7 @@ describe('planApply', () => {
     ).toMatchObject({ status: 'conflict', code: 'CHANGED_ON_TARGET', current: 'é' });
     expect(
       planApply({
-        edits: [e('fr', 'k', 'é', 'é')],
+        edits: [e('fr', 'k', '\u00e9', 'e\u0301')],
         sourceLocale: 'en',
         targets: t,
         allowForce: false,
@@ -157,7 +157,7 @@ describe('planApply', () => {
     ).toBe('apply');
     expect(
       planApply({
-        edits: [e('fr', 'k', 'x', 'é')],
+        edits: [e('fr', 'k', 'x', 'e\u0301')],
         sourceLocale: 'en',
         targets: t,
         allowForce: false,

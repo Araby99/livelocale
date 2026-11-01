@@ -69,7 +69,7 @@ function readJson(file: string): any {
 
 test('visitors who are not framed get no watermarks', async ({ page }) => {
   await page.goto(`${STATIC}/`);
-  expect(await page.evaluate(() => /[​-‍]/.test(document.body.innerText))).toBe(false);
+  expect(await page.evaluate(() => /[\u200b-\u200d]/.test(document.body.innerText))).toBe(false);
   expect(await page.evaluate(() => (window as any).__LIVELOCALE_FLAG__)).toBeUndefined();
   expect(await page.locator('[data-i18n-key]').count()).toBe(0);
 });

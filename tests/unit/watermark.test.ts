@@ -235,7 +235,7 @@ describe('unwrap', () => {
   });
 
   it('should leave legitimate zero-width characters inside the visible text alone', () => {
-    const persian = 'می‌خواهم'; // contains ZWNJ
+    const persian = '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645'; // contains ZWNJ
     expect(unwrap(encodeKey(persian, 'fa.key'))).toBe(persian);
   });
 });
@@ -243,7 +243,7 @@ describe('unwrap', () => {
 // ─── Arabic shaping and Persian orthography ───────────────────────────────
 describe('watermarks next to Arabic-script text', () => {
   const arabic = '\u0627\u062e\u062a\u0628\u0627\u0631'; // "اختبار"
-  const persian = '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645'; // "می‌خواهم" with a real ZWNJ
+  const persian = '\u0645\u06cc\u200c\u062e\u0648\u0627\u0647\u0645'; // "میخواهم" with a real ZWNJ
   const thai = '\u0e01\u0e32\u200b\u0e23';
 
   it('never puts a join-causing character (ZWJ) next to the visible text', () => {
