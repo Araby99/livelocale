@@ -3,7 +3,12 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { runCheck, type CheckIssue } from '../../src/codemod/check.js';
+import { hasCheckFailures, runCheck, type CheckIssue } from '../../src/codemod/check.js';
+import {
+  TYPESCRIPT_MISSING,
+  typescriptUnusable,
+} from '../../src/codemod/hardcoded/load-typescript.js';
+import { linkFakeTypeScript, linkTypeScript } from './helpers/project-typescript.js';
 
 function write(root: string, rel: string, content: unknown) {
   const full = path.join(root, rel);
@@ -129,5 +134,66 @@ describe('runCheck --hardcoded locale checks', () => {
     const { issues } = await runCheck({ projectDir: project, hardcoded: true, unused: false });
     expect(keysOf(issues, 'untranslated')).toEqual([]);
     expect(keysOf(issues, 'wrong-script')).toEqual(['ar:items_zero']);
+  });
+
+  it('reports hardcoded JSX text as a failure', async () => {
+    linkTypeScript(project);
+    write(project, 'locales/en.json', { a: 'A' });
+    write(
+      project,
+      'app/page.tsx',
+      "const A = () => (\n  <div>\n    <button>Save changes</button>\n    {t('a')}\n  </div>\n);\n"
+    );
+    const report = await runCheck({ projectDir: project, hardcoded: true });
+    expect(report.issues).toEqual([
+      {
+        kind: 'hardcoded',
+        level: 'fail',
+        file: 'app/page.tsx',
+        line: 3,
+        column: 13,
+        text: 'Save changes',
+        message: 'Not passed through a translation call.',
+      },
+    ]);
+    expect(hasCheckFailures(report)).toBe(true);
+    expect('setupProblems' in report).toBe(false);
+  });
+
+  it('sorts hardcoded findings by file, line and column', async () => {
+    linkTypeScript(project);
+    write(project, 'locales/en.json', {});
+    write(project, 'b.tsx', 'const B = () => <p>Second file</p>;');
+    write(project, 'a.tsx', 'const A = () => <p>Line one</p>;\nconst C = () => <p>Line two</p>;');
+    const { issues } = await runCheck({ projectDir: project, hardcoded: true });
+    expect(issues.map((i) => `${i.file}:${i.line}`)).toEqual(['a.tsx:1', 'a.tsx:2', 'b.tsx:1']);
+  });
+
+  it('applies livelocale.allow and --allow to JSX text', async () => {
+    linkTypeScript(project);
+    write(project, 'locales/en.json', {});
+    write(project, 'livelocale.allow', 'GitHub\n');
+    write(project, 'a.tsx', 'const A = () => <><b>GitHub</b><b>Acme</b><b>Contact</b></>;');
+    const { issues } = await runCheck({ projectDir: project, hardcoded: true, allow: ['Acme'] });
+    expect(issues.map((i) => i.text)).toEqual(['Contact']);
+  });
+
+  it('runs the other checks and reports a setup problem without typescript', async () => {
+    write(project, 'locales/en.json', { a: 'Save' });
+    write(project, 'locales/fr.json', { a: 'Save' });
+    write(project, 'app/page.tsx', "const A = () => <p>{t('a')}</p>;");
+    const report = await runCheck({ projectDir: project, hardcoded: true });
+    expect(report.setupProblems).toEqual([TYPESCRIPT_MISSING]);
+    expect(keysOf(report.issues, 'untranslated')).toEqual(['fr:a']);
+    expect(report.issues.some((i) => i.kind === 'hardcoded')).toBe(false);
+  });
+
+  it('reports an unusable typescript as its own setup problem', async () => {
+    linkFakeTypeScript(project, '7.0.0');
+    write(project, 'locales/en.json', { a: 'Save' });
+    write(project, 'app/page.tsx', "const A = () => <p>{t('a')}</p>;");
+    expect((await runCheck({ projectDir: project, hardcoded: true })).setupProblems).toEqual([
+      typescriptUnusable('7.0.0'),
+    ]);
   });
 });

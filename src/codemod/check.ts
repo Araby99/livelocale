@@ -4,6 +4,9 @@ import { LOCALE_RE } from '../core/validate.js';
 import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
 import { KeyScanner } from '../server/key-scanner.js';
 import { readAllowList } from './hardcoded/allow-list.js';
+import { listComponentFiles } from './hardcoded/files.js';
+import { loadProjectTypeScript } from './hardcoded/load-typescript.js';
+import { findHardcodedText } from './hardcoded/scan-jsx.js';
 import {
   hasLetters,
   isMostlyLatin,
@@ -228,6 +231,8 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
 
   const scanner = new KeyScanner({ requireEnabled: false });
   const codeKeys = new Set(await scanner.scanSourceKeys(projectDir));
+  const allow = options.hardcoded ? readAllowList(projectDir, options.allow) : null;
+  let setupProblems: string[] | undefined;
 
   for (const [locale, localeData] of data) {
     for (const [key, value] of localeData.leaves) {
@@ -291,8 +296,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
       }
     }
 
-    if (options.hardcoded) {
-      const allow = readAllowList(projectDir, options.allow);
+    if (allow) {
       const sourceLanguage = primaryLanguage(sourceLocale);
       for (const [locale, localeData] of data) {
         if (locale === sourceLocale) continue;
@@ -340,6 +344,33 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
     }
   }
 
+  if (allow) {
+    const loaded = await loadProjectTypeScript(projectDir);
+    if ('problem' in loaded) {
+      setupProblems = [loaded.problem];
+    } else {
+      for (const file of await listComponentFiles(projectDir)) {
+        let content: string;
+        try {
+          content = await fs.promises.readFile(path.join(projectDir, file), 'utf-8');
+        } catch {
+          continue;
+        }
+        for (const finding of findHardcodedText(loaded.ts, content, file, allow)) {
+          issues.push({
+            kind: 'hardcoded',
+            level: 'fail',
+            file,
+            line: finding.line,
+            column: finding.column,
+            text: finding.text,
+            message: 'Not passed through a translation call.',
+          });
+        }
+      }
+    }
+  }
+
   issues.sort(
     (a, b) =>
       KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
@@ -355,6 +386,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
     locales,
     codeKeyCount: codeKeys.size,
     issues,
+    ...(setupProblems ? { setupProblems } : {}),
   };
 }
 
