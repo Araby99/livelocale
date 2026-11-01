@@ -149,7 +149,8 @@ async function checkChanges(
 /**
  * Runs one workflow event. Expected failures (no or damaged link, wrong
  * repository, no source locale file) are reported and resolve `'error'` or
- * `'wrong-repo'`; anything else after the gate is reported and rethrown.
+ * `'wrong-repo'`; anything else after the gate is reported and rethrown. When
+ * the error comment cannot be posted, the original error is rethrown.
  */
 export async function runGitHubEventApply(options: GitHubEventOptions): Promise<EventResult> {
   const { env } = options;
@@ -200,8 +201,14 @@ export async function runGitHubEventApply(options: GitHubEventOptions): Promise<
   try {
     return await applyLink(options, rest, trigger, { repo, runId, runUrl, server, log, report });
   } catch (err) {
-    if (err instanceof ExpectedFailure) return report({ kind: 'error', message: err.message });
-    await report({ kind: 'error', message: errorMessage(err) });
+    const message = err instanceof ExpectedFailure ? err.message : errorMessage(err);
+    try {
+      const result = await report({ kind: 'error', message });
+      if (err instanceof ExpectedFailure) return result;
+    } catch (reportErr) {
+      // A failed comment must not hide the error it was reporting.
+      log(`Could not post the error comment: ${errorMessage(reportErr)}`);
+    }
     throw err;
   }
 }

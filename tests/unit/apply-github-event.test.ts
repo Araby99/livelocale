@@ -331,6 +331,34 @@ describe('runGitHubEventApply', () => {
     expect(gh.comments[7]!.at(-1)).toMatch(/^LiveLocale could not apply this link: .*No locales/);
   });
 
+  it('keeps the real error when the error comment cannot be posted', async () => {
+    delete gh.issues[7];
+    const logs: string[] = [];
+    await expect(
+      run(
+        'issues',
+        fxWith('issues-opened-member', token),
+        {},
+        { localesPath: 'missing', log: (l) => logs.push(l) }
+      )
+    ).rejects.toThrow(/No locales folder/);
+    expect(logs).toContainEqual(expect.stringMatching(/^Could not post the error comment: .*404/));
+  });
+
+  it('keeps an expected failure in the log when the error comment cannot be posted', async () => {
+    delete gh.issues[7];
+    const logs: string[] = [];
+    await expect(
+      run(
+        'issues',
+        fxWith('issues-opened-member', 'nothing here'),
+        {},
+        { log: (l) => logs.push(l) }
+      )
+    ).rejects.toThrow('No LiveLocale change link (lc1.…) found.');
+    expect(logs).toContainEqual(expect.stringMatching(/^Could not post the error comment: .*404/));
+  });
+
   it('closes the issue once its pull request is merged', async () => {
     expect(await run('pull_request', fx('pull-request-closed-merged'))).toBe('closed-issue');
     expect(gh.issues[7]).toMatchObject({ state: 'closed', state_reason: 'completed' });
