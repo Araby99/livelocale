@@ -136,6 +136,47 @@ describe('useLocaleData', () => {
     expect(fetchMock.mock.calls.some(([u]) => String(u).endsWith('?locale=ar'))).toBe(true);
   });
 
+  it('never copies another language into the reference while switching to it', async () => {
+    let frRequests = 0;
+    let releaseFr: () => void = () => {};
+    const frGate = new Promise<void>((r) => (releaseFr = r));
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: string | URL) => {
+        const url = String(input);
+        if (url.endsWith('?locale=fr')) {
+          // The first request is the reference load; the second is the active dictionary.
+          if (++frRequests === 2) await frGate;
+          return jsonResponse({ hello: 'Bonjour' });
+        }
+        if (url.endsWith('?locale=ar')) return jsonResponse({ hello: 'مرحبا' });
+        if (url.endsWith('?action=keys')) return jsonResponse({ allKeys: [], codeKeys: [] });
+        return jsonResponse(['ar', 'fr']);
+      })
+    );
+    const seen: string[] = [];
+    const { result } = renderHook(() => {
+      const hook = useLocaleData({
+        connectionStatus: 'connected',
+        iframeRef: { current: null },
+        referenceLocale: 'fr',
+      });
+      if (hook.enLocaleData.hello !== undefined) seen.push(hook.enLocaleData.hello);
+      return hook;
+    });
+    await waitFor(() => expect(result.current.dataLocale).toBe('ar'));
+    await waitFor(() => expect(result.current.enLocaleData.hello).toBe('Bonjour'));
+
+    act(() => result.current.setLocale('fr'));
+    await waitFor(() => expect(frRequests).toBe(2));
+    expect(result.current.enLocaleData.hello).toBe('Bonjour');
+
+    releaseFr();
+    await waitFor(() => expect(result.current.dataLocale).toBe('fr'));
+    expect(result.current.enLocaleData.hello).toBe('Bonjour');
+    expect(seen).not.toContain('مرحبا');
+  });
+
   it('updates the local cache after a save without refetching', async () => {
     vi.stubGlobal(
       'fetch',

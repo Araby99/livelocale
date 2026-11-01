@@ -119,12 +119,13 @@ export const useLocaleData = ({
     }
   }, [connectionStatus, referenceLocale]);
 
-  // Keep the reference in sync if the active locale is the source locale and gets updated
+  // Keep the reference in sync if the active locale is the source locale and gets updated.
+  // Only once its own dictionary has loaded: until then localeData still holds the previous locale.
   useEffect(() => {
-    if (locale === referenceLocale) {
+    if (locale === referenceLocale && dataLocale === referenceLocale) {
       setEnLocaleData(localeData);
     }
-  }, [locale, localeData, referenceLocale]);
+  }, [locale, dataLocale, localeData, referenceLocale]);
 
   // Set the locale inside state and URL query parameter if required
   const handleLocaleChange = useCallback(

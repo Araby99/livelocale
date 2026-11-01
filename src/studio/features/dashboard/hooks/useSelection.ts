@@ -14,6 +14,8 @@ export interface UseSelectionParams {
   enLocaleData: Record<string, string>;
   sendToIframe: (type: string, payload?: any) => void;
   locale: string;
+  /** The project's source locale, which `enLocaleData` holds; defaults to `en`. */
+  referenceLocale?: string;
   refreshKeysMetadata: () => Promise<void>;
   updateLocaleDataCache: (key: string, value: string) => void;
   setLoading: (loading: boolean) => void;
@@ -36,6 +38,7 @@ export const useSelection = ({
   enLocaleData,
   sendToIframe,
   locale,
+  referenceLocale = 'en',
   refreshKeysMetadata,
   updateLocaleDataCache,
   setLoading,
@@ -177,7 +180,9 @@ export const useSelection = ({
     try {
       const previousValue = selected.currentValue;
       const reference =
-        locale === 'en' ? previousValue : (enLocaleData[selected.key] ?? selected.fallbackValue);
+        locale === referenceLocale
+          ? previousValue
+          : (enLocaleData[selected.key] ?? selected.fallbackValue);
       await saveTranslation(locale, selected.key, inputValue, {
         reference: reference || undefined,
         force: options.force,

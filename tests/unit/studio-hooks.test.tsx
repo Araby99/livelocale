@@ -210,6 +210,25 @@ describe('useSelection', () => {
     });
   });
 
+  it('takes the reference from the project source locale, not from en', async () => {
+    const params = { ...makeParams(), locale: 'en', referenceLocale: 'fr' };
+    params.localeData = { 'home.title': 'Welcome' };
+    params.enLocaleData = { 'home.title': 'Bienvenue {name}' };
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200 })
+    );
+    const { result } = renderHook(() => useSelection(params));
+
+    act(() => result.current.selectKeyDirectly('home.title'));
+    act(() => result.current.handleInputChange('Welcome {name}'));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    const [, init] = vi.mocked(fetch).mock.calls[0]!;
+    expect(JSON.parse(String((init as RequestInit).body)).reference).toBe('Bienvenue {name}');
+  });
+
   it('turns a 422 into a save warning and saves anyway when forced', async () => {
     const params = makeParams();
     params.enLocaleData = { 'home.title': 'Welcome {name}' };

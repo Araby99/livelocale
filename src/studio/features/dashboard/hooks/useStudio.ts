@@ -51,6 +51,7 @@ export const useStudio = () => {
   const [setupProblems, setSetupProblems] = useState<string[]>(runtimeProblems);
 
   const auth = useAuth();
+  const referenceLocale = getStaticTransport()?.manifest.sourceLocale ?? 'en';
 
   // Cross-hook callback refs so the iframe bridge can reach hooks that are
   // instantiated later in the composition order.
@@ -83,7 +84,7 @@ export const useStudio = () => {
   } = useLocaleData({
     connectionStatus,
     iframeRef,
-    referenceLocale: getStaticTransport()?.manifest.sourceLocale ?? 'en',
+    referenceLocale,
   });
 
   const history = useHistory();
@@ -122,6 +123,7 @@ export const useStudio = () => {
     enLocaleData,
     sendToIframe,
     locale,
+    referenceLocale,
     refreshKeysMetadata: fetchKeysMetadata,
     updateLocaleDataCache,
     setLoading: setIsLoading,
