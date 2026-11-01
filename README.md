@@ -387,9 +387,12 @@ command line) and needs `GITHUB_TOKEN`.
 - Only a maintainer (OWNER, MEMBER or COLLABORATOR, or write access) makes it write. Anyone else
   gets the reply "Waiting for a maintainer: comment `/livelocale apply`".
 - It writes one commit on a `livelocale/issue-<n>` branch (`livelocale/run-<id>` for a manual
-  run), opens or reuses the pull request, and comments the link on the issue. When the repository
-  does not let GitHub Actions open pull requests, the comment carries a one-click compare link
-  instead.
+  run), opens or reuses the pull request, and comments the link on the issue. While that pull
+  request is open, a later apply on the same issue adds one commit to it. Once it is merged or
+  closed, the next apply opens a new pull request from `livelocale/issue-<n>-<runId>` (with `-2`,
+  `-3`, … while that name is taken), and later applies add to that one while it is open; a
+  branch is never force-pushed. When the repository does not let GitHub Actions open pull
+  requests, the comment carries a one-click compare link instead.
 - `--locales` and `--dir` are relative to the repository root. `--branches` lists the branches a
   link may target (default: the repository's default branch); a link made from any other branch
   targets the default branch, and the comment says so.
