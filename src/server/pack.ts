@@ -22,6 +22,7 @@ import {
   basePathOf,
   flagSrcFor,
   injectFlagScript,
+  isHtmlDocument,
   normalizeBase,
   shareUrlPathFor,
 } from './share-html.js';
@@ -206,7 +207,7 @@ export interface PackOptions extends Omit<ShareDataOptions, 'basePath'> {
 export interface PackResult {
   shareDir: string;
   manifest: ShareManifest;
-  /** POSIX paths relative to the output folder, sorted. */
+  /** POSIX paths relative to the output folder, sorted; HTML files without page markup are left out. */
   htmlInjected: string[];
   shareUrlPath: string;
   warnings: string[];
@@ -341,10 +342,12 @@ export async function packOutput(options: PackOptions): Promise<PackResult> {
     injectHtml === 'auto'
       ? target.kind !== 'next' && !existsSync(path.join(outDir, '_next'))
       : injectHtml;
-  const htmlInjected = inject ? await findHtmlFiles(outDir, shareDir) : [];
-  for (const rel of htmlInjected) {
+  const htmlInjected: string[] = [];
+  for (const rel of inject ? await findHtmlFiles(outDir, shareDir) : []) {
     const file = path.join(outDir, ...rel.split('/'));
     const html = await fs.readFile(file, 'utf-8');
+    if (!isHtmlDocument(html)) continue;
+    htmlInjected.push(rel);
     const injected = injectFlagScript(html, flagSrcFor(base, rel));
     if (injected !== html) await fs.writeFile(file, injected, 'utf-8');
   }

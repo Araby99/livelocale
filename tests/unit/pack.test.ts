@@ -117,6 +117,16 @@ describe('packOutput', () => {
     expect(read('out/livelocale/flag.js')).toBe(FLAG_SCRIPT);
   });
 
+  it('leaves an HTML file without markup, such as a site verification file, untouched', async () => {
+    const verification = 'google-site-verification: google1234abcd.html';
+    removeShareProjects();
+    setup({ 'out/google1234abcd.html': verification });
+    const r = await pack();
+    expect(r.htmlInjected).toEqual(['docs/a.html', 'index.html']);
+    expect(read('out/google1234abcd.html')).toBe(verification);
+    expect(read('out/index.html')).toContain('<script src="/livelocale/flag.js"></script>');
+  });
+
   it('is idempotent and drops stale Studio files', async () => {
     await pack();
     fs.writeFileSync(file('out/livelocale/assets/old.js'), 'stale', 'utf-8');

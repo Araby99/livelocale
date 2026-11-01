@@ -6,6 +6,7 @@ import {
   flagSrcFor,
   shareUrlPathFor,
   injectFlagScript,
+  isHtmlDocument,
 } from '../../src/server/share-html.js';
 import { PackError } from '../../src/server/pack-error.js';
 
@@ -99,6 +100,17 @@ describe('flagSrcFor and shareUrlPathFor', () => {
     );
     expect(shareUrlPathFor({ kind: 'relative' })).toBe('livelocale/index.html');
   });
+});
+
+describe('isHtmlDocument', () => {
+  it.each([
+    ['<!DOCTYPE html><p>x</p>', true],
+    ['<html lang="ar"><body></body></html>', true],
+    ['<HEAD><title>x</title></HEAD>', true],
+    ['google-site-verification: google1234abcd.html', false],
+    ['<header>h</header><p>x</p>', false],
+    ['<htmlish>', false],
+  ])('%s => %s', (html, expected) => expect(isHtmlDocument(html)).toBe(expected));
 });
 
 describe('injectFlagScript', () => {

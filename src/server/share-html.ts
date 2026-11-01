@@ -66,6 +66,15 @@ const EXISTING_FLAG_TAG = /<script\b[^>]*\bsrc="[^"]*livelocale\/flag\.js"[^>]*>
 const HEAD_OPEN = /<head(?=[\s>])[^>]*>/i;
 const HTML_OPEN = /<html(?=[\s>])[^>]*>/i;
 const DOCTYPE = /<!doctype\b[^>]*>/i;
+const DOCUMENT_MARKUP = /<(?:!doctype\b|html(?=[\s>])|head(?=[\s>]))/i;
+
+/**
+ * True when the file holds a page: a doctype, `<html>` or `<head>`. Files without one, such as
+ * a search-engine verification file that holds plain text, never get the flag tag.
+ */
+export function isHtmlDocument(html: string): boolean {
+  return DOCUMENT_MARKUP.test(html);
+}
 
 function escapeAttribute(value: string): string {
   return value
