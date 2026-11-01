@@ -120,6 +120,41 @@ describe('StudioLayout', () => {
     expect(onOpenPanelChange).toHaveBeenCalledWith(null);
   });
 
+  it('keeps the drawer open when Escape belongs to an open dialog', () => {
+    const { onOpenPanelChange } = renderLayout({ isWide: false, openPanel: 'side' });
+    const dialog = document.createElement('div');
+    dialog.setAttribute('aria-modal', 'true');
+    document.body.appendChild(dialog);
+    try {
+      fireEvent.keyDown(dialog, { key: 'Escape' });
+      expect(onOpenPanelChange).not.toHaveBeenCalled();
+    } finally {
+      dialog.remove();
+    }
+  });
+
+  it('keeps the drawer open when Escape was already handled', () => {
+    const { onOpenPanelChange } = renderLayout({ isWide: false, openPanel: 'side' });
+    const handled = new KeyboardEvent('keydown', {
+      key: 'Escape',
+      bubbles: true,
+      cancelable: true,
+    });
+    handled.preventDefault();
+    document.dispatchEvent(handled);
+    expect(onOpenPanelChange).not.toHaveBeenCalled();
+  });
+
+  it('starts the compact drawers below the toggle row so the toggles stay clickable', () => {
+    renderLayout({ isWide: false, openPanel: 'keys' });
+    for (const id of ['studio-drawer-keys', 'studio-drawer-side']) {
+      const classes = screen.getByTestId(id).className.split(/\s+/);
+      expect(classes).toContain('top-12');
+      expect(classes).toContain('bottom-0');
+      expect(classes).not.toContain('inset-y-0');
+    }
+  });
+
   it('reports the open drawer through aria-expanded', () => {
     renderLayout({ isWide: false, openPanel: 'keys' });
     const keysToggle = screen.getByTestId('studio-toggle-keys');

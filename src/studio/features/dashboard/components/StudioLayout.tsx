@@ -19,7 +19,8 @@ interface StudioLayoutProps {
 
 const KEYS_DRAWER_ID = 'studio-drawer-keys';
 const SIDE_DRAWER_ID = 'studio-drawer-side';
-const DRAWER = 'absolute inset-y-0 z-30 w-[min(400px,45vw)] p-2';
+// Drawers start below the toggle row so the Keys and Editor toggles stay clickable.
+const DRAWER = 'absolute top-12 bottom-0 z-30 w-[min(400px,45vw)] p-2';
 
 const toggleClass = (open: boolean) =>
   `px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition duration-150 ${
@@ -48,7 +49,10 @@ export const StudioLayout = ({
   useEffect(() => {
     if (compactOpen === null) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onOpenPanelChange(null);
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      // An open dialog owns Escape; the drawer behind it stays open.
+      if (document.querySelector('[aria-modal="true"]') !== null) return;
+      onOpenPanelChange(null);
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);

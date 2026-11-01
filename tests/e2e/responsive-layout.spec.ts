@@ -39,6 +39,16 @@ test.describe('Responsive Studio layout', () => {
     await expect(page.locator('#studio-translation-input')).toBeVisible();
   });
 
+  test('keeps the Keys toggle clickable while the Keys drawer is open', async ({ page }) => {
+    await page.setViewportSize({ width: 1024, height: 768 });
+    await page.goto('http://localhost:3010');
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await page.getByTestId('studio-toggle-keys').click();
+    await expect(page.getByTestId('studio-drawer-keys')).toBeVisible();
+    await page.getByTestId('studio-toggle-keys').click();
+    await expect(page.getByTestId('studio-drawer-keys')).toBeHidden();
+  });
+
   test('shows three columns at 1440x900', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('http://localhost:3010');
