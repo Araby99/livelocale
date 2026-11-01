@@ -76,6 +76,14 @@ describe('base64url', () => {
   it.each(['abc=', 'a', 'ab+c', 'ab/c', 'AB', 'a b'])('rejects %j as CORRUPT', (t) =>
     expect(codeOf(() => fromBase64Url(t))).toBe('CORRUPT')
   );
+
+  // A 3-character tail carries 2 unused bits: 'AAA' is canonical, 'AAB' and 'AAC' set one of them.
+  it('decodes a canonical 3-character tail', () =>
+    expect(fromBase64Url('AAA')).toEqual(new Uint8Array([0, 0])));
+
+  it.each(['AAB', 'AAC', 'AAAAAAD'])('rejects %j, whose 3-character tail has trailing bits', (t) =>
+    expect(codeOf(() => fromBase64Url(t))).toBe('CORRUPT')
+  );
 });
 
 describe('findChangeToken', () => {
@@ -97,6 +105,20 @@ describe('findChangeToken', () => {
   it('prefers the fenced block and joins wrapped lines', () =>
     expect(
       findChangeToken(`lc1.decoy\n\n\`\`\`livelocale\n${T.slice(0, 12)}\n${T.slice(12)}\n\`\`\`\n`)
+    ).toBe(T));
+
+  // GitHub returns an issue body edited on the web with CRLF line endings.
+  it('finds the token in a fenced block with CRLF line endings', () =>
+    expect(findChangeToken(`lc1.decoy\r\n\r\n${fencedChangeBlock(T).replace(/\n/g, '\r\n')}`)).toBe(
+      T
+    ));
+
+  // The CRLF closing fence must end the block, or the decoy after it would join the token.
+  it('joins wrapped lines in a fenced block with CRLF line endings', () =>
+    expect(
+      findChangeToken(
+        `\`\`\`livelocale\r\n${T.slice(0, 12)}\r\n${T.slice(12)}\r\n\`\`\`\r\nlc1.decoy\r\n`
+      )
     ).toBe(T));
 
   it('builds the fenced block GitHub issues carry', () =>
@@ -283,6 +305,20 @@ describe('change-set schema', () => {
 
   it('rejects a link whose branch holds a lone surrogate', () =>
     expect(codeOf(() => parseChangeSet({ ...valid, branch: 'a\uD800b' }))).toBe('INVALID'));
+
+  // note and by pass their own rules, so only the top-level broken-text check stops them.
+  it.each([
+    ['note', { note: 'Checked\uD800' }],
+    ['by', { by: '\uDC00Mona' }],
+  ])('rejects a link whose %s holds a lone surrogate as broken text', (_, patch) => {
+    expect(codeOf(() => parseChangeSet({ ...valid, ...patch }))).toBe('INVALID');
+    expect(() => parseChangeSet({ ...valid, ...patch })).toThrow(
+      'This change link holds broken text.'
+    );
+  });
+
+  it('rejects a link whose src holds a lone surrogate', () =>
+    expect(codeOf(() => parseChangeSet({ ...valid, src: 'en\uD800' }))).toBe('INVALID'));
 });
 
 describe('encode/decode', () => {
