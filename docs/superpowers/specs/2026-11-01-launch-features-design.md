@@ -29,7 +29,7 @@ In priority order (the owner named `check --hardcoded` as the one feature they w
 
 ## 3. Non-goals
 
-- Branding, the logo, colours, the landing page and the live demo. They are a separate project, designed next (the light theme will adopt the brand colours once they exist; until then it uses neutral tokens).
+- The landing page and the brand assets themselves (a separate project: `docs/superpowers/specs/2026-11-01-brand-and-landing-design.md`). The Studio **uses** that brand (see §8).
 - More Studio languages than English and Arabic.
 - Detecting hardcoded text in non-JSX templates (Vue, Svelte, Angular, plain HTML files) and in server-only strings such as log messages.
 - A full WCAG audit or certification.
@@ -40,7 +40,7 @@ In priority order (the owner named `check --hardcoded` as the one feature they w
 - **A noisy checker.** If the first `check --hardcoded` run on a real project prints hundreds of false alarms (class names, ids, URLs, test files), developers turn it off and the launch pitch is a lie. Precision beats recall.
 - **Breaking the zero-runtime-dependency promise.** No new entry in `dependencies`.
 - **Changing what `check` does without the flag.** Existing CI pipelines must not start failing after an upgrade.
-- **Making the Studio harder for developers** (e.g. forcing Arabic or a light theme on people who did not choose it).
+- **Making the Studio harder for developers** (e.g. forcing Arabic or a light theme on people who did not choose it). Restyling with the brand is allowed (owner, 2026-11-01).
 
 ## 5. Feature: `check --hardcoded`
 
@@ -106,13 +106,14 @@ README section "Catch untranslated text before launch" with a CI example, the op
 
 ## 8. Feature: light theme
 
-- The Studio's components move from hardcoded dark palette classes (about 200 `slate-…`/`bg-[#…]` uses) to the existing semantic theme tokens in `src/studio/index.css`, which already define light (`:root`) and dark (`.dark`) values.
+- **Amended 2026-11-01 (owner: the previous Studio look was a placeholder, not branding).** The Studio is restyled with the LiveLocale brand from `docs/superpowers/specs/2026-11-01-brand-and-landing-design.md` §2: light = Paper/Ink/Coral, dark = Espresso/Cream/Coral (dark), type = Bricolage Grotesque (headings), Inter (UI), JetBrains Mono (code), Readex Pro and IBM Plex Sans Arabic for the Arabic Studio, and the logo in the header.
+- The Studio's components move from hardcoded palette classes (about 200 `slate-…`/`bg-[#…]` uses) to one set of semantic colour tokens defined from the brand palette for both themes. Today's colours are not preserved.
 - A toggle (system / light / dark) in the header, remembered per browser. Defaults (Claude's call after the builder check): the **dev/preview Studio** stays dark until the person chooses, so current users see no change; the **share Studio** follows the system setting (`prefers-color-scheme`).
-- Dark mode must look as it does today (no visual regression for current users); light mode uses neutral tokens until the brand colours exist.
+- Dark mode no longer has to look as it does today; both themes follow the brand and meet WCAG AA. The defaults above still apply (the dev Studio starts dark, now in the brand's dark theme).
 
 ## 9. Constraints
 
-- No runtime dependencies (optional peer `typescript` only; devDependencies allowed: `axe-core`/`@axe-core/playwright`).
+- No runtime dependencies (optional peer `typescript` only; devDependencies allowed: `axe-core`/`@axe-core/playwright`, and the brand fonts from Fontsource: Bricolage Grotesque, Inter, JetBrains Mono, Readex Pro, IBM Plex Sans Arabic).
 - Node ≥ 18; browser-safe core rules from the share-link plan still apply to `src/core`.
 - `check` without `--hardcoded` and the server-mode Studio flows behave as in 0.10.x; existing tests stay green.
 - Release as `0.11.0` (minor), with a `next` prerelease build and a smoke check of `check --hardcoded` on the demo repo Translation-Test before `latest`.
