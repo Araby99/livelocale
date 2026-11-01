@@ -20,6 +20,16 @@ const git = (root: string) =>
     'symbolic-ref --short refs/remotes/origin/HEAD': 'origin/main',
   });
 
+/** The message this Node's JSON parser gives for `text`. */
+function parserMessage(text: string): string {
+  try {
+    JSON.parse(text);
+  } catch (error) {
+    return (error as Error).message;
+  }
+  throw new Error(`${text} parses`);
+}
+
 afterEach(() => removeShareProjects());
 
 describe('collectShareData', () => {
@@ -156,7 +166,7 @@ describe('collectShareData', () => {
     const dir = makeShareProject();
     const locales = path.join(dir, 'locales');
     let localesPath: string | undefined;
-    let message: string | RegExp;
+    let message: string;
     if (input === 'missing dir') {
       localesPath = 'missing';
       message = `Locales directory not found: ${path.join(dir, 'missing')}. Pass --locales <path>.`;
@@ -165,8 +175,11 @@ describe('collectShareData', () => {
       fs.rmSync(path.join(locales, 'ar.json'));
       message = `No locale files in ${locales} (expected en.json or en/*.json).`;
     } else {
-      fs.writeFileSync(path.join(locales, 'ar.json'), input.endsWith('"{"') ? '{' : '[]');
-      message = /^locales\/ar\.json is not a JSON object: \S/;
+      const text = input.endsWith('"{"') ? '{' : '[]';
+      fs.writeFileSync(path.join(locales, 'ar.json'), text);
+      message = `locales/ar.json is not a JSON object: ${
+        text === '[]' ? 'the root is an array' : parserMessage(text)
+      }`;
     }
     const run = collectShareData({
       projectDir: dir,

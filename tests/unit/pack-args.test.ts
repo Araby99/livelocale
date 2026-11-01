@@ -53,6 +53,12 @@ describe('parseShareArgs', () => {
     expect((caught as PackError).message).toBe('--dir needs a value.');
   });
 
+  it('takes a value that starts with a single dash', () =>
+    expect(parseShareArgs(['dist', '--base', '-x'])).toMatchObject({
+      positional: ['dist'],
+      base: '-x',
+    }));
+
   it('reads --dir and --out', () =>
     expect(parseShareArgs(['--dir', 'app', '--out', 'dist'])).toMatchObject({
       positional: [],

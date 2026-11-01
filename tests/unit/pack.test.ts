@@ -117,6 +117,21 @@ describe('packOutput', () => {
     expect(read('out/livelocale/flag.js')).toBe(FLAG_SCRIPT);
   });
 
+  it('skips injection for a Next project without out/_next unless injectHtml is true', async () => {
+    const nextPkg = JSON.stringify({ dependencies: { next: '14.2.0' } });
+    removeShareProjects();
+    setup({ 'package.json': nextPkg });
+    const auto = await pack();
+    expect(auto.htmlInjected).toEqual([]);
+    expect(read('out/index.html')).toBe(APP_HTML);
+
+    removeShareProjects();
+    setup({ 'package.json': nextPkg, 'out/_next/static/chunk.js': '' });
+    const forced = await pack({ injectHtml: true });
+    expect(forced.htmlInjected).toEqual(['docs/a.html', 'index.html']);
+    expect(read('out/index.html')).toContain('<head><script src="/livelocale/flag.js"></script>');
+  });
+
   it('leaves an HTML file without markup, such as a site verification file, untouched', async () => {
     const verification = 'google-site-verification: google1234abcd.html';
     removeShareProjects();
