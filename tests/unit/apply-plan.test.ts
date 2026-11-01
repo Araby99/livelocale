@@ -100,6 +100,78 @@ describe('planApply', () => {
     expect(plan([e('ar', 'home.title.short', null, 'x')]).edits[0]!.code).toBe('KEY_NOT_A_STRING');
   });
 
+  // Forcing a write over a nested object would wipe every translation under it.
+  it('never lets an allowed force through a 409 KEY_NOT_A_STRING or a 400 value', () => {
+    expect(plan([e('ar', 'home', null, 'x', true)], true).edits[0]).toMatchObject({
+      status: 'invalid',
+      code: 'KEY_NOT_A_STRING',
+      flags: [],
+    });
+    expect(plan([e('ar', 'home.title.short', null, 'x', true)], true).edits[0]).toMatchObject({
+      status: 'invalid',
+      code: 'KEY_NOT_A_STRING',
+    });
+    expect(
+      plan([e('ar', 'home.title', 'أهلا', 'x'.repeat(10_001), true)], true).edits[0]
+    ).toMatchObject({ status: 'invalid', code: 'INVALID_VALUE_FORMAT' });
+  });
+
+  it('marks an edit for a locale whose target is explicitly null invalid', () => {
+    const t = new Map<string, LocaleTarget>([...targets, ['fr', null]]);
+    expect(
+      planApply({
+        edits: [e('fr', 'home.title', null, 'x')],
+        sourceLocale: 'en',
+        targets: t,
+        allowForce: false,
+      }).edits[0]
+    ).toMatchObject({ status: 'invalid', code: 'UNKNOWN_LOCALE' });
+  });
+
+  it('throws when the source locale target is explicitly null', () => {
+    const t = new Map<string, LocaleTarget>([...targets, ['en', null]]);
+    expect(() =>
+      planApply({ edits: [], sourceLocale: 'en', targets: t, allowForce: false })
+    ).toThrow('Source locale "en" has no locale file on the target.');
+  });
+
+  it('checks the namespace before the watermark', () =>
+    expect(planNs([e('de', 'billing.x', null, encodeKey('x', 'billing.x'))]).edits[0]!.code).toBe(
+      'UNKNOWN_NAMESPACE'
+    ));
+
+  it('checks the watermark before already done', () => {
+    const marked = encodeKey('x', 'k');
+    const t = new Map<string, LocaleTarget>([
+      ['en', { layout: 'flat', dict: { k: 'x' } }],
+      ['ar', { layout: 'flat', dict: { k: marked } }],
+    ]);
+    expect(
+      planApply({
+        edits: [e('ar', 'k', 'x', marked)],
+        sourceLocale: 'en',
+        targets: t,
+        allowForce: false,
+      }).edits[0]
+    ).toMatchObject({ status: 'invalid', code: 'CONTAINS_WATERMARK' });
+  });
+
+  // A value already on the target is not written, so the write rules do not judge it.
+  it('checks already done before validation', () => {
+    const t = new Map<string, LocaleTarget>([
+      ['en', { layout: 'flat', dict: { k: 'Hello {name}' } }],
+      ['ar', { layout: 'flat', dict: { k: 'مرحبا' } }],
+    ]);
+    expect(
+      planApply({
+        edits: [e('ar', 'k', 'قديم', 'مرحبا')],
+        sourceLocale: 'en',
+        targets: t,
+        allowForce: false,
+      }).edits[0]
+    ).toMatchObject({ status: 'already', current: 'مرحبا' });
+  });
+
   it('marks an edit for a locale the target has no file for invalid', () =>
     expect(plan([e('fr', 'home.title', null, 'x')]).edits[0]!.code).toBe('UNKNOWN_LOCALE'));
 

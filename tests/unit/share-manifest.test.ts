@@ -45,6 +45,10 @@ it('accepts null branch, base, defaultBranch and basePath', () =>
     isShareManifest({ ...valid, branch: null, base: null, defaultBranch: null, basePath: null })
   ).toBe(true));
 
+// A SHA-256 repository has 64-character commit ids.
+it('accepts a 64-character lowercase hex base', () =>
+  expect(isShareManifest({ ...valid, base: 'f'.repeat(64) })).toBe(true));
+
 it('ignores unknown fields (forward compatible)', () =>
   expect(isShareManifest({ ...valid, extra: 1 })).toBe(true));
 
@@ -59,6 +63,9 @@ it.each([
   ['non-string codeKeys', { ...valid, codeKeys: [1] }],
   ['a short base', { ...valid, base: 'abc123' }],
   ['an uppercase base', { ...valid, base: SHA.toUpperCase() }],
+  ['a 41-character base', { ...valid, base: 'a'.repeat(41) }],
+  ['a 63-character base', { ...valid, base: 'a'.repeat(63) }],
+  ['a 65-character base', { ...valid, base: 'a'.repeat(65) }],
   ['null', null],
   ['an option-like branch', { ...valid, branch: '-x' }],
   ['a default branch with a space', { ...valid, defaultBranch: 'a b' }],
