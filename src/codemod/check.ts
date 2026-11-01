@@ -3,6 +3,13 @@ import * as path from 'path';
 import { LOCALE_RE } from '../core/validate.js';
 import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
 import { KeyScanner } from '../server/key-scanner.js';
+import { readAllowList } from './hardcoded/allow-list.js';
+import {
+  hasLetters,
+  isMostlyLatin,
+  isNonLatinLocale,
+  primaryLanguage,
+} from './hardcoded/locale-script.js';
 
 export type IssueKind =
   | 'invalid-json'
@@ -11,7 +18,10 @@ export type IssueKind =
   | 'placeholder-mismatch'
   | 'syntax'
   | 'empty'
-  | 'unused';
+  | 'unused'
+  | 'hardcoded'
+  | 'untranslated'
+  | 'wrong-script';
 
 export type IssueLevel = 'fail' | 'warn';
 
@@ -22,6 +32,11 @@ export interface CheckIssue {
   key?: string;
   /** Locale file (or folder) relative to the project, for invalid JSON. */
   file?: string;
+  /** 1-based position in `file`, for hardcoded text. */
+  line?: number;
+  column?: number;
+  /** Source-code text, already shortened, for hardcoded text. */
+  text?: string;
   message: string;
 }
 
@@ -36,6 +51,10 @@ export interface CheckOptions {
   unused?: boolean;
   /** Treat warnings (unused and empty values) as failures. */
   strict?: boolean;
+  /** Also report text that never went through translation. Defaults to false. */
+  hardcoded?: boolean;
+  /** Extra allowed words and phrases, on top of `livelocale.allow`. */
+  allow?: string[];
 }
 
 export interface CheckReport {
@@ -44,6 +63,8 @@ export interface CheckReport {
   locales: string[];
   codeKeyCount: number;
   issues: CheckIssue[];
+  /** Problems that kept a check from running; set only when non-empty. */
+  setupProblems?: string[];
 }
 
 /** i18next plural suffixes; `t('items')` resolves `items_one`, `items_other`, … at run time. */
@@ -55,7 +76,10 @@ const KIND_ORDER: IssueKind[] = [
   'missing-from-code',
   'missing-in-locale',
   'placeholder-mismatch',
+  'hardcoded',
   'empty',
+  'untranslated',
+  'wrong-script',
   'unused',
 ];
 
@@ -67,6 +91,9 @@ const KIND_TITLE: Record<IssueKind, string> = {
   'placeholder-mismatch': 'Placeholders that differ from the source locale',
   empty: 'Empty translations',
   unused: 'Keys never referenced in code',
+  hardcoded: 'Hardcoded text not passed through translation',
+  untranslated: 'Translations identical to the source locale',
+  'wrong-script': 'Translations mostly in Latin letters for a non-Latin locale',
 };
 
 interface LocaleData {
@@ -74,6 +101,8 @@ interface LocaleData {
   leaves: Map<string, unknown>;
   /** Every intermediate object path, so `t.home` counts as a reference to `home.*`. */
   branches: Set<string>;
+  /** Leaf key → locale file it came from, relative to the project and `/`-separated. */
+  files: Map<string, string>;
 }
 
 function listLocales(localesDir: string): string[] {
@@ -88,15 +117,16 @@ function listLocales(localesDir: string): string[] {
   return Array.from(locales).sort();
 }
 
-function flatten(obj: unknown, prefix: string, data: LocaleData): void {
+function flatten(obj: unknown, prefix: string, file: string, data: LocaleData): void {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
     const full = prefix ? `${prefix}.${key}` : key;
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       data.branches.add(full);
-      flatten(value, full, data);
+      flatten(value, full, file, data);
     } else {
       data.leaves.set(full, value);
+      data.files.set(full, file);
     }
   }
 }
@@ -111,7 +141,7 @@ function readLocale(
   projectDir: string,
   issues: CheckIssue[]
 ): LocaleData {
-  const data: LocaleData = { leaves: new Map(), branches: new Set() };
+  const data: LocaleData = { leaves: new Map(), branches: new Set(), files: new Map() };
   const rel = (p: string) => path.relative(projectDir, p).split(path.sep).join('/');
   const parse = (file: string): unknown => {
     try {
@@ -133,13 +163,15 @@ function readLocale(
     for (const file of fs.readdirSync(dir).sort()) {
       if (!file.endsWith('.json')) continue;
       const ns = path.basename(file, '.json');
-      const parsed = parse(path.join(dir, file));
+      const full = path.join(dir, file);
+      const parsed = parse(full);
       if (parsed === undefined) continue;
       data.branches.add(ns);
-      flatten(parsed, ns, data);
+      flatten(parsed, ns, rel(full), data);
     }
   } else {
-    flatten(parse(path.join(localesDir, `${locale}.json`)), '', data);
+    const full = path.join(localesDir, `${locale}.json`);
+    flatten(parse(full), '', rel(full), data);
   }
   return data;
 }
@@ -259,6 +291,40 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
       }
     }
 
+    if (options.hardcoded) {
+      const allow = readAllowList(projectDir, options.allow);
+      const sourceLanguage = primaryLanguage(sourceLocale);
+      for (const [locale, localeData] of data) {
+        if (locale === sourceLocale) continue;
+        const sameLanguage = primaryLanguage(locale) === sourceLanguage;
+        const nonLatin = isNonLatinLocale(locale);
+        for (const [key, value] of localeData.leaves) {
+          if (typeof value !== 'string' || value.trim() === '' || allow.keys.has(key)) continue;
+          if (!hasLetters(value, allow)) continue;
+          const file = localeData.files.get(key);
+          if (!sameLanguage && source.leaves.get(key) === value) {
+            issues.push({
+              kind: 'untranslated',
+              level: warn,
+              locale,
+              key,
+              file,
+              message: `Same text as ${sourceLocale}.`,
+            });
+          } else if (nonLatin && isMostlyLatin(value, allow)) {
+            issues.push({
+              kind: 'wrong-script',
+              level: warn,
+              locale,
+              key,
+              file,
+              message: `Mostly Latin letters for locale ${locale}.`,
+            });
+          }
+        }
+      }
+    }
+
     if (options.unused ?? true) {
       for (const key of source.leaves.keys()) {
         if (!isReferenced(key, codeKeys)) {
@@ -278,7 +344,9 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
     (a, b) =>
       KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) ||
       (a.locale ?? '').localeCompare(b.locale ?? '') ||
-      (a.key ?? a.file ?? '').localeCompare(b.key ?? b.file ?? '')
+      (a.key ?? a.file ?? '').localeCompare(b.key ?? b.file ?? '') ||
+      (a.line ?? 0) - (b.line ?? 0) ||
+      (a.column ?? 0) - (b.column ?? 0)
   );
 
   return {
