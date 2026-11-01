@@ -372,6 +372,42 @@ describe('ReviewPanel', () => {
       expect(screen.queryByRole('button', { name: 'Change' })).toBeNull();
     });
 
+    it('resets the copied block when another change link opens', async () => {
+      Object.defineProperty(navigator, 'clipboard', {
+        value: { writeText: vi.fn(async () => {}) },
+        configurable: true,
+      });
+      try {
+        // A token this long makes the issue URL too long, so the block goes through the clipboard.
+        const longReview = (token: string): ReviewState => ({
+          ...githubReview(),
+          token: `lc1.${token.repeat(9000)}`,
+        });
+        const panel = (review: ReviewState) => (
+          <ReviewPanel
+            review={review}
+            error={null}
+            isLoading={false}
+            focusKey={null}
+            onSelectLocale={() => {}}
+            onClose={() => {}}
+            studioHref={STUDIO_HREF}
+            repo="acme/web"
+            repoFromManifest
+            onRepoChange={() => {}}
+          />
+        );
+        const { rerender } = render(panel(longReview('a')));
+        fireEvent.click(screen.getByRole('button', { name: 'Copy change block' }));
+        expect(await screen.findByRole('link', { name: 'Open GitHub and paste' })).toBeTruthy();
+
+        rerender(panel(longReview('b')));
+        expect(screen.queryByRole('link', { name: 'Open GitHub and paste' })).toBeNull();
+      } finally {
+        delete (navigator as { clipboard?: unknown }).clipboard;
+      }
+    });
+
     it('offers Run workflow when issues are off', () => {
       renderPanel(githubReview(), { repo: 'acme/web' });
       expect(document.body.textContent).toContain(

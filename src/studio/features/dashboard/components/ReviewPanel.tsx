@@ -220,7 +220,9 @@ export const ReviewPanel = ({
                 ) : (
                   <>
                     <div className="flex flex-wrap items-center gap-2">
+                      {/* Keyed on the link, so a copied block never carries over to the next review. */}
                       <GitHubIssueAction
+                        key={review.token}
                         repo={repo}
                         token={review.token}
                         count={review.set.edits.length}
