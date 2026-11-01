@@ -47,6 +47,10 @@ export interface StaticTransportOptions {
 export interface StaticTransport extends StudioTransport {
   /** The current manifest; replaced when `refreshManifest` finds a rebuild. */
   readonly manifest: ShareManifest;
+  /**
+   * The draft scope, fixed for the session: a rebuild whose manifest adds or drops `repo`
+   * must not hide the drafts saved under the scope the Studio started with.
+   */
   readonly scope: string;
   readonly persistent: boolean;
   readonly events: EventTarget;
@@ -75,6 +79,16 @@ export interface StaticTransport extends StudioTransport {
    */
   refreshManifest(): Promise<ReconcileResult | null>;
 }
+
+/** True when a stored draft is still the one read earlier: same text, status and flags. */
+const isSameDraft = (a: Draft, b: Draft): boolean =>
+  a.to === b.to &&
+  a.from === b.from &&
+  a.force === b.force &&
+  a.status === b.status &&
+  a.conflict === b.conflict &&
+  a.updatedAt === b.updatedAt &&
+  a.sentAt === b.sentAt;
 
 /** True when one dotted key contains the other as a group (`promo` and `promo.banner`). */
 const keysOverlap = (a: string, b: string): boolean =>
@@ -141,8 +155,9 @@ export async function createStaticTransport(
 
   /**
    * Compares every draft in this scope with the built value of its key: drafts the
-   * build shows are deleted, drafts changed under them are flagged. Drafts whose
-   * locale file fails to load are left untouched.
+   * build shows are deleted, drafts changed under them are flagged, and a flagged
+   * draft whose build shows its `from` again is cleared. Drafts whose locale file
+   * fails to load are left untouched, and so is a draft edited while this ran.
    */
   async function reconcile(): Promise<ReconcileResult> {
     const drafts = await store.list(scope);
@@ -163,11 +178,18 @@ export async function createStaticTransport(
         const found = lookupKey(dictionary, d.key);
         verdict = reconcileDraft(d, found.state === 'string' ? found.value : undefined);
       }
+      if (verdict === 'pending' && !d.conflict) continue;
+      // The locale files loaded asynchronously: act only on a draft nobody changed meanwhile.
+      const current = await store.get(scope, d.locale, d.key);
+      if (!current || !isSameDraft(current, d)) continue;
       if (verdict === 'live') {
         await store.delete(scope, d.locale, d.key);
         result.live.push(d);
         changed = true;
-      } else if (verdict === 'conflict') {
+      } else if (verdict === 'pending') {
+        await store.put({ ...d, conflict: false });
+        changed = true;
+      } else {
         const flagged = d.conflict ? d : { ...d, conflict: true };
         if (!d.conflict) {
           await store.put(flagged);

@@ -489,6 +489,66 @@ describe('static transport reconciliation', () => {
     expect(fetch.mock.calls.filter(([url]) => url === `${LOCALES_URL}ar.json`)).toHaveLength(2);
   });
 
+  /** A store whose next `list` returns its snapshot only after `edit` ran: an edit saved meanwhile. */
+  const racing = (inner: DraftStore) => {
+    let edit: (() => Promise<void>) | null = null;
+    const store: DraftStore = {
+      persistent: inner.persistent,
+      get: (scope, locale, key) => inner.get(scope, locale, key),
+      put: (d) => inner.put(d),
+      delete: (scope, locale, key) => inner.delete(scope, locale, key),
+      async list(scope) {
+        const snapshot = await inner.list(scope);
+        const pending = edit;
+        edit = null;
+        if (pending) await pending();
+        return snapshot;
+      },
+    };
+    return { store, duringNextList: (fn: () => Promise<void>) => (edit = fn) };
+  };
+
+  const rebuild = async (f: Fixture, arTitle: string, at: { now: number }) => {
+    f.served[MANIFEST_URL] = JSON.stringify({ ...MANIFEST, base: SHA_B });
+    f.served[`${LOCALES_URL}ar.json`] = JSON.stringify({
+      home: { title: arTitle, greet: 'أهلا {name}' },
+    });
+    at.now = 1000 + 60_000;
+    return f.t.refreshManifest();
+  };
+
+  it('keeps an edit saved while a rebuild is reconciled instead of removing it', async () => {
+    const at = { now: 1000 };
+    const r = racing(await seeded(draft('path:/')));
+    const f = await make({ store: r.store, now: () => at.now });
+    const fresh = draft('path:/', { to: 'جديد', updatedAt: 2000 });
+    r.duringNextList(() => r.store.put(fresh));
+    // The build now shows the old draft's text: without the re-read, the fresh edit is deleted.
+    expect(await rebuild(f, 'أهلاً', at)).toEqual({ live: [], conflicts: [] });
+    expect(await f.t.listDrafts()).toEqual([fresh]);
+  });
+
+  it('keeps an edit saved while a rebuild is reconciled instead of overwriting it', async () => {
+    const at = { now: 1000 };
+    const r = racing(await seeded(draft('path:/')));
+    const f = await make({ store: r.store, now: () => at.now });
+    const fresh = draft('path:/', { from: 'تغير', to: 'جديد', updatedAt: 2000 });
+    r.duringNextList(() => r.store.put(fresh));
+    // The old draft is now a conflict: without the re-read, it overwrites the fresh edit.
+    expect(await rebuild(f, 'تغير', at)).toEqual({ live: [], conflicts: [] });
+    expect(await f.t.listDrafts()).toEqual([fresh]);
+  });
+
+  it('clears the conflict flag once the build shows the draft text it started from again', async () => {
+    const at = { now: 1000 };
+    const store = await seeded(draft('path:/', { conflict: true }));
+    const f = await make({ store, now: () => at.now });
+    expect(f.t.initialReconcile).toEqual({ live: [], conflicts: [] });
+    expect(await f.t.listDrafts()).toMatchObject([{ key: 'home.title', conflict: false }]);
+    expect(f.dispatched).toEqual([DRAFTS_CHANGED_EVENT]);
+    expect(await rebuild(f, 'مرحبا', at)).toEqual({ live: [], conflicts: [] });
+  });
+
   it('keeps the old manifest when the new one is invalid', async () => {
     let now = 1000;
     const { t, served } = await make({ now: () => now });
