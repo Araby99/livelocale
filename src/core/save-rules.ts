@@ -210,6 +210,22 @@ const tagNames = (text: string): string[] =>
 
 const allMatches = (pattern: RegExp, text: string): string[] => text.match(pattern) ?? [];
 
+/** Scheme (or `www.`) and host, then the rest of the address. */
+const URL_PARTS_PATTERN = /^((?:https?:\/\/|www\.)[^/?#]*)(.*)$/i;
+
+/**
+ * One address as compared: without trailing sentence punctuation, with the
+ * scheme and host (which are case-insensitive) lowercased. The path keeps its
+ * case, because servers may treat `/A` and `/a` as different pages.
+ */
+const normalizeUrl = (url: string): string => {
+  const trimmed = url.replace(/[.,;:!?]+$/, '');
+  const parts = URL_PARTS_PATTERN.exec(trimmed);
+  return parts ? parts[1]!.toLowerCase() + parts[2]! : trimmed;
+};
+
+const urls = (text: string): string[] => allMatches(URL_PATTERN, text).map(normalizeUrl);
+
 /** True when `found` holds an item that `known` lacks. */
 const hasNew = (known: string[], found: string[]): boolean => {
   const set = new Set(known);
@@ -234,7 +250,7 @@ export function detectRiskFlags(reference: string | undefined, value: string): C
     flags.push('javascript-url');
   }
 
-  if (hasNew(allMatches(URL_PATTERN, ref), allMatches(URL_PATTERN, value))) flags.push('new-url');
+  if (hasNew(urls(ref), urls(value))) flags.push('new-url');
 
   if (hasNew(allMatches(BIDI_CONTROL_PATTERN, ref), allMatches(BIDI_CONTROL_PATTERN, value))) {
     flags.push('bidi-control');

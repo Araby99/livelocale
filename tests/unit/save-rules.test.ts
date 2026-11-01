@@ -209,6 +209,22 @@ describe('detectRiskFlags', () => {
     expect(detectRiskFlags('<b>Hi</b>', '<b>مرحبا</b>')).toEqual([]);
   });
 
+  it('keeps a URL the reference has when only trailing punctuation or scheme and host case differ', () => {
+    expect(detectRiskFlags('Visit https://acme.com today', 'زر الموقع https://acme.com.')).toEqual(
+      []
+    );
+    expect(
+      detectRiskFlags('See https://acme.com/help, now', 'انظر https://acme.com/help!?')
+    ).toEqual([]);
+    expect(detectRiskFlags('Visit https://acme.com', 'VISIT HTTPS://ACME.COM')).toEqual([]);
+    expect(detectRiskFlags('Visit www.acme.com/a', 'Visit WWW.Acme.com/a;')).toEqual([]);
+  });
+
+  it('still flags a URL whose path differs only by case', () =>
+    expect(detectRiskFlags('Visit https://acme.com/a', 'Visit https://acme.com/A')).toEqual([
+      'new-url',
+    ]));
+
   it('flags new markup and new URLs', () => {
     expect(detectRiskFlags('Hi', 'Hi <img src=x>')).toEqual(['markup']);
     expect(detectRiskFlags('Read', 'اقرأ https://evil.example')).toEqual(['new-url']);
