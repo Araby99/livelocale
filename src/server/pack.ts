@@ -432,6 +432,64 @@ export function parseShareArgs(argv: string[]): ShareCliArgs {
   return args;
 }
 
+export const PACK_USAGE = 'Usage: livelocale pack <outDir> [options]';
+export const BUILD_USAGE = 'Usage: livelocale build [--preview] -- <your build command>';
+
+function usageError(problem: string, usage: string): PackError {
+  return new PackError(
+    'USAGE',
+    `${problem}
+${usage}`
+  );
+}
+
+/** Throws a USAGE PackError naming the first argument `livelocale pack` cannot take. */
+export function checkPackArgs(args: ShareCliArgs): void {
+  if (args.positional.length === 0) {
+    throw usageError('Missing <outDir>: pass the built site folder, for example dist.', PACK_USAGE);
+  }
+  if (args.positional.length > 1) {
+    throw usageError(
+      `Unexpected argument "${args.positional[1]}": pack takes one <outDir>.`,
+      PACK_USAGE
+    );
+  }
+  if (args.out !== undefined) {
+    throw usageError(
+      '--out is not a pack option: pass the built site folder as <outDir>.',
+      PACK_USAGE
+    );
+  }
+  if (args.preview) {
+    throw usageError(
+      '--preview is not a pack option: use livelocale build --preview -- <your build command>.',
+      PACK_USAGE
+    );
+  }
+  if (args.command.length > 0) {
+    throw usageError(
+      'pack does not run a build command: use livelocale build -- <your build command>.',
+      PACK_USAGE
+    );
+  }
+}
+
+/** Throws a USAGE PackError naming the first argument `livelocale build` cannot take. */
+export function checkBuildArgs(args: ShareCliArgs): void {
+  if (args.positional.length > 0) {
+    throw usageError(
+      `Unexpected argument "${args.positional[0]}": put the build command after --.`,
+      BUILD_USAGE
+    );
+  }
+  if (!args.inject) {
+    throw usageError(
+      '--no-inject is not a build option: livelocale build links flag.js itself (never on Next.js).',
+      BUILD_USAGE
+    );
+  }
+}
+
 /** Runs one command and resolves with its exit code. */
 export type RunCommand = (
   command: string,
@@ -507,7 +565,6 @@ export interface BuildResult {
   warnings: string[];
 }
 
-export const BUILD_USAGE = 'Usage: livelocale build [--preview] -- <your build command>';
 const NEXT_PREVIEW_WARNING =
   'Next.js pages have no watermarks without --preview; the Studio will open but nothing is editable.';
 const NEXT_GITIGNORE_WARNING =
@@ -561,6 +618,12 @@ export async function runBuildCommand(options: BuildCommandOptions): Promise<Bui
   const runBuild = () => run(command[0]!, command.slice(1), { cwd: projectDir, env: childEnv });
 
   if (target.kind === 'next') {
+    if (outDir !== undefined) {
+      throw new PackError(
+        'USAGE',
+        '--out is not used for Next.js; the share folder goes to public/'
+      );
+    }
     const blocking = target.staticExport ? findExportBlockingRoute(projectDir) : null;
     if (blocking !== null) {
       throw new PackError(

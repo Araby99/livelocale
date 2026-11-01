@@ -221,6 +221,28 @@ describe('runBuildCommand', () => {
     expect(exists('public/livelocale')).toBe(false);
   });
 
+  it('refuses --out for a Next project before writing or building', async () => {
+    removeShareProjects();
+    setup({ 'package.json': NEXT_PKG });
+    const run = vi.fn(async () => 0);
+    await expect(
+      runBuildCommand({
+        projectDir,
+        command: ['next', 'build'],
+        outDir: 'dist',
+        run,
+        env: {},
+        git: fakeGit({}),
+        studioDir,
+      })
+    ).rejects.toMatchObject({
+      code: 'USAGE',
+      message: '--out is not used for Next.js; the share folder goes to public/',
+    });
+    expect(run).not.toHaveBeenCalled();
+    expect(exists('public/livelocale')).toBe(false);
+  });
+
   it('warns about --preview and .gitignore for Next', async () => {
     removeShareProjects();
     setup({ 'package.json': NEXT_PKG });

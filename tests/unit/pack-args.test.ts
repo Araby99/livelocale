@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { parseShareArgs } from '../../src/server/pack.js';
+import {
+  BUILD_USAGE,
+  PACK_USAGE,
+  checkBuildArgs,
+  checkPackArgs,
+  parseShareArgs,
+} from '../../src/server/pack.js';
 import { PackError } from '../../src/server/pack-error.js';
 
 describe('parseShareArgs', () => {
@@ -65,4 +71,60 @@ describe('parseShareArgs', () => {
       dir: 'app',
       out: 'dist',
     }));
+});
+
+/** The message of the USAGE PackError that `fn` throws. */
+function usageError(fn: () => void): string {
+  try {
+    fn();
+  } catch (error) {
+    expect(error).toBeInstanceOf(PackError);
+    expect((error as PackError).code).toBe('USAGE');
+    return (error as PackError).message;
+  }
+  throw new Error('no error thrown');
+}
+
+describe('checkPackArgs', () => {
+  it.each([
+    [[], 'Missing <outDir>: pass the built site folder, for example dist.'],
+    [['dist', 'extra'], 'Unexpected argument "extra": pack takes one <outDir>.'],
+    [['dist', '--out', 'x'], '--out is not a pack option: pass the built site folder as <outDir>.'],
+    [
+      ['dist', '--preview'],
+      '--preview is not a pack option: use livelocale build --preview -- <your build command>.',
+    ],
+    [
+      ['dist', '--', 'vite', 'build'],
+      'pack does not run a build command: use livelocale build -- <your build command>.',
+    ],
+  ])('names the wrong argument in %j', (argv, problem) =>
+    expect(usageError(() => checkPackArgs(parseShareArgs(argv)))).toBe(
+      `${problem}
+${PACK_USAGE}`
+    )
+  );
+
+  it('accepts one <outDir>', () =>
+    expect(() => checkPackArgs(parseShareArgs(['dist', '--no-inject']))).not.toThrow());
+});
+
+describe('checkBuildArgs', () => {
+  it.each([
+    [['foo', '--', 'vite', 'build'], 'Unexpected argument "foo": put the build command after --.'],
+    [
+      ['--no-inject', '--', 'vite', 'build'],
+      '--no-inject is not a build option: livelocale build links flag.js itself (never on Next.js).',
+    ],
+  ])('names the wrong argument in %j', (argv, problem) =>
+    expect(usageError(() => checkBuildArgs(parseShareArgs(argv)))).toBe(
+      `${problem}
+${BUILD_USAGE}`
+    )
+  );
+
+  it('accepts options and a build command', () =>
+    expect(() =>
+      checkBuildArgs(parseShareArgs(['--preview', '--out', 'dist', '--', 'vite', 'build']))
+    ).not.toThrow());
 });

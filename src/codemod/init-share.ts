@@ -169,6 +169,53 @@ export interface InitShareOptions {
   git?: GitRunner;
 }
 
+export interface InitShareArgs {
+  dir: string;
+  localesPath?: string;
+  sourceLocale?: string;
+  branches?: string[];
+  overwrite: boolean;
+}
+
+/**
+ * Parses `init --share` arguments (`argv` excludes the command name). Throws when `--dir`,
+ * `--locales`, `--source` or `--branches` has no value or is followed by another `--` option.
+ */
+export function parseInitShareArgs(argv: string[]): InitShareArgs {
+  const args: InitShareArgs = {
+    dir: '.',
+    localesPath: undefined,
+    sourceLocale: undefined,
+    branches: undefined,
+    overwrite: false,
+  };
+  const valueAt = (i: number): string => {
+    const value = argv[i + 1];
+    if (value === undefined || value.startsWith('--')) {
+      throw new Error(`${argv[i]} needs a value.`);
+    }
+    return value;
+  };
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === '--dir') {
+      args.dir = valueAt(i++);
+    } else if (arg === '--locales') {
+      args.localesPath = valueAt(i++);
+    } else if (arg === '--source') {
+      args.sourceLocale = valueAt(i++);
+    } else if (arg === '--branches') {
+      args.branches = valueAt(i++)
+        .split(',')
+        .map((b) => b.trim())
+        .filter(Boolean);
+    } else if (arg === '--overwrite') {
+      args.overwrite = true;
+    }
+  }
+  return args;
+}
+
 function toPosix(p: string): string {
   return p.split(path.sep).join('/');
 }

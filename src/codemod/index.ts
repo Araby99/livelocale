@@ -8,7 +8,8 @@ import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures, normalizeAppUrl } from './doctor.js';
 import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
 import {
-  BUILD_USAGE,
+  checkBuildArgs,
+  checkPackArgs,
   packOutput,
   parseShareArgs,
   runBuildCommand,
@@ -16,7 +17,7 @@ import {
 } from '../server/pack.js';
 import { PackError } from '../server/pack-error.js';
 import { runApplyCommand } from './apply/cli.js';
-import { planInitShare, writePlannedFiles } from './init-share.js';
+import { parseInitShareArgs, planInitShare, writePlannedFiles } from './init-share.js';
 import { readOwnVersion } from '../server/module-dir.js';
 
 const DEFAULT_STUDIO_PORT = 3010;
@@ -538,8 +539,6 @@ async function runCheckCommand(args: string[]) {
   );
 }
 
-const PACK_USAGE = 'Usage: livelocale pack <outDir> [options]';
-
 /** Prints each pack warning, then where the share folder went and the link path to open. */
 function printPackSummary(result: PackResult, projectDir: string, warnings: string[]) {
   for (const warning of warnings) console.log(`⚠️  ${warning}`);
@@ -554,14 +553,7 @@ function printPackSummary(result: PackResult, projectDir: string, warnings: stri
 async function runPackCommand(args: string[]) {
   try {
     const options = parseShareArgs(args.slice(1));
-    if (
-      options.positional.length !== 1 ||
-      options.out !== undefined ||
-      options.preview ||
-      options.command.length > 0
-    ) {
-      throw new PackError('USAGE', PACK_USAGE);
-    }
+    checkPackArgs(options);
     const projectDir = path.resolve(options.dir);
     const result = await packOutput({
       projectDir,
@@ -583,9 +575,7 @@ async function runPackCommand(args: string[]) {
 async function runBuildCli(args: string[]) {
   try {
     const options = parseShareArgs(args.slice(1));
-    if (options.positional.length > 0 || !options.inject) {
-      throw new PackError('USAGE', BUILD_USAGE);
-    }
+    checkBuildArgs(options);
     const projectDir = path.resolve(options.dir);
     const result = await runBuildCommand({
       projectDir,
@@ -611,28 +601,15 @@ async function runBuildCli(args: string[]) {
 }
 
 async function runInitShareCommand(args: string[]) {
-  let dir = '.';
-  let localesPath: string | undefined;
-  let sourceLocale: string | undefined;
-  let branches: string[] | undefined;
-  let overwrite = false;
-  for (let i = 1; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--dir') {
-      dir = args[++i] || '.';
-    } else if (arg === '--locales') {
-      localesPath = args[++i];
-    } else if (arg === '--source') {
-      sourceLocale = args[++i];
-    } else if (arg === '--branches') {
-      branches = (args[++i] ?? '')
-        .split(',')
-        .map((b) => b.trim())
-        .filter(Boolean);
-    } else if (arg === '--overwrite') {
-      overwrite = true;
-    }
+  let parsed;
+  try {
+    parsed = parseInitShareArgs(args.slice(1));
+  } catch (err: any) {
+    console.error(`❌ ${err.message}`);
+    process.exitCode = 1;
+    return;
   }
+  const { dir, localesPath, sourceLocale, branches, overwrite } = parsed;
 
   const projectDir = path.resolve(dir);
   if (!fs.existsSync(projectDir)) {
