@@ -1,15 +1,16 @@
-// Fails when a raw invisible character sits in src/ or tests/: zero-width space/non-joiner/joiner
-// (U+200B-200D), bidi embedding and override controls (U+202A-202E), bidi isolates (U+2066-2069)
-// and the byte-order mark (U+FEFF). Reviewers cannot see them (the Trojan Source pattern), and a
-// tool that strips them silently changes a regex or a test string. Write them as \u escapes.
+// Fails when a raw invisible character sits in src/, tests/ or scripts/: zero-width space,
+// non-joiner and joiner (U+200B-200D), bidi embedding and override controls (U+202A-202E), bidi
+// isolates (U+2066-2069) and the byte-order mark (U+FEFF). Reviewers cannot see them (the Trojan
+// Source pattern), and a tool that strips them silently changes a regex or a test string. Write
+// them as \u escapes; this file follows its own rule and is checked too.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const DIRS = ['src', 'tests'];
+const DIRS = ['src', 'tests', 'scripts'];
 const SKIP_DIRS = new Set(['node_modules', 'dist']);
-const INVISIBLE_RE = /[​-‍‪-‮⁦-⁩﻿]/g;
+const INVISIBLE_RE = /[\u200B-\u200D\u202A-\u202E\u2066-\u2069\uFEFF]/g;
 
 function* files(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
