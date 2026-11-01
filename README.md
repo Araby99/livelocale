@@ -448,12 +448,12 @@ liveLocaleVite({
 });
 ```
 
-| Option         | Default                                  | What it does                                                                                                                               |
-| -------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| `share`        | `false`                                  | Write the share Studio into `<outDir>/livelocale/` on `vite build`. SSR and library builds are skipped.                                    |
-| `exposeRepo`   | `false`                                  | Put the GitHub `owner/repo` into the published manifest and the change link. Leave it off for a private repository.                        |
-| `sourceLocale` | `en` when present, else the first locale | The locale placeholders are checked against.                                                                                               |
-| `shareBase`    | Vite `base`                              | The path the HTML is served from. Set it when `base` is a full URL (a CDN), which the build otherwise rejects with `BAD_BASE`, or differs. |
+| Option         | Default                                  | What it does                                                                                                                                                                             |
+| -------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `share`        | `false`                                  | Write the share Studio into `<outDir>/livelocale/` on `vite build`. SSR and library builds are skipped.                                                                                  |
+| `exposeRepo`   | `false`                                  | Put the GitHub `owner/repo` into the published manifest and the change link. Leave it off for a private repository.                                                                      |
+| `sourceLocale` | `en` when present, else the first locale | The locale placeholders are checked against.                                                                                                                                             |
+| `shareBase`    | Vite `base`                              | The path the HTML is served from. Set it when `base` is a full URL (a CDN), which the build otherwise rejects with `BAD_BASE`, or when the HTML is served from a path other than `base`. |
 
 A relative `base` (`./`) links `flag.js` per HTML file and prints a warning: pages served by a
 client-side route fallback cannot load it, so prefer an absolute `base` for apps with such routes.
@@ -520,7 +520,8 @@ it. Without `reference` only the syntax check runs.
 
 ## 🔗 Share link on any host
 
-Translators fix text on your live site with no account, and every fix becomes a pull request with one click.
+Translators fix text on your live site with no account, and every fix becomes a pull request with
+one click.
 
 A share link needs no server, no account and no credential anywhere. The Studio ships inside your
 build at `<base>livelocale/`, so any host that serves the site serves the Studio too: Apache,
@@ -635,22 +636,21 @@ on the real page and a before/after table with the check results. Then turn it i
 - With issues turned off, or for a link you would rather not file: **Actions → LiveLocale → Run
   workflow**, paste the link and run it. The result is on the run's summary page.
 - **The trust gate.** The workflow writes only for a maintainer: the issue author or the
-  commenter must be an owner, member or collaborator, or have write access. For anyone else it
+  commenter must be an owner, member or collaborator, or have write access. In an organization
+  that includes any member or invited collaborator, even one with read-only access: they can turn a
+  link into a pull request, but only people with write access can merge it. For anyone else it
   replies "Waiting for a maintainer: comment `/livelocale apply`", and nothing is written until a
   maintainer posts that comment on the issue. Edits the translator saved with "Save anyway" are
   skipped as `needs --force`; comment `/livelocale apply --force` to include them.
-- **Who can trigger it.** The Action trusts the issue author or the commenter when GitHub marks
-  them OWNER, MEMBER or COLLABORATOR on the repository, or when they have write access. In an
-  organization that means any member or invited collaborator, even one with read-only access, can
-  turn a link into a pull request, but only people with write access can merge it.
 - **Base branches.** By default every pull request targets the default branch. To let links made
   from other builds (for example a `staging` deployment) target their own branch, list the
   branches with `npx livelocale init --share --branches main,staging`. A link from any other
   branch targets the default branch, and the comment says so. A pull request into the default
   branch says `Closes #n`, so merging it closes the issue; into another branch it says `Refs #n`,
   because GitHub only closes issues from the default branch, and LiveLocale closes the issue
-  itself when that pull request is merged or closed.
-  Also merge .github/workflows/livelocale.yml into each extra branch; pull requests into it run workflows from that branch, so LiveLocale cannot close their issues otherwise.
+  itself when that pull request is merged or closed. Also merge `.github/workflows/livelocale.yml`
+  into each extra branch: pull requests into it run workflows from that branch, so LiveLocale cannot
+  close their issues otherwise.
 
 **On any git host, from your machine:**
 
@@ -661,8 +661,9 @@ npx livelocale apply "<link or file>" --pr
 This works with your own `git` login: it commits only the locale files on a new
 `livelocale/apply-<time>` branch and pushes it. On GitHub it opens the pull request with `gh`;
 elsewhere it prints the branch to open a pull or merge request from. Every edit is checked again
-against your own files first. For a long link, use `npx livelocale apply --clipboard`, or pass `-` and pipe
-the link in (`npx livelocale apply - < changes.txt`). See [`apply`](#apply) for every option.
+against your own files first. For a long link, use `npx livelocale apply --clipboard`, or pass `-`
+and pipe the link in (`npx livelocale apply - < changes.txt`). See [`apply`](#apply) for every
+option.
 
 #### Run CI on LiveLocale PRs without the approval click
 
@@ -672,8 +673,8 @@ GitHub App token start CI as usual. To use one:
 
 1. Create a GitHub App with **Contents**, **Pull requests** and **Issues** set to read and write,
    and install it on the repository.
-2. Store its ID as the repository variable `LIVELOCALE_APP_ID` and its private key as the secret
-   `LIVELOCALE_APP_PRIVATE_KEY`.
+2. Store its Client ID (on the App's settings page) as the repository variable
+   `LIVELOCALE_APP_CLIENT_ID` and its private key as the secret `LIVELOCALE_APP_PRIVATE_KEY`.
 3. In `.github/workflows/livelocale.yml`, add this step before the `apply` step and give its token
    to the `apply` step as `GITHUB_TOKEN`:
 
@@ -682,7 +683,7 @@ GitHub App token start CI as usual. To use one:
   uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
   with:
     {
-      app-id: '${{ vars.LIVELOCALE_APP_ID }}',
+      client-id: '${{ vars.LIVELOCALE_APP_CLIENT_ID }}',
       private-key: '${{ secrets.LIVELOCALE_APP_PRIVATE_KEY }}',
     }
 - run: npx --yes livelocale@X.Y.Z apply --github-event --locales locales --source en --branches main
@@ -702,7 +703,8 @@ whose translators already have GitHub access; with the default, translators use 
 
 ### What "Sent" means
 
-In this mode "Sent" means the translator handed the link over; it is not a pull request until a developer applies it.
+In this mode "Sent" means the translator handed the link over; it is not a pull request until a
+developer applies it.
 
 ### Hosting notes
 
