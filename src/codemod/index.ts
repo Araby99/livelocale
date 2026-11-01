@@ -7,6 +7,7 @@ import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures, normalizeAppUrl } from './doctor.js';
 import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
+import { checkExitCode, parseCheckArgs, type CheckArgs } from './check-cli.js';
 import {
   checkBuildArgs,
   checkPackArgs,
@@ -71,7 +72,11 @@ Options for check:
   --locales <path>   Locales directory relative to the project (default: locales)
   --source <locale>  Locale the others are compared against (default: en, else the first locale)
   --no-unused        Do not report keys that code never references
-  --strict           Treat warnings (unused keys, empty values) as failures
+  --strict           Treat warnings (unused keys, empty values, untranslated text) as failures
+  --hardcoded        Also find text never passed through translation (needs typescript) and
+                     translations left identical to the source or in the wrong script
+  --allow <word>     Word or phrase that never counts as hardcoded (repeatable; also read
+                     from livelocale.allow)
   --json             Print the full report as JSON
 
 Options for pack:
@@ -468,30 +473,14 @@ async function runDoctorCommand(args: string[]) {
 }
 
 async function runCheckCommand(args: string[]) {
-  let dir = '.';
-  let localesPath: string | undefined;
-  let sourceLocale: string | undefined;
-  let unused = true;
-  let strict = false;
-  let json = false;
-  for (let i = 1; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--dir') {
-      dir = args[++i] || '.';
-    } else if (arg === '--locales') {
-      localesPath = args[++i];
-    } else if (arg === '--source') {
-      sourceLocale = args[++i];
-    } else if (arg === '--no-unused') {
-      unused = false;
-    } else if (arg === '--strict') {
-      strict = true;
-    } else if (arg === '--json') {
-      json = true;
-    } else if (arg && !arg.startsWith('--')) {
-      dir = arg;
-    }
+  let parsed: CheckArgs;
+  try {
+    parsed = parseCheckArgs(args.slice(1));
+  } catch (err: any) {
+    console.error(`Error: ${err.message}`);
+    process.exit(1);
   }
+  const { dir, localesPath, sourceLocale, unused, strict, json, hardcoded, allow } = parsed;
 
   const projectDir = path.resolve(dir);
   if (!fs.existsSync(projectDir)) {
@@ -501,17 +490,25 @@ async function runCheckCommand(args: string[]) {
 
   let report;
   try {
-    report = await runCheck({ projectDir, localesPath, sourceLocale, unused, strict });
+    report = await runCheck({
+      projectDir,
+      localesPath,
+      sourceLocale,
+      unused,
+      strict,
+      hardcoded,
+      allow,
+    });
   } catch (err: any) {
     console.error(`❌ ${err.message}`);
     process.exit(1);
   }
 
   const failed = hasCheckFailures(report);
+  // exitCode, not exit(): exiting immediately can truncate a large report piped to another tool.
+  process.exitCode = checkExitCode(report);
   if (json) {
     console.log(JSON.stringify(report, null, 2));
-    // exitCode, not exit(): exiting immediately can truncate a large report piped to another tool.
-    process.exitCode = failed ? 1 : 0;
     return;
   }
 
@@ -531,12 +528,12 @@ async function runCheckCommand(args: string[]) {
   const warns = report.issues.filter((i) => i.level === 'warn').length;
   if (failed) {
     console.log(`❌ ${fails} problem(s), ${warns} warning(s).`);
-    process.exitCode = 1;
-    return;
+  } else {
+    console.log(
+      warns > 0 ? `✅ No problems, ${warns} warning(s) worth a look.` : `✅ Translations look good.`
+    );
   }
-  console.log(
-    warns > 0 ? `✅ No problems, ${warns} warning(s) worth a look.` : `✅ Translations look good.`
-  );
+  for (const problem of report.setupProblems ?? []) console.log(`❌ ${problem}`);
 }
 
 /** Prints each pack warning, then where the share folder went and the link path to open. */

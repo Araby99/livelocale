@@ -4,6 +4,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { encodeChangeLink } from '../../src/core/change-link.js';
+import { linkTypeScript } from '../unit/helpers/project-typescript.js';
 
 /**
  * Runs the BUILT CLI from a copy of the package placed outside the repository,
@@ -198,6 +199,72 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(r.stdout).not.toContain('مرحبا');
     expect(r.stdout).not.toContain('Updated key');
     expect(readJson('locales/ar.json')).toEqual({ hello: 'مرحبا' });
+  });
+
+  it('should run `check --hardcoded` without typescript: other checks, then exit 2', () => {
+    const dir = path.join(sandbox, 'check-consumer');
+    fs.mkdirSync(path.join(dir, 'locales'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'app'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'package.json'), '{"name":"check-consumer","private":true}');
+    fs.writeFileSync(path.join(dir, 'locales', 'en.json'), '{"hello":"Hi there"}');
+    fs.writeFileSync(path.join(dir, 'locales', 'fr.json'), '{"hello":"Hi there"}');
+    fs.writeFileSync(
+      path.join(dir, 'app', 'page.jsx'),
+      "export default () => <h1>{t('hello')}</h1>;"
+    );
+
+    const plain = runCli(pkgDir, dir, ['check']);
+    expect(plain.status).toBe(0);
+    expect(plain.stdout).not.toContain('Translations identical to the source locale');
+
+    const human = runCli(pkgDir, dir, ['check', '--hardcoded']);
+    expect(human.status).toBe(2);
+    expect(human.stdout).toContain('⚠ Translations identical to the source locale (1)');
+    expect(human.stdout).toContain(
+      'Install typescript as a dev dependency to enable hardcoded-text detection'
+    );
+
+    const json = runCli(pkgDir, dir, ['check', '--hardcoded', '--json']);
+    expect(json.status).toBe(2);
+    expect(JSON.parse(json.stdout).setupProblems).toEqual([
+      'Install typescript as a dev dependency to enable hardcoded-text detection: npm install -D typescript',
+    ]);
+  });
+
+  it("should run `check --hardcoded` with the project's own typescript", () => {
+    const dir = path.join(sandbox, 'check-consumer-ts');
+    fs.mkdirSync(path.join(dir, 'locales'), { recursive: true });
+    fs.mkdirSync(path.join(dir, 'app'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'package.json'), '{"name":"check-consumer-ts","private":true}');
+    fs.writeFileSync(path.join(dir, 'locales', 'en.json'), '{"hello":"Hi there"}');
+    fs.writeFileSync(
+      path.join(dir, 'app', 'page.jsx'),
+      "export default () => <main>{t('hello')}<h1>Hello there</h1></main>;"
+    );
+    linkTypeScript(dir);
+
+    const json = runCli(pkgDir, dir, ['check', '--hardcoded', '--json']);
+    expect(json.status).toBe(1);
+    const report = JSON.parse(json.stdout);
+    expect('setupProblems' in report).toBe(false);
+    expect(report.issues.filter((i: { kind: string }) => i.kind === 'hardcoded')).toEqual([
+      {
+        kind: 'hardcoded',
+        level: 'fail',
+        file: 'app/page.jsx',
+        line: 1,
+        column: 44,
+        text: 'Hello there',
+        message: 'Not passed through a translation call.',
+      },
+    ]);
+  });
+
+  it('should declare typescript as an optional peer dependency', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf-8'));
+    expect(pkg.peerDependencies.typescript).toBe('>=4.7.0');
+    expect(pkg.peerDependenciesMeta.typescript).toEqual({ optional: true });
+    expect(pkg.dependencies ?? {}).toEqual({});
   });
 });
 
