@@ -35,8 +35,9 @@ export const FRAMES = {
   'frames/open-link.webp': {
     from: 'hero.mp4',
     at: 0.3,
-    width: 1200,
-    use: 'fixer step 1: the share Studio around the Tidewell page, as a change link opens it',
+    width: 786,
+    crop: 'crop=786:512:346:88',
+    use: "fixer step 1: the Tidewell page inside the Studio's preview, as a change link opens it and before the first Alt+Click (the preview panel only, so it reads at step size)",
   },
   'frames/alt-click.webp': {
     from: 'hero.mp4',
