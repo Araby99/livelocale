@@ -96,10 +96,12 @@ export const Header = ({
       {/* Coverage progress bar + version badge. Below xl the hints and Coverage hide and the
           locale chip shrinks first, so Send to developer and Changes always stay on screen. */}
       <div className="flex items-center justify-end gap-3 xl:gap-5 min-w-0">
+        {/* overflow-hidden truncates the chip; p-1 -m-1 gives the mismatch button's focus ring room
+            inside the clip without moving anything. */}
         {targetLocale && (
           <div
             data-testid="target-locale"
-            className="flex items-center gap-2 select-none min-w-0 overflow-hidden"
+            className="flex items-center gap-2 select-none min-w-0 overflow-hidden p-1 -m-1"
           >
             {targetLocale.source === null ? (
               <span className="px-2.5 py-1 rounded-full bg-raised border border-line text-[10px] font-semibold text-fg-muted whitespace-nowrap truncate min-w-0">

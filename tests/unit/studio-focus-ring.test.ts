@@ -21,3 +21,43 @@ it('leaves no ad-hoc focus classes in Studio components', () => {
   );
   expect(hits).toEqual([]);
 });
+
+it('draws the ring inset inside every scrolling overflow utility', () => {
+  for (const u of [
+    'overflow-y-auto',
+    'overflow-auto',
+    'overflow-x-auto',
+    'overflow-scroll',
+    'overflow-x-scroll',
+    'overflow-y-scroll',
+  ])
+    expect(css).toMatch(new RegExp(`\\.${u} :focus-visible[^{]*\\{[^}]*outline-offset:\\s*-2px;`));
+});
+
+// An overflow-hidden box clips an outside ring too, but the app shell is one, so it cannot take the
+// inset rule. Each one is either reviewed (its controls sit at least 4px inside its edge, or it holds
+// none) or pads itself with `p-1 -m-1`, which gives the ring room without moving anything.
+const REVIEWED_OVERFLOW_HIDDEN: Record<string, number> = {
+  'app.tsx': 1, // app shell: every control sits inside the padded layout
+  'StudioLayout.tsx': 1, // p-2 or p-6 around its children
+  'EditorPanel.tsx': 1, // rounded panel: px-6 header, p-4 rows, scroll body is inset
+  'KeysDirectory.tsx': 1, // same panel shape
+  'ReviewPanel.tsx': 1, // same panel shape
+  'IframeViewer.tsx': 1, // px-6 top bar, then the iframe
+  'Header.tsx': 1, // the coverage bar, which holds no control
+};
+
+it('gives a focus ring room in every overflow-hidden box', () => {
+  const unreviewed: string[] = [];
+  for (const f of studioFiles('src/studio', /\.tsx$/)) {
+    const name = f.split(/[\\/]/).pop()!;
+    const boxes = [
+      ...readFileSync(f, 'utf8').matchAll(/className=[{`"][^\n]*overflow-hidden[^\n]*/g),
+    ]
+      .map((m) => m[0])
+      .filter((c) => !/(?<![\w-])p-1 -m-1(?![\w-])/.test(c));
+    if (boxes.length !== (REVIEWED_OVERFLOW_HIDDEN[name] ?? 0))
+      unreviewed.push(`${f}: ${boxes.length} unpadded overflow-hidden box(es)`);
+  }
+  expect(unreviewed).toEqual([]);
+});

@@ -170,7 +170,9 @@ html[lang='ar'] body {
 }
 
 /* One focus ring for every control; components never set their own. Inside a scroll container an
-   outside ring is clipped by the container's edge, so rows of the key list, drawers and dialogs draw it inset. */
+   outside ring is clipped by the container's edge, so rows of the key list, drawers and dialogs draw it inset.
+   An overflow-hidden box is not listed (the app shell is one, so every ring would go inset); an
+   overflow-hidden box that holds a control flush with its edge pads itself instead (`p-1 -m-1`). */
 @layer base {
   /* The resting outline colour is already the focus colour, so `transition` and `transition-colors`
      (which animate outline-color) cannot fade the ring in from the text colour. */
@@ -184,7 +186,11 @@ html[lang='ar'] body {
   }
 
   .overflow-y-auto :focus-visible,
-  .overflow-auto :focus-visible {
+  .overflow-auto :focus-visible,
+  .overflow-x-auto :focus-visible,
+  .overflow-scroll :focus-visible,
+  .overflow-x-scroll :focus-visible,
+  .overflow-y-scroll :focus-visible {
     outline-offset: -2px;
   }
 }
