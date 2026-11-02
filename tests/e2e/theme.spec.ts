@@ -6,10 +6,11 @@ import { seen, watchDark } from './fixtures/theme.js';
 const DEV = 'http://localhost:3010';
 const SHARE = 'http://localhost:3020/livelocale/index.html';
 
-const PAPER = 'rgb(255, 248, 240)';
-const ESPRESSO = 'rgb(28, 23, 20)';
-const CORAL = 'rgb(255, 107, 74)';
-const CORAL_DARK = 'rgb(255, 122, 92)';
+const PRINT = 'rgb(244, 245, 247)';
+const NIGHT = 'rgb(12, 13, 15)';
+const PATCH = 'rgb(255, 178, 36)';
+const INK_LINES = 'rgb(21, 23, 27)';
+const PAPER_LINES = 'rgb(232, 228, 217)';
 
 const ready = (page: Page) =>
   expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
@@ -21,6 +22,11 @@ const patchFill = (page: Page) =>
   page.evaluate(
     () => getComputedStyle(document.querySelector('[data-testid="brand-mark"] .fill-accent')!).fill
   );
+const inkFill = (page: Page) =>
+  page.evaluate(
+    () =>
+      getComputedStyle(document.querySelector('[data-testid="brand-mark"] .fill-logo-ink')!).fill
+  );
 
 test.describe('Studio theme under a light system', () => {
   test.use({ colorScheme: 'light' });
@@ -31,18 +37,20 @@ test.describe('Studio theme under a light system', () => {
     await page.goto(DEV);
     await ready(page);
     expect(await isDark(page)).toBe(true);
-    expect(await rootBg(page)).toBe(ESPRESSO);
-    expect(await patchFill(page)).toBe(CORAL_DARK);
+    expect(await rootBg(page)).toBe(NIGHT);
+    expect(await patchFill(page)).toBe(PATCH);
+    expect(await inkFill(page)).toBe(PAPER_LINES);
   });
 
-  test('shows the share Studio on Paper, with no dark frame before it loads', async ({ page }) => {
+  test('shows the share Studio on Print, with no dark frame before it loads', async ({ page }) => {
     await watchDark(page);
     await page.goto(SHARE);
     await ready(page);
     expect(await isDark(page)).toBe(false);
     expect(await seen(page, '__sawDark')).toBe(false);
-    expect(await rootBg(page)).toBe(PAPER);
-    expect(await patchFill(page)).toBe(CORAL);
+    expect(await rootBg(page)).toBe(PRINT);
+    expect(await patchFill(page)).toBe(PATCH);
+    expect(await inkFill(page)).toBe(INK_LINES);
   });
 
   test('remembers the chosen theme across a reload', async ({ page }) => {
@@ -52,7 +60,7 @@ test.describe('Studio theme under a light system', () => {
     await page.reload();
     await ready(page);
     expect(await page.evaluate((k) => localStorage.getItem(k), STUDIO_THEME_KEY)).toBe('light');
-    expect(await rootBg(page)).toBe(PAPER);
+    expect(await rootBg(page)).toBe(PRINT);
     await expect(page.locator('[data-theme-choice="light"]')).toHaveAttribute(
       'aria-pressed',
       'true'
@@ -82,9 +90,9 @@ test.describe('Studio theme under a dark system', () => {
     await page.goto(SHARE);
     await ready(page);
     expect(await seen(page, '__darkAtFirstRender')).toBe(true);
-    expect(await rootBg(page)).toBe(ESPRESSO);
+    expect(await rootBg(page)).toBe(NIGHT);
     await page.emulateMedia({ colorScheme: 'light' });
-    await expect.poll(() => rootBg(page)).toBe(PAPER);
+    await expect.poll(() => rootBg(page)).toBe(PRINT);
   });
 });
 

@@ -132,7 +132,7 @@ export const LocaleRow = ({
             <button
               onClick={handleDeleteConfirm}
               disabled={isLoading}
-              className="px-2.5 py-1 text-[10px] font-semibold bg-danger-solid hover:bg-danger-solid/90 text-on-danger rounded-lg transition shadow-sm"
+              className="px-2.5 py-1 text-[10px] font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg rounded-lg transition shadow-sm"
             >
               {t('locales.delete')}
             </button>

@@ -37,7 +37,7 @@ export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmM
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 text-xs font-semibold text-on-danger bg-danger-solid hover:bg-danger-solid/90 rounded-xl shadow-lg active:bg-danger-solid transition duration-150"
+            className="px-4 py-2 text-xs font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg rounded-xl shadow-lg transition duration-150"
           >
             {t('confirm.discard')}
           </button>

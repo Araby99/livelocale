@@ -89,7 +89,7 @@ it('names only known colours in colour utilities anywhere in the Studio', () => 
   expect(found).toEqual([]);
 });
 
-it('never puts white text on a coral fill', () => {
+it('never puts white text on a patch fill', () => {
   const both = studioFiles('src/studio').flatMap((f) =>
     [...readFileSync(f, 'utf8').matchAll(/["'`]([^"'`]*)["'`]/g)]
       .filter(

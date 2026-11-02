@@ -321,7 +321,7 @@ export const ChangesPanel = ({
                       <button
                         onClick={handleDiscard}
                         disabled={isGitLoading}
-                        className="h-10 px-3 rounded-xl text-xs font-semibold text-on-danger bg-danger-solid hover:bg-danger-solid/90 active:bg-danger-solid transition duration-150"
+                        className="h-10 px-3 rounded-xl text-xs font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg transition duration-150"
                       >
                         {t(isGitHub ? 'changes.reset_to_base' : 'changes.discard_all')}
                       </button>

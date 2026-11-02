@@ -11,15 +11,17 @@ const TEXT = ['fg', 'fg-muted', 'accent-fg', 'danger-fg', 'warning-fg', 'success
 const TINTS = ['accent-soft', 'danger-bg', 'warning-bg', 'success-bg', 'info-bg'];
 const PAIRS = [
   ...TEXT.flatMap((fg) => SURFACES.map((bg) => [fg, bg])),
-  ...['fg', 'fg-muted'].flatMap((fg) => TINTS.map((bg) => [fg, bg])),
+  ...TINTS.map((bg) => ['fg', bg]),
+  // Comment on Wash is below 4.5:1 in dark, so muted text inside a Wash row uses fg.
+  ...['danger-bg', 'success-bg', 'info-bg'].map((bg) => ['fg-muted', bg]),
   ['accent-fg', 'accent-soft'],
   ['danger-fg', 'danger-bg'],
   ['warning-fg', 'warning-bg'],
   ['success-fg', 'success-bg'],
   ['info-fg', 'info-bg'],
+  ['info-fg', 'accent-soft'], // a key in Hunk on the selected Wash row
   ['on-accent', 'accent'],
   ['on-accent', 'accent-hover'],
-  ['on-danger', 'danger-solid'],
   ['on-warning', 'warning-solid'],
 ] as const;
 
@@ -29,25 +31,99 @@ it('defines every brand token for light and dark', () => {
     expect(decls.dark.get(`--lc-${name}`), name).toBe(dark);
   }
 });
-it('has 35 tokens', () => expect(Object.keys(TOKENS)).toHaveLength(35));
-it('takes the named brand colours verbatim', () => {
+it('has 33 tokens', () => expect(Object.keys(TOKENS)).toHaveLength(33));
+it('takes the named hunk colours verbatim', () => {
   const l = (n: string) => decls.light.get(`--lc-${n}`);
   const d = (n: string) => decls.dark.get(`--lc-${n}`);
-  expect(['app', 'fg', 'fg-muted', 'line', 'accent', 'accent-shadow'].map(l)).toEqual([
-    '#FFF8F0',
-    '#1D1712',
-    '#6B5B4D',
-    '#E9DCCD',
-    '#FF6B4A',
-    '#C2472C',
+  expect(
+    [
+      'app',
+      'surface',
+      'line',
+      'line-strong',
+      'fg',
+      'fg-muted',
+      'fg-faint',
+      'accent',
+      'accent-fg',
+      'accent-soft',
+      'accent-shadow',
+      'logo-ink',
+      'focus',
+      'danger-fg',
+      'success-fg',
+      'info-fg',
+    ].map(l)
+  ).toEqual([
+    '#F4F5F7',
+    '#FFFFFF',
+    '#D5D7DC',
+    '#868B96',
+    '#15171B',
+    '#5E5B54',
+    '#8A877F',
+    '#FFB224',
+    '#8F5B00',
+    '#FFF1D6',
+    '#8A5600',
+    '#15171B',
+    '#8F5B00',
+    '#C8243A',
+    '#00785F',
+    '#00708A',
   ]);
-  expect(['app', 'fg', 'accent', 'accent-shadow', 'logo-ink'].map(d)).toEqual([
-    '#1C1714',
-    '#F6EEE6',
-    '#FF7A5C',
-    '#9E3A24',
-    '#F6EEE6',
+  expect(
+    [
+      'app',
+      'surface',
+      'raised',
+      'line',
+      'line-strong',
+      'fg',
+      'fg-muted',
+      'fg-faint',
+      'accent',
+      'accent-fg',
+      'accent-soft',
+      'accent-shadow',
+      'logo-ink',
+      'focus',
+      'danger-fg',
+      'success-fg',
+      'info-fg',
+    ].map(d)
+  ).toEqual([
+    '#0C0D0F',
+    '#16181D',
+    '#1E2127',
+    '#2A2D33',
+    '#6B6F7A',
+    '#E8E4D9',
+    '#8C887D',
+    '#6E6B64',
+    '#FFB224',
+    '#FFB224',
+    '#2E2412',
+    '#8A5600',
+    '#E8E4D9',
+    '#FFB224',
+    '#FF5468',
+    '#6FD69A',
+    '#4FC3DC',
   ]);
+});
+it('gives every colour one job', () => {
+  for (const decl of [decls.light, decls.dark]) {
+    const v = (n: string) => decl.get(`--lc-${n}`);
+    expect(v('warning-fg')).toBe(v('accent-fg'));
+    expect(v('warning-bg')).toBe(v('accent-soft'));
+    expect(v('warning-solid')).toBe(v('accent'));
+    expect(v('danger-line')).toBe(v('danger-fg'));
+    expect(v('danger-bg')).toBe(v('raised'));
+    expect(v('accent-line')).toBe(v('line'));
+    expect(v('warning-line')).toBe(v('line'));
+  }
+  expect(['danger-solid', 'on-danger'].filter((n) => n in TOKENS)).toEqual([]);
 });
 it('maps every token into Tailwind with @theme inline', () => {
   for (const name of Object.keys(TOKENS))
@@ -93,14 +169,20 @@ describe.each(['light', 'dark'] as const)('%s theme', (theme) => {
   it.each([
     ...['focus', 'line-strong'].flatMap((ui) => SURFACES.map((bg) => [ui, bg])),
     ...TINTS.map((bg) => ['focus', bg]), // the ring around the selected item and inside message boxes
+    ...SURFACES.map((bg) => ['danger-line', bg]), // the dashed red outline carries meaning
+    ['danger-line', 'danger-bg'],
   ])('%s on %s reaches 3:1', (ui, bg) =>
     expect(contrastRatio(c(ui), c(bg))).toBeGreaterThanOrEqual(3)
   );
-  it('never puts white text on coral', () => expect(c('on-accent')).not.toBe('#FFFFFF'));
+  it('never puts white text on the patch', () => {
+    expect(c('on-accent')).not.toBe('#FFFFFF');
+    expect(c('on-warning')).not.toBe('#FFFFFF');
+  });
 });
 it('computes WCAG ratios', () => {
   expect(contrastRatio('#000000', '#ffffff')).toBeCloseTo(21, 1);
   expect(contrastRatio('#fff', '#FFFFFF')).toBeCloseTo(1, 5);
-  expect(contrastRatio('#FFF8F0', '#1D1712')).toBeCloseTo(16.85, 1);
-  expect(() => contrastRatio('#1D171273', '#FFFFFF')).toThrow();
+  expect(contrastRatio('#F4F5F7', '#15171B')).toBeCloseTo(16.45, 1);
+  expect(contrastRatio('#0C0D0F', '#E8E4D9')).toBeCloseTo(15.3, 1);
+  expect(() => contrastRatio('#15171B73', '#FFFFFF')).toThrow();
 });
