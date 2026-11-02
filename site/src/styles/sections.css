@@ -1,0 +1,577 @@
+/* Section layout and the static end state of every scene. Without JavaScript the page shows the
+   fixed hero and the collapsed pile; the islands' tasks add the `html.js` start states. Only
+   brand tokens are used; shadows and tints are mixes of them. Single column below 720 px. */
+
+main > section {
+  padding-block: 56px;
+  border-top: 1px solid var(--line);
+}
+
+main > section:first-child {
+  border-top: 0;
+}
+
+main h2 {
+  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
+  letter-spacing: -0.02em;
+}
+
+main h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+main p {
+  margin: 0;
+}
+
+.section-lede {
+  max-width: 60ch;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 1.125rem;
+}
+
+/* Inline code and command chips wrap instead of scrolling, so a 360 px phone never scrolls
+   sideways. */
+main code {
+  overflow-wrap: anywhere;
+}
+
+.chip {
+  display: inline-block;
+  max-width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--espresso);
+  color: var(--cream);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.button {
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 8px;
+  background: var(--coral);
+  box-shadow: 2px 3px 0 var(--coral-shadow);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.button:hover {
+  background: color-mix(in srgb, var(--coral) 85%, var(--coral-shadow));
+}
+
+.button:active {
+  box-shadow: none;
+  transform: translate(2px, 3px);
+}
+
+.button-quiet {
+  border: 1px solid var(--ink);
+  background: transparent;
+  box-shadow: none;
+}
+
+.button-quiet:hover {
+  background: color-mix(in srgb, var(--line) 60%, var(--paper));
+}
+
+/* The paper card used by the pile and the pull-request card. */
+.pile-card,
+.pile-pr,
+.pr-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: 0 12px 30px -18px color-mix(in srgb, var(--ink) 55%, transparent);
+}
+
+/* Scene 1: the screenshot pile. Static state: the cards stacked behind the pull request. */
+#pile {
+  padding-block: 48px 40px;
+}
+
+.pile-title {
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 1.3rem + 3vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  text-align: center;
+}
+
+.pile-stage {
+  display: grid;
+  place-items: center;
+  margin-top: 32px;
+  padding-block: 24px;
+}
+
+.pile-stage > * {
+  grid-area: 1 / 1;
+}
+
+.pile-card {
+  display: grid;
+  gap: 4px;
+  width: min(100%, 220px);
+  padding: 10px 12px;
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.pile-card:nth-child(1) {
+  transform: translate(-18px, -14px) rotate(-8deg);
+}
+
+.pile-card:nth-child(2) {
+  transform: translate(16px, -10px) rotate(5deg);
+}
+
+.pile-card:nth-child(3) {
+  transform: translate(-10px, 12px) rotate(3deg);
+}
+
+.pile-card:nth-child(4) {
+  transform: translate(14px, 14px) rotate(-6deg);
+}
+
+.pile-file {
+  font-family: var(--font-code);
+  font-weight: 500;
+}
+
+.pile-note {
+  color: var(--ink);
+}
+
+/* The red circle on a screenshot; coral shadow keeps 3:1 against paper. */
+.ring {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 2px solid var(--coral-shadow);
+  border-radius: 50%;
+  color: var(--ink);
+}
+
+.pile-pr {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 300px);
+  padding: 16px 18px;
+  border-inline-start: 4px solid var(--coral);
+}
+
+.pile-pr-title {
+  font-weight: 600;
+}
+
+.pile-pr-meta {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+/* Scene 2: the page that is broken on purpose, shown fixed. */
+.hero-bar {
+  display: flex;
+  justify-content: flex-end;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.bar-start,
+.m-broken {
+  display: none;
+}
+
+.hero-grid {
+  display: grid;
+  gap: 32px;
+  margin-top: 24px;
+}
+
+#hero h1 {
+  /* Room above each line for the struck-through ghost of the old word. */
+  padding-top: 0.45em;
+  font-size: clamp(2.25rem, 1.2rem + 4.6vw, 4.5rem);
+  letter-spacing: -0.035em;
+  line-height: 1.35;
+}
+
+.hero-hint {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+  font-style: italic;
+}
+
+.hero-lede {
+  max-width: 40ch;
+  margin-top: 16px;
+  font-size: 1.25rem;
+  line-height: 2.2;
+}
+
+/* The coral patch over a fixed word; ink text on coral (white on coral fails AA). */
+.patch {
+  position: relative;
+  display: inline-block;
+  padding: 0 0.2em;
+  border-radius: 6px;
+  background: var(--coral);
+  box-shadow: 2px 3px 0 var(--coral-shadow);
+  color: var(--ink);
+  line-height: 1.15;
+  transform: rotate(-3deg);
+}
+
+/* The old word, struck through above the patch. Generated content, so it never joins the
+   heading's text. */
+.patch::before {
+  content: attr(data-ghost);
+  position: absolute;
+  bottom: 100%;
+  left: 0.1em;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: max(0.4em, 0.8125rem);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.4;
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+.hero-lede .patch::before {
+  font-size: 0.7em;
+}
+
+.pr-card {
+  align-self: start;
+  max-width: 320px;
+  padding: 16px 18px;
+}
+
+.pr-card-title {
+  font-weight: 600;
+}
+
+.pr-pairs {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pr-pairs li {
+  display: grid;
+  overflow-wrap: anywhere;
+}
+
+.pr-pairs del,
+.pr-pairs ins {
+  text-decoration: none;
+}
+
+.pr-pairs del {
+  color: var(--muted);
+}
+
+.pr-progress {
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.completion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px dashed var(--line);
+}
+
+.completion-title {
+  flex-basis: 100%;
+}
+
+/* Scene 3: three numbered steps, each with an illustration until the clips land. */
+.steps {
+  display: grid;
+  gap: 32px;
+  margin: 32px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: step;
+}
+
+.steps li {
+  counter-increment: step;
+}
+
+.steps figure {
+  margin: 0;
+}
+
+.steps figcaption {
+  margin-top: 16px;
+}
+
+.steps h3::before {
+  content: counter(step) '. ';
+}
+
+.steps figcaption p {
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.clip-placeholder {
+  display: grid;
+  align-content: center;
+  gap: 12px;
+  aspect-ratio: 16 / 10;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--line) 35%, var(--paper));
+}
+
+.clip-line {
+  height: 10px;
+  width: 70%;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ink) 18%, var(--paper));
+}
+
+.clip-line:nth-child(3) {
+  width: 45%;
+}
+
+.clip-click .clip-target {
+  outline: 2px solid var(--ink);
+  outline-offset: 3px;
+}
+
+.clip-type .clip-target,
+.clip-send .clip-target {
+  height: 18px;
+  width: 55%;
+  background: var(--coral);
+  box-shadow: 2px 3px 0 var(--coral-shadow);
+  transform: rotate(-3deg);
+}
+
+.clip-send .clip-line:nth-child(3) {
+  height: 24px;
+  width: 35%;
+  justify-self: end;
+  border-radius: 6px;
+  background: var(--ink);
+}
+
+/* Scene 4: the static English | Arabic split at 50 %. */
+.slider {
+  margin-top: 32px;
+}
+
+.slider-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.slider-half {
+  min-width: 0;
+  padding: 20px 16px 24px;
+}
+
+.slider-half[data-lang='ar'] {
+  /* The divider is the Arabic half's left edge whatever its direction. */
+  border-left: 3px solid var(--coral);
+  border-radius: 0 11px 11px 0;
+  background: color-mix(in srgb, var(--coral) 6%, var(--paper));
+}
+
+.slider-label {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+.sample-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sample-title {
+  margin-top: 12px;
+  font-family: var(--font-heading);
+  font-size: clamp(1.125rem, 0.9rem + 1.2vw, 1.625rem);
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.sample-sub {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.sample-button {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 14px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+/* Text nobody translated: the outline carries the meaning alone, so it uses coral shadow
+   (3:1 on paper, WCAG 1.4.11) over a coral tint that keeps ink text AA. */
+.is-untranslated {
+  border-radius: 4px;
+  outline: 2px solid var(--coral-shadow);
+  outline-offset: 2px;
+  background: color-mix(in srgb, var(--coral) 16%, var(--paper));
+  color: var(--ink);
+}
+
+.slider-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--coral);
+  box-shadow: 0 0 0 4px var(--paper);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  transform: translate(-50%, -50%);
+}
+
+.check-output {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--espresso);
+  color: var(--cream);
+  font-family: var(--font-code);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.check-output pre {
+  margin: 10px 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Scene 5 and 6: where it works, and how to start. */
+.frameworks,
+.hosts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.frameworks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.frameworks li {
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.hosts {
+  display: grid;
+  gap: 8px;
+  margin-top: 20px;
+  color: var(--muted);
+}
+
+.hosts code {
+  color: var(--ink);
+}
+
+#start .chip {
+  margin-top: 24px;
+}
+
+.start-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.start-note {
+  margin-top: 16px;
+  color: var(--muted);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  padding: 24px 0;
+  list-style: none;
+}
+
+.footer-links a {
+  color: var(--ink);
+}
+
+@media (min-width: 720px) {
+  main > section {
+    padding-block: 88px;
+  }
+
+  .hero-grid {
+    grid-template-columns: minmax(0, 1fr) 300px;
+    align-items: end;
+  }
+
+  .steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .slider-half {
+    padding: 28px 28px 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button:active {
+    transform: none;
+  }
+}

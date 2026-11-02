@@ -47,16 +47,239 @@
     </header>
 
     <main>
-      <section id="pile"></section>
-      <section id="hero"></section>
-      <section id="how"></section>
-      <section id="languages"></section>
-      <section id="works"></section>
-      <section id="start"></section>
+      <section id="pile">
+        <div class="wrap" data-island="pile">
+          <p class="pile-title">This was your launch week.</p>
+          <div class="pile-stage">
+            <div class="pile-card" aria-hidden="true">
+              <span class="pile-file">IMG_2041.png</span>
+              <span class="pile-note">change <span class="ring">Get startd</span></span>
+            </div>
+            <div class="pile-card" aria-hidden="true">
+              <span class="pile-file">Screenshot 14:02</span>
+              <span class="pile-note">arabic is wrong <span class="ring">Submit</span></span>
+            </div>
+            <div class="pile-card" aria-hidden="true">
+              <span class="pile-file">final_FINAL_v3.png</span>
+              <span class="pile-note">where is this?? <span class="ring">Free trial</span></span>
+            </div>
+            <div class="pile-card" aria-hidden="true">
+              <span class="pile-file">WhatsApp image</span>
+              <span class="pile-note"><span class="ring">Pricing</span> → Plans</span>
+            </div>
+            <div class="pile-pr">
+              <p class="pile-pr-title">Fix copy on pricing and signup</p>
+              <p class="pile-pr-meta">4 changes · from Sara</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="hero">
+        <div class="wrap" data-island="hero">
+          <p class="hero-bar">
+            <span class="bar-done">All fixed</span>
+            <span class="bar-start">3 mistakes left on this page</span>
+          </p>
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <h1>
+                Stop
+                <span data-mistake="hero.title"
+                  ><span class="m-broken">colecting</span
+                  ><span class="m-fixed"
+                    ><span class="patch" data-ghost="colecting">collecting</span></span
+                  ></span
+                >
+                screenshots.
+              </h1>
+              <p class="hero-hint">↑ hold Alt and click the typo</p>
+              <p class="hero-lede">
+                Anyone on your team fixes text
+                <span data-mistake="hero.lede"
+                  ><span class="m-broken">rite</span
+                  ><span class="m-fixed"
+                    ><span class="patch" data-ghost="rite">right</span></span
+                  ></span
+                >
+                on the site.
+              </p>
+              <p class="hero-lede">
+                You get a pull request. CI catches what was never
+                <span data-mistake="hero.ci"
+                  ><span class="m-broken">traducido</span
+                  ><span class="m-fixed"
+                    ><span class="patch" data-ghost="traducido">translated</span></span
+                  ></span
+                >.
+              </p>
+            </div>
+            <aside class="pr-card" data-testid="pr-card" aria-label="Your pull request">
+              <p class="pr-card-title">Your pull request</p>
+              <ul class="pr-pairs">
+                <li>
+                  <del>- "colecting"</del>
+                  <ins>+ "collecting"</ins>
+                </li>
+                <li>
+                  <del>- "rite"</del>
+                  <ins>+ "right"</ins>
+                </li>
+                <li>
+                  <del>- "traducido"</del>
+                  <ins>+ "translated"</ins>
+                </li>
+              </ul>
+              <p class="pr-progress">3 of 3 fixed</p>
+            </aside>
+          </div>
+          <div class="completion">
+            <h2 class="completion-title">That's LiveLocale. Install it.</h2>
+            <code class="chip">npm i livelocale</code>
+            <a class="button" href="https://github.com/Araby99/livelocale#readme">Read the docs</a>
+          </div>
+        </div>
+      </section>
+
+      <section id="how" aria-labelledby="how-title">
+        <div class="wrap">
+          <h2 id="how-title">How it works</h2>
+          <ol class="steps">
+            <li>
+              <figure>
+                <div class="clip-placeholder clip-click" aria-hidden="true">
+                  <span class="clip-line"></span><span class="clip-line clip-target"></span
+                  ><span class="clip-line"></span>
+                </div>
+                <figcaption>
+                  <h3>Alt+Click the text</h3>
+                  <p>Hold Alt and click any text on your running site.</p>
+                </figcaption>
+              </figure>
+            </li>
+            <li>
+              <figure>
+                <div class="clip-placeholder clip-type" aria-hidden="true">
+                  <span class="clip-line"></span><span class="clip-line clip-target"></span
+                  ><span class="clip-line"></span>
+                </div>
+                <figcaption>
+                  <h3>Type the fix</h3>
+                  <p>The Studio opens on that string, in every language you ship.</p>
+                </figcaption>
+              </figure>
+            </li>
+            <li>
+              <figure>
+                <div class="clip-placeholder clip-send" aria-hidden="true">
+                  <span class="clip-line"></span><span class="clip-line clip-target"></span
+                  ><span class="clip-line"></span>
+                </div>
+                <figcaption>
+                  <h3>Send</h3>
+                  <p>You get a pull request. GitHub opens it in one click.</p>
+                </figcaption>
+              </figure>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="languages" aria-labelledby="languages-title">
+        <div class="wrap">
+          <h2 id="languages-title">Drag between languages.</h2>
+          <p class="section-lede">
+            Strings nobody translated stay English and light up coral.
+            <code>check --hardcoded</code> finds the same ones in CI.
+          </p>
+          <div class="slider" data-island="slider">
+            <div class="slider-track">
+              <div class="slider-half" data-lang="en" lang="en">
+                <p class="slider-label">English</p>
+                <p class="sample-nav">
+                  <span data-key="nav.pricing">Pricing</span>
+                  <span data-key="nav.docs">Docs</span>
+                </p>
+                <p class="sample-title" data-key="plans.title">Plans that grow with your team.</p>
+                <p class="sample-sub">
+                  <span data-key="plans.start">Start free.</span>
+                  <span data-key="plans.upgrade">Upgrade anytime.</span>
+                </p>
+                <span class="sample-button">Start free trial</span>
+              </div>
+              <div class="slider-half" data-lang="ar" lang="ar" dir="rtl">
+                <p class="slider-label">العربية</p>
+                <p class="sample-nav">
+                  <span data-key="nav.pricing">الأسعار</span>
+                  <span data-key="nav.docs">التوثيق</span>
+                </p>
+                <p class="sample-title" data-key="plans.title">خطط تنمو مع فريقك.</p>
+                <p class="sample-sub">
+                  <span data-key="plans.start">ابدأ مجانًا.</span>
+                  <span data-key="plans.upgrade" class="is-untranslated">Upgrade anytime.</span>
+                </p>
+                <span class="sample-button is-untranslated">Start free trial</span>
+              </div>
+              <span class="slider-handle" aria-hidden="true">⇆</span>
+            </div>
+            <div class="check-output" data-testid="check-output">
+              <p>✖ 2 strings never translated: found by check --hardcoded</p>
+              <pre>
+✖ Hardcoded text not passed through translation (1)
+   SamplePage.tsx
+      14:9  "Start free trial"
+   Per file: SamplePage.tsx 1
+⚠ Translations identical to the source locale (1)
+   [ar] plans.upgrade — Same text as en.</pre
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="works" aria-labelledby="works-title">
+        <div class="wrap">
+          <h2 id="works-title">Works where you already are</h2>
+          <ul class="frameworks">
+            <li>Next.js</li>
+            <li>Vite</li>
+            <li>React</li>
+            <li>Any static host</li>
+          </ul>
+          <ul class="hosts">
+            <li>GitHub: one-click pull requests</li>
+            <li>Other git hosts: <code>npx livelocale apply &lt;link&gt; --pr</code></li>
+          </ul>
+        </div>
+      </section>
+
+      <section id="start" aria-labelledby="start-title">
+        <div class="wrap">
+          <h2 id="start-title">Start in two minutes</h2>
+          <code class="chip">npx livelocale init --share</code>
+          <p class="start-links">
+            <a class="button" href="https://github.com/Araby99/livelocale#readme"
+              >Read the README</a
+            >
+            <a class="button button-quiet" href="https://github.com/Araby99/livelocale"
+              >Star on GitHub</a
+            >
+          </p>
+          <p class="start-note">Free, MIT, no account, no server.</p>
+        </div>
+      </section>
     </main>
 
     <footer class="site-footer">
-      <div class="wrap"></div>
+      <div class="wrap">
+        <ul class="footer-links">
+          <li><a href="https://github.com/Araby99/livelocale">GitHub</a></li>
+          <li><a href="https://www.npmjs.com/package/livelocale">npm</a></li>
+          <li>
+            <a href="https://github.com/Araby99/livelocale/blob/main/LICENSE">MIT licence</a>
+          </li>
+        </ul>
+      </div>
     </footer>
   </body>
 </html>
