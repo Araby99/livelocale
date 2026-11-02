@@ -8,3 +8,6 @@ import { loadWhenNear } from './lib/islands';
 
 const slider = document.querySelector<HTMLElement>('[data-island="slider"]');
 if (slider) loadWhenNear(slider, () => import('./slider/mount').then((m) => m.mountSlider(slider)));
+
+const hero = document.querySelector<HTMLElement>('[data-island="hero"]');
+if (hero) loadWhenNear(hero, () => import('./hero/mount').then((m) => m.mountHero(hero)));

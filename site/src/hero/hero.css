@@ -1,0 +1,172 @@
+/* The live hero island. The shell's look (sections.css) carries over unchanged; these rules only
+   add what the island brings: the mistake buttons, the editor, the patch landing, the Send
+   dialog and the completion note. Brand tokens only. */
+.hero-live .hero-copy {
+  position: relative;
+}
+
+.hero-live button.button {
+  border: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.hero-live button.button-quiet {
+  border: 1px solid var(--ink);
+}
+
+.hero-live button.button:disabled {
+  background: var(--line);
+  box-shadow: none;
+  color: var(--muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+[data-mistake][role='button'] {
+  border-radius: 6px;
+  cursor: text;
+}
+
+[data-mistake][role='button']:hover {
+  background: color-mix(in srgb, var(--coral) 12%, transparent);
+}
+
+/* An edit that is not the fix: the visitor's words, a dashed coral underline and a hint. */
+.m-edited {
+  text-decoration: underline dashed var(--coral);
+  text-decoration-thickness: 0.08em;
+  text-underline-offset: 0.18em;
+}
+
+.m-try {
+  display: inline-block;
+  margin-inline-start: 0.4em;
+  color: var(--muted);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.edit-popover {
+  position: absolute;
+  z-index: 5;
+  width: min(24rem, 100%);
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.edit-popover textarea {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.edit-popover-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-top: 10px;
+}
+
+.edit-popover-keys {
+  color: var(--muted);
+  font-size: 0.8125rem;
+}
+
+/* The patch "stick-on": a short scale and tilt as it lands, only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-live .patch {
+    animation: patch-stick 280ms cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  }
+}
+
+@keyframes patch-stick {
+  from {
+    transform: scale(1.25) rotate(-10deg);
+  }
+
+  to {
+    transform: rotate(-3deg);
+  }
+}
+
+.send-dialog {
+  box-sizing: border-box;
+  width: min(36rem, calc(100vw - 32px));
+  max-width: none;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.send-dialog::backdrop {
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+}
+
+.send-title {
+  font-size: 1.375rem;
+}
+
+.send-link {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--muted);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-code);
+  font-size: 0.8125rem;
+  word-break: break-all;
+  resize: none;
+}
+
+.send-copy,
+.send-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+
+.send-dialog p {
+  margin-top: 14px;
+}
+
+.send-actions {
+  justify-content: space-between;
+}
+
+.completion-note {
+  flex-basis: 100%;
+  max-width: 60ch;
+  color: var(--muted);
+}
+
+.completion-note a {
+  color: var(--ink);
+}

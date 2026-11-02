@@ -305,6 +305,46 @@ main code {
   flex-basis: 100%;
 }
 
+/* The card's Send button (the live island only). Its size is fixed so the start state below can
+   hold its place before the island mounts. */
+.pr-send {
+  display: block;
+  height: 2.75rem;
+  margin-top: 12px;
+  padding-block: 0;
+}
+
+/* The hero's start state while its island loads: the shell's own markup (direct children of the
+   container; the island renders inside .hero-live) shows the broken page, "0 of 3 fixed" and room
+   for Send, exactly as the island first renders it. Only JavaScript off shows the end state. */
+html.js [data-island='hero'] > .hero-bar .bar-start,
+html.js [data-island='hero'] > .hero-grid .m-broken {
+  display: inline;
+}
+
+html.js [data-island='hero'] > .hero-bar .bar-done,
+html.js [data-island='hero'] > .hero-grid .m-fixed,
+html.js [data-island='hero'] > .hero-grid .pr-pairs,
+html.js [data-island='hero'] > .completion {
+  display: none;
+}
+
+html.js [data-island='hero'] > .hero-grid .pr-progress {
+  font-size: 0;
+}
+
+html.js [data-island='hero'] > .hero-grid .pr-progress::after {
+  content: '0 of 3 fixed';
+  font-size: 0.875rem;
+}
+
+html.js [data-island='hero'] > .hero-grid .pr-card::after {
+  content: '';
+  display: block;
+  height: 2.75rem;
+  margin-top: 12px;
+}
+
 /* Scene 3: three numbered steps, each with an illustration until the clips land. */
 .steps {
   display: grid;
