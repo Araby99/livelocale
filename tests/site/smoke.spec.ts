@@ -10,7 +10,9 @@ test('keeps the direction contract as the first child of body in the build', asy
   const body = html.slice(html.indexOf('<body>') + '<body>'.length).trimStart();
   expect(body.startsWith('<!--')).toBe(true);
   const contract = body.slice(0, body.indexOf('-->'));
-  expect(contract).toContain('seed key c4e74c7c');
+  // No decision record carries the roll's seed key, so the contract says the roll was skipped.
+  expect(contract).toContain('FORM: Two doors');
+  expect(contract).toContain('the roll counts as skipped');
   for (const line of ['THESIS:', 'OWN-WORLD:', 'STORY:', 'FIRST VIEWPORT:', 'FORM:', 'FINISH:'])
     expect(contract).toContain(line);
 });

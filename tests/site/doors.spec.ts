@@ -29,6 +29,22 @@ test('switches with the arrow keys', async ({ page }) => {
   expect(new URL(page.url()).hash).toBe('#developer');
 });
 
+test('ends each door on its own close: npx for the developer, the live demo for the fixer', async ({
+  page,
+}) => {
+  await page.goto('./');
+  await expect(page.getByRole('heading', { name: 'Start in two minutes' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Fix your first string now' })).toBeHidden();
+  await page.getByRole('radio', { name: 'I fix the text' }).click();
+  await expect(page.getByRole('heading', { name: 'Start in two minutes' })).toBeHidden();
+  await expect(page.getByRole('heading', { name: 'Fix your first string now' })).toBeVisible();
+  const primary = page.locator('.start .button-patch');
+  await expect(primary).toHaveText('Open the live demo');
+  await expect(primary).toHaveAttribute('href', 'demo/livelocale/index.html');
+  await expect(primary).toHaveCSS('background-color', 'rgb(255, 178, 36)');
+  await expect(page.locator('#fixer img[src*="send-"]')).toBeVisible();
+});
+
 test('opens the door a link names', async ({ page }) => {
   await page.goto('./#fixer');
   await expect(page.getByRole('radio', { name: 'I fix the text' })).toBeChecked();

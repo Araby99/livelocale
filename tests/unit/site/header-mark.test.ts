@@ -30,9 +30,7 @@ it("keeps the header mark's geometry identical to the master", () => {
   expect(svg).toContain('transform="rotate(-7 39 32)"');
 });
 
-it('keeps the demo sample app off the withdrawn palette', () => {
-  const demo = fs.readFileSync('site/demo/index.html', 'utf8');
-  expect(demo).toContain('#f4f5f7');
-  expect(demo).toContain('#15171b');
-  expect(demo).not.toMatch(/#fff8f0|#1d1712/i);
+it('keeps the live demo (the Tidewell stage) off the withdrawn palette', () => {
+  const stage = fs.readFileSync('site/stage/styles.css', 'utf8');
+  expect(stage).not.toMatch(/#fff8f0|#1d1712|#ff6b4a|#c2472c/i);
 });

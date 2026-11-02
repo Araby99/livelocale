@@ -1,6 +1,12 @@
 // @vitest-environment node
 import * as fs from 'node:fs';
-import { chapterAt, chapterProgress, readChapters } from '../../../site/src/demo-video';
+import {
+  NARROW_QUERY,
+  chapterAt,
+  chapterProgress,
+  pickCut,
+  readChapters,
+} from '../../../site/src/demo-video';
 import { doorFromHash } from '../../../site/src/doors';
 
 const recorded = JSON.parse(fs.readFileSync('site/media/hero/chapters.json', 'utf8')) as {
@@ -38,4 +44,21 @@ it('reads the door from the hash', () => {
   expect(doorFromHash('#developer')).toBe('developer');
   expect(doorFromHash('')).toBe('developer');
   expect(doorFromHash('#anything')).toBe('developer');
+});
+
+it('picks the narrow cut on a phone and the wide cut elsewhere, at the CSS breakpoint', () => {
+  const cuts = {
+    wide: { webm: 'w.webm', mp4: 'w.mp4' },
+    narrow: { webm: 'n.webm', mp4: 'n.mp4' },
+  };
+  expect(pickCut(cuts, true)).toBe(cuts.narrow);
+  expect(pickCut(cuts, false)).toBe(cuts.wide);
+  const css = fs.readFileSync('site/src/styles/sections.css', 'utf8');
+  expect(css).toContain(`@media ${NARROW_QUERY} {\n  .screen {\n    aspect-ratio: 4 / 5;`);
+});
+
+it('ships both cuts in both formats', () => {
+  for (const cut of ['hero-wide', 'hero-narrow'])
+    for (const ext of ['webm', 'mp4'])
+      expect(fs.statSync(`site/media/hero/${cut}.${ext}`).size).toBeGreaterThan(100_000);
 });

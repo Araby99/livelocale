@@ -3,28 +3,76 @@ import { test, expect, type Page } from '@playwright/test';
 const video = (page: Page) => page.locator('[data-demo] video');
 const playing = (page: Page) => video(page).evaluate((v: HTMLVideoElement) => !v.paused);
 
-test('marks the video up to stay light until it is needed', async ({ page }) => {
+test('marks the video up to stay light, with a preloaded poster per cut', async ({ page }) => {
   await page.goto('./');
   const attrs = await video(page).evaluate((v: HTMLVideoElement) => ({
     muted: v.hasAttribute('muted'),
     loop: v.hasAttribute('loop'),
     playsinline: v.hasAttribute('playsinline'),
     preload: v.getAttribute('preload'),
-    poster: v.getAttribute('poster'),
   }));
   expect(attrs).toMatchObject({ muted: true, loop: true, playsinline: true, preload: 'none' });
-  expect(attrs.poster).toMatch(/^\/livelocale\/assets\/poster-.*\.webp$/);
-  const preload = page.locator('link[rel="preload"][as="image"]');
-  await expect(preload).toHaveAttribute('href', attrs.poster!);
-  await expect(preload).toHaveAttribute('fetchpriority', 'high');
+  const wide = await page.locator('[data-demo] .poster img').getAttribute('src');
+  const narrow = await page.locator('[data-demo] .poster source').getAttribute('srcset');
+  expect(wide).toMatch(/^\/livelocale\/assets\/poster-[\w-]+\.webp$/);
+  expect(narrow).toMatch(/^\/livelocale\/assets\/poster-narrow-[\w-]+\.webp$/);
+  const preloads = page.locator('link[rel="preload"][as="image"]');
+  await expect(preloads).toHaveCount(2);
+  await expect(preloads.nth(0)).toHaveAttribute('href', narrow!);
+  await expect(preloads.nth(0)).toHaveAttribute('media', '(max-width: 639px)');
+  await expect(preloads.nth(1)).toHaveAttribute('href', wide!);
+  await expect(preloads.nth(1)).toHaveAttribute('media', '(min-width: 640px)');
+  for (const p of await preloads.all()) await expect(p).toHaveAttribute('fetchpriority', 'high');
   await expect(page.locator('[data-demo] .window-address')).toHaveText('tidewell.example/pricing');
-  await expect(page.getByText('Demo site: Tidewell (fictional)')).toBeVisible();
+  await expect(page.locator('[data-demo] .window-dots')).toHaveCount(0);
   await expect(page.locator('.transcript summary')).toHaveText('What the video shows');
+  await expect(page.getByText('Tidewell is a fictional demo site')).toBeAttached();
 });
 
-test('attaches webm then mp4 after load, plays, and pauses from the visible button', async ({
+test('is playing within the first seconds, before the page has finished loading', async ({
   page,
 }) => {
+  await page.goto('./', { waitUntil: 'domcontentloaded' });
+  await expect
+    .poll(() => video(page).evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.5), {
+      timeout: 4000,
+    })
+    .toBe(true);
+  await expect(page.locator('[data-playback]')).toHaveText('Pause');
+  await expect(page.locator('[data-demo]')).toHaveAttribute('data-started', '');
+  await expect(page.locator('[data-demo] .poster img')).toHaveCSS('opacity', '0');
+});
+
+test('fits the playing video, its chips and the pause button in a 1440 x 900 screen', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('./');
+  for (const sel of ['[data-demo] .screen', '.chapters', '[data-playback]', '.hero-proof']) {
+    const box = (await page.locator(sel).boundingBox())!;
+    expect(box.y + box.height, sel).toBeLessThanOrEqual(900);
+  }
+  expect((await page.locator('.doors').boundingBox())!.y).toBeLessThan(900);
+});
+
+test('plays the narrow 4:5 cut on a phone and the wide 2:1 cut on a desktop', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./');
+  await expect
+    .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc))
+    .toMatch(/hero-narrow-[\w-]+\.webm$/);
+  const phone = (await page.locator('[data-demo] .screen').boundingBox())!;
+  expect(phone.width / phone.height).toBeCloseTo(0.8, 1);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('./');
+  await expect
+    .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc))
+    .toMatch(/hero-wide-[\w-]+\.webm$/);
+  const desk = (await page.locator('[data-demo] .screen').boundingBox())!;
+  expect(desk.width / desk.height).toBeCloseTo(2, 1);
+});
+
+test('attaches webm then mp4, plays, and pauses from the visible button', async ({ page }) => {
   await page.goto('./');
   await expect(video(page).locator('source')).toHaveCount(2);
   expect(

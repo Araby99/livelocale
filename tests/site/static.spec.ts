@@ -16,9 +16,14 @@ test.describe('without JavaScript', () => {
     await expect(fixer).toBeVisible();
     const [d, f] = await Promise.all([developer.boundingBox(), fixer.boundingBox()]);
     expect(d!.y).toBeLessThan(f!.y);
-    for (const h of ['Works where you already are', 'Start in two minutes'])
+    for (const h of [
+      'Works where you already are',
+      'Start in two minutes',
+      'Fix your first string now',
+    ])
       await expect(page.getByRole('heading', { level: 2, name: h })).toBeVisible();
-    await expect(page.getByText('Free, MIT, no account, no server.')).toBeVisible();
+    // The skeptic's proof is in the first viewport, under the two actions.
+    await expect(page.locator('.hero .hero-proof')).toHaveText('Free, MIT, no account, no server.');
     await expect(page.locator('body')).not.toContainText(/\bPM\b/);
   });
 
@@ -63,9 +68,49 @@ test('points at the real pull request and repository', async ({ page }) => {
   await page.goto('./');
   await expect(page.locator('a[href="https://github.com/Araby99/tidewell/pull/2"]')).toHaveCount(2);
   await expect(page.locator('a[href="https://github.com/Araby99/tidewell"]')).toHaveCount(1);
-  await expect(page.locator('a[href="demo/livelocale/index.html"]')).toHaveText(
+  await expect(page.locator('.hero a[href="demo/livelocale/index.html"]')).toHaveText(
     'Try the live demo'
   );
+});
+
+test.describe('without JavaScript', () => {
+  test.use({ javaScriptEnabled: false });
+
+  test('writes the pull request as a diff: struck ghost, amber plus, locale chips, exit 0', async ({
+    page,
+  }) => {
+    await page.goto('./');
+    const diff = page.getByTestId('pr-diff');
+    await expect(diff.locator('.chip')).toHaveText(['en', 'ar']);
+    const s = await diff.evaluate((el) => {
+      const c = (sel: string) => getComputedStyle(el.querySelector(sel)!);
+      return {
+        old: `${c('.d-del del').color} ${c('.d-del del').textDecorationLine}`,
+        row: c('.d-add').backgroundColor,
+        plus: c('.d-add .d-sign').backgroundColor,
+        chip: c('.chip').color,
+        done: c('.diff-result').color,
+      };
+    });
+    expect(s).toEqual({
+      old: 'rgb(110, 107, 100) line-through',
+      row: 'rgb(46, 36, 18)',
+      plus: 'rgb(255, 178, 36)',
+      chip: 'rgb(79, 195, 220)',
+      done: 'rgb(111, 214, 154)',
+    });
+    await expect(diff.locator('.d-del').first()).toContainText(
+      '"title": "Plans that grows with you"'
+    );
+    await expect(diff.locator('.d-add').first()).toContainText(
+      '"title": "Plans that grow with you"'
+    );
+    await expect(diff.locator('.diff-result')).toContainText('pull request opened');
+    await expect(diff.locator('.diff-result svg use')).toHaveAttribute('href', '#i-check');
+    const pair = page.getByTestId('fix-pair');
+    await expect(pair.locator('del')).toHaveText('Was: Plans that grows with you');
+    await expect(pair.locator('ins')).toHaveText('Now: Plans that grow with you');
+  });
 });
 
 test('has no horizontal scroll at 360 px', async ({ page }) => {
