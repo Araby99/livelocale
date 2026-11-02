@@ -2129,6 +2129,32 @@ git commit -m "feat(site): write the hero as a diff pair and give every colour o
 
 ---
 
+### Task 24: Visual polish found on the first full render
+
+Execution order: after Task 23, before Task 18 (numbered last so earlier numbers stay stable). Found by the controller on the first full-page screenshots of the hunk site (desktop 1366×860 and a 390×844 phone, motion on and reduced).
+
+**Files:**
+
+- Modify: `site/src/styles/sections.css`, `site/src/styles/base.css`, `site/index.html`, files under `site/src/slider/` and `site/src/pile/` as needed
+- Test: `tests/site/polish.spec.ts` (new), plus existing site specs stay green
+
+**Interfaces:** consumes the Task 3 E2E fixtures (`serve.mjs`, `playwright.site.config.ts`, `scrollThrough`, `ISLAND_READY`); produces no new contracts.
+
+Defects to fix, each with a test in `tests/site/polish.spec.ts`:
+
+1. **Hero headline wraps to three lines on desktop.** At 1366×860 the h1 "Stop colecting screenshots." breaks after "Stop" and after "colecting". Fix the size with a `clamp()` so it never exceeds two lines from 1024 px up, and stays inside 360 px on phones. Test `keeps the hero headline to two lines at 1366 px`: at 1366×860, `Math.round(h1.getBoundingClientRect().height / parseFloat(getComputedStyle(h1).lineHeight)) <= 2`.
+2. **The struck ghost line wraps on desktop.** "− Collect screenshots of every typo before launch." should be one line at 1366 px (it may wrap on phones). Keep it at least 24 px (large text, as Milestone 6a decided). Test `keeps the struck ghost line on one line at 1366 px`, measured the same way (`<= 1`).
+3. **English inside the Arabic half breaks its punctuation.** The untranslated "Upgrade anytime." renders as ".Upgrade anytime" in the right-to-left half. Isolate every Latin string inside the Arabic rendering (`<bdi>` or `dir="ltr"` on the element), in the static HTML fallback and in the island. Test `isolates English strings inside the Arabic half`: every `.is-untranslated` element inside the Arabic half has `dir="ltr"` or is a `bdi` element, and its `textContent` ends with the "." it has in English.
+4. **Phone navigation wraps to two rows.** At 390 px the four nav links take two lines under the logo. At widths below 640 px, show only "GitHub" plus the logo (the other links stay in the DOM for wider screens, hidden with a media query, not removed). Test `keeps the header to one row at 390 px`: the header's height is under 72 px and every visible nav link's `top` is the same.
+5. **Phone pile: cards are clipped off-screen and the headline sits below the fold.** At 390×844 the cards hang past both edges and "This was your launch week." starts near y = 1650. Lay the pile out inside the viewport below 640 px (smaller cards, positions within the width) and put the headline within the first viewport. Test `keeps the pile inside the phone screen`: at 390×844 with reduced motion off, every pile card's bounding box lies within `0 … 390` horizontally, and the headline's top is below 844. Also check reduced motion still shows the end state.
+6. **Pile end state shows a red ring fragment under the pull request card.** With reduced motion, a dashed red ring piece shows under "Fix copy on pricing and signup". The end state shows only the pull request card. Test `shows only the pull request card when the pile has collapsed`: with `reducedMotion: 'reduce'`, no pile card other than the PR card is visible (`opacity` 0 or `visibility: hidden` or `display: none`).
+
+- [ ] **Step 1:** Write `tests/site/polish.spec.ts` with the six tests above (desktop project for 1–3 and 6; set the viewport to 390×844 inside the test for 4–5, tagged so they run in the desktop project).
+- [ ] **Step 2:** Run `npx playwright test -c playwright.site.config.ts tests/site/polish.spec.ts`. Expected: FAIL on all six (if one passes already, say so in the report and keep it as a guard).
+- [ ] **Step 3:** Fix each defect in CSS or markup within the brand rules (spec §2.3, §2.4; one job per colour, no new colours, no glows).
+- [ ] **Step 4:** Run the polish spec. Expected: 6 passed. Then run the whole site suite `npm run test:site` and `npx vitest run tests/unit/site tests/unit/brand`. Expected: all pass.
+- [ ] **Step 5:** Gates (`npm run typecheck`, `npm run lint`, `npm run format:check`, `npm run site:typecheck`) exit 0. Commit: `fix(site): polish the hero, the Arabic half, the phone header and the phone pile`.
+
 # Milestone 6: Clips, quality gates and launch (spec §3.3, §3.4, §7.2)
 
 **Dependency:** Task 17 needs the rebranded Studio (launch-features Tasks 10–16: tokens, type, logo, theme; and its hunk values, Tasks 33–35) on this branch. Task 18 adds `@axe-core/playwright` unless launch-features Task 29 already has. Task 20 needs 0.11.0 ready to publish. Task 19 has no 0.11.0 dependency.
