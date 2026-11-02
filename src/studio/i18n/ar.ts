@@ -210,7 +210,7 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'plural.desc_explicit': 'حالة صريحة',
   'plural.needed': 'مطلوبة للغة {locale}',
   'locales.add_label': 'إضافة لغة جديدة',
-  'locales.add_placeholder': 'مثل fr أو es-MX',
+  'locales.add_placeholder': 'fr, es-MX',
   'locales.add': 'أضف',
   'locales.format_hint': 'رمز اللغة حرفان أو ثلاثة، ويمكن أن تتبعه منطقة (مثل fr أو es-MX).',
   'locales.exists': 'هذه اللغة موجودة بالفعل.',
