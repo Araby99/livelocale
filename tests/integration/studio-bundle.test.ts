@@ -19,6 +19,26 @@ describe.skipIf(!fs.existsSync('dist/studio/index.html'))('built Studio bundle',
     expect(html).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
     expect(html).toContain('name="robots" content="noindex, nofollow"');
     expect(fs.readdirSync('dist/studio/assets').some((f) => f.endsWith('.woff2'))).toBe(true);
-    expect(dirBytes('dist/studio')).toBeLessThan(1_000_000);
+    // The hunk faces (Martian Mono, IBM Plex Sans, Mono and Sans Arabic, woff2 plus woff) put the bundle near 0.97 MB.
+    expect(dirBytes('dist/studio')).toBeLessThan(1_100_000);
+  });
+
+  it('ships only the hunk faces', () => {
+    const woff2 = fs.readdirSync('dist/studio/assets').filter((f) => f.endsWith('.woff2'));
+    for (const prefix of [
+      'martian-mono-latin-',
+      'ibm-plex-sans-latin-',
+      'ibm-plex-mono-latin-',
+      'ibm-plex-sans-arabic-arabic-',
+    ])
+      expect(
+        woff2.some((f) => f.startsWith(prefix)),
+        prefix
+      ).toBe(true);
+    expect(
+      woff2.filter((f) =>
+        /^(?:inter|bricolage-grotesque|jetbrains-mono|readex-pro|outfit)-/.test(f)
+      )
+    ).toEqual([]);
   });
 });

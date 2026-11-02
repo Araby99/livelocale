@@ -14,12 +14,17 @@ import {
   ReviewPanel,
   FirstRunTips,
   StudioLayout,
+  ThemeToggle,
+  LanguageToggle,
   useStudio,
+  useTheme,
   useMediaQuery,
   WIDE_LAYOUT_QUERY,
   type StudioPanel,
 } from './features/dashboard/index.js';
-import { isAppPreviewBlocked } from './runtime.js';
+import { TRANSLATION_INPUT_ID } from './features/dashboard/constants.js';
+import { isAppPreviewBlocked, isShareStudio } from './runtime.js';
+import { useStudioText } from './i18n/StudioLanguage.js';
 
 export const App = () => {
   const {
@@ -116,6 +121,8 @@ export const App = () => {
     submitImport,
     importError,
   } = useStudio();
+  const theme = useTheme(isShareStudio());
+  const { lang, dir, t } = useStudioText();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
@@ -147,8 +154,27 @@ export const App = () => {
     [selectKeyDirectly]
   );
 
+  // A pick made from the keyboard lands in the editor, so typing goes straight into the
+  // translation. The frame lets the new selection and the opened drawer render first.
+  const focusEditor = useCallback(() => {
+    setOpenPanel('side');
+    requestAnimationFrame(() => {
+      // An unsaved-changes prompt may have opened instead; it keeps the focus.
+      if (document.querySelector('[aria-modal="true"]') !== null) return;
+      const target =
+        document.getElementById(TRANSLATION_INPUT_ID) ??
+        document.querySelector('[data-testid="editor-panel"]')?.querySelector('input');
+      target?.focus();
+    });
+  }, []);
+
   return (
-    <div className="w-screen h-screen flex flex-col bg-[#0b0f19] text-slate-100 font-sans select-none overflow-hidden antialiased">
+    <div
+      data-testid="studio-root"
+      lang={lang}
+      dir={dir}
+      className="w-screen h-screen flex flex-col bg-app text-fg font-sans select-none overflow-hidden antialiased"
+    >
       <TokenModal isOpen={needsToken} onSubmit={submitToken} />
 
       <Header
@@ -167,6 +193,12 @@ export const App = () => {
         isReviewing={isReviewing}
         onCloseReview={closeReview}
         onImport={openImport}
+        settings={
+          <>
+            <LanguageToggle />
+            <ThemeToggle choice={theme.choice} onChange={theme.setChoice} />
+          </>
+        }
       />
 
       <ChangesPanel
@@ -198,7 +230,7 @@ export const App = () => {
         isWide={isWide}
         openPanel={openPanel}
         onOpenPanelChange={setOpenPanel}
-        sideLabel={isReviewing ? 'Review' : 'Editor'}
+        sideLabel={isReviewing ? t('layout.review') : t('layout.editor')}
         keys={
           <KeysDirectory
             className={isWide ? undefined : 'w-full'}
@@ -211,6 +243,7 @@ export const App = () => {
             setFilterPageOnly={setFilterPageOnly}
             visibleKeys={visibleKeys}
             selectKeyDirectly={pickKey}
+            onKeyActivatedByKeyboard={focusEditor}
           />
         }
         viewer={
@@ -219,9 +252,9 @@ export const App = () => {
           isAppPreviewBlocked() ? (
             <section
               data-testid="app-preview-blocked"
-              className="flex-1 flex items-center justify-center h-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-sm text-slate-400"
+              className="flex-1 flex items-center justify-center h-full bg-raised border border-line rounded-2xl p-6 text-center text-sm text-fg-muted"
             >
-              The app preview is unavailable until the setup problem above is fixed.
+              {t('viewer.preview_blocked')}
             </section>
           ) : (
             <IframeViewer

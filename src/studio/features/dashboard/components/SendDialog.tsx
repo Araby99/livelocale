@@ -12,6 +12,8 @@ import {
   SEND_NOTE_MAX_CHARS,
 } from '../../../share/send.js';
 import { GitHubIssueAction } from './GitHubIssueAction.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { studioMessage } from '../../../i18n/catalogue.js';
 import { useDialog } from '../hooks/useDialog.js';
 import { copyText, downloadText, readPref, writePref } from '../../../share/browser.js';
 
@@ -33,18 +35,6 @@ interface BatchLink {
   count: number;
 }
 
-const COPIED = 'Link copied. Paste it to your developer in chat or email.';
-const COPY_FAILED =
-  'Copy did not work in this browser. Select the link above, copy it, then press “I copied it”.';
-const DOWNLOADED = 'File saved. Send it to your developer.';
-const OPENED = 'GitHub opened in a new tab.';
-const TOO_LONG = 'This batch is too long for a chat message. Use Download file instead.';
-const GITHUB_HINT =
-  'Press “Submit new issue” on GitHub. A pull-request link appears as a comment about a minute later.';
-const NOTHING_TO_SEND = 'There are no changes to send.';
-
-const changes = (n: number) => (n === 1 ? '1 change' : `${n} changes`);
-
 const actionButton =
   'h-9 px-4 rounded-xl text-xs font-semibold border transition duration-150 disabled:opacity-40 disabled:cursor-not-allowed';
 
@@ -57,6 +47,7 @@ export const SendDialog = ({
   studioHref,
   onMarkSent,
 }: SendDialogProps) => {
+  const { t } = useStudioText();
   const [name, setName] = useState(() => readPref('translator-name') ?? '');
   const [note, setNote] = useState('');
   const [includeSent, setIncludeSent] = useState(false);
@@ -114,13 +105,13 @@ export const SendDialog = ({
       })
       .catch((err: unknown) => {
         if (seq === encodeSeq.current) {
-          setEncodeError('Could not create the link: ' + describeLinkError(err));
+          setEncodeError(t('send.encode_failed', { reason: describeLinkError(err, t) }));
         }
       })
       .finally(() => {
         if (seq === encodeSeq.current) setEncoding(false);
       });
-  }, [isOpen, manifest, included, name, note, studioHref]);
+  }, [isOpen, manifest, included, name, note, studioHref, t]);
 
   if (!isOpen || !manifest) return null;
 
@@ -149,7 +140,7 @@ export const SendDialog = ({
       await onMarkSent(batch);
       setOutcome(done);
     } catch (err: any) {
-      setActionError(err?.message || 'Could not mark the changes as sent.');
+      setActionError(err?.message || t('send.mark_failed'));
     }
   };
 
@@ -168,7 +159,7 @@ export const SendDialog = ({
     try {
       downloadText(changeFileName('changes', new Date()), shownLink + '\n');
     } catch (err: any) {
-      setActionError(err?.message || 'Could not save the file.');
+      setActionError(err?.message || t('send.save_failed'));
       return;
     }
     await markSent(batch, 'downloaded');
@@ -180,20 +171,20 @@ export const SendDialog = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-overlay flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-send-title"
-        className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4"
+        className="bg-raised border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4"
       >
-        <h3 id="studio-send-title" className="text-base font-bold text-slate-200 font-outfit">
-          Send to developer
+        <h3 id="studio-send-title" className="text-base font-bold text-fg font-heading">
+          {t('send.title')}
         </h3>
 
         <label className="block space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400">Your name</span>
+          <span className="text-[11px] font-semibold text-fg-muted">{t('send.name_label')}</span>
           <input
             id="studio-send-name"
             type="text"
@@ -201,14 +192,12 @@ export const SendDialog = ({
             maxLength={SEND_NAME_MAX_CHARS}
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
-            className="w-full h-9 px-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500"
+            className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs text-fg"
           />
         </label>
 
         <label className="block space-y-1">
-          <span className="text-[11px] font-semibold text-slate-400">
-            Note for the developer (optional)
-          </span>
+          <span className="text-[11px] font-semibold text-fg-muted">{t('send.note_label')}</span>
           <textarea
             id="studio-send-note"
             dir="auto"
@@ -216,48 +205,55 @@ export const SendDialog = ({
             maxLength={SEND_NOTE_MAX_CHARS}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
+            className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-xs text-fg resize-none"
           />
         </label>
 
         {alreadySent > 0 && (
-          <label className="flex items-center gap-2 text-xs text-slate-300">
+          <label className="flex items-center gap-2 text-xs text-fg">
             <input
               type="checkbox"
               checked={includeSent}
               onChange={(e) => setIncludeSent(e.target.checked)}
             />
-            {`Also include ${changes(alreadySent)} already sent`}
+            {t('send.include_sent', { count: alreadySent })}
           </label>
         )}
 
         {showingSent ? null : included.length === 0 ? (
-          <p className="text-xs text-slate-500">{NOTHING_TO_SEND}</p>
+          <p className="text-xs text-fg-muted">{t('send.nothing_to_send')}</p>
         ) : (
           <ul data-testid="send-dialog-changes" className="max-h-48 overflow-y-auto space-y-1.5">
             {included.map((d) => (
               <li
                 key={`${d.locale}/${d.key}`}
-                className="px-3 py-2 rounded-xl bg-slate-950/40 border border-slate-800/80 space-y-1"
+                className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
               >
-                <span className="block text-[11px] font-mono text-indigo-400 break-all">
+                <span dir="ltr" className="block text-[11px] font-mono text-info-fg break-all">
                   {`${d.key} · ${d.locale}`}
                 </span>
                 <div className="text-[10px] leading-relaxed">
                   {d.from ? (
-                    <span dir="auto" className="text-rose-400/80 line-through break-all">
+                    <span
+                      dir="auto"
+                      className="text-fg-muted line-through decoration-fg-faint break-all"
+                    >
                       {d.from}
                     </span>
                   ) : (
-                    <em className="text-rose-400/80 line-through">empty</em>
+                    <em className="text-fg-muted line-through decoration-fg-faint">
+                      {t('send.empty')}
+                    </em>
                   )}
-                  <span className="text-slate-600"> → </span>
+                  <span className="text-fg-muted" aria-hidden="true">
+                    {` ${t('common.arrow')} `}
+                  </span>
                   {d.to ? (
-                    <span dir="auto" className="text-emerald-300 break-all">
+                    <span dir="auto" className="text-accent-fg break-all">
                       {d.to}
                     </span>
                   ) : (
-                    <em className="text-emerald-300">empty</em>
+                    <em className="text-accent-fg">{t('send.empty')}</em>
                   )}
                 </div>
               </li>
@@ -266,48 +262,61 @@ export const SendDialog = ({
         )}
 
         {overflow > 0 && (
-          <p className="text-xs text-amber-300">
-            {`${included.length} of ${included.length + overflow} changes are in this link. Send again for the rest.`}
+          <p role="status" className="glyph-warn text-xs text-warning-fg">
+            {t('send.overflow', { count: included.length, total: included.length + overflow })}
           </p>
         )}
 
-        {encodeError && <p className="text-xs text-rose-400 break-words">{encodeError}</p>}
+        {encodeError && (
+          <p role="alert" className="text-xs text-danger-fg break-words">
+            {encodeError}
+          </p>
+        )}
 
         {shownLink !== null && !tooLong && (
           <input
             id="studio-send-link"
             data-testid="change-link"
             type="text"
+            dir="ltr"
             readOnly
+            aria-label={t('send.link_label')}
             value={shownLink}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full h-9 px-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300"
+            className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg"
           />
         )}
-        {tooLong && <p className="text-xs text-amber-300">{TOO_LONG}</p>}
+        {tooLong && (
+          <p role="status" className="glyph-warn text-xs text-warning-fg">
+            {t('send.too_long')}
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
             id="studio-send-copy"
             onClick={handleCopy}
             disabled={!canCopy}
-            className={`${actionButton} text-indigo-100 bg-indigo-600 hover:bg-indigo-500 border-indigo-500`}
+            className={`${actionButton} text-on-accent bg-accent hover:bg-accent-hover border-accent-line`}
           >
-            Copy link
+            {t('send.copy')}
           </button>
           <button
+            type="button"
             id="studio-send-download"
             onClick={handleDownload}
             disabled={!canDownload}
-            className={`${actionButton} text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border-slate-700`}
+            className={`${actionButton} text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong`}
           >
-            Download file
+            {t('send.download')}
           </button>
           <button
+            type="button"
             onClick={onClose}
-            className={`${actionButton} ml-auto text-slate-400 hover:text-slate-200 bg-slate-800 border-slate-800 hover:border-slate-700`}
+            className={`${actionButton} ms-auto text-fg-muted hover:text-fg bg-raised border-line hover:border-line-strong`}
           >
-            Close
+            {t('send.close')}
           </button>
         </div>
 
@@ -318,40 +327,47 @@ export const SendDialog = ({
               token={shown.token}
               count={shown.count}
               by={name}
-              label="Open on GitHub"
+              label={t('send.open_github')}
               onOpened={() => void markSent(included, 'opened')}
             />
-            <p className="text-[11px] text-slate-400">{GITHUB_HINT}</p>
+            <p className="text-[11px] text-fg-muted">{t('send.github_hint')}</p>
           </div>
         )}
 
         {outcome === 'copied' && (
-          <p role="status" className="text-xs text-emerald-300">
-            {COPIED}
+          <p role="status" className="glyph-done text-xs text-success-fg">
+            {t('send.copied')}
           </p>
         )}
         {outcome === 'downloaded' && (
-          <p role="status" className="text-xs text-emerald-300">
-            {DOWNLOADED}
+          <p role="status" className="glyph-done text-xs text-success-fg">
+            {t('send.downloaded')}
           </p>
         )}
         {outcome === 'opened' && (
-          <p role="status" className="text-xs text-emerald-300">
-            {OPENED}
+          <p role="status" className="glyph-done text-xs text-success-fg">
+            {t('send.opened')}
           </p>
         )}
         {outcome === 'copy-failed' && (
-          <div role="status" className="space-y-2">
-            <p className="text-xs text-amber-300">{COPY_FAILED}</p>
+          <div className="space-y-2">
+            <p role="alert" className="glyph-warn text-xs text-warning-fg">
+              {t('send.copy_failed')}
+            </p>
             <button
+              type="button"
               onClick={() => markSent(included, 'copied')}
-              className={`${actionButton} text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border-slate-700`}
+              className={`${actionButton} text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong`}
             >
-              I copied it
+              {t('send.copied_confirm')}
             </button>
           </div>
         )}
-        {actionError && <p className="text-xs text-rose-400 break-words">{actionError}</p>}
+        {actionError && (
+          <p role="alert" className="text-xs text-danger-fg break-words">
+            {studioMessage(t, actionError)}
+          </p>
+        )}
       </div>
     </div>
   );

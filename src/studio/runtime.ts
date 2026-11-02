@@ -83,3 +83,8 @@ export function isAppPreviewBlocked(): boolean {
   const runtime = getStudioRuntime();
   return runtime.kind === 'server' && runtime.problems.includes(STATIC_MANIFEST_MISSING);
 }
+
+/** True when the Studio runs from a share folder (the non-developer's link), even one whose manifest is missing. */
+export function isShareStudio(): boolean {
+  return getStudioRuntime().kind === 'static' || isAppPreviewBlocked();
+}

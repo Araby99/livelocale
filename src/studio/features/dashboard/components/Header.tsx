@@ -1,7 +1,10 @@
 import React from 'react';
 import type { LiveLocaleMode } from '../../../api.js';
 import { unsentLabel } from '../hooks/useDrafts.js';
+import { BrandMark } from './BrandMark.js';
 import type { LocaleSource } from '../../../locale-inference.js';
+import type { StringKey } from '../../../i18n/catalogue.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 // Injected by Vite at build/dev time from package.json version (see vite.config.ts).
 declare const __STUDIO_VERSION__: string;
@@ -35,16 +38,16 @@ interface HeaderProps {
   onCloseReview?: () => void;
   /** Opens the Import change link dialog; the button renders only in development mode. */
   onImport?: () => void;
+  /** Header settings (language, then theme); always visible, rendered only when set. */
+  settings?: React.ReactNode;
 }
 
-const reviewingLabel = (n: number) =>
-  n === 1 ? 'Reviewing 1 proposed change' : `Reviewing ${n} proposed changes`;
-
-const SOURCE_HINTS: Record<LocaleSource, string> = {
-  content: 'detected from page text',
-  url: 'from the page address',
-  manual: 'chosen by you',
-  remembered: 'from your last visit',
+/** The catalogue key of the hint saying where the target locale came from. */
+const SOURCE_HINTS: Record<LocaleSource, StringKey> = {
+  content: 'header.source_content',
+  url: 'header.source_url',
+  manual: 'header.source_manual',
+  remembered: 'header.source_remembered',
 };
 
 export const Header = ({
@@ -63,37 +66,29 @@ export const Header = ({
   isReviewing = reviewCount !== null,
   onCloseReview,
   onImport,
+  settings,
 }: HeaderProps) => {
+  const { t } = useStudioText();
   const mismatch =
     targetLocale?.mismatch && (!locales || locales.includes(targetLocale.mismatch))
       ? targetLocale.mismatch
       : null;
 
   return (
-    <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
+    <header className="h-16 bg-surface border-b border-line px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
       <div className="flex items-center gap-3 shrink-0">
-        <div className="w-8 h-8 rounded-xl bg-linear-to-tr from-indigo-600 to-violet-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2.5}
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            />
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            />
-          </svg>
-        </div>
+        <BrandMark className="h-8 w-8 shrink-0" />
         <div>
-          <h1 className="text-base font-extrabold tracking-wide font-outfit bg-linear-to-r from-slate-100 to-slate-300 bg-clip-text text-transparent">
-            LiveLocale
+          {/* The wordmark is the brand: the same in every Studio language. */}
+          <h1
+            lang="en"
+            dir="ltr"
+            className="text-base font-heading font-medium tracking-[-0.02em] text-fg"
+          >
+            livelocale
           </h1>
-          <p className="hidden xl:block text-[10px] text-slate-500 font-medium tracking-wider uppercase mt-0.5">
-            Live Visual Translation Studio
+          <p className="hidden xl:block text-[10px] text-fg-muted font-medium tracking-wider uppercase mt-0.5">
+            {t('header.tagline')}
           </p>
         </div>
       </div>
@@ -101,33 +96,42 @@ export const Header = ({
       {/* Coverage progress bar + version badge. Below xl the hints and Coverage hide and the
           locale chip shrinks first, so Send to developer and Changes always stay on screen. */}
       <div className="flex items-center justify-end gap-3 xl:gap-5 min-w-0">
+        {/* overflow-hidden truncates the chip; p-1 -m-1 gives the mismatch button's focus ring room
+            inside the clip without moving anything. */}
         {targetLocale && (
           <div
             data-testid="target-locale"
-            className="flex items-center gap-2 select-none min-w-0 overflow-hidden"
+            className="flex items-center gap-2 select-none min-w-0 overflow-hidden p-1 -m-1"
           >
             {targetLocale.source === null ? (
-              <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-semibold text-slate-400 whitespace-nowrap truncate min-w-0">
-                Language: not chosen yet
+              <span className="px-2.5 py-1 rounded-full bg-raised border border-line text-[10px] font-semibold text-fg-muted whitespace-nowrap truncate min-w-0">
+                {t('header.locale_unset')}
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] whitespace-nowrap min-w-0">
-                <span className="font-bold text-indigo-200">{`${isReviewing ? 'Viewing' : 'Editing'}: ${targetLocale.locale}`}</span>
-                <span className="hidden xl:inline text-slate-400">
-                  {SOURCE_HINTS[targetLocale.source]}
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] whitespace-nowrap min-w-0">
+                {/* The locale code is isolated by the catalogue in right-to-left text. */}
+                <span className="font-bold text-accent-fg">
+                  {t(isReviewing ? 'header.viewing' : 'header.editing', {
+                    locale: targetLocale.locale,
+                  })}
+                </span>
+                <span className="hidden xl:inline text-fg">
+                  {t(SOURCE_HINTS[targetLocale.source])}
                 </span>
               </span>
             )}
             {mismatch && (
-              <span className="flex items-center gap-1.5 text-[10px] text-amber-300 whitespace-nowrap shrink-0">
-                <span className="hidden xl:inline">{`This text looks like ${mismatch}.`}</span>
+              <span className="glyph-warn flex items-center gap-1.5 text-[10px] text-warning-fg whitespace-nowrap shrink-0">
+                <span className="hidden xl:inline">
+                  {t('header.mismatch', { locale: mismatch })}
+                </span>
                 <button
                   type="button"
                   onClick={() => onChooseLocale?.(mismatch)}
-                  title={`This text looks like ${mismatch}.`}
-                  className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 font-semibold hover:bg-amber-500/20 transition duration-150"
+                  title={t('header.mismatch', { locale: mismatch })}
+                  className="px-2 py-0.5 rounded-md bg-warning-bg border border-warning-line font-semibold hover:bg-warning-bg transition duration-150"
                 >
-                  {`Switch to ${mismatch}`}
+                  {t('header.switch_locale', { locale: mismatch })}
                 </button>
               </span>
             )}
@@ -137,45 +141,39 @@ export const Header = ({
         {/* Translation coverage metric */}
         <div
           className={`items-center gap-2.5 shrink-0 ${targetLocale ? 'hidden xl:flex' : 'flex'}`}
-          title={`${coveragePercentage}% of keys translated`}
+          title={t('header.coverage_title', { percent: coveragePercentage })}
         >
-          <span className="text-[10px] text-slate-500 font-medium select-none whitespace-nowrap">
-            Coverage
+          <span className="text-[10px] text-fg-muted font-medium select-none whitespace-nowrap">
+            {t('header.coverage')}
           </span>
-          <div className="w-16 xl:w-28 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-16 xl:w-28 h-1.5 bg-raised rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${coveragePercentage}%`,
-                background:
-                  coveragePercentage >= 80
-                    ? 'linear-gradient(90deg, #34d399, #059669)'
-                    : coveragePercentage >= 40
-                      ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
-                      : 'linear-gradient(90deg, #f87171, #ef4444)',
-              }}
+              className={`h-full rounded-full transition-all duration-700 ease-out ${
+                coveragePercentage >= 80 ? 'bg-success-fg' : 'bg-warning-fg'
+              }`}
+              style={{ width: `${coveragePercentage}%` }}
             />
           </div>
-          <span className="text-[10px] font-bold font-mono text-slate-400 select-none tabular-nums">
+          <span className="text-[10px] font-bold font-mono text-fg-muted select-none tabular-nums">
             {coveragePercentage}%
           </span>
         </div>
 
         {mode === 'preview' && (
           <span
-            className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-extrabold tracking-wider text-amber-300 select-none"
-            title="Edits go to a git branch on the server; nothing is written locally."
+            className="glyph-warn px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-extrabold tracking-wider text-warning-fg select-none"
+            title={t('header.preview_title')}
           >
-            PREVIEW
+            {t('header.preview')}
           </span>
         )}
 
         {reviewCount !== null && (
           <span
             data-testid="review-chip"
-            className="shrink-0 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] font-semibold text-indigo-200 select-none whitespace-nowrap"
+            className="shrink-0 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] font-semibold text-fg select-none whitespace-nowrap"
           >
-            {reviewingLabel(reviewCount)}
+            {t('header.reviewing', { count: reviewCount })}
           </span>
         )}
 
@@ -184,31 +182,32 @@ export const Header = ({
             id="studio-close-review"
             type="button"
             onClick={onCloseReview}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
           >
-            Close review
+            {t('header.close_review')}
           </button>
         )}
 
         {!isReviewing && unsentCount > 0 && (
           <span
             data-testid="unsent-counter"
-            className="shrink-0 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-300 select-none whitespace-nowrap"
-            title="Saved in this browser only. Send them to your developer before you leave."
+            className="glyph-warn shrink-0 px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-semibold text-warning-fg select-none whitespace-nowrap"
+            title={t('header.unsent_title')}
           >
-            {unsentLabel(unsentCount)}
+            {unsentLabel(unsentCount, t)}
           </span>
         )}
 
         {!isReviewing && onSend && (
           <button
+            type="button"
             id="studio-send-button"
             onClick={onSend}
             disabled={!canSend}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-indigo-600 border-indigo-500 text-indigo-50 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
-            title="Turn your changes into a link or file for your developer"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-accent border-accent-line text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
+            title={t('header.send_title')}
           >
-            Send to developer
+            {t('header.send')}
           </button>
         )}
 
@@ -217,24 +216,26 @@ export const Header = ({
             id="studio-import-button"
             type="button"
             onClick={onImport}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
-            title="Review a translator's change link and apply it to your local files"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
+            title={t('header.import_title')}
           >
-            Import change link
+            {t('header.import')}
           </button>
         )}
 
         <button
+          type="button"
           id="studio-changes-button"
           onClick={onToggleChanges}
           className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold whitespace-nowrap transition duration-150 ${
             isChangesOpen
-              ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-              : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700'
+              ? 'bg-accent-soft border-accent-line text-accent-fg'
+              : 'bg-raised border-line text-fg hover:text-fg hover:border-line-strong'
           }`}
-          title="Review, commit, or undo locale changes"
+          title={t('header.changes_title')}
         >
           <svg
+            aria-hidden="true"
             className="w-3.5 h-3.5"
             fill="none"
             stroke="currentColor"
@@ -246,16 +247,22 @@ export const Header = ({
             <circle cx="12" cy="12" r="3" />
             <path d="M12 3v6M12 15v6" />
           </svg>
-          Changes
+          {t('header.changes')}
           {changesCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-300">
+            <span className="glyph-warn px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-[10px] font-mono font-bold text-warning-fg">
               {changesCount}
             </span>
           )}
         </button>
 
-        <span className="hidden xl:block px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 select-none">
-          v{__STUDIO_VERSION__} (BETA)
+        {settings != null && (
+          <div data-testid="header-settings" className="flex items-center gap-2 shrink-0">
+            {settings}
+          </div>
+        )}
+
+        <span className="hidden xl:block px-3 py-1 rounded-full bg-raised border border-line text-[10px] font-bold text-fg-muted select-none whitespace-nowrap">
+          <span dir="ltr">v{__STUDIO_VERSION__}</span> {t('header.beta')}
         </span>
       </div>
     </header>

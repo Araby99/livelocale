@@ -3,6 +3,9 @@ import { SelectedElement } from '../types/index.js';
 import { extractPlaceholders } from '../../../../core/placeholders.js';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
 import { PluralEditor } from './PluralEditor.jsx';
+import { TRANSLATION_INPUT_ID } from '../constants.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
 export interface SaveWarning {
   code: string;
@@ -30,15 +33,16 @@ interface TranslationEditorProps {
 type ChipState = 'present' | 'missing' | 'extra';
 
 const CHIP_STYLES: Record<ChipState, string> = {
-  present: 'bg-slate-800/80 border-slate-700 text-slate-300',
-  missing: 'bg-rose-500/10 border-rose-500/40 text-rose-300 line-through',
-  extra: 'bg-amber-500/10 border-amber-500/40 text-amber-300',
+  present: 'bg-raised border border-line-strong text-fg',
+  missing:
+    'bg-transparent border-[1.5px] border-dashed border-danger-line text-danger-fg line-through',
+  extra: 'glyph-warn bg-warning-bg border border-warning-line text-warning-fg',
 };
 
-const CHIP_TITLES: Record<ChipState, string> = {
-  present: 'Placeholder from the reference, present in your translation',
-  missing: 'Placeholder from the reference is missing from your translation',
-  extra: 'Placeholder not present in the reference',
+const CHIP_TITLES: Record<ChipState, StringKey> = {
+  present: 'editor.chip_present',
+  missing: 'editor.chip_missing',
+  extra: 'editor.chip_extra',
 };
 
 export const TranslationEditor = ({
@@ -55,6 +59,7 @@ export const TranslationEditor = ({
   onDismissWarning,
   onClear,
 }: TranslationEditorProps) => {
+  const { t } = useStudioText();
   // Plural messages get a structured editor unless the user switches to raw text.
   const [showRaw, setShowRaw] = useState(false);
   const isPlural = useMemo(() => parsePluralMessage(inputValue) !== null, [inputValue]);
@@ -87,39 +92,45 @@ export const TranslationEditor = ({
       {/* Key Path Info (RULE STD-003: Read-only display) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Translation Key
+          <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+            {t('editor.key')}
           </label>
           <button
+            type="button"
             onClick={onClear}
-            className="text-[10px] font-medium text-slate-500 hover:text-slate-300 transition duration-200"
+            className="text-[10px] font-medium text-fg-muted hover:text-fg transition duration-200"
           >
-            Clear Selection
+            {t('editor.clear')}
           </button>
         </div>
-        <div className="bg-slate-950 border border-slate-800/80 rounded-xl px-4 py-3 font-mono text-xs text-indigo-400 select-all break-all shadow-inner leading-relaxed">
+        <div
+          dir="ltr"
+          className="bg-surface border border-line rounded-xl px-4 py-3 font-mono text-xs text-info-fg select-all break-all leading-relaxed"
+        >
           {selected.key}
         </div>
       </div>
 
       {/* Fallback Reference */}
       <div className="space-y-2">
-        <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-          Reference (Fallback Value)
+        <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+          {t('editor.reference')}
         </label>
         <div
           dir="auto"
-          className="bg-slate-950/40 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-400 select-all leading-relaxed whitespace-pre-wrap"
+          className="bg-surface border border-line rounded-xl px-4 py-3 text-sm text-fg-muted select-all leading-relaxed whitespace-pre-wrap"
         >
-          {selected.fallbackValue || <span className="italic text-slate-600">None</span>}
+          {selected.fallbackValue || (
+            <span className="italic text-fg-muted">{t('editor.reference_none')}</span>
+          )}
         </div>
       </div>
 
       {/* Placeholder parity */}
       {chips.length > 0 && (
         <div className="space-y-2">
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            Placeholders
+          <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+            {t('editor.placeholders')}
           </label>
           <div className="flex flex-wrap gap-1.5">
             {chips.map(({ token, state }) => (
@@ -127,8 +138,9 @@ export const TranslationEditor = ({
                 key={token}
                 data-testid={`placeholder-${token}`}
                 data-state={state}
-                title={CHIP_TITLES[state]}
-                className={`px-2 py-0.5 rounded-md border text-[10px] font-mono ${CHIP_STYLES[state]}`}
+                dir="ltr"
+                title={t(CHIP_TITLES[state])}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${CHIP_STYLES[state]}`}
               >
                 {token}
               </span>
@@ -140,8 +152,8 @@ export const TranslationEditor = ({
       {/* Edit Area */}
       <div className="space-y-2 flex-1 flex flex-col min-h-[180px]" onKeyDown={handleEditKeyDown}>
         <div className="flex items-center justify-between">
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-            {usePluralEditor ? 'Plural forms' : 'Translation Output'}
+          <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+            {usePluralEditor ? t('editor.plural_forms') : t('editor.output')}
           </label>
           <div className="flex items-center gap-3">
             {isPlural && (
@@ -149,12 +161,14 @@ export const TranslationEditor = ({
                 type="button"
                 data-testid="plural-raw-toggle"
                 onClick={() => setShowRaw((v) => !v)}
-                className="text-[10px] font-semibold text-slate-500 hover:text-slate-300 transition duration-150"
+                className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
               >
-                {showRaw ? 'Edit forms' : 'Edit raw'}
+                {showRaw ? t('editor.edit_forms') : t('editor.edit_raw')}
               </button>
             )}
-            <span className="text-[10px] text-slate-500 font-mono">{inputValue.length}/10000</span>
+            <span dir="ltr" className="text-[10px] text-fg-muted font-mono">
+              {inputValue.length}/10000
+            </span>
           </div>
         </div>
         {usePluralEditor ? (
@@ -166,13 +180,14 @@ export const TranslationEditor = ({
           />
         ) : (
           <textarea
-            id="studio-translation-input"
+            id={TRANSLATION_INPUT_ID}
+            aria-label={t('editor.translation_label')}
             dir="auto"
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             disabled={isLoading}
-            placeholder="Type your translation here..."
-            className="w-full min-h-32 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-205 shadow-inner leading-relaxed"
+            placeholder={t('editor.input_placeholder')}
+            className="w-full min-h-32 bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-muted font-sans resize-none transition duration-205 leading-relaxed"
           />
         )}
       </div>
@@ -181,22 +196,27 @@ export const TranslationEditor = ({
       {saveWarning && (
         <div
           data-testid="save-warning"
-          className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 space-y-3"
+          role="alert"
+          className="bg-warning-bg border border-warning-line rounded-xl p-3 space-y-3"
         >
-          <div className="text-xs text-amber-200 leading-relaxed">{saveWarning.message}</div>
+          <div className="glyph-warn text-xs text-warning-fg leading-relaxed">
+            {saveWarning.message}
+          </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onForceSave}
               disabled={isLoading}
-              className="h-8 px-3 rounded-lg text-[11px] font-semibold text-white bg-amber-600 hover:bg-amber-500 active:bg-amber-700 transition duration-150"
+              className="h-8 px-3 rounded-lg text-[11px] font-semibold text-on-warning bg-warning-solid hover:bg-warning-solid/90 transition duration-150"
             >
-              Save anyway
+              {t('editor.save_anyway')}
             </button>
             <button
+              type="button"
               onClick={onDismissWarning}
-              className="h-8 px-3 rounded-lg text-[11px] font-semibold text-slate-300 bg-slate-800 border border-slate-700 hover:border-slate-600 transition duration-150"
+              className="h-8 px-3 rounded-lg text-[11px] font-semibold text-fg bg-raised border border-line-strong hover:border-line-strong transition duration-150"
             >
-              Keep editing
+              {t('editor.keep_editing')}
             </button>
           </div>
         </div>
@@ -204,9 +224,13 @@ export const TranslationEditor = ({
 
       {/* Feedback Messages */}
       {error && (
-        <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 flex items-start gap-[0.625rem] shadow-xs">
+        <div
+          role="alert"
+          className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 flex items-start gap-[0.625rem]"
+        >
           <svg
-            className="w-4 h-4 text-rose-500 shrink-0 mt-0.5"
+            aria-hidden="true"
+            className="w-4 h-4 text-danger-fg shrink-0 mt-0.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -218,25 +242,37 @@ export const TranslationEditor = ({
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <div className="text-xs text-rose-400 font-mono leading-normal break-all">{error}</div>
+          <div className="text-xs text-danger-fg font-mono leading-normal break-all">
+            {studioMessage(t, error)}
+          </div>
         </div>
       )}
+
+      <p role="status" className="sr-only" data-testid="save-status">
+        {isSuccess ? t('editor.saved_status') : ''}
+      </p>
 
       {/* Action buttons */}
       <div className="flex items-center gap-3 pt-4 shrink-0">
         <button
+          type="button"
           id="studio-save-button"
           onClick={onSave}
           disabled={!canSave}
-          className={`flex-1 h-11 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition duration-205 ${
+          className={`flex-1 h-11 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 transition duration-205 ${
             inputValue === selected.currentValue
-              ? 'bg-slate-800 text-slate-500 cursor-not-allowed shadow-none border border-slate-800'
-              : 'bg-indigo-600 hover:bg-indigo-500 text-white active:bg-indigo-700'
+              ? 'bg-raised text-fg-muted cursor-not-allowed shadow-none border border-line'
+              : 'bg-accent hover:bg-accent-hover text-on-accent'
           }`}
         >
           {isLoading ? (
             <>
-              <svg className="animate-spin h-4 w-4 text-indigo-200" fill="none" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="animate-spin h-4 w-4 text-on-accent"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
                 <circle
                   className="opacity-25"
                   cx="12"
@@ -251,30 +287,17 @@ export const TranslationEditor = ({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span>Saving...</span>
+              <span>{t('editor.saving')}</span>
             </>
           ) : isSuccess ? (
             <span
               data-testid="save-success"
-              className="flex items-center gap-1 text-emerald-400 font-bold"
+              className="glyph-done flex items-center gap-1 text-success-fg font-bold"
             >
-              <svg
-                className="w-4 h-4 text-emerald-400"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
-              <span>Saved!</span>
+              <span>{t('editor.saved')}</span>
             </span>
           ) : (
-            <span>Save Changes</span>
+            <span>{t('editor.save')}</span>
           )}
         </button>
       </div>

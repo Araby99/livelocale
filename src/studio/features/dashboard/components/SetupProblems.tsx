@@ -1,3 +1,6 @@
+import { studioMessage } from '../../../i18n/catalogue.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+
 interface SetupProblemsProps {
   /** Problems reported by the server's `?action=info`, e.g. a token without write access. */
   problems: string[];
@@ -5,21 +8,23 @@ interface SetupProblemsProps {
   title?: string;
 }
 
-const DEFAULT_TITLE = 'Saving will fail until the server setup is fixed:';
-
-/** Banner for server setup problems that would make every save fail. */
-export const SetupProblems = ({ problems, title = DEFAULT_TITLE }: SetupProblemsProps) => {
+/**
+ * Banner for server setup problems that would make every save fail. The Studio's own
+ * problems (missing manifest, storage) show in the Studio language; server problems stay as given.
+ */
+export const SetupProblems = ({ problems, title }: SetupProblemsProps) => {
+  const { t } = useStudioText();
   if (problems.length === 0) return null;
   return (
     <div
       role="alert"
       data-testid="setup-problems"
-      className="mx-6 mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200 select-text"
+      className="mx-6 mt-4 rounded-xl border border-dashed border-danger-line bg-danger-bg px-4 py-3 text-xs text-danger-fg select-text"
     >
-      <p className="font-semibold text-rose-100">{title}</p>
-      <ul className="mt-1.5 space-y-1 list-disc pl-4">
+      <p className="font-semibold text-danger-fg">{title ?? t('setup.title')}</p>
+      <ul className="mt-1.5 space-y-1 list-disc ps-4">
         {problems.map((problem) => (
-          <li key={problem}>{problem}</li>
+          <li key={problem}>{studioMessage(t, problem)}</li>
         ))}
       </ul>
     </div>

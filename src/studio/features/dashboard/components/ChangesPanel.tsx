@@ -3,6 +3,9 @@ import type { GitState } from '../../../api.js';
 import type { HistoryEntry } from '../hooks/useHistory.js';
 import type { Draft } from '../../../transport/drafts.js';
 import { DraftList } from './DraftList.js';
+import { useDialog } from '../hooks/useDialog.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
 interface ChangesPanelProps {
   isOpen: boolean;
@@ -32,26 +35,33 @@ const noop = async (): Promise<void> => {};
 const noRestore = async (): Promise<string> => '';
 
 const STATUS_STYLES: Record<string, string> = {
-  modified: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
-  added: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-  deleted: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
-  renamed: 'text-sky-400 border-sky-500/30 bg-sky-500/10',
+  modified: 'glyph-warn text-warning-fg border-warning-line bg-warning-bg',
+  added: 'text-accent-fg border-accent-line bg-accent-soft',
+  deleted: 'text-danger-fg border-dashed border-danger-line bg-danger-bg',
+  renamed: 'glyph-info text-info-fg border-info-line bg-info-bg',
+};
+
+const STATUS_KEYS: Readonly<Record<string, StringKey>> = {
+  modified: 'changes.status_modified',
+  added: 'changes.status_added',
+  deleted: 'changes.status_deleted',
+  renamed: 'changes.status_renamed',
 };
 
 const diffLineClass = (line: string): string => {
-  if (line.startsWith('+++') || line.startsWith('---')) return 'text-slate-500';
-  if (line.startsWith('@@')) return 'text-indigo-400';
-  if (line.startsWith('diff ') || line.startsWith('new file')) return 'text-slate-600';
-  if (line.startsWith('+')) return 'text-emerald-300 bg-emerald-500/10';
-  if (line.startsWith('-')) return 'text-rose-300 bg-rose-500/10';
-  return 'text-slate-400';
+  if (line.startsWith('+++') || line.startsWith('---')) return 'text-fg-muted';
+  if (line.startsWith('@@')) return 'text-info-fg';
+  if (line.startsWith('diff ') || line.startsWith('new file')) return 'text-fg-muted';
+  if (line.startsWith('+')) return 'text-fg bg-accent-soft';
+  if (line.startsWith('-')) return 'text-fg-muted line-through decoration-fg-faint';
+  return 'text-fg-muted';
 };
 
 const formatTime = (epoch: number) =>
   new Date(epoch).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /**
- * Slide-over panel with the git view of the locales directory (status, diff,
+ * Slide-over modal dialog with the git view of the locales directory (status, diff,
  * commit, discard) and the session's edit history with per-entry undo.
  */
 export const ChangesPanel = ({
@@ -75,15 +85,29 @@ export const ChangesPanel = ({
   liveNow,
   onDismissLiveNow,
 }: ChangesPanelProps) => {
+  const { t } = useStudioText();
   const [message, setMessage] = useState('');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
+  const dialogRef = useDialog<HTMLElement>(isOpen, onClose);
 
   if (!isOpen) return null;
 
   const changes = git?.changes ?? [];
   const isGitHub = git?.mode === 'github';
   const canCommit = Boolean(git?.isRepo) && changes.length > 0 && message.trim().length > 0;
+
+  // A sentence with an inline code element at its {code} placeholder.
+  const withCode = (key: StringKey, code: string) => {
+    const [before, after] = t(key).split('{code}');
+    return (
+      <>
+        {before}
+        <code className="font-mono text-fg-muted">{code}</code>
+        {after}
+      </>
+    );
+  };
 
   const handleCommit = async () => {
     const hash = await onCommit(message.trim());
@@ -98,26 +122,43 @@ export const ChangesPanel = ({
   return (
     <div className="fixed inset-0 top-16 z-40 flex justify-end" data-testid="changes-panel">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-overlay" onClick={onClose} />
 
-      <aside className="relative w-[520px] max-w-full h-full bg-slate-900 border-l border-slate-800 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+      <aside
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="studio-changes-title"
+        className="relative w-[520px] max-w-full h-full bg-raised border-s border-line flex flex-col animate-in slide-in-from-end duration-200"
+      >
         {/* Header */}
-        <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
+        <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">Changes</h2>
+            <h2
+              id="studio-changes-title"
+              className="text-sm font-bold tracking-wide font-heading text-fg"
+            >
+              {t('changes.title')}
+            </h2>
             {git?.isRepo && git.branch && (
-              <span className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-indigo-400">
+              <span
+                dir="ltr"
+                className="px-2 py-0.5 rounded-md bg-raised border border-line text-[10px] font-mono text-fg"
+              >
                 {git.branch}
               </span>
             )}
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onRefresh}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent hover:border-slate-700 transition duration-150"
-              title="Refresh"
+              className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-raised-hover border border-transparent hover:border-line-strong transition duration-150"
+              aria-label={t('changes.refresh')}
+              title={t('changes.refresh')}
             >
               <svg
+                aria-hidden="true"
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
@@ -131,11 +172,14 @@ export const ChangesPanel = ({
               </svg>
             </button>
             <button
+              type="button"
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-transparent hover:border-slate-700 transition duration-150"
-              title="Close"
+              className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-raised-hover border border-transparent hover:border-line-strong transition duration-150"
+              aria-label={t('changes.close')}
+              title={t('changes.close')}
             >
               <svg
+                aria-hidden="true"
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
@@ -168,39 +212,34 @@ export const ChangesPanel = ({
             {/* Git status */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  Locale files
+                <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+                  {t('changes.locale_files')}
                 </label>
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-800">
-                  {changes.length} changed
+                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
+                  {t('changes.changed', { count: changes.length })}
                 </span>
               </div>
 
               {git === null ? (
-                <p className="text-xs text-slate-500">Loading git status…</p>
+                <p className="text-xs text-fg-muted">{t('changes.loading')}</p>
               ) : !git.available ? (
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  Git integration is disabled for this handler. Enable it by removing{' '}
-                  <code className="font-mono text-slate-400">git: false</code> from the route
-                  configuration.
+                <p className="text-xs text-fg-muted leading-relaxed">
+                  {withCode('changes.git_disabled', 'git: false')}
                 </p>
               ) : !git.isRepo ? (
-                <p className="text-xs text-slate-500 leading-relaxed">
-                  The locales directory is not inside a git repository, or the{' '}
-                  <code className="font-mono text-slate-400">git</code> command is not on PATH.
+                <p className="text-xs text-fg-muted leading-relaxed">
+                  {withCode('changes.not_repo', 'git')}
                 </p>
               ) : changes.length === 0 ? (
-                <p className="text-xs text-slate-500">
-                  Working tree is clean. Edits you save will show up here.
-                </p>
+                <p className="text-xs text-fg-muted">{t('changes.clean')}</p>
               ) : (
                 <ul className="space-y-1.5">
                   {changes.map((c) => (
                     <li
                       key={c.path}
-                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-slate-950/40 border border-slate-800/80"
+                      className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-surface border border-line"
                     >
-                      <span className="text-[11px] font-mono text-slate-300 break-all">
+                      <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
                         {c.path}
                       </span>
                       <span
@@ -208,7 +247,7 @@ export const ChangesPanel = ({
                           STATUS_STYLES[c.status] ?? STATUS_STYLES.modified
                         }`}
                       >
-                        {c.status}
+                        {STATUS_KEYS[c.status] ? t(STATUS_KEYS[c.status]!) : c.status}
                       </span>
                     </li>
                   ))}
@@ -218,13 +257,14 @@ export const ChangesPanel = ({
               {git?.isRepo && changes.length > 0 && (
                 <div className="space-y-2">
                   <button
+                    type="button"
                     onClick={() => setShowDiff((v) => !v)}
-                    className="text-[10px] font-semibold text-slate-500 hover:text-slate-300 transition duration-150"
+                    className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
                   >
-                    {showDiff ? 'Hide diff' : 'Show diff'}
+                    {t(showDiff ? 'changes.hide_diff' : 'changes.show_diff')}
                   </button>
                   {showDiff && (
-                    <pre className="max-h-72 overflow-auto rounded-xl bg-slate-950 border border-slate-800 p-3 text-[10px] font-mono leading-relaxed whitespace-pre">
+                    <pre className="max-h-72 overflow-auto rounded-xl bg-surface border border-line p-3 text-[10px] font-mono leading-relaxed whitespace-pre">
                       {git.diff.split('\n').map((line, i) => (
                         <div key={i} className={`px-1 ${diffLineClass(line)}`}>
                           {line || ' '}
@@ -239,94 +279,115 @@ export const ChangesPanel = ({
             {/* Commit */}
             {git?.isRepo && (
               <section className="space-y-3">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  {isGitHub ? 'Propose' : 'Commit'}
+                <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+                  {t(isGitHub ? 'changes.propose' : 'changes.commit_section')}
                 </label>
                 {isGitHub && git?.pullRequestUrl && (
                   <a
                     href={git.pullRequestUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="block text-[11px] text-indigo-400 hover:text-indigo-300 underline underline-offset-2"
+                    className="block text-[11px] text-info-fg hover:text-info-fg underline underline-offset-2"
                   >
-                    View the open pull request
+                    {t('changes.view_pr')}
                   </a>
                 )}
+                <label htmlFor="studio-commit-message" className="sr-only">
+                  {t('changes.commit_label')}
+                </label>
                 <textarea
                   id="studio-commit-message"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   disabled={isGitLoading || changes.length === 0}
-                  placeholder={
+                  placeholder={t(
                     changes.length === 0
                       ? isGitHub
-                        ? 'No changes on the branch yet'
-                        : 'Nothing to commit'
+                        ? 'changes.placeholder_branch_clean'
+                        : 'changes.placeholder_nothing'
                       : isGitHub
-                        ? 'Pull request title, e.g. "Update checkout copy"'
-                        : 'i18n: describe the copy change…'
-                  }
+                        ? 'changes.placeholder_pr'
+                        : 'changes.placeholder_commit'
+                  )}
                   maxLength={500}
-                  className="w-full min-h-20 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-xl px-4 py-3 text-xs text-slate-100 placeholder-slate-600 font-sans resize-none transition duration-150 disabled:opacity-60"
+                  className="w-full min-h-20 bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-3 text-xs text-fg placeholder-fg-muted font-sans resize-none transition duration-150 disabled:opacity-60"
                 />
                 <div className="flex items-center gap-3">
                   <button
+                    type="button"
                     id="studio-commit-button"
                     onClick={handleCommit}
                     disabled={!canCommit || isGitLoading}
-                    className="flex-1 h-10 rounded-xl text-xs font-semibold tracking-wide bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed transition duration-150"
+                    className="flex-1 h-10 rounded-xl text-xs font-semibold tracking-wide bg-accent hover:bg-accent-hover active:bg-accent-hover text-on-accent disabled:bg-raised disabled:text-fg-faint disabled:cursor-not-allowed transition duration-150"
                   >
-                    {isGitLoading
-                      ? 'Working…'
-                      : isGitHub
-                        ? git?.pullRequestUrl
-                          ? 'Pull request is open'
-                          : 'Open pull request'
-                        : 'Commit locale changes'}
+                    {t(
+                      isGitLoading
+                        ? 'changes.working'
+                        : isGitHub
+                          ? git?.pullRequestUrl
+                            ? 'changes.pr_open'
+                            : 'changes.open_pr'
+                          : 'changes.commit'
+                    )}
                   </button>
                   {!confirmDiscard ? (
                     <button
+                      type="button"
                       onClick={() => setConfirmDiscard(true)}
                       disabled={changes.length === 0 || isGitLoading}
-                      className="h-10 px-4 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
+                      className="h-10 px-4 rounded-xl text-xs font-semibold text-danger-fg bg-danger-bg hover:bg-danger-bg border border-dashed border-danger-line disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
                     >
-                      {isGitHub ? 'Reset branch' : 'Discard'}
+                      {t(isGitHub ? 'changes.reset_branch' : 'changes.discard')}
                     </button>
                   ) : (
                     <div className="flex items-center gap-2">
                       <button
+                        type="button"
                         onClick={handleDiscard}
                         disabled={isGitLoading}
-                        className="h-10 px-3 rounded-xl text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 active:bg-rose-700 transition duration-150"
+                        className="h-10 px-3 rounded-xl text-xs font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg transition duration-150"
                       >
-                        {isGitHub ? 'Reset to base' : 'Discard all'}
+                        {t(isGitHub ? 'changes.reset_to_base' : 'changes.discard_all')}
                       </button>
                       <button
+                        type="button"
                         onClick={() => setConfirmDiscard(false)}
-                        className="h-10 px-3 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 border border-slate-800 transition duration-150"
+                        className="h-10 px-3 rounded-xl text-xs font-semibold text-fg-muted hover:text-fg bg-raised border border-line transition duration-150"
                       >
-                        Keep
+                        {t('changes.keep')}
                       </button>
                     </div>
                   )}
                 </div>
                 {lastCommit && !gitError && (
-                  <p className="text-[11px] text-emerald-400 font-mono break-all">
+                  <p
+                    role="status"
+                    className="glyph-done text-[11px] text-success-fg font-mono break-all"
+                  >
                     {isGitHub ? (
                       <>
-                        Pull request:{' '}
-                        <a href={lastCommit} target="_blank" rel="noreferrer" className="underline">
+                        {t('changes.pull_request')}{' '}
+                        <a
+                          href={lastCommit}
+                          dir="ltr"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline"
+                        >
                           {lastCommit}
                         </a>
                       </>
                     ) : (
-                      <>Committed as {lastCommit}. Push whenever you are ready.</>
+                      t('changes.committed', { hash: lastCommit })
                     )}
                   </p>
                 )}
                 {gitError && (
-                  <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl p-3 text-xs text-rose-400 font-mono break-all">
-                    {gitError}
+                  <div
+                    role="alert"
+                    className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 text-xs text-danger-fg font-mono break-all"
+                  >
+                    {studioMessage(t, gitError)}
                   </div>
                 )}
               </section>
@@ -335,48 +396,55 @@ export const ChangesPanel = ({
             {/* Session history */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                  This session
+                <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+                  {t('changes.session')}
                 </label>
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-slate-400 border border-slate-800">
-                  {history.length} edits
+                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg-muted border border-line">
+                  {t('changes.edits', { count: history.length })}
                 </span>
               </div>
               {history.length === 0 ? (
-                <p className="text-xs text-slate-500">No edits saved yet in this session.</p>
+                <p className="text-xs text-fg-muted">{t('changes.no_edits')}</p>
               ) : (
                 <ul className="space-y-1.5">
                   {history.map((entry) => (
                     <li
                       key={entry.id}
-                      className="px-3 py-2 rounded-xl bg-slate-950/40 border border-slate-800/80 space-y-1"
+                      className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-[11px] font-mono text-indigo-400 break-all">
+                        <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
                           {entry.key}
-                          <span className="text-slate-600"> · {entry.locale}</span>
+                          <span className="text-fg-muted"> · {entry.locale}</span>
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[9px] text-slate-600 font-mono">
+                          <span className="text-[9px] text-fg-muted font-mono">
                             {formatTime(entry.at)}
                           </span>
                           <button
+                            type="button"
                             onClick={() => onUndo(entry)}
                             disabled={isUndoing}
-                            className="text-[10px] font-semibold text-slate-400 hover:text-slate-100 px-2 py-0.5 rounded-md border border-slate-800 hover:border-slate-600 disabled:opacity-40 transition duration-150"
-                            title="Restore the previous value"
+                            className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
+                            aria-label={t('changes.restore_aria', { key: entry.key })}
+                            title={t('changes.undo_title')}
                           >
-                            Undo
+                            {t('changes.undo')}
                           </button>
                         </div>
                       </div>
                       <div className="text-[10px] leading-relaxed">
-                        <span className="text-rose-400/80 line-through break-all">
-                          {entry.previousValue || <em>empty</em>}
+                        <span
+                          dir="auto"
+                          className="text-fg-muted line-through decoration-fg-faint break-all"
+                        >
+                          {entry.previousValue || <em>{t('changes.empty')}</em>}
                         </span>
-                        <span className="text-slate-600"> → </span>
-                        <span className="text-emerald-300 break-all">
-                          {entry.nextValue || <em>empty</em>}
+                        <span className="text-fg-muted" aria-hidden="true">
+                          {` ${t('common.arrow')} `}
+                        </span>
+                        <span dir="auto" className="text-accent-fg break-all">
+                          {entry.nextValue || <em>{t('changes.empty')}</em>}
                         </span>
                       </div>
                     </li>

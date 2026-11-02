@@ -1,5 +1,6 @@
 import React from 'react';
 import { SelectedElement } from '../types/index.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface KeysDirectoryProps {
   filteredKeys: string[];
@@ -11,6 +12,8 @@ interface KeysDirectoryProps {
   setFilterPageOnly: (filter: boolean) => void;
   visibleKeys: string[] | null;
   selectKeyDirectly: (key: string) => void;
+  /** Called after a pick made from the keyboard (Enter or Space), not by a pointer click. */
+  onKeyActivatedByKeyboard?: (key: string) => void;
   /** Width and flex classes; defaults to the fixed column width. */
   className?: string;
 }
@@ -25,34 +28,37 @@ export const KeysDirectory = ({
   setFilterPageOnly,
   visibleKeys,
   selectKeyDirectly,
+  onKeyActivatedByKeyboard,
   className = 'w-[300px] shrink-0',
 }: KeysDirectoryProps) => {
+  const { t } = useStudioText();
   return (
     <div
       data-testid="keys-directory"
-      className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full overflow-hidden`}
     >
-      <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">
-          Locale Directory
-        </h2>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-900 text-indigo-400 border border-slate-800">
-          {filteredKeys.length} keys
+      <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
+        <h2 className="text-sm font-bold tracking-wide font-heading text-fg">{t('keys.title')}</h2>
+        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-raised text-fg border border-line">
+          {t('keys.count', { count: filteredKeys.length })}
         </span>
       </div>
 
       {/* Search Box & Page Filter Toggle */}
-      <div className="p-4 border-b border-slate-800/80 shrink-0 bg-slate-900/40 space-y-3">
+      <div className="p-4 border-b border-line shrink-0 bg-raised space-y-3">
         <div className="relative">
           <input
+            id="studio-keys-search"
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search keys or values..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-lg text-xs text-slate-200 placeholder-slate-600 transition duration-150"
+            placeholder={t('keys.search')}
+            aria-label={t('keys.search_label')}
+            className="w-full h-9 ps-9 pe-4 bg-surface border border-line hover:border-line-strong rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
           />
           <svg
-            className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-2.5"
+            aria-hidden="true"
+            className="w-3.5 h-3.5 text-fg-muted absolute start-3 top-2.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -67,35 +73,35 @@ export const KeysDirectory = ({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-            Scope
+          <span className="text-[10px] text-fg-muted font-semibold uppercase tracking-wider">
+            {t('keys.scope')}
           </span>
-          <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-0.5 select-none shrink-0">
+          <div className="flex items-center gap-1 bg-surface border border-line rounded-lg p-0.5 select-none shrink-0">
             <button
+              type="button"
               onClick={() => setFilterPageOnly(false)}
+              aria-pressed={!filterPageOnly}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 !filterPageOnly
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
+                  : 'text-fg-muted hover:text-fg'
               }`}
             >
-              All Keys
+              {t('keys.all')}
             </button>
             <button
+              type="button"
               onClick={() => setFilterPageOnly(true)}
+              aria-pressed={filterPageOnly}
               disabled={visibleKeys === null}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 filterPageOnly
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed'
+                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
+                  : 'text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
-              title={
-                visibleKeys === null
-                  ? 'Waiting for preview connection...'
-                  : 'Only show keys on the current page'
-              }
+              title={visibleKeys === null ? t('keys.page_waiting') : t('keys.page_title')}
             >
-              Page Keys
+              {t('keys.page')}
             </button>
           </div>
         </div>
@@ -110,34 +116,53 @@ export const KeysDirectory = ({
             const isMissing = localeData[key] === undefined;
             return (
               <button
+                type="button"
                 key={key}
-                onClick={() => selectKeyDirectly(key)}
-                className={`w-full text-left p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
+                onClick={(event) => {
+                  selectKeyDirectly(key);
+                  // A click from Enter or Space carries detail 0; a pointer click counts its presses.
+                  if (event.detail === 0) onKeyActivatedByKeyboard?.(key);
+                }}
+                aria-current={isActive ? 'true' : undefined}
+                className={`w-full text-start p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
                   isActive
-                    ? 'bg-indigo-600/10 border-indigo-500 text-slate-100 shadow-sm'
-                    : 'bg-slate-950/20 hover:bg-slate-950/50 border-transparent text-slate-300 hover:text-slate-200'
+                    ? 'relative bg-accent-soft border-accent-line text-fg'
+                    : 'bg-surface hover:bg-surface border-transparent text-fg hover:text-fg'
                 }`}
               >
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    data-testid="key-row-bar"
+                    className="absolute inset-y-2 start-0 w-0.75 rounded-full bg-accent-fg"
+                  />
+                )}
                 <div className="w-full flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-indigo-400">
+                  <span
+                    dir="ltr"
+                    className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-info-fg"
+                  >
                     {key}
                   </span>
                   {isMissing && (
-                    <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-[8px] font-extrabold text-rose-400 border border-rose-500/20 shrink-0 uppercase tracking-wider">
-                      Missing
+                    <span className="px-1.5 py-0.5 rounded bg-transparent text-[8px] font-extrabold text-danger-fg border-[1.5px] border-dashed border-danger-line shrink-0 uppercase tracking-wider">
+                      {t('keys.missing')}
                     </span>
                   )}
                 </div>
-                <span dir="auto" className="text-[10px] text-slate-500 break-all line-clamp-1">
-                  {valueText || <span className="italic text-slate-700">Empty</span>}
+                <span
+                  dir="auto"
+                  className={`text-[10px] break-all line-clamp-1 ${isActive ? 'text-fg' : 'text-fg-muted'}`}
+                >
+                  {valueText || <span className="italic">{t('keys.empty_value')}</span>}
                 </span>
               </button>
             );
           })
         ) : (
-          <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-600 select-none">
+          <div className="h-full flex flex-col items-center justify-center p-6 text-center text-fg-muted select-none">
             <svg
-              className="w-8 h-8 text-slate-700 mb-2"
+              className="w-8 h-8 text-fg-muted mb-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -149,7 +174,7 @@ export const KeysDirectory = ({
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <span className="text-xs">No keys found</span>
+            <span className="text-xs">{t('keys.none')}</span>
           </div>
         )}
       </div>

@@ -4,6 +4,8 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { ChangesPanel } from '../../src/studio/features/dashboard/components/ChangesPanel.jsx';
 import type { GitState } from '../../src/studio/api.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import { textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 const baseGit: GitState = {
   available: true,
@@ -13,7 +15,10 @@ const baseGit: GitState = {
   diff: '--- a/locales/en.json\n+++ b/locales/en.json\n-  "a": "x"\n+  "a": "y"\n',
 };
 
-const renderPanel = (overrides: Partial<React.ComponentProps<typeof ChangesPanel>> = {}) => {
+const renderPanel = (
+  overrides: Partial<React.ComponentProps<typeof ChangesPanel>> = {},
+  lang?: StudioLanguage
+) => {
   const props = {
     isOpen: true,
     onClose: vi.fn(),
@@ -29,7 +34,8 @@ const renderPanel = (overrides: Partial<React.ComponentProps<typeof ChangesPanel
     isUndoing: false,
     ...overrides,
   };
-  render(<ChangesPanel {...props} />);
+  const panel = <ChangesPanel {...props} />;
+  render(lang ? <StudioLanguageProvider initial={lang}>{panel}</StudioLanguageProvider> : panel);
   return props;
 };
 
@@ -77,11 +83,26 @@ describe('ChangesPanel', () => {
   });
 
   it('shows the diff on demand with added and removed lines', () => {
-    renderPanel();
+    renderPanel({
+      git: {
+        ...baseGit,
+        diff: baseGit.diff.replace(
+          '+++ b/locales/en.json\n',
+          '+++ b/locales/en.json\n@@ -1 +1 @@\n'
+        ),
+      },
+    });
     fireEvent.click(screen.getByText('Show diff'));
     // Testing Library collapses runs of whitespace before matching text.
-    expect(screen.getByText('+ "a": "y"')).toBeTruthy();
-    expect(screen.getByText('- "a": "x"')).toBeTruthy();
+    const addedLine = screen.getByText('+ "a": "y"');
+    const removedLine = screen.getByText('- "a": "x"');
+    const hunkHeader = screen.getByText('@@ -1 +1 @@');
+    expect(addedLine.className).toContain('bg-accent-soft');
+    expect(removedLine.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['line-through', 'text-fg-muted', 'decoration-fg-faint'])
+    );
+    expect(hunkHeader.className).toContain('text-info-fg');
+    expect(removedLine.className).not.toMatch(/danger/);
     cleanup();
   });
 
@@ -96,7 +117,9 @@ describe('ChangesPanel', () => {
     };
     const props = renderPanel({ history: [entry] });
     expect(screen.getByText('home.title')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Undo: restore the previous value of home.title' })
+    );
     expect(props.onUndo).toHaveBeenCalledWith(entry);
     cleanup();
   });
@@ -107,6 +130,28 @@ describe('ChangesPanel', () => {
     cleanup();
     renderPanel({ git: { ...baseGit, isRepo: false, changes: [] } });
     expect(screen.getByText(/not inside a git repository/i)).toBeTruthy();
+    cleanup();
+  });
+});
+
+describe('ChangesPanel — Arabic', () => {
+  it('shows the git view in Arabic with file paths left-to-right', () => {
+    const ar = textFor('ar');
+    renderPanel({}, 'ar');
+    expect(screen.getByRole('heading', { name: ar('changes.title') })).toBeTruthy();
+    expect(screen.getByText(ar('changes.status_modified'))).toBeTruthy();
+    expect(screen.getByRole('button', { name: ar('changes.commit') })).toBeTruthy();
+    expect(screen.getByText('locales/en.json').getAttribute('dir')).toBe('ltr');
+    cleanup();
+  });
+
+  it('keeps the git: false setting as code inside the Arabic sentence', () => {
+    renderPanel({ git: { ...baseGit, available: false, isRepo: false, changes: [] } }, 'ar');
+    const code = screen.getByText('git: false');
+    expect(code.tagName).toBe('CODE');
+    expect(code.closest('p')!.textContent).toContain(
+      textFor('ar')('changes.git_disabled').split('{code}')[0]!
+    );
     cleanup();
   });
 });

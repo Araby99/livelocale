@@ -4,6 +4,7 @@ import { getAppOrigin } from '../constants.js';
 import { MAX_VISIBLE_TEXTS, type VisibleText } from '../../../../client/iframe-bridge.js';
 import { localeFromUrl } from '../../../locale-inference.js';
 import { urlLocaleOptions } from '../../../runtime.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 export interface ConnectionHandlers {
   onElementSelected: (element: SelectedElement) => void;
@@ -39,6 +40,10 @@ export const useConnection = (handlers: ConnectionHandlers) => {
   // Keep the latest handlers without re-subscribing the window listener.
   const handlersRef = useRef(handlers);
   handlersRef.current = handlers;
+  // The listener reads the current language's text without re-subscribing.
+  const { t } = useStudioText();
+  const textRef = useRef(t);
+  textRef.current = t;
 
   // Handle postMessage events from the embedded client iframe
   useEffect(() => {
@@ -64,7 +69,7 @@ export const useConnection = (handlers: ConnectionHandlers) => {
       } else if (type === 'ELEMENT_SELECTED') {
         handlersRef.current.onElementSelected(payload);
       } else if (type === 'ERROR') {
-        handlersRef.current.onError(payload.error || 'Client-side error occurred.');
+        handlersRef.current.onError(payload.error || textRef.current('errors.client_error'));
       } else if (type === 'VISIBLE_KEYS_CHANGED') {
         // payload is a string[] of translation keys visible on the current page
         if (Array.isArray(payload)) {

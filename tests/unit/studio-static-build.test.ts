@@ -12,11 +12,18 @@ describe('Studio static build', () => {
     expect(html).toContain('<meta name="robots" content="noindex, nofollow" />');
   });
 
-  it('imports the latin font files', () => {
+  it('imports the brand font files', () => {
     const main = fs.readFileSync('src/studio/main.tsx', 'utf-8');
-    for (const w of [300, 400, 500, 600, 700])
-      expect(main).toContain(`import '@fontsource/inter/latin-${w}.css';`);
+    for (const w of [500, 700])
+      expect(main).toContain(`import '@fontsource/martian-mono/latin-${w}.css';`);
+    for (const w of [400, 500, 600]) {
+      expect(main).toContain(`import '@fontsource/ibm-plex-sans/latin-${w}.css';`);
+      expect(main).toContain(`import '@fontsource/ibm-plex-mono/latin-${w}.css';`);
+    }
     for (const w of [400, 500, 600, 700])
-      expect(main).toContain(`import '@fontsource/outfit/latin-${w}.css';`);
+      expect(main).toContain(`import '@fontsource/ibm-plex-sans-arabic/arabic-${w}.css';`);
+    expect(main).not.toMatch(
+      /@fontsource\/(?:inter|bricolage-grotesque|jetbrains-mono|readex-pro)\//
+    );
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 
-const FOCUSABLE = [
+/** Elements that take focus from the keyboard. */
+export const FOCUSABLE_SELECTOR = [
   'a[href]',
   'button:not([disabled])',
   'input:not([disabled])',
@@ -37,7 +38,7 @@ export function useDialog<T extends HTMLElement>(
     if (!open || dialog === null) return;
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
-    const controls = () => Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE));
+    const controls = () => Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
     const focusFirst = () => {
       const first = controls()[0];
       if (first) {

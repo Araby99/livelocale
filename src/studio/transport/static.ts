@@ -5,6 +5,7 @@ import { validateEdit } from '../../core/save-rules.js';
 import { parseShareManifest, type ShareManifest } from '../../core/share-manifest.js';
 import { isSafeLocaleSegment, isValidLocaleFormat } from '../../core/validate.js';
 import { ValidationError, type GitState, type ServerInfo, type StudioTransport } from '../api.js';
+import { englishText } from '../i18n/catalogue.js';
 import type { DraftStore } from './draft-store.js';
 import {
   buildDraftDiff,
@@ -18,11 +19,10 @@ import {
 
 /** Dispatched on the transport's `events` target whenever drafts change. */
 export const DRAFTS_CHANGED_EVENT = 'livelocale:drafts-changed';
-export const STORAGE_PROBLEM =
-  'This browser cannot keep your changes after the tab closes (private window or blocked storage). Send them before you leave.';
-export const LOCALE_ACTIONS_UNSUPPORTED =
-  'Adding, renaming or deleting languages is not available on a share link. Ask your developer.';
-export const COMMIT_UNSUPPORTED = 'Use "Send to developer" to hand your changes over.';
+// English, as this transport has no language; the Studio shows them through studioMessage.
+export const STORAGE_PROBLEM = englishText('share.storage_problem');
+export const LOCALE_ACTIONS_UNSUPPORTED = englishText('share.locale_actions_unsupported');
+export const COMMIT_UNSUPPORTED = englishText('share.commit_unsupported');
 /** The shortest time between two manifest checks; creating the transport counts as one. */
 export const MANIFEST_REFRESH_INTERVAL_MS = 60_000;
 
@@ -119,13 +119,15 @@ export async function createStaticTransport(
       cache: 'no-cache',
       credentials: 'same-origin',
     });
-    if (!response.ok) throw new Error(`Could not load ${path} (${response.status}).`);
+    if (!response.ok) {
+      throw new Error(englishText('share.load_failed', { path, status: response.status }));
+    }
     return (await response.json()) as Record<string, unknown>;
   }
 
   function readBuiltLocale(locale: string): Promise<Record<string, unknown>> {
     if (!isKnownLocale(locale)) {
-      return Promise.reject(new Error(`Unknown language "${locale}".`));
+      return Promise.reject(new Error(englishText('share.unknown_language', { locale })));
     }
     let pending = built.get(locale);
     if (!pending) {

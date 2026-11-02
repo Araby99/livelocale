@@ -3,8 +3,28 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { PluralEditor } from '../../src/studio/features/dashboard/components/PluralEditor.jsx';
 import { TranslationEditor } from '../../src/studio/features/dashboard/components/TranslationEditor.jsx';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import type { StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 const PLURAL = '{count, plural, one {# item} other {# items}}';
+
+const renderPlural = (
+  overrides: Partial<React.ComponentProps<typeof PluralEditor>> = {},
+  lang: StudioLanguage = 'en'
+) =>
+  render(
+    <StudioLanguageProvider initial={lang}>
+      <PluralEditor locale="ar" value={PLURAL} onChange={vi.fn()} {...overrides} />
+    </StudioLanguageProvider>
+  );
+
+describe('PluralEditor in Arabic', () => {
+  it('keeps the ICU category names left-to-right in Arabic', () => {
+    renderPlural({}, 'ar');
+    expect(screen.getByText('few').closest('[dir]')?.getAttribute('dir')).toBe('ltr');
+    cleanup();
+  });
+});
 
 describe('PluralEditor', () => {
   it('shows one field per CLDR category of the locale plus existing selectors', () => {

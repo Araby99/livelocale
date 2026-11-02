@@ -3,25 +3,27 @@ import { SelectedElement } from '../types/index.js';
 import { TranslationEditor, type SaveWarning } from './TranslationEditor.jsx';
 import { EmptySelection } from './EmptySelection.jsx';
 import { LocaleManager } from './LocaleManager.jsx';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import type { StringKey, StudioText } from '../../../i18n/catalogue.js';
 
-const LOCALE_NAMES: Record<string, string> = {
-  en: 'English',
-  ar: 'Arabic',
-  es: 'Spanish',
-  fr: 'French',
-  de: 'German',
-  zh: 'Chinese',
-  ja: 'Japanese',
-  pt: 'Portuguese',
-  it: 'Italian',
-  ru: 'Russian',
-  hi: 'Hindi',
-  tr: 'Turkish',
+const LOCALE_NAMES: Readonly<Record<string, StringKey>> = {
+  en: 'editor.lang_en',
+  ar: 'editor.lang_ar',
+  es: 'editor.lang_es',
+  fr: 'editor.lang_fr',
+  de: 'editor.lang_de',
+  zh: 'editor.lang_zh',
+  ja: 'editor.lang_ja',
+  pt: 'editor.lang_pt',
+  it: 'editor.lang_it',
+  ru: 'editor.lang_ru',
+  hi: 'editor.lang_hi',
+  tr: 'editor.lang_tr',
 };
 
-const getLocaleLabel = (code: string) => {
+const getLocaleLabel = (code: string, t: StudioText) => {
   const base = code.split('-')[0]?.toLowerCase() || code;
-  const name = LOCALE_NAMES[base] || LOCALE_NAMES[code] || 'Custom';
+  const name = t(LOCALE_NAMES[base] || LOCALE_NAMES[code] || 'editor.lang_custom');
   return `${name} (${code})`;
 };
 
@@ -71,34 +73,40 @@ export const EditorPanel = ({
   onDeleteLocale,
   className = 'w-[420px] shrink-0',
 }: EditorPanelProps) => {
+  const { t } = useStudioText();
   const [isManageOpen, setIsManageOpen] = useState(false);
 
   return (
     <div
       data-testid="editor-panel"
-      className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full overflow-hidden`}
     >
       {/* Panel Header */}
-      <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">
-          {isManageOpen ? 'Manage Languages' : 'Translation Studio'}
+      <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
+        <h2 className="text-sm font-bold tracking-wide font-heading text-fg">
+          {isManageOpen ? t('editor.manage') : t('editor.title')}
         </h2>
 
         {/* Language select & Manage toggler */}
         <div className="flex items-center gap-2">
           {!isManageOpen && (
             <>
-              <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
-                Locale
+              <label
+                htmlFor="studio-locale-select"
+                className="text-[10px] font-semibold text-fg-muted uppercase tracking-wider"
+              >
+                {t('editor.locale')}
               </label>
               <select
+                id="studio-locale-select"
                 value={locale}
+                dir="ltr"
                 onChange={(e) => onLocaleChange(e.target.value)}
-                className="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 cursor-pointer font-mono"
+                className="bg-raised border border-line hover:border-line-strong text-fg text-xs rounded-lg px-2.5 py-1.5 cursor-pointer font-mono"
               >
                 {locales.map((l) => (
                   <option key={l} value={l}>
-                    {getLocaleLabel(l)}
+                    {getLocaleLabel(l, t)}
                   </option>
                 ))}
               </select>
@@ -106,16 +114,24 @@ export const EditorPanel = ({
           )}
 
           <button
+            type="button"
             onClick={() => setIsManageOpen(!isManageOpen)}
             className={`p-1.5 rounded-lg border transition duration-200 ${
               isManageOpen
-                ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                ? 'bg-accent-soft border-accent-line text-accent-fg'
+                : 'bg-raised border-line text-fg-muted hover:text-fg hover:border-line-strong'
             }`}
-            title={isManageOpen ? 'Back to Editor' : 'Manage Languages'}
+            aria-label={isManageOpen ? t('editor.back') : t('editor.manage')}
+            title={isManageOpen ? t('editor.back') : t('editor.manage')}
           >
             {isManageOpen ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -124,7 +140,13 @@ export const EditorPanel = ({
                 />
               </svg>
             ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

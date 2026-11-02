@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DOMInterceptor } from '../../src/client/dom-interceptor.js';
 import { encodeKey } from '../../src/client/watermark.js';
@@ -53,6 +54,26 @@ describe('DOMInterceptor', () => {
     const overlay = document.getElementById('livelocale-highlighter-overlay');
     expect(overlay).not.toBeNull();
     expect(overlay?.style.opacity).toBe('1');
+  });
+
+  it('outlines the hovered string in Hunk, never indigo', () => {
+    const el = document.createElement('span');
+    el.setAttribute('data-i18n-key', 'home.title');
+    el.innerText = 'Hello';
+    document.body.appendChild(el);
+    interceptor.init();
+
+    el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+
+    const overlay = document.getElementById('livelocale-highlighter-overlay')!;
+    expect(overlay.style.border).toMatch(/^1\.5px dashed (?:#4fc3dc|rgb\(79, 195, 220\))$/i);
+    expect(overlay.style.boxShadow).toBe('none');
+  });
+
+  it('leaves no indigo in the client', () => {
+    for (const f of ['src/client/dom-interceptor.ts']) {
+      expect(readFileSync(f, 'utf8')).not.toMatch(/99,\s*102,\s*241|#a5b4fc/i);
+    }
   });
 
   it('should hide the floating overlay on mouseout after hover', () => {

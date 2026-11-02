@@ -4,6 +4,7 @@ import * as os from 'node:os';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { encodeChangeLink } from '../../src/core/change-link.js';
+import { editKey } from './fixtures/share.js';
 
 // The static fixture: playground-vite built with `share: true`, served by a plain static server.
 const STATIC = 'http://localhost:3020';
@@ -123,10 +124,7 @@ test('translator sends a link that apply turns into the JSON diff', async ({ pag
   await context.grantPermissions(['clipboard-read', 'clipboard-write']);
   await openStudio(page);
   const frame = page.frameLocator('#app-preview-iframe');
-  await frame.locator('[data-i18n-key="home.title"]').click({ modifiers: ['Alt'] });
-  await page.locator('#studio-translation-input').fill('Welcome to the share link');
-  await page.locator('#studio-save-button').click();
-  await expect(page.locator('[data-testid="save-success"]')).toBeVisible();
+  await editKey(page, 'home.title', 'Welcome to the share link');
   await expect(page.getByTestId('unsent-counter')).toHaveText('1 change not sent');
   await page.reload();
   await expect(frame.locator('[data-i18n-key="home.title"]')).toHaveText(

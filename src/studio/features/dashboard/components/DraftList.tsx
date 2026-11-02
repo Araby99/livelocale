@@ -1,23 +1,24 @@
 import React, { useState } from 'react';
 import type { Draft } from '../../../transport/drafts.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
 export type DraftDisplayState = 'unsent' | 'sent' | 'live' | 'conflict';
 
-export const DRAFT_STATUS_LABELS: Record<DraftDisplayState, string> = {
-  unsent: 'Not sent',
-  sent: 'Sent',
-  live: 'Live now',
-  conflict: 'Changed by someone else, please check',
+/** The catalogue key of each display state's label. */
+export const DRAFT_STATUS_KEYS: Readonly<Record<DraftDisplayState, StringKey>> = {
+  unsent: 'draft_list.status_unsent',
+  sent: 'draft_list.status_sent',
+  live: 'draft_list.status_live',
+  conflict: 'draft_list.status_conflict',
 };
 
 const STATE_STYLES: Record<DraftDisplayState, string> = {
-  unsent: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
-  sent: 'text-sky-400 border-sky-500/30 bg-sky-500/10',
-  live: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-  conflict: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
+  unsent: 'glyph-warn text-warning-fg border-warning-line bg-warning-bg',
+  sent: 'glyph-info text-info-fg border-info-line bg-info-bg',
+  live: 'glyph-done text-success-fg border-success-line bg-success-bg',
+  conflict: 'text-danger-fg border-dashed border-danger-line bg-danger-bg',
 };
-
-const REMOVE_TITLE = 'Removes it from this list. A link you already sent still carries it.';
 
 /** How a saved draft is shown: a conflict wins over its send status. */
 export function draftDisplayState(d: Draft): Exclude<DraftDisplayState, 'live'> {
@@ -36,43 +37,53 @@ interface DraftListProps {
   onDismissLiveNow?: () => void;
 }
 
-const stateBadge = (state: DraftDisplayState) => (
-  <span
-    className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
-  >
-    {DRAFT_STATUS_LABELS[state]}
+const StateBadge = ({ state }: { state: DraftDisplayState }) => {
+  const { t } = useStudioText();
+  return (
+    <span
+      className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
+    >
+      {t(DRAFT_STATUS_KEYS[state])}
+    </span>
+  );
+};
+
+const rowHeading = (d: Draft) => (
+  <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
+    {`${d.key} · ${d.locale}`}
   </span>
 );
 
-const rowHeading = (d: Draft) => (
-  <span className="text-[11px] font-mono text-indigo-400 break-all">{`${d.key} · ${d.locale}`}</span>
-);
-
 /** The draft's built text struck through, then its new text. */
-const DraftValues = ({ d }: { d: Draft }) => (
-  <div className="text-[10px] leading-relaxed">
-    {d.from ? (
-      <span dir="auto" className="text-rose-400/80 line-through break-all">
-        {d.from}
+const DraftValues = ({ d }: { d: Draft }) => {
+  const { t } = useStudioText();
+  return (
+    <div className="text-[10px] leading-relaxed">
+      {d.from ? (
+        <span dir="auto" className="text-fg-muted line-through decoration-fg-faint break-all">
+          {d.from}
+        </span>
+      ) : (
+        <em className="text-fg-muted line-through decoration-fg-faint">{t('draft_list.empty')}</em>
+      )}
+      <span className="text-fg-muted" aria-hidden="true">
+        {` ${t('common.arrow')} `}
       </span>
-    ) : (
-      <em className="text-rose-400/80 line-through">empty</em>
-    )}
-    <span className="text-slate-600"> → </span>
-    {d.to ? (
-      <span dir="auto" className="text-emerald-300 break-all">
-        {d.to}
-      </span>
-    ) : (
-      <em className="text-emerald-300">empty</em>
-    )}
-  </div>
-);
+      {d.to ? (
+        <span dir="auto" className="text-accent-fg break-all">
+          {d.to}
+        </span>
+      ) : (
+        <em className="text-accent-fg">{t('draft_list.empty')}</em>
+      )}
+    </div>
+  );
+};
 
-const rowClass = 'px-3 py-2 rounded-xl bg-slate-950/40 border border-slate-800/80 space-y-1';
+const rowClass = 'px-3 py-2 rounded-xl bg-surface border border-line space-y-1';
 
 const footerButton =
-  'h-9 px-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition duration-150 cursor-pointer';
+  'h-9 px-3 rounded-xl text-xs font-semibold text-fg hover:text-fg bg-raised hover:bg-raised-hover border border-line-strong transition duration-150 cursor-pointer';
 
 /** The share link's drafts with before/after, state and Undo, plus backup and restore. */
 export const DraftList = ({
@@ -85,15 +96,16 @@ export const DraftList = ({
   liveNow = [],
   onDismissLiveNow,
 }: DraftListProps) => {
+  const { t } = useStudioText();
   const [result, setResult] = useState<string | null>(null);
 
   const handleDownload = async () => {
     setResult(null);
     try {
       await onDownloadBackup();
-      setResult('Backup downloaded.');
+      setResult(t('draft_list.backup_downloaded'));
     } catch (err: any) {
-      setResult(err?.message || 'Could not create the backup.');
+      setResult(err?.message || t('draft_list.backup_failed'));
     }
   };
 
@@ -105,7 +117,7 @@ export const DraftList = ({
     try {
       setResult(await onRestoreBackup(file));
     } catch (err: any) {
-      setResult(err?.message || 'Could not restore the backup.');
+      setResult(err?.message || t('draft_list.restore_failed'));
     } finally {
       // Lets the same file be chosen again.
       input.value = '';
@@ -115,18 +127,16 @@ export const DraftList = ({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-          Your changes
+        <h3 className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+          {t('draft_list.title')}
         </h3>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-800">
+        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
           {drafts.length}
         </span>
       </div>
 
       {drafts.length === 0 && liveNow.length === 0 ? (
-        <p className="text-xs text-slate-500">
-          No changes yet. Alt+Click any text in the app to fix it.
-        </p>
+        <p className="text-xs text-fg-muted">{t('draft_list.none')}</p>
       ) : (
         <ul className="space-y-1.5">
           {drafts.map((d) => {
@@ -137,14 +147,15 @@ export const DraftList = ({
                 <div className="flex items-center justify-between gap-3">
                   {rowHeading(d)}
                   <div className="flex items-center gap-2 shrink-0">
-                    {stateBadge(state)}
+                    <StateBadge state={state} />
                     <button
+                      type="button"
                       onClick={() => onUndo(d)}
                       disabled={isUndoing}
-                      className="text-[10px] font-semibold text-slate-400 hover:text-slate-100 px-2 py-0.5 rounded-md border border-slate-800 hover:border-slate-600 disabled:opacity-40 transition duration-150"
-                      title={isSent ? REMOVE_TITLE : 'Go back to the published text'}
+                      className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
+                      title={t(isSent ? 'draft_list.remove_title' : 'draft_list.undo_title')}
                     >
-                      {isSent ? 'Remove' : 'Undo'}
+                      {t(isSent ? 'draft_list.remove' : 'draft_list.undo')}
                     </button>
                   </div>
                 </div>
@@ -156,7 +167,9 @@ export const DraftList = ({
             <li key={`live:${d.locale}/${d.key}`} className={rowClass}>
               <div className="flex items-center justify-between gap-3">
                 {rowHeading(d)}
-                <div className="flex items-center gap-2 shrink-0">{stateBadge('live')}</div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <StateBadge state="live" />
+                </div>
               </div>
               <DraftValues d={d} />
             </li>
@@ -165,23 +178,25 @@ export const DraftList = ({
       )}
       {liveNow.length > 0 && onDismissLiveNow && (
         <button
+          type="button"
           onClick={onDismissLiveNow}
-          className="text-[10px] font-semibold text-slate-500 hover:text-slate-300 transition duration-150"
+          className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
         >
-          Dismiss live changes
+          {t('draft_list.dismiss_live')}
         </button>
       )}
 
       <div className="flex flex-wrap items-center gap-2 pt-2">
         <button
+          type="button"
           onClick={handleDownload}
           disabled={drafts.length === 0}
           className={`${footerButton} disabled:opacity-40 disabled:cursor-not-allowed`}
         >
-          Download backup
+          {t('draft_list.download')}
         </button>
         <label className={`${footerButton} inline-flex items-center`}>
-          Restore backup
+          {t('draft_list.restore')}
           <input
             type="file"
             accept=".txt,text/plain"
@@ -190,14 +205,14 @@ export const DraftList = ({
           />
         </label>
         {onReviewChange && (
-          <button onClick={onReviewChange} className={footerButton}>
-            Review a change link or file
+          <button type="button" onClick={onReviewChange} className={footerButton}>
+            {t('draft_list.review')}
           </button>
         )}
       </div>
       {result && (
-        <p role="status" className="text-[11px] text-slate-400 break-words">
-          {result}
+        <p role="status" className="text-[11px] text-fg-muted break-words">
+          {studioMessage(t, result)}
         </p>
       )}
     </section>

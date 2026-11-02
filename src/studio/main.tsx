@@ -1,17 +1,32 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import '@fontsource/inter/latin-300.css';
-import '@fontsource/inter/latin-400.css';
-import '@fontsource/inter/latin-500.css';
-import '@fontsource/inter/latin-600.css';
-import '@fontsource/inter/latin-700.css';
-import '@fontsource/outfit/latin-400.css';
-import '@fontsource/outfit/latin-500.css';
-import '@fontsource/outfit/latin-600.css';
-import '@fontsource/outfit/latin-700.css';
+import '@fontsource/martian-mono/latin-500.css';
+import '@fontsource/martian-mono/latin-700.css';
+import '@fontsource/ibm-plex-sans/latin-400.css';
+import '@fontsource/ibm-plex-sans/latin-500.css';
+import '@fontsource/ibm-plex-sans/latin-600.css';
+import '@fontsource/ibm-plex-mono/latin-400.css';
+import '@fontsource/ibm-plex-mono/latin-500.css';
+import '@fontsource/ibm-plex-mono/latin-600.css';
+import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
+import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
+import '@fontsource/ibm-plex-sans-arabic/arabic-600.css';
+import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';
 import './index.css';
 import App from './app.js';
 import { startStudio } from './bootstrap.js';
+import {
+  initialStudioLanguage,
+  initialThemeChoice,
+  storedLanguage,
+  storedThemeChoice,
+} from './preferences.js';
+import { StudioLanguageProvider } from './i18n/StudioLanguage.js';
+import { isShareStudio } from './runtime.js';
+import { applyTheme, prefersDark, resolveTheme } from './theme.js';
+
+// The Studio kind is unknown until startStudio settles, so follow the system meanwhile.
+applyTheme(document.documentElement, resolveTheme(storedThemeChoice() ?? 'system', prefersDark()));
 
 // Decide between the HTTP API and a static share folder before the first render.
 startStudio({
@@ -24,9 +39,23 @@ startStudio({
 })
   .catch(console.error)
   .finally(() => {
+    applyTheme(
+      document.documentElement,
+      resolveTheme(
+        initialThemeChoice({ stored: storedThemeChoice(), isShareStudio: isShareStudio() }),
+        prefersDark()
+      )
+    );
+    const language = initialStudioLanguage({
+      stored: storedLanguage(),
+      isShareStudio: isShareStudio(),
+      browserLanguage: navigator.language,
+    });
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
-        <App />
+        <StudioLanguageProvider initial={language}>
+          <App />
+        </StudioLanguageProvider>
       </React.StrictMode>
     );
   });
