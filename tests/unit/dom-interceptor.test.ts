@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DOMInterceptor } from '../../src/client/dom-interceptor.js';
 import { encodeKey } from '../../src/client/watermark.js';
@@ -70,9 +71,38 @@ describe('DOMInterceptor', () => {
     expect(overlay.style.boxShadow).toBe('none');
   });
 
-  it('leaves no indigo in the client', () => {
-    for (const f of ['src/client/dom-interceptor.ts']) {
-      expect(readFileSync(f, 'utf8')).not.toMatch(/99,\s*102,\s*241|#a5b4fc/i);
+  it('labels the hovered string with a Night badge in Paper text and a Hunk outline', () => {
+    const el = document.createElement('span');
+    el.setAttribute('data-i18n-key', 'home.title');
+    el.innerText = 'Hello';
+    document.body.appendChild(el);
+    interceptor.init();
+
+    const badge = document.getElementById('livelocale-highlighter-overlay')!
+      .firstElementChild as HTMLElement;
+    const night = /^(?:#0c0d0f|rgb\(12, 13, 15\))$/i;
+    const paper = /^(?:#e8e4d9|rgb\(232, 228, 217\))$/i;
+    const hunk = /^(?:#4fc3dc|rgb\(79, 195, 220\))$/i;
+
+    el.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    expect(badge.style.backgroundColor).toMatch(night);
+    expect(badge.style.color).toMatch(paper);
+    expect(badge.style.borderColor).toMatch(hunk);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Alt' }));
+    expect(badge.textContent).toContain('Click to edit');
+    expect(badge.style.backgroundColor).toMatch(night);
+    expect(badge.style.color).toMatch(paper);
+    expect(badge.style.borderColor).toMatch(hunk);
+  });
+
+  it('leaves no indigo or old navy in the client', () => {
+    const dir = 'src/client';
+    for (const name of readdirSync(dir)) {
+      if (!/\.tsx?$/.test(name)) continue;
+      const source = readFileSync(join(dir, name), 'utf8');
+      expect(source, name).not.toMatch(/99,\s*102,\s*241|#a5b4fc/i);
+      expect(source, name).not.toMatch(/15,\s*20,\s*40|#0f1428/i);
     }
   });
 

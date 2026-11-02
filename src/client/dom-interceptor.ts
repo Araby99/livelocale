@@ -228,9 +228,9 @@ export class DOMInterceptor {
       'white-space: nowrap',
       'overflow: hidden',
       'text-overflow: ellipsis',
-      'background: rgba(15, 20, 40, 0.92)',
-      'border: 1px solid #4FC3DC',
-      'color: #4FC3DC',
+      'background: #0C0D0F', // Night
+      'border: 1px solid #4FC3DC', // Hunk
+      'color: #E8E4D9', // Paper
       'font-family: ui-monospace, SFMono-Regular, Menlo, monospace',
       'font-size: 10px',
       'font-weight: 600',
@@ -238,7 +238,6 @@ export class DOMInterceptor {
       'padding: 3px 7px',
       'border-radius: 4px',
       'letter-spacing: 0.02em',
-      'backdrop-filter: blur(4px)',
       'pointer-events: none',
     ].join('; ');
 
@@ -282,14 +281,14 @@ export class DOMInterceptor {
       // Alt is held — solid Hunk border signals "click to edit"
       this.overlay.style.border = '2px solid #4FC3DC';
       this.overlay.style.boxShadow = 'none';
-      this.overlayBadge.style.color = '#4FC3DC';
+      this.overlayBadge.style.color = '#E8E4D9';
       this.overlayBadge.style.borderColor = '#4FC3DC';
       this.overlayBadge.textContent = `✎ Click to edit: ${key}`;
     } else {
       // Hover — dashed Hunk border signals "Alt + Click to edit"
       this.overlay.style.border = '1.5px dashed #4FC3DC';
       this.overlay.style.boxShadow = 'none';
-      this.overlayBadge.style.color = '#4FC3DC';
+      this.overlayBadge.style.color = '#E8E4D9';
       this.overlayBadge.style.borderColor = '#4FC3DC';
       this.overlayBadge.textContent = `⌥ Alt+Click to edit: ${key}`;
     }
