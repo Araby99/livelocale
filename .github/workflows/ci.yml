@@ -38,6 +38,9 @@ jobs:
       - name: Install Static Playground Dependencies
         run: npm ci --prefix playground-vite
 
+      - name: Install Site Dependencies
+        run: npm ci --prefix site
+
       - name: Check Formatting
         run: npm run format:check
 

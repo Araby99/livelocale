@@ -81,7 +81,8 @@
     "typecheck": "tsc --noEmit",
     "changeset": "changeset",
     "version": "changeset version",
-    "prepare": "husky"
+    "prepare": "husky",
+    "brand:build": "npm run brand --prefix site"
   },
   "peerDependencies": {
     "next": ">=13.0.0",
