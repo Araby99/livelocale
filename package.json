@@ -84,7 +84,7 @@
     "prepare": "husky",
     "brand:build": "npm run brand --prefix site",
     "site:build": "npm run build --prefix site",
-    "site:typecheck": "tsc -p site/tsconfig.json --noEmit",
+    "site:typecheck": "npm run build && node site/scripts/hardcoded-report.mjs && tsc -p site/tsconfig.json --noEmit",
     "test:site": "playwright test --config playwright.site.config.ts"
   },
   "peerDependencies": {

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "dev": "node scripts/sync-brand.mjs && vite",
+    "dev": "node scripts/sync-brand.mjs && node scripts/hardcoded-report.mjs && vite",
     "brand": "node scripts/brand/build-svgs.mjs && node scripts/brand/render-pngs.mjs"
   },
   "devDependencies": {

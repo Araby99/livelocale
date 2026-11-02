@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { syncBrand } from './sync-brand.mjs';
+import { writeSampleReport } from './hardcoded-report.mjs';
 import { siteConfig } from '../src/lib/site-config.ts';
 
 const SITE_DIR = fileURLToPath(new URL('..', import.meta.url));
@@ -25,9 +26,11 @@ function runNode(args, env) {
 /**
  * Builds the whole site into site/dist. SITE_URL in env sets the base (see site-config.ts); its
  * normalised form reaches index.html as %VITE_SITE_URL%, so the share tags carry absolute URLs.
+ * The slider's `check --hardcoded` report runs first (it needs the built CLI in the root dist).
  */
 export async function buildSite(env) {
   const { siteUrl } = siteConfig(env);
+  writeSampleReport();
   await syncBrand();
   await runNode([VITE_BIN, 'build'], { ...env, VITE_SITE_URL: siteUrl });
   console.log('site/dist complete');

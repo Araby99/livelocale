@@ -1,0 +1,11 @@
+{
+  "nav": {
+    "pricing": "Pricing",
+    "docs": "Docs"
+  },
+  "plans": {
+    "title": "Plans that grow with your team.",
+    "start": "Start free.",
+    "upgrade": "Upgrade anytime."
+  }
+}

@@ -13,6 +13,7 @@ node_modules/
 /site/public/favicon*
 /site/public/apple-touch-icon.png
 /site/public/og-image.png
+/site/src/slider/hardcoded.json
 
 # Testing
 /coverage/
