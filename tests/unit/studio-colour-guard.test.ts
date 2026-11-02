@@ -130,7 +130,9 @@ it('keeps amber off decoration', () =>
 const literals = (f: string) =>
   [...readFileSync(f, 'utf8').matchAll(/["'`]([^"'`]*)["'`]/g)].map((m) => m[1]!);
 const has = (s: string, cls: string) =>
-  new RegExp(`(?<![\\w-])(?:[\\w-]+:)*${cls.replace(/[[\]]/g, '\\$&')}(?![\\w-])`).test(s);
+  new RegExp(
+    `(?<![\\w-])(?:[\\w-]+:)*${cls.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?![\\w-])`
+  ).test(s);
 
 it('never fills with red', () =>
   expect(
