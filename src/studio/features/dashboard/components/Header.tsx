@@ -35,6 +35,8 @@ interface HeaderProps {
   onCloseReview?: () => void;
   /** Opens the Import change link dialog; the button renders only in development mode. */
   onImport?: () => void;
+  /** Header settings (language, then theme); always visible, rendered only when set. */
+  settings?: React.ReactNode;
 }
 
 const reviewingLabel = (n: number) =>
@@ -63,6 +65,7 @@ export const Header = ({
   isReviewing = reviewCount !== null,
   onCloseReview,
   onImport,
+  settings,
 }: HeaderProps) => {
   const mismatch =
     targetLocale?.mismatch && (!locales || locales.includes(targetLocale.mismatch))
@@ -253,6 +256,12 @@ export const Header = ({
             </span>
           )}
         </button>
+
+        {settings != null && (
+          <div data-testid="header-settings" className="flex items-center gap-2 shrink-0">
+            {settings}
+          </div>
+        )}
 
         <span className="hidden xl:block px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 select-none">
           v{__STUDIO_VERSION__} (BETA)

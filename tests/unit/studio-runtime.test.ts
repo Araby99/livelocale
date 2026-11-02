@@ -3,10 +3,12 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
   getAppOrigin,
   getAppUrl,
+  isShareStudio,
   resetStudioRuntime,
   setStudioRuntime,
 } from '../../src/studio/runtime.js';
 import { fetchLocales } from '../../src/studio/api.js';
+import { STATIC_MANIFEST_MISSING } from '../../src/studio/config.js';
 import type { StaticTransport } from '../../src/studio/transport/static.js';
 import { APP_URL, MANIFEST } from './helpers/share-fixtures.js';
 
@@ -46,5 +48,31 @@ describe('studio runtime', () => {
     });
     await fetchLocales();
     expect(fetch).toHaveBeenCalledWith('http://localhost:4000/api/livelocale');
+  });
+
+  it('reports a static runtime and a share folder without a manifest as the share Studio', () => {
+    setStudioRuntime({
+      kind: 'static',
+      appOrigin: 'https://www.acme.com',
+      appUrl: APP_URL,
+      manifest: MANIFEST,
+      manifestText: '',
+      transport: {} as StaticTransport,
+    });
+    expect(isShareStudio()).toBe(true);
+    setStudioRuntime({
+      kind: 'server',
+      appOrigin: 'https://www.acme.com',
+      appUrl: APP_URL,
+      problems: [STATIC_MANIFEST_MISSING],
+    });
+    expect(isShareStudio()).toBe(true);
+    setStudioRuntime({
+      kind: 'server',
+      appOrigin: 'http://localhost:4000',
+      appUrl: 'http://localhost:4000',
+      problems: [],
+    });
+    expect(isShareStudio()).toBe(false);
   });
 });
