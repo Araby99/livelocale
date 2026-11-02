@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { extractPlaceholders } from '../../../../core/placeholders.js';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
@@ -66,11 +66,37 @@ export const TranslationEditor = ({
   const usePluralEditor = isPlural && !showRaw;
   const canSave = !isLoading && inputValue !== selected.currentValue;
 
+  // A save disables the focused control, and the browser then drops focus to <body>. Remember
+  // where focus was when the save started and put it back (or on the input) once it ends.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const focusBeforeSave = useRef<HTMLElement | null>(null);
+  const startSave = (save: () => void) => {
+    const active = document.activeElement;
+    focusBeforeSave.current =
+      active instanceof HTMLElement && rootRef.current?.contains(active) ? active : null;
+    save();
+  };
+  useEffect(() => {
+    if (isLoading) return;
+    const before = focusBeforeSave.current;
+    focusBeforeSave.current = null;
+    const root = rootRef.current;
+    if (!before || !root) return;
+    const active = document.activeElement;
+    if (active && active !== document.body && active.isConnected) return; // the user moved on
+    const usable = (el: Element | null): el is HTMLElement =>
+      el instanceof HTMLElement && el.isConnected && !el.matches(':disabled');
+    const target = usable(before)
+      ? before
+      : root.querySelector<HTMLElement>('textarea:not(:disabled), input:not(:disabled)');
+    target?.focus();
+  }, [isLoading]);
+
   // Ctrl+Enter (Cmd+Enter on Mac) saves, exactly as the Save button would. "Save anyway" stays a click.
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key !== 'Enter' || !(e.ctrlKey || e.metaKey)) return;
     e.preventDefault();
-    if (canSave) onSave();
+    if (canSave) startSave(onSave);
   };
 
   // Live placeholder parity between the reference text and the current input.
@@ -88,7 +114,7 @@ export const TranslationEditor = ({
   }, [selected.fallbackValue, inputValue]);
 
   return (
-    <div className="flex-1 flex flex-col p-6 overflow-y-auto space-y-6">
+    <div ref={rootRef} className="flex-1 flex flex-col p-6 overflow-y-auto space-y-6">
       {/* Key Path Info (RULE STD-003: Read-only display) */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
@@ -205,7 +231,7 @@ export const TranslationEditor = ({
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={onForceSave}
+              onClick={() => startSave(onForceSave)}
               disabled={isLoading}
               className="h-8 px-3 rounded-lg text-[11px] font-semibold text-on-warning bg-warning-solid hover:bg-warning-solid/90 transition duration-150"
             >
@@ -257,7 +283,7 @@ export const TranslationEditor = ({
         <button
           type="button"
           id="studio-save-button"
-          onClick={onSave}
+          onClick={() => startSave(onSave)}
           disabled={!canSave}
           className={`flex-1 h-11 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 transition duration-205 ${
             inputValue === selected.currentValue

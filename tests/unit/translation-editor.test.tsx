@@ -105,3 +105,83 @@ describe('TranslationEditor keyboard', () => {
     cleanup();
   });
 });
+
+describe('TranslationEditor focus across a save', () => {
+  const baseProps = {
+    selected: { key: 'home.greeting', fallbackValue: 'Hello', currentValue: '' },
+    inputValue: 'Hola',
+    isSuccess: false,
+    error: null,
+    saveWarning: null,
+    onInputChange: vi.fn(),
+    onSave: vi.fn(),
+    onForceSave: vi.fn(),
+    onDismissWarning: vi.fn(),
+    onClear: vi.fn(),
+  };
+  const ui = (isLoading: boolean, inputValue = 'Hola', currentValue = '') => (
+    <StudioLanguageProvider initial="en">
+      <TranslationEditor
+        {...baseProps}
+        selected={{ ...baseProps.selected, currentValue }}
+        inputValue={inputValue}
+        isLoading={isLoading}
+      />
+    </StudioLanguageProvider>
+  );
+  // The browser blurs a focused control once it is disabled; jsdom does not, so the test blurs it
+  // (before disabling it, since jsdom ignores blur() on a disabled control).
+  const browserFocusFixup = () => (document.activeElement as HTMLElement | null)?.blur();
+
+  it('gives focus back to the textarea after a Ctrl+Enter save', () => {
+    const { rerender } = render(ui(false));
+    const input = document.getElementById('studio-translation-input') as HTMLTextAreaElement;
+    input.focus();
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+    browserFocusFixup();
+    rerender(ui(true));
+    rerender(ui(false, 'Hola', 'Hola'));
+    expect(document.activeElement).toBe(input);
+    cleanup();
+  });
+
+  it('moves focus to the textarea after a Save click, since Save is disabled once saved', () => {
+    const { rerender } = render(ui(false));
+    const save = document.getElementById('studio-save-button') as HTMLButtonElement;
+    save.focus();
+    fireEvent.click(save);
+    browserFocusFixup();
+    rerender(ui(true));
+    rerender(ui(false, 'Hola', 'Hola'));
+    expect(document.activeElement).toBe(document.getElementById('studio-translation-input'));
+    cleanup();
+  });
+
+  it('leaves focus alone when the user moved it elsewhere during the save', () => {
+    const { rerender } = render(
+      <>
+        <button id="elsewhere">x</button>
+        {ui(false)}
+      </>
+    );
+    const input = document.getElementById('studio-translation-input') as HTMLTextAreaElement;
+    input.focus();
+    fireEvent.keyDown(input, { key: 'Enter', ctrlKey: true });
+    rerender(
+      <>
+        <button id="elsewhere">x</button>
+        {ui(true)}
+      </>
+    );
+    const other = document.getElementById('elsewhere') as HTMLButtonElement;
+    other.focus();
+    rerender(
+      <>
+        <button id="elsewhere">x</button>
+        {ui(false, 'Hola', 'Hola')}
+      </>
+    );
+    expect(document.activeElement).toBe(other);
+    cleanup();
+  });
+});
