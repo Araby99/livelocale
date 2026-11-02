@@ -6,15 +6,15 @@
 
 **Architecture:** `check --hardcoded` is Node-only CLI code under `src/codemod/hardcoded/`, parsing JSX with the user's own `typescript` (optional peer, lazy `require` from the project directory), feeding new issue kinds into the existing `runCheck`/`formatCheckReport`. The Studio gains one preferences module (`src/studio/preferences.ts`) and one header settings slot shared by the language switch and the theme toggle; its colours become semantic brand tokens (`--lc-*` variables for `:root` light and `.dark` dark, exposed to Tailwind as colour names and AA-checked by a unit test), its type becomes the brand's self-hosted Fontsource faces, and the logo replaces today's header tile; every component then moves from fixed palette classes to the tokens, copy moves into an `en`/`ar` catalogue with logical (start/end) layout, and accessibility work lands last so it audits the final UI.
 
-**Tech Stack:** TypeScript, Node ≥ 18, tsup, React 18, Tailwind CSS 4.3.3, Vite (Studio bundle), Vitest (jsdom/node), Playwright, TypeScript compiler API (from the user's project), `@axe-core/playwright` (devDependency), Fontsource devDependencies (`@fontsource/bricolage-grotesque`, `@fontsource/inter` (already present), `@fontsource/jetbrains-mono`, `@fontsource/readex-pro`, `@fontsource/ibm-plex-sans-arabic`), Changesets.
+**Tech Stack:** TypeScript, Node ≥ 18, tsup, React 18, Tailwind CSS 4.3.3, Vite (Studio bundle), Vitest (jsdom/node), Playwright, TypeScript compiler API (from the user's project), `@axe-core/playwright` (devDependency), Fontsource devDependencies (`@fontsource/martian-mono`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono`, `@fontsource/ibm-plex-sans-arabic`), Changesets.
 
-**Spec:** `docs/superpowers/specs/2026-11-01-launch-features-design.md` (amended §8), with the brand from `docs/superpowers/specs/2026-11-01-brand-and-landing-design.md` §2 and §4.
+**Spec:** `docs/superpowers/specs/2026-11-01-launch-features-design.md` (amended §8), with the brand from `docs/superpowers/specs/2026-11-01-brand-and-landing-design.md` §2 ("hunk", revised 2026-11-02) and §4; the hunk values land in Milestone 2b (Tasks 33–35).
 
 ## Global Constraints
 
 Copied verbatim from the launch-features spec (§9, §4, §8, §12); every task's requirements include them:
 
-- No runtime dependencies (optional peer `typescript` only; devDependencies allowed: `axe-core`/`@axe-core/playwright`, and the brand fonts from Fontsource: Bricolage Grotesque, Inter, JetBrains Mono, Readex Pro, IBM Plex Sans Arabic).
+- No runtime dependencies (optional peer `typescript` only; devDependencies allowed: `axe-core`/`@axe-core/playwright`, and the brand fonts from Fontsource: Martian Mono, IBM Plex Sans, IBM Plex Mono, IBM Plex Sans Arabic).
 - Node ≥ 18; browser-safe core rules from the share-link plan still apply to `src/core`.
 - `check` without `--hardcoded` and the server-mode Studio flows behave as in 0.10.x; existing tests stay green.
 - Release as `0.11.0` (minor), with a `next` prerelease build and a smoke check of `check --hardcoded` on the demo repo Translation-Test before `latest`.
@@ -27,10 +27,10 @@ Copied verbatim from the launch-features spec (§9, §4, §8, §12); every task'
 - **Error messages that come from the server or the shared validation core stay English in 0.11.0** (no change to the server API or `src/core`); an Arabic screen may occasionally show an English server error.
 - `untranslated` and `wrong-script` are warnings by default and fail with `--strict`; `hardcoded` always fails (§5.3).
 
-Copied verbatim from the brand spec (§2.2–§2.5):
+Copied verbatim from the brand spec (§2.2–§2.5, "hunk" revision of 2026-11-02):
 
-- The wordmark is `livelocale`, all lowercase, set in the heading face.
-- Rules: coral is used sparingly, only for the moment that matters. All text meets WCAG AA (4.5:1) on its background; white text is never placed on coral at body size below 18 px bold.
+- The wordmark is `livelocale`, all lowercase, set in the display face (Martian Mono 500, letter-spacing −0.02em).
+- Rules: every colour has one job. Amber is always a filled shape (the patch, the primary button, the selected or edited row), never a decorative border and never decoration; focus rings are the one exception (Patch in dark, Patch ink in light). Red is always a dashed outline or a word and never fills a button. The ghost line is history: struck through, dim, still readable. Warnings borrow amber with a `!` glyph; success and info always carry a glyph and a word. No glows, no gradients, no purple or violet; depth comes from tone. All text meets WCAG AA (4.5:1) on its background; graphics that carry meaning meet 3:1. Text on Patch is Night or Ink, never white.
 - Fonts are self-hosted (Fontsource packages as devDependencies, bundled into the site and the Studio); nothing loads from Google at runtime.
 - `font-family` stacks list the Latin face first and the Arabic face second, so mixed-script text renders each script in its own face; Arabic text gets a slightly larger size and line-height (about 1.08× size, line-height 1.7) for legibility.
 - Short, direct, a little blunt; written by a developer who has felt the pain. Plain verbs, sentence case, no hype. Errors and empty states give direction, never apologise.
@@ -41,7 +41,7 @@ Project rules (from the repo and the owner):
 - Gate before every commit: `npm run typecheck`, `npm run lint` and `npm run format:check` exit 0 (run `npm run format:write` when the last one fails). `npm run lint` rejects raw invisible characters: write U+2068/U+2069 and similar as `\u` escapes.
 - Translation values are never logged (SEC-001); `hardcoded` findings print source-code text only, shortened to 60 characters.
 - Coverage thresholds 85/70/85/85 hold (`npm run test:coverage`).
-- Studio colours use the Task 10 brand token classes only, with no hex or `rgb()`/`oklch()` literal in a component (guarded per file from Task 12, over the whole Studio from Task 14); Studio type uses `font-heading`, the default `font-sans` and `font-mono` only (Task 11); Studio layout uses start/end utilities only (Task 19 guard); new user-visible Studio copy goes through the catalogue with an Arabic entry once Task 17 has landed (Task 24 guard); components never set `focus:` outline/ring/border utilities once Task 25 has landed.
+- Studio colours use the brand token classes only (Task 10 names, Milestone 2b Task 33 values), with no hex or `rgb()`/`oklch()` literal in a component (guarded per file from Task 12, over the whole Studio from Task 14); Studio type uses `font-heading`, the default `font-sans` and `font-mono` only (Task 11); Studio layout uses start/end utilities only (Task 19 guard); new user-visible Studio copy goes through the catalogue with an Arabic entry once Task 17 has landed (Task 24 guard); components never set `focus:` outline/ring/border utilities once Task 25 has landed.
 - Short paths: `components/…` and `hooks/…` are under `src/studio/features/dashboard/`; `i18n/…` is `src/studio/i18n/`.
 - Test conventions: node-only test files start with `// @vitest-environment node`, DOM tests with `// @vitest-environment jsdom`. CLI temp projects use `fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-hc-'))` and a local copy of the `write(root, rel, content)` and `keysOf` helpers from `tests/unit/check.test.ts` (copy; do not import across test files). E2E runs stop servers on 3000, 3010 and 3020 first and run `npm run build` before Playwright, because `reuseExistingServer` would serve a stale Studio.
 
@@ -59,13 +59,14 @@ Inputs the spec implies but no feature test exercised in the drafts; each now ha
 
 Decisions the owner should see before execution (owner approved all seven as written on 2026-11-02):
 
-1. **Task 10 derives the colours the brand does not name.** Brand §2.3 fixes nine colours; the Studio also needs panel and card surfaces, a hover fill, a 3:1 control border, a coral tint, and danger/warning/success/info colours. Task 10 derives them as warm-tinted values beside the brand ones; every pair is AA-checked by a unit test. Task 16 Step 9 captures light and dark screenshots for the owner to look at (not a release blocker; the brand is final).
-2. **Coral as text in light uses a darker coral.** Coral `#FF6B4A` on Paper is 2.67:1, below AA for text and below 3:1 for the focus ring. Light coral text (`accent-fg`) and the light focus ring use `#B23A1E` (4.73:1 on `raised-hover` `#EFE3D6`, its lowest, and 5.1:1 or better on the other light surfaces and tints; `warning-fg` is lowest on `raised-hover` too, at 4.69:1; both pass AA, the margin is thin, and any light token edit re-runs the Task 10 pairs); coral fills keep `#FF6B4A` with Ink text on them (6.3:1), never white (brand rule).
-3. **Task 11 swaps the Studio fonts** (Outfit out; Bricolage Grotesque, JetBrains Mono, Readex Pro and IBM Plex Sans Arabic in; Inter stays). The fonts are bundled into `dist/studio` and grow the tarball; Task 11 records the `npm pack --dry-run` size before and after in its commit body.
-4. **The header shows the wordmark `livelocale` in lower case**, with the patch logo, replacing today's gradient tile, eye icon and "LiveLocale" heading.
+1. **Task 33 derives the few colours the hunk palette does not name.** Brand §2.3 names Night, Surface, Raised, Rule, Edge, Paper, Comment, Ghost, Patch, Wash, Hunk, Exit 1 and Exit 0 (dark) and Print, Sheet, Rule, Edge, Ink, Comment, Ghost, Patch, Patch ink, Wash, Hunk, Exit 1 and Exit 0 (light). The Studio also needs a light card tone (`#F9FAFB`), hover fills (light Print, dark `#1A1D22`), an amber hover (`#FFC150`) and success/info tints and lines. Task 33 derives them as cool, neutral values and AA-checks every pair with a unit test. Task 33 Step 7 captures light and dark screenshots for the owner (not a release blocker; the brand is final).
+2. **Amber as text in light is Patch ink.** Patch `#FFB224` on Print is 1.65:1, so in light it is a fill only, always holding Ink text (9.95:1). Amber text, icons and the light focus ring (`accent-fg`, `warning-fg`, `focus`) use Patch ink `#8F5B00`: lowest 5.12:1 (on `success-bg`), 5.25:1 on Print, 5.73:1 on Sheet, 5.13:1 on Wash. In dark, Patch is both fill (Night text 10.78:1) and text (lowest 8.46:1, on Wash). Any token edit re-runs the Task 33 pairs.
+3. **Task 34 swaps the Studio fonts** (Inter, Bricolage Grotesque, JetBrains Mono and Readex Pro out; Martian Mono, IBM Plex Sans and IBM Plex Mono in; IBM Plex Sans Arabic stays). The fonts are bundled into `dist/studio`, which shrinks from about 1.16 MB to about 0.97 MB. Task 34 records the `npm pack --dry-run` size before and after in its commit body.
+4. **The header shows the wordmark `livelocale` in lower case in Martian Mono 500**, with the patch logo (lines Paper `#E8E4D9` in dark, Ink `#15171B` in light, patch `#FFB224`, shadow `#8A5600`), replacing today's gradient tile, eye icon and "LiveLocale" heading.
 5. **Task 32 is blocked on the owner's Arabic copy review** (Task 24 Step 6). The `next` prerelease (Task 31) may ship before that review, carrying unreviewed Arabic copy on `main`; only `latest` waits for it (spec §6: "the owner reviews them before release").
 6. **Existing English Studio copy keeps its wording in 0.11.0.** Brand §2.5 asks for sentence case, but today's English copy (`Live Visual Translation Studio`, `All Keys`, `Page Keys`, `Manage Languages`, `Back to Editor`, `Add New Locale`, `Reload Frame`, …) moves into `i18n/en.ts` verbatim (Tasks 20–23), so existing unit and E2E assertions keep passing and the copy move stays reviewable on its own. The voice rule binds **new** English copy only (every key added from Task 17 on is sentence case, e.g. Task 26's `Search keys or values`, `Commit message`); a sentence-case pass over the old copy is a follow-up after 0.11.0. Arabic copy follows the voice rule throughout.
-7. **A brief light frame before the Studio script runs.** The built stylesheet is linked in `<head>`, so in the instant before `main.tsx` runs every Studio paints `:root`, the light Paper theme. A dev Studio (which then turns dark) and a share Studio under a dark system therefore flash Paper once while loading. Avoiding it needs an inline script in `src/studio/index.html` or a duplicated dark token block under `prefers-color-scheme`; neither is planned for 0.11.0. From `main.tsx` on, the frames are as pinned in Task 16.
+7. **A brief light frame before the Studio script runs.** The built stylesheet is linked in `<head>`, so in the instant before `main.tsx` runs every Studio paints `:root`, the light Print theme. A dev Studio (which then turns dark) and a share Studio under a dark system therefore flash Print once while loading. Avoiding it needs an inline script in `src/studio/index.html` or a duplicated dark token block under `prefers-color-scheme`; neither is planned for 0.11.0. From `main.tsx` on, the frames are as pinned in Task 16.
+8. **Rebrand to hunk (2026-11-02).** Owner withdrew cream/coral and approved the hunk palette and type (brand spec §2); Tasks 33–35 apply it. Calls the controller made: the in-page Alt+hover outline in `src/client/dom-interceptor.ts` moves from indigo to Hunk in 0.11.0 (it is visible in the launch demo and the spec forbids violet); info messages carry ⓘ; the selected key row's thin inset amber bar is a filled shape and allowed; an "added" file is amber like "modified" (a person changed it; green means done), the word tells them apart.
 
 ---
 
@@ -1229,9 +1230,9 @@ Order inside the milestone: shared settings (Task 9), the brand foundation (Task
 
 - **Defaults never force a change on current users.** With no remembered choice, the dev/preview Studio starts dark (the brand's dark theme) and English; the share Studio (`isShareStudio()`, Task 9: a static runtime, or a share folder whose manifest is missing) follows `prefers-color-scheme` and starts in Arabic only when the primary subtag of `navigator.language` is Arabic. A remembered choice always wins.
 - **Preferences** are read and written only through `src/studio/preferences.ts`, which uses `readPref`/`writePref` (`src/studio/share/browser.ts`: key `livelocale:<name>`, try/catch with a memory fallback). Nothing reads `localStorage` directly.
-- **Document root.** Theme toggles only the `dark` class on `document.documentElement` (`classList`, never `className`). Today nothing sets that class, so from Task 10 `main.tsx` adds it unconditionally before `startStudio` (the Studio stays dark while it is restyled), and Task 16 replaces that line with the real theme. Language sets `lang`/`dir` attributes on `document.documentElement` and on the App root (`data-testid="studio-root"`). `src/studio/index.html` changes once only: Task 10 removes the dead `bg-background text-foreground` classes from `<body>` (one line; `body` is painted by `index.css`). Because the built stylesheet is linked in `<head>`, the instant before `main.tsx` runs paints `:root`, the light Paper theme, in every Studio; a dev Studio, or a share Studio under a dark system, shows that light frame once while loading (Owner flag 7).
+- **Document root.** Theme toggles only the `dark` class on `document.documentElement` (`classList`, never `className`). Today nothing sets that class, so from Task 10 `main.tsx` adds it unconditionally before `startStudio` (the Studio stays dark while it is restyled), and Task 16 replaces that line with the real theme. Language sets `lang`/`dir` attributes on `document.documentElement` and on the App root (`data-testid="studio-root"`). `src/studio/index.html` changes once only: Task 10 removes the dead `bg-background text-foreground` classes from `<body>` (one line; `body` is painted by `index.css`). Because the built stylesheet is linked in `<head>`, the instant before `main.tsx` runs paints `:root`, the light Print theme, in every Studio; a dev Studio, or a share Studio under a dark system, shows that light frame once while loading (Owner flag 7).
 - **One look, from the brand.** Colours come only from the Task 10 token table and type only from the Task 11 faces. Today's colours are not preserved, so no task pins today's computed colours; E2E checks pin the brand's values instead (Tasks 11, 16, 25).
-- **Server mode untouched.** No file under `src/server`, `src/core` or `src/client` changes in this milestone; with no remembered choice, every English string, id, `data-testid` and class order that existing tests read stays the same (colour and font classes excepted).
+- **Server mode untouched.** No file under `src/server`, `src/core` or `src/client` changes in this milestone (one exception: Task 35 recolours the in-page hover outline in `src/client/dom-interceptor.ts`, Owner flag 8); with no remembered choice, every English string, id, `data-testid` and class order that existing tests read stays the same (colour and font classes excepted).
 - **The framed app keeps its own canvas.** `bg-white` on `#app-preview-iframe` stays (the only `white`/`black` colour class left in the Studio, Task 14); the iframe content is never restyled or mirrored.
 - **Copy wording.** Existing English copy moves verbatim; new English copy is sentence case (Owner flag 6).
 
@@ -1353,6 +1354,8 @@ git commit -m "feat(studio): add one preferences module and a header settings sl
 ---
 
 ### Task 10: Brand colour tokens for light and dark
+
+> Colours, fonts and the test names that quote them were superseded on 2026-11-02 by Milestone 2b (Tasks 33–35); the code and tests follow 2b.
 
 **Files:**
 
@@ -1557,6 +1560,8 @@ git commit -m "feat(studio): add brand colour tokens for light and dark, checked
 
 ### Task 11: Brand type and the logo in the header
 
+> Colours, fonts and the test names that quote them were superseded on 2026-11-02 by Milestone 2b (Tasks 33–35); the code and tests follow 2b.
+
 **Files:**
 
 - Modify: `package.json`, `package-lock.json` (devDependencies: add `@fontsource/bricolage-grotesque`, `@fontsource/jetbrains-mono`, `@fontsource/readex-pro`, `@fontsource/ibm-plex-sans-arabic`; remove `@fontsource/outfit`), `src/studio/main.tsx` (font imports), `src/studio/index.css` (type tokens, Arabic sizing), every `src/studio/**/*.tsx` using `font-outfit` (today `ChangesPanel`, `ConfirmModal`, `EditorPanel`, `EmptySelection`, `FirstRunTips`, `Header`; the test is the authority), `components/Header.tsx` (logo and wordmark)
@@ -1729,6 +1734,8 @@ Package size before / after the brand fonts: <before> / <after> (unpacked <befor
 
 ### Task 12: Move the Studio shell to brand tokens
 
+> Colours, fonts and the test names that quote them were superseded on 2026-11-02 by Milestone 2b (Tasks 33–35); the code and tests follow 2b.
+
 **Files:**
 
 - Modify: `src/studio/app.tsx`; `components/{Header,StudioLayout,IframeViewer,KeysDirectory,EmptySelection,SetupProblems}.tsx`
@@ -1857,6 +1864,8 @@ git commit -m "feat(studio): restyle the editor and locale components with the b
 ---
 
 ### Task 14: Move the panels and dialogs to brand tokens and guard the whole Studio
+
+> Colours, fonts and the test names that quote them were superseded on 2026-11-02 by Milestone 2b (Tasks 33–35); the code and tests follow 2b.
 
 **Files:**
 
@@ -2016,6 +2025,8 @@ git commit -m "feat(studio): resolve a system, light or dark theme and follow li
 
 ### Task 16: Theme toggle in the header, with defaults by Studio kind
 
+> Colours, fonts and the test names that quote them were superseded on 2026-11-02 by Milestone 2b (Tasks 33–35); the code and tests follow 2b.
+
 **Files:**
 
 - Create: `components/ThemeToggle.tsx`
@@ -2115,7 +2126,7 @@ git commit -m "feat(studio): add a system, light and dark theme toggle; share St
 - **Copy moves verbatim.** Every English string moves into `i18n/en.ts` unchanged, so existing English assertions keep passing. Each task writes the Arabic for every key it adds, in Modern Standard Arabic; the tips and the Send dialog get the most natural wording.
 - **Direction.** Translator text (values, `by`, `note`, `from`, `to`) keeps `dir="auto"`. Code-like text (key paths, locale codes, URLs, commands, versions, file names) renders with `dir="ltr"`. The app iframe is not mirrored.
 - **Tests in Arabic** wrap the component in `<StudioLanguageProvider initial="ar">`; each test file's existing render helper gains an optional language argument that does this (use the helper names those files already have). Expected Arabic text is read from `textFor('ar')(key, params)` so copy edits from the owner's review do not break tests.
-- **Fonts.** The Arabic faces come from Task 11: Readex Pro for headings (`font-heading`), IBM Plex Sans Arabic for the interface (`font-sans`), each second in its stack, so Arabic copy and Arabic translation values render in them in either Studio language; `html[lang='ar']` gets the larger size and line height. No task adds another font.
+- **Fonts.** The Arabic face comes from Task 11 and Task 34: IBM Plex Sans Arabic, second in every stack (`font-heading` after Martian Mono at 600–700, `font-sans` after IBM Plex Sans, `font-mono` after IBM Plex Mono), so Arabic copy and Arabic translation values render in them in either Studio language; `html[lang='ar']` gets the larger size and line height. No task adds another font.
 - **Voice.** Arabic copy follows brand §2.5 in Modern Standard Arabic: short, direct, plain verbs; errors and empty states say what to do next and never apologise.
 
 ---
@@ -2806,14 +2817,14 @@ const arabicFaces = (page: Page) =>
 
 Tests, each waiting for `connection-status` `data-status="connected"` (90 s on 3010, 30 s on 3020) after `goto`:
 
-| Describe (`test.use`)                                                                  | Test                                                                                                                                  | Pinned assertion                                                                                                                                                                                                                                                                                                                                             |
-| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| dev Studio (`locale: 'ar-EG'`)                                                         | `stays English for an Arabic browser until the person switches, then remembers Arabic`                                                | `studio-root` `dir` is `ltr`; after `#studio-language-toggle`: `rtl`, `lang="ar"`, `documentElement.dir` `rtl`; still `rtl` after a reload; the toggle again gives `ltr`                                                                                                                                                                                     |
-| dev Studio (`locale: 'ar-EG'`)                                                         | `opens the keys drawer on the right and the editor drawer on the left in Arabic` (1024x768)                                           | keys drawer `x + width > 1016`; side drawer `x < 8`; `scrollWidth <= innerWidth` after each                                                                                                                                                                                                                                                                  |
-| dev Studio (`locale: 'ar-EG'`)                                                         | `shows no English copy on the idle, editor and changes screens in Arabic` (1440x900, `STUDIO_LANGUAGE_KEY` = `ar` by `addInitScript`) | `expectNoEnglish` on `idle`; on `editor` after picking `home.welcome_msg` from `keys-directory`; on `changes` with `changes-panel` open                                                                                                                                                                                                                      |
-| share Studio, Arabic browser (`locale: 'ar-EG'`)                                       | `starts in Arabic and sends a change in Arabic`                                                                                       | `dir="rtl"`; `#studio-tips-title` = `مرحبًا بك في LiveLocale`; after `document.fonts.ready`, `arabicFaces(page)` = `['IBM Plex Sans Arabic', 'Readex Pro']`; `expectNoEnglish` on `tips`; `#studio-tips-start`, `editKey(page, 'home.welcome_msg', 'مرحبا')`, `#studio-send-button`; `#studio-send-title` = `إرسال إلى المطوّر`; `expectNoEnglish` on `send` |
-| share Studio, Arabic browser, light system (`locale: 'ar-EG'`, `colorScheme: 'light'`) | `starts light and in Arabic on a first visit from an Arabic browser` (Review Focus 5)                                                 | `watchDark(page)` before `goto`; `dir="rtl"`; no `dark` class and `seen(page, '__sawDark')` is `false`; `#studio-tips-title` in Arabic; `arabicFaces(page)` contains `'IBM Plex Sans Arabic'`                                                                                                                                                                |
-| share Studio, English browser (`locale: 'en-US'`)                                      | `starts in English`                                                                                                                   | `studio-root` `dir="ltr"`                                                                                                                                                                                                                                                                                                                                    |
+| Describe (`test.use`)                                                                  | Test                                                                                                                                  | Pinned assertion                                                                                                                                                                                                                                                                                                                               |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| dev Studio (`locale: 'ar-EG'`)                                                         | `stays English for an Arabic browser until the person switches, then remembers Arabic`                                                | `studio-root` `dir` is `ltr`; after `#studio-language-toggle`: `rtl`, `lang="ar"`, `documentElement.dir` `rtl`; still `rtl` after a reload; the toggle again gives `ltr`                                                                                                                                                                       |
+| dev Studio (`locale: 'ar-EG'`)                                                         | `opens the keys drawer on the right and the editor drawer on the left in Arabic` (1024x768)                                           | keys drawer `x + width > 1016`; side drawer `x < 8`; `scrollWidth <= innerWidth` after each                                                                                                                                                                                                                                                    |
+| dev Studio (`locale: 'ar-EG'`)                                                         | `shows no English copy on the idle, editor and changes screens in Arabic` (1440x900, `STUDIO_LANGUAGE_KEY` = `ar` by `addInitScript`) | `expectNoEnglish` on `idle`; on `editor` after picking `home.welcome_msg` from `keys-directory`; on `changes` with `changes-panel` open                                                                                                                                                                                                        |
+| share Studio, Arabic browser (`locale: 'ar-EG'`)                                       | `starts in Arabic and sends a change in Arabic`                                                                                       | `dir="rtl"`; `#studio-tips-title` = `مرحبًا بك في LiveLocale`; after `document.fonts.ready`, `arabicFaces(page)` = `['IBM Plex Sans Arabic']`; `expectNoEnglish` on `tips`; `#studio-tips-start`, `editKey(page, 'home.welcome_msg', 'مرحبا')`, `#studio-send-button`; `#studio-send-title` = `إرسال إلى المطوّر`; `expectNoEnglish` on `send` |
+| share Studio, Arabic browser, light system (`locale: 'ar-EG'`, `colorScheme: 'light'`) | `starts light and in Arabic on a first visit from an Arabic browser` (Review Focus 5)                                                 | `watchDark(page)` before `goto`; `dir="rtl"`; no `dark` class and `seen(page, '__sawDark')` is `false`; `#studio-tips-title` in Arabic; `arabicFaces(page)` contains `'IBM Plex Sans Arabic'`                                                                                                                                                  |
+| share Studio, English browser (`locale: 'en-US'`)                                      | `starts in English`                                                                                                                   | `studio-root` `dir="ltr"`                                                                                                                                                                                                                                                                                                                      |
 
 - [ ] **Step 2: Run the sweeps.** `npx vitest run tests/unit/studio-no-hardcoded-copy.test.ts` — the self-check passes; the two Studio sweeps FAIL only on strings Tasks 20–23 missed. If the JSX sweep already passes, temporarily add `<span>Oops</span>` to `EmptySelection.tsx`, confirm the failure names that file and line, and remove it.
 - [ ] **Step 3: Move** every reported string into the catalogue, with Arabic; a reported string that really is developer or repository text goes into `EXEMPT` with its reason. Extract `editKey` into `tests/e2e/fixtures/share.ts` and use it in `static-share.spec.ts`. Text the E2E `expectNoEnglish` reports is either catalogue copy still missing (move it) or code-like text without `dir="ltr"` (add the marker, per the Arabic shared rules); server or core messages never appear on these screens.
@@ -2829,11 +2840,445 @@ git commit -m "test(studio): check that every Studio string is translated, in bo
 
 ---
 
+### Milestone 2b: the hunk rebrand of the Studio (Tasks 33–35)
+
+Execution order: Tasks 33–35 run after Task 24 and before Task 25 (numbered after 32 only so earlier numbers stay stable).
+
+> Inserted into `docs/superpowers/plans/2026-11-01-launch-features.md` after Task 16 (and after the Arabic Tasks 17–24, which are being built now), before Task 25. Binding spec: `docs/superpowers/specs/2026-11-01-brand-and-landing-design.md` §2.1–§2.4b ("hunk", approved 2026-11-02). Gone everywhere: Paper `#FFF8F0`, Ink `#1D1712`, Coral `#FF6B4A`, Coral shadow `#C2472C`, Espresso `#1C1714`, Cream `#F6EEE6`, Coral dark `#FF7A5C`, dark coral shadow `#9E3A24`, light coral text `#B23A1E`, dark coral text `#FF8A6E`, Bricolage Grotesque, Inter, JetBrains Mono, Readex Pro.
+
+**Milestone constraints:**
+
+- **The token names stay, the values change.** The 35 Task 10 names are kept apart from two (`danger-solid`, `on-danger`), which Task 33 removes because red never fills (brand §2.3 rules). That leaves 33 tokens. Components keep their classes, except for the few one-job touches named in Tasks 33 and 35.
+- **One job per colour** (brand §2.3): amber (Patch) is the fix, the selection, the primary button and the focus ring. It is always a filled shape, never a decorative border. The focus ring is the one exception. As text or an icon, amber appears only as `accent-fg`/`warning-fg` (Patch ink in light, Patch in dark), and only for the edited string, the chosen item and warnings, which carry a `!`. Red (Exit 1) means "fails CI" and only appears as a dashed outline or a word. Cyan (Hunk) is where a string lives: keys, paths, locale codes, links and info. Green (Exit 0) means done. Ghost is history: the strike and the decoration, never text you have to read. There are no glows, no gradients and no purple.
+- **Dark first.** The dev Studio still starts dark and share Studios follow the system (Tasks 15–16 are unchanged; `theme.spec.ts` keeps pinning both, now with the hunk values).
+- **Master logo geometry unchanged.** `BrandMark.tsx` keeps its markup. Only the token values behind `fill-logo-ink`, `fill-accent` and `fill-accent-shadow` change: lines `#15171B` light / `#E8E4D9` dark, patch `#FFB224`, patch shadow `#8A5600`.
+- **Order.** Tasks 33, 34 and 35 run after Task 24 has landed (Tasks 33 and 35 touch `ChangesPanel`, `DraftList`, `SendDialog`, `ReviewPanel` and `Header`, which Tasks 21–23 are editing), and before Task 25 (the focus ring and the axe gate audit the final colours). The plan text of Tasks 25–32, the Owner flags and the Shared contracts already carries the hunk values (applied when this milestone was merged into the plan).
+- Gate before every commit as in the Global Constraints. Commit messages are conventional and never mention Claude, Anthropic or AI. They carry no `Co-Authored-By` trailer and no "Generated with" line.
+
+**Builder decisions the owner should see** (Claude's call, applied in the tasks below; the owner may override):
+
+1. **The Studio derives seven values the brand does not name:** light `raised` `#F9FAFB`; light `raised-hover` = Print `#F4F5F7`; dark `raised-hover` `#1A1D22` (darker than Raised, because Comment on anything lighter than Raised drops below 4.5:1: it is 4.34:1 on `#22252B`); `accent-hover` `#FFC150`; and the success and info tints and lines (Exit 0 and Hunk mixed 10 % / 35 % into Night for dark, 8 % / 35 % into Sheet for light). Edge on light surfaces is only 3.13:1 on Print, so no light control fill may go darker than Print.
+2. **Old values: the letters in Comment, the strike in Ghost.** Ghost text is 3.0–3.7:1 (dark) and 3.3–3.6:1 (light), below AA. It would fail Task 29's axe gate on the before/after lists that reviewers have to read. So the old value is `text-fg-muted line-through decoration-fg-faint`: the strike line, which is a graphic, is Ghost, and the letters meet AA. This is the closest reading of "struck, dim, still readable" that still passes "all text meets AA".
+3. **Secondary text on Wash uses `fg`.** Comment on dark Wash `#2E2412` is 4.31:1 (below AA), so muted text inside a Wash row or chip switches to Paper/Ink (12.0:1 / 16.1:1). Task 33 drops `fg-muted` on `accent-soft`/`warning-bg` from the pairs and Task 35 fixes the two places that use it today.
+4. **Error boxes are neutral with a dashed red outline.** `danger-bg` is the Raised tone, not a red tint, and `danger-line` is Exit 1 itself. Destructive buttons become a red word with a dashed red outline.
+5. **Weights:** Martian Mono 500 and 700; IBM Plex Sans 400–600; IBM Plex Mono 400–600; IBM Plex Sans Arabic 400–700 (§2.4 ranges; Arabic display needs 700). `font-bold`/`font-extrabold` on Latin interface text resolves to Plex Sans 600 without faux bold.
+6. **Glyphs come from CSS, not from new text.** Brand §2.3 says warnings carry `!` and success and info carry a glyph and a word. Task 35 adds three utilities in `index.css` (`glyph-done` ✓, `glyph-warn` !, `glyph-info` ⓘ). Each one is a `::before` with alt text `''`, so screen readers skip it, the DOM text does not change, and existing `getByText` tests and the copy sweep stay green. The brand names no info glyph, so ⓘ is Claude's call.
+7. **A file "added" in the Changes panel is amber, not green.** Green means done (brand §2.3), and an added file is a `+`, a fix a person made. So `STATUS_STYLES.added` takes the accent (Wash) style. `modified` keeps the warning style, which has the same values, and the word on each badge tells them apart.
+8. **Depth by tone only.** Blurred `shadow-*` and `backdrop-blur-*` utilities are removed from the Studio. Brand §2.3 says no glows and depth from tone, and the site plan removes its blurred shadows too. Dialogs keep `bg-overlay` and a `border-line` edge.
+9. **Red never fills, not even a bar.** Below 80 % the header coverage bar is `bg-warning-fg` (a person should translate more), instead of `bg-danger-fg` under 40 %.
+
+**File map:**
+
+| File                                                                                                                                                                                                                      | Responsibility                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `src/studio/index.css`                                                                                                                                                                                                    | Token values (Task 33), type stacks (Task 34)                            |
+| `tests/unit/helpers/studio-tokens.ts`                                                                                                                                                                                     | `TOKENS` with the hunk values, 33 names (Task 33)                        |
+| `tests/unit/studio-brand-tokens.test.ts`                                                                                                                                                                                  | Named hunk values, the new AA pairs with measured ratios (Task 33)       |
+| `tests/unit/studio-colour-guard.test.ts`                                                                                                                                                                                  | No red fill, patch wording (Task 33); dashed red outlines only (Task 35) |
+| `src/studio/main.tsx`, `package.json`, `package-lock.json`                                                                                                                                                                | Fontsource imports and devDependencies (Task 34)                         |
+| `tests/unit/studio-brand-type.test.tsx`, `studio-static-build.test.ts`, `tests/integration/studio-bundle.test.ts`                                                                                                         | Font stacks, imports, bundle size (Task 34)                              |
+| `components/{ConfirmModal,LocaleRow,ChangesPanel}.tsx`                                                                                                                                                                    | Destructive buttons as a dashed red outline (Task 33)                    |
+| `components/Header.tsx`                                                                                                                                                                                                   | Wordmark in Martian Mono 500 (Task 34); Wash chip text (Task 35)         |
+| `components/{KeysDirectory,TranslationEditor,DraftList,SendDialog,ChangesPanel,ReviewPanel,IframeViewer,LocalePicker,GitHubIssueAction,PluralEditor}.tsx`, plus every component with a `shadow-*`/`backdrop-blur-*` class | One-job touches, glyphs, no shadow or blur (Task 35)                     |
+| `src/studio/index.css` (again)                                                                                                                                                                                            | `glyph-done`/`glyph-warn`/`glyph-info` utilities (Task 35)               |
+| `tests/e2e/theme.spec.ts`, `tests/e2e/brand.spec.ts`                                                                                                                                                                      | Computed hunk values (Task 33), loaded faces and logo fills (Task 34)    |
+| `src/client/dom-interceptor.ts`, `tests/unit/dom-interceptor.test.ts`                                                                                                                                                     | The in-page hover outline in Hunk, no indigo (Task 35; Owner flag 8)     |
+
+---
+
+### Task 33: Hunk values for the light and dark tokens
+
+**Files:**
+
+- Modify: `src/studio/index.css` (`:root` and `.dark` values; remove `--color-danger-solid`, `--color-on-danger` and their `--lc-*`), `tests/unit/helpers/studio-tokens.ts` (`TOKENS` values; doc comment says "Milestone 2b Task 33 table"), `components/ConfirmModal.tsx`, `components/LocaleRow.tsx`, `components/ChangesPanel.tsx` (the three `bg-danger-solid … text-on-danger` buttons), `tests/e2e/theme.spec.ts`
+- Test: `tests/unit/studio-brand-tokens.test.ts`, `tests/unit/studio-colour-guard.test.ts`
+
+**Interfaces:**
+
+- Consumes: `cssDecls`, `themeInline`, `contrastRatio` (Task 10); `unknownColourNames`, `studioFiles` (Tasks 12–14); `watchDark`, `seen` (Task 16).
+- Produces: `TOKENS` with 33 entries. The table below is binding for Task 35, Tasks 25–32 and the Shared contracts, and replaces the Task 10 table.
+
+**Hunk token table** (brand names in the Light/Dark cells, derived values marked "d."):
+
+| Token           | Hunk job                                       | Light               | Dark               |
+| --------------- | ---------------------------------------------- | ------------------- | ------------------ |
+| `app`           | page background                                | `#F4F5F7` Print     | `#0C0D0F` Night    |
+| `surface`       | header, panels, dialogs, inputs                | `#FFFFFF` Sheet     | `#16181D` Surface  |
+| `raised`        | cards, chips, neutral controls at rest         | `#F9FAFB` d.        | `#1E2127` Raised   |
+| `raised-hover`  | hover/active fill of neutral controls          | `#F4F5F7` Print     | `#1A1D22` d.       |
+| `line`          | hairlines and dividers                         | `#D5D7DC` Rule      | `#2A2D33` Rule     |
+| `line-strong`   | control borders (3:1)                          | `#868B96` Edge      | `#6B6F7A` Edge     |
+| `fg`            | text                                           | `#15171B` Ink       | `#E8E4D9` Paper    |
+| `fg-muted`      | secondary text, hints, placeholders            | `#5E5B54` Comment   | `#8C887D` Comment  |
+| `fg-faint`      | the strike, disabled, `aria-hidden` decoration | `#8A877F` Ghost     | `#6E6B64` Ghost    |
+| `accent`        | Patch fill: primary action, the fix            | `#FFB224` Patch     | `#FFB224` Patch    |
+| `accent-hover`  | hover fill of `accent`                         | `#FFC150` d.        | `#FFC150` d.       |
+| `accent-shadow` | logo patch shadow                              | `#8A5600`           | `#8A5600`          |
+| `on-accent`     | text on Patch                                  | `#15171B` Ink       | `#0C0D0F` Night    |
+| `accent-fg`     | amber as text or icon: the edited string       | `#8F5B00` Patch ink | `#FFB224` Patch    |
+| `accent-soft`   | the selected or edited row                     | `#FFF1D6` Wash      | `#2E2412` Wash     |
+| `accent-line`   | border of the selected item (neutral)          | `#D5D7DC` Rule      | `#2A2D33` Rule     |
+| `focus`         | the focus ring                                 | `#8F5B00` Patch ink | `#FFB224` Patch    |
+| `logo-ink`      | logo lines                                     | `#15171B` Ink       | `#E8E4D9` Paper    |
+| `danger-fg`     | Exit 1 as a word: errors, "fails CI"           | `#C8243A` Exit 1    | `#FF5468` Exit 1   |
+| `danger-bg`     | error box (neutral; red is the outline)        | `#F9FAFB` = raised  | `#1E2127` = Raised |
+| `danger-line`   | the dashed red outline                         | `#C8243A` Exit 1    | `#FF5468` Exit 1   |
+| `warning-fg`    | warnings borrow amber (with a `!` glyph)       | `#8F5B00` Patch ink | `#FFB224` Patch    |
+| `warning-bg`    | warning box                                    | `#FFF1D6` Wash      | `#2E2412` Wash     |
+| `warning-line`  | warning box border (neutral)                   | `#D5D7DC` Rule      | `#2A2D33` Rule     |
+| `warning-solid` | "Save anyway"-type button (amber fill)         | `#FFB224` Patch     | `#FFB224` Patch    |
+| `on-warning`    | text on `warning-solid`                        | `#15171B` Ink       | `#0C0D0F` Night    |
+| `success-fg`    | Exit 0: done, saved, pull request opened       | `#00785F` Exit 0    | `#6FD69A` Exit 0   |
+| `success-bg`    | success box                                    | `#EBF4F2` d.        | `#16211D` d.       |
+| `success-line`  | success box border                             | `#A6D0C7` d.        | `#2F5340` d.       |
+| `info-fg`       | Hunk: keys, paths, locale codes, links, info   | `#00708A` Hunk      | `#4FC3DC` Hunk     |
+| `info-bg`       | info box                                       | `#EBF4F6` d.        | `#131F24` d.       |
+| `info-line`     | info box border                                | `#A6CDD6` d.        | `#234D57` d.       |
+| `overlay`       | dialog backdrop                                | `#15171B73`         | `#000000A6`        |
+
+Removed: `danger-solid`, `on-danger` (red never fills a button).
+
+**Measured lowest ratios** (WCAG 2.x relative luminance, computed with node from the values above; the full pair list is in Step 1):
+
+| Theme | Text pair, lowest                 | Graphic pair, lowest           | Notable                                                                                                                                                                                                                                                  |
+| ----- | --------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| light | `success-fg` on `success-bg` 4.87 | `line-strong` on `app` 3.13    | `fg`/`app` 16.45; `accent-fg`/`accent-soft` 5.13; `danger-fg`/`app` 5.11; `info-fg`/`info-bg` 5.10; `info-fg`/`accent-soft` 5.10; `on-accent`/`accent` 9.95; `focus`/`success-bg` 5.12                                                                   |
+| dark  | `fg-muted` on `raised` 4.56       | `line-strong` on `raised` 3.21 | `fg`/`app` 15.30; `fg`/`accent-soft` 12.00; `accent-fg`/`accent-soft` 8.46; `danger-fg`/`raised` 5.16; `info-fg`/`accent-soft` 7.39; `fg-muted`/`raised-hover` 4.77; `fg-muted`/`success-bg` 4.67; `fg-muted`/`info-bg` 4.75; `on-accent`/`accent` 10.78 |
+
+- [ ] **Step 1: Write the failing tests.** In `tests/unit/helpers/studio-tokens.ts`, replace the `TOKENS` values with the table above and delete the `danger-solid`/`on-danger` entries. That file is test data, so the CSS assertions now fail. In `tests/unit/studio-brand-tokens.test.ts`:
+  - `has 33 tokens` (renamed from `has 35 tokens`): `expect(Object.keys(TOKENS)).toHaveLength(33)`.
+  - `takes the named hunk colours verbatim` (replaces `takes the named brand colours verbatim`): light `['app','surface','line','line-strong','fg','fg-muted','fg-faint','accent','accent-fg','accent-soft','accent-shadow','logo-ink','focus','danger-fg','success-fg','info-fg']` → `['#F4F5F7','#FFFFFF','#D5D7DC','#868B96','#15171B','#5E5B54','#8A877F','#FFB224','#8F5B00','#FFF1D6','#8A5600','#15171B','#8F5B00','#C8243A','#00785F','#00708A']`; dark `['app','surface','raised','line','line-strong','fg','fg-muted','fg-faint','accent','accent-fg','accent-soft','accent-shadow','logo-ink','focus','danger-fg','success-fg','info-fg']` → `['#0C0D0F','#16181D','#1E2127','#2A2D33','#6B6F7A','#E8E4D9','#8C887D','#6E6B64','#FFB224','#FFB224','#2E2412','#8A5600','#E8E4D9','#FFB224','#FF5468','#6FD69A','#4FC3DC']`.
+  - `gives every colour one job` (new): per theme, `warning-fg` equals `accent-fg`; `warning-bg` equals `accent-soft`; `warning-solid` equals `accent`; `danger-line` equals `danger-fg`; `danger-bg` equals `raised`; `accent-line` and `warning-line` equal `line`; `['danger-solid','on-danger'].filter((n) => n in TOKENS)` is `[]`.
+  - `PAIRS` becomes: `TEXT × SURFACES` (as today, 28), `fg` on each of `TINTS` (5), `fg-muted` on `danger-bg`, `success-bg`, `info-bg` (3: Comment fails on Wash, see builder decision 3), the five `*-fg` on their own tint as today, `['info-fg', 'accent-soft']` (a key in Hunk on the selected Wash row), `['on-accent','accent']`, `['on-accent','accent-hover']`, `['on-warning','warning-solid']`. The `['on-danger','danger-solid']` pair is deleted. That is 45 pairs per theme.
+  - The 3:1 list gains `danger-line` on each of `SURFACES` and `['danger-line', 'danger-bg']` (the dashed outline carries meaning), so it has 18 entries per theme.
+  - `never puts white text on the patch` (renamed from `never puts white text on coral`): `c('on-accent')` and `c('on-warning')` are not `#FFFFFF`.
+  - `computes WCAG ratios`: the `#FFF8F0`/`#1D1712` line becomes `expect(contrastRatio('#F4F5F7', '#15171B')).toBeCloseTo(16.45, 1)` and gains `expect(contrastRatio('#0C0D0F', '#E8E4D9')).toBeCloseTo(15.3, 1)`. The 8-digit rejection now uses `'#15171B73'`.
+
+  In `tests/unit/studio-colour-guard.test.ts`, rename `never puts white text on a coral fill` to `never puts white text on a patch fill` (the body is unchanged).
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `npx vitest run tests/unit/studio-brand-tokens.test.ts tests/unit/studio-colour-guard.test.ts`
+Expected: FAIL. `defines every brand token for light and dark` reports `app: expected '#FFF8F0' to be '#F4F5F7'`. `drops the placeholder shadcn colours` lists `danger-solid` and `on-danger`. `names only known colours in colour utilities anywhere in the Studio` lists `ChangesPanel.tsx: text-on-danger`, `…: bg-danger-solid`, `ConfirmModal.tsx: …`, `LocaleRow.tsx: …`.
+
+- [ ] **Step 3: Implement.**
+  - `index.css`: write every `--lc-*` value in `:root` and `.dark` exactly as in the table (upper-case hex, `/* prettier-ignore */` kept). Remove the two `--color-*`/`--lc-*` pairs for `danger-solid` and `on-danger`. Order, `color-scheme`, `body`, the palette reset and `@custom-variant` stay.
+  - The three destructive buttons (ChangesPanel discard confirm, ConfirmModal confirm, LocaleRow delete confirm) drop `bg-danger-solid`, `hover:bg-danger-solid/90`, `active:bg-danger-solid` and `text-on-danger`. They become `bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg` (keeping size, radius and transition classes). Their copy and handlers do not change.
+
+- [ ] **Step 4: Update the E2E values** in `tests/e2e/theme.spec.ts`:
+  - Constants: `PRINT = 'rgb(244, 245, 247)'`, `NIGHT = 'rgb(12, 13, 15)'`, `PATCH = 'rgb(255, 178, 36)'`, `INK_LINES = 'rgb(21, 23, 27)'`, `PAPER_LINES = 'rgb(232, 228, 217)'`. Delete `PAPER`, `ESPRESSO`, `CORAL`, `CORAL_DARK`.
+  - Add `inkFill`, the computed `fill` of `[data-testid="brand-mark"] .fill-logo-ink`.
+  - `keeps the dev Studio in the brand dark theme until the person chooses`: `rootBg` = `NIGHT`, `patchFill` = `PATCH`, `inkFill` = `PAPER_LINES`.
+  - `shows the share Studio on Paper, with no dark frame before it loads` is renamed to `shows the share Studio on Print, with no dark frame before it loads`: `rootBg` = `PRINT`, `patchFill` = `PATCH`, `inkFill` = `INK_LINES`.
+  - `remembers the chosen theme across a reload`: `rootBg` = `PRINT`.
+  - `shows the share Studio dark from its first render and follows a live switch to light`: `rootBg` = `NIGHT`, then `expect.poll(rootBg)` = `PRINT`.
+
+- [ ] **Step 5: Run to verify it passes**
+
+Run: `npx vitest run tests/unit/studio-brand-tokens.test.ts tests/unit/studio-colour-guard.test.ts tests/unit/studio-brand-type.test.tsx tests/unit/studio-theme.test.ts tests/unit/theme-toggle.test.tsx tests/unit/header-review.test.tsx tests/unit/changes-panel.test.tsx tests/unit/studio-dialogs-keyboard.test.tsx tests/unit/studio-logical-properties.test.ts`
+Expected: PASS. There are 126 contrast cases (90 at 4.5:1 and 36 at 3:1); the patch-mark geometry test is unchanged.
+Run: `npm run build`, then `cat dist/studio/assets/*.css | grep -oiE 'fff8f0|1d1712|ff6b4a|c2472c|1c1714|f6eee6|ff7a5c|b23a1e|9e3a24|ff8a6e' | wc -l` and `cat dist/studio/assets/*.css | grep -oi 'ffb224' | wc -l`
+Expected: build exits 0; the first prints `0`, the second prints at least `1`.
+Run: `npx playwright test tests/e2e/theme.spec.ts tests/e2e/brand.spec.ts tests/e2e/responsive-layout.spec.ts tests/e2e/visual-sync.spec.ts`
+Expected: all pass (the screenshot test is skipped).
+
+- [ ] **Step 6: Commit** (after the gate)
+
+```bash
+git add src/studio tests/unit/helpers/studio-tokens.ts tests/unit/studio-brand-tokens.test.ts tests/unit/studio-colour-guard.test.ts tests/e2e/theme.spec.ts docs/superpowers/plans/2026-11-01-launch-features.md
+git commit -m "feat(studio): switch the colour tokens to the hunk palette, with red as an outline only
+
+danger-solid and on-danger are removed: destructive buttons are a red word with a dashed red outline."
+```
+
+- [ ] **Step 7: Show the owner (handoff, non-blocking).** `REVIEW_SHOTS=<scratchpad> npx playwright test tests/e2e/theme.spec.ts -g "screenshots"`. Send `dev-dark.png` and `dev-light.png` with one line naming the derived values (builder decision 1). Any colour edit from the owner changes `index.css` and `TOKENS` together and keeps `studio-brand-tokens.test.ts` green, as `fix(studio): <what changed> in the brand tokens`.
+
+---
+
+### Task 34: Martian Mono and IBM Plex, the wordmark at 500
+
+**Files:**
+
+- Modify: `package.json`, `package-lock.json` (devDependencies: add `@fontsource/martian-mono`, `@fontsource/ibm-plex-sans`, `@fontsource/ibm-plex-mono`, all `^5.3.0`, OFL-1.1; keep `@fontsource/ibm-plex-sans-arabic`; remove `@fontsource/inter`, `@fontsource/bricolage-grotesque`, `@fontsource/jetbrains-mono`, `@fontsource/readex-pro`), `src/studio/main.tsx` (imports), `src/studio/index.css` (the three `--font-*` stacks), `components/Header.tsx` (the `h1` classes), `tests/integration/studio-bundle.test.ts`, `tests/e2e/brand.spec.ts`; `tests/e2e/studio-arabic.spec.ts` (Task 24's `arabicFaces` assertion, if that file has landed)
+- Test: `tests/unit/studio-brand-type.test.tsx`, `tests/unit/studio-static-build.test.ts`, `tests/unit/header-review.test.tsx`
+
+**Interfaces:**
+
+- Consumes: the `--font-heading`/`--font-sans`/`--font-mono` utilities (Task 11); `loadedFaces` (Task 11); the Task 33 logo token values.
+- Produces:
+  - **Fontsource packages** (checked with `npm view` / `npm pack --dry-run` on 2026-11-02): `@fontsource/martian-mono@5.3.0` has Latin weights 100–800; `@fontsource/ibm-plex-sans@5.3.0` and `@fontsource/ibm-plex-mono@5.3.0` have Latin weights 100–700; `@fontsource/ibm-plex-sans-arabic@5.3.0` has Arabic weights 100–700. All four are `OFL-1.1`.
+  - **Imports** (`main.tsx`, one CSS per subset and weight; the Inter, Bricolage, JetBrains and Readex lines are deleted): `@fontsource/martian-mono/latin-{500,700}.css`, `@fontsource/ibm-plex-sans/latin-{400,500,600}.css`, `@fontsource/ibm-plex-mono/latin-{400,500,600}.css`, `@fontsource/ibm-plex-sans-arabic/arabic-{400,500,600,700}.css` (kept).
+  - **Stacks** (Latin face first, Arabic second, brand §2.4):
+    `--font-heading: 'Martian Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;`
+    `--font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;`
+    `--font-mono: 'IBM Plex Mono', 'IBM Plex Sans Arabic', ui-monospace, SFMono-Regular, Menlo, monospace;`
+    Arabic sizing (`html[lang='ar']` 108 %, line-height 1.7) is unchanged.
+  - **Wordmark:** the `h1` becomes `text-base font-heading font-medium tracking-[-0.02em] text-fg` (`font-extrabold` removed; Martian Mono 500, −0.02em, brand §2.4). `lang="en" dir="ltr"` and the text `livelocale` stay. `BrandMark` is unchanged; its fills come from Task 33.
+  - **Bundle size:** the fonts that ship drop from 830,868 to 635,860 bytes (woff2 plus woff, summed from the package file lists). JS, CSS and HTML are about 332 kB today, so `dist/studio` comes to about 0.97 MB, down from 1,163,246 bytes measured at `5ed84d1`+Tasks 12–24.
+
+- [ ] **Step 1: Write the failing tests**
+  - `studio-brand-type.test.tsx`, `stacks each Latin face before its Arabic face`: `fontVar('heading')` matches `/^'Martian Mono', 'IBM Plex Sans Arabic',/`, `fontVar('sans')` matches `/^'IBM Plex Sans', 'IBM Plex Sans Arabic',/`, `fontVar('mono')` matches `/^'IBM Plex Mono', 'IBM Plex Sans Arabic',/`.
+  - `bundles the brand faces from Fontsource and nothing from Google`: `main` contains `import '@fontsource/martian-mono/latin-500.css';`, `…/martian-mono/latin-700.css`, `…/ibm-plex-sans/latin-400.css`, `…/ibm-plex-mono/latin-400.css`, `…/ibm-plex-sans-arabic/arabic-400.css`. For each of `inter`, `bricolage-grotesque`, `jetbrains-mono`, `readex-pro`, `outfit`: `main` does not contain `@fontsource/<p>` and `pkg.devDependencies['@fontsource/<p>']` is `undefined`. `martian-mono`, `ibm-plex-sans`, `ibm-plex-mono` and `ibm-plex-sans-arabic` are defined in `devDependencies`, and `pkg.dependencies` is `undefined`.
+  - `studio-static-build.test.ts`, `imports the brand font files`: for `[500, 700]`, `@fontsource/martian-mono/latin-${w}.css`; for `[400, 500, 600]`, `@fontsource/ibm-plex-sans/latin-${w}.css` and `@fontsource/ibm-plex-mono/latin-${w}.css`; for `[400, 500, 600, 700]`, `@fontsource/ibm-plex-sans-arabic/arabic-${w}.css`. Plus `expect(main).not.toMatch(/@fontsource\/(?:inter|bricolage-grotesque|jetbrains-mono|readex-pro)\//)`.
+  - `header-review.test.tsx`, `shows the patch mark and the lower-case wordmark` gains: the `h1` className split on spaces contains `font-heading`, `font-medium` and `tracking-[-0.02em]`, and not `font-extrabold`.
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `npx vitest run tests/unit/studio-brand-type.test.tsx tests/unit/studio-static-build.test.ts tests/unit/header-review.test.tsx`
+Expected: FAIL. `fontVar('heading')` is `'Bricolage Grotesque', 'Readex Pro', …`; the `martian-mono` import is missing; the `h1` has `font-extrabold`.
+
+- [ ] **Step 3: Measure, install, implement.** First run `npm run build; npm pack --dry-run` and note "package size" and "unpacked size". Then `npm install --save-dev @fontsource/martian-mono@^5.3.0 @fontsource/ibm-plex-sans@^5.3.0 @fontsource/ibm-plex-mono@^5.3.0` and `npm uninstall @fontsource/inter @fontsource/bricolage-grotesque @fontsource/jetbrains-mono @fontsource/readex-pro`, then apply the Produces block.
+
+- [ ] **Step 4: Tighten the bundle guard** in `tests/integration/studio-bundle.test.ts`. The comment becomes `// The hunk faces (Martian Mono, IBM Plex Sans, Mono and Sans Arabic, woff2 plus woff) put the bundle near 0.97 MB.` and the bound becomes `toBeLessThan(1_100_000)`. Add `it('ships only the hunk faces')`. Its assertions: the `.woff2` names in `dist/studio/assets` include one each starting `martian-mono-latin-`, `ibm-plex-sans-latin-`, `ibm-plex-mono-latin-` and `ibm-plex-sans-arabic-arabic-`, and none matches `/^(?:inter|bricolage-grotesque|jetbrains-mono|readex-pro|outfit)-/`.
+
+- [ ] **Step 5: Update the E2E.** In `tests/e2e/brand.spec.ts`, `loads the brand faces from the Studio bundle and nothing from Google`: `loadedFaces(page)` gives `expect.arrayContaining(['IBM Plex Sans', 'Martian Mono'])` and, in a new assertion, contains none of `Inter`, `Bricolage Grotesque`, `JetBrains Mono`, `Readex Pro`. Also add `test('colours the patch mark with the hunk fills in dark')` on 3010. Its assertions: the computed `fill` of `.fill-logo-ink` = `rgb(232, 228, 217)`, of `.fill-accent` = `rgb(255, 178, 36)`, of `.fill-accent-shadow` = `rgb(138, 86, 0)`, and the `h1` computed `fontFamily` starts with `"Martian Mono"` with `fontWeight` `500`. If `tests/e2e/studio-arabic.spec.ts` exists: in `starts in Arabic and sends a change in Arabic`, `arabicFaces(page)` = `['IBM Plex Sans Arabic']`. The filter keeps `'Readex Pro'` so a stray load still fails.
+
+- [ ] **Step 6: Run to verify it passes**
+
+Run: `npx vitest run tests/unit/studio-brand-type.test.tsx tests/unit/studio-static-build.test.ts tests/unit/header-review.test.tsx tests/unit/studio-brand-tokens.test.ts tests/unit/studio-colour-guard.test.ts`, then `npm run build; npx vitest run tests/integration/studio-bundle.test.ts; npm pack --dry-run`
+Expected: PASS; build exit 0; `git diff package.json` touches `devDependencies` only; `du -sb dist/studio` prints under `1100000`. Note the new sizes for the commit body.
+Run: `npx playwright test tests/e2e/brand.spec.ts tests/e2e/responsive-layout.spec.ts tests/e2e/theme.spec.ts` (plus `tests/e2e/studio-arabic.spec.ts` if present)
+Expected: all pass. `keeps the header on screen in light mode at 800x600` still passes with the wider Martian Mono wordmark.
+
+- [ ] **Step 7: Commit** (after the gate)
+
+```bash
+git add package.json package-lock.json src/studio tests/unit/studio-brand-type.test.tsx tests/unit/studio-static-build.test.ts tests/unit/header-review.test.tsx tests/integration/studio-bundle.test.ts tests/e2e
+git commit -m "feat(studio): use Martian Mono and IBM Plex, and set the wordmark in Martian Mono 500
+
+Package size before / after the hunk fonts: <before> / <after> (unpacked <before> / <after>)."
+```
+
+---
+
+### Task 35: One-job touches the tokens alone do not give
+
+Only where the component already exists. There are no new elements apart from one decorative bar, and no copy changes. The glyphs are CSS `::before` content with empty alt text (builder decision 6).
+
+**Files:**
+
+- Modify: `src/studio/index.css` (three `@utility glyph-*` rules), `components/KeysDirectory.tsx`, `components/TranslationEditor.tsx`, `components/DraftList.tsx`, `components/SendDialog.tsx`, `components/ChangesPanel.tsx`, `components/ReviewPanel.tsx`, `components/Header.tsx`, `components/IframeViewer.tsx`, `components/LocalePicker.tsx`, `components/GitHubIssueAction.tsx`, `components/PluralEditor.tsx`, and every other file under `src/studio` that `grep -rlE "(^|[ '\"\`:])(shadow(-(2xs|xs|sm|md|lg|xl|2xl|inner))?|backdrop-blur(-[a-z0-9\[\]]+)?)([ '\"\`]|$)" src/studio`lists (today these include`ConfirmModal`, `TokenModal`, `LocaleManager`, `LocaleRow`, `EditorPanel`, `EmptySelection`, `FirstRunTips`and`ImportChangeDialog`)
+- Modify (outside the Studio, Owner flag 8): `src/client/dom-interceptor.ts` (the in-page hover outline and badge colours)
+- Create: `tests/unit/studio-hunk-touches.test.tsx`
+- Test: `tests/unit/draft-list.test.tsx`, `tests/unit/changes-panel.test.tsx`, `tests/unit/studio-colour-guard.test.ts`, `tests/unit/dom-interceptor.test.ts`
+
+**Interfaces:**
+
+- Consumes: the Task 33 tokens (`info-fg` = Hunk, `accent-soft` = Wash, `accent-fg` = Patch / Patch ink, `fg-faint` = Ghost, `danger-line` = Exit 1); `renderList` (draft-list test), `renderPanel` (changes-panel test); `studioFiles`.
+- Produces: class conventions that Tasks 25–29 audit:
+  - **Where a string lives is Hunk.** Every element that renders a key path or a file path in `font-mono` uses `text-info-fg` instead of `text-fg`. Today those are: the key in the KeysDirectory row, the key box in TranslationEditor, `rowHeading` in DraftList, the key line in SendDialog, the file and key paths in ChangesPanel, and the key cell and key link in ReviewPanel. Links that are `text-accent-fg underline` (the ChangesPanel pull-request link, the ReviewPanel key link) become `text-info-fg`. The LocalePicker candidate buttons are locale codes and nothing is selected yet. They change from `text-accent-fg bg-accent-soft hover:bg-accent-soft border-accent-line hover:border-accent-line` to `text-info-fg bg-raised hover:bg-raised-hover border-line hover:border-line-strong`. Amber text stays only for what a person changed or chose: the Header "Editing ar" chip, the selected locale, an open toggle, the new value, and warnings (`warning-fg`, with `glyph-warn`).
+  - **Glyphs (brand §2.3).** `index.css` gains, after the `@custom-variant` line: `@utility glyph-done { &::before { content: '✓\00a0' / ''; } }`, `@utility glyph-warn { &::before { content: '!\00a0' / ''; } }` and `@utility glyph-info { &::before { content: 'ⓘ\00a0' / ''; } }`. Rules for using them:
+    - Every class string that holds `text-success-fg` also holds `glyph-done`. Examples: the SendDialog `copied`/`downloaded`/`opened` status lines, the ChangesPanel last-commit line, the DraftList `live` and ReviewPanel `applied`/`apply` styles, and the IframeViewer `connected` status.
+    - Every class string that holds `text-warning-fg` also holds `glyph-warn`.
+    - Every class string that holds `text-info-fg` together with `bg-info-bg` (the `sent` and `renamed` badges) also holds `glyph-info`.
+    - The one exception is the LocaleRow confirm icon button (`p-1 text-success-fg …`). It is an icon with an `aria-label`, so it has no text to prefix.
+  - **Red never fills** (builder decision 9): the Header coverage bar's ternary becomes `coveragePercentage >= 80 ? 'bg-success-fg' : 'bg-warning-fg'`.
+  - **An added file is amber** (builder decision 7): `STATUS_STYLES.added` in ChangesPanel becomes `text-accent-fg border-accent-line bg-accent-soft`.
+  - **Empty new values are amber too:** the DraftList `draft_list.empty` and SendDialog `send.empty` `<em>` change from `text-success-fg` to `text-accent-fg`, like the value they stand in for.
+  - **Depth by tone** (builder decision 8): delete every `shadow`, `shadow-{2xs,xs,sm,md,lg,xl,2xl,inner}` and `backdrop-blur-*` class from `src/studio`. `focus:ring-*` and `shadow-none` are not shadows and stay. The Header's `bg-surface/90 backdrop-blur-md` becomes `bg-surface`.
+  - **The selected key row is Wash with an inset Patch bar:** `relative bg-accent-soft border-accent-line` plus `aria-current="true"` (so state is not colour-only). Its first child is `<span aria-hidden="true" data-testid="key-row-bar" className="absolute inset-y-2 start-0 w-0.75 rounded-full bg-accent-fg" />`. `bg-accent-fg` is used rather than `bg-accent` because Patch on light Wash is only 1.61:1, while Patch ink is 5.13:1. `start-0` keeps it at the start edge in Arabic. The row's value line is `text-fg` when active, `text-fg-muted` otherwise (builder decision 3). In the Header target-locale chip, the muted span inside `bg-accent-soft` becomes `text-fg`.
+  - **Diff pair:** the old value (DraftList `DraftValues`, SendDialog, ChangesPanel history `previousValue`) is `text-fg-muted line-through decoration-fg-faint` instead of `text-danger-fg line-through` (builder decision 2). The new value is `text-accent-fg` instead of `text-success-fg` (the fix is amber; green means done). ChangesPanel `diffLineClass` works the same way: `@@` → `text-info-fg`; `+` → `text-fg bg-accent-soft`; `-` → `text-fg-muted line-through decoration-fg-faint` (no red fill); the other branches are unchanged.
+  - **Red is a dashed outline:** every class string containing `border-danger-line` also contains `border-dashed`. Today those are the error boxes, the `deleted`/`conflict` badges in `STATUS_STYLES`/`STATE_STYLES`, the TranslationEditor `missing` chip and the KeysDirectory `keys.missing` badge. The two untranslated markers (the `keys.missing` badge and the `missing` chip) use `border-[1.5px] border-dashed border-danger-line bg-transparent text-danger-fg` (brand §2.4a: 1.5 px, never a filled red box).
+  - **No amber decoration:** the three decorative window dots in IframeViewer (`bg-danger-fg`/`bg-warning-fg`/`bg-success-fg`) become `bg-line-strong`.
+  - **The in-page hover outline is Hunk** (Owner flag 8): in `src/client/dom-interceptor.ts`, every `rgba(99, 102, 241, …)` (indigo) and the indigo badge text `#a5b4fc` become Hunk `#4FC3DC`. The hover state is `1.5px dashed #4FC3DC`, the Alt-held state `2px solid #4FC3DC` (instead of `#3b82f6`), and both `boxShadow` glows become `none` (no glows). The badge `color` and `borderColor` are `#4FC3DC` in both states. The badge text and the overlay geometry do not change. It marks where a string lives, so it is Hunk, never amber (amber is never a border).
+
+- [ ] **Step 1: Write the failing tests**
+
+```tsx
+// tests/unit/studio-hunk-touches.test.tsx (// @vitest-environment jsdom)
+// renderKeys renders <KeysDirectory> with filteredKeys ['home.title', 'home.body'], localeData { 'home.title': 'Hi' } and the rest no-ops.
+it('shows keys in Hunk mono', () => {
+  renderKeys({ selected: null });
+  const key = screen.getByText('home.title');
+  expect(key.className.split(/\s+/)).toEqual(expect.arrayContaining(['font-mono', 'text-info-fg']));
+});
+it('marks the selected key row as Wash with an inset Patch bar at the start edge', () => {
+  renderKeys({ selected: { key: 'home.title' } as SelectedElement });
+  const row = screen.getByText('home.title').closest('button')!;
+  expect(row.getAttribute('aria-current')).toBe('true');
+  expect(row.className).toContain('bg-accent-soft');
+  const bar = within(row).getByTestId('key-row-bar');
+  expect(bar.getAttribute('aria-hidden')).toBe('true');
+  expect(bar.className.split(/\s+/)).toEqual(expect.arrayContaining(['bg-accent-fg', 'start-0']));
+  expect(within(row).getByText('Hi').className).toContain('text-fg');
+  expect(within(row).getByText('Hi').className).not.toContain('text-fg-muted');
+  const other = screen.getByText('home.body').closest('button')!;
+  expect(within(other).queryByTestId('key-row-bar')).toBeNull();
+  expect(other.getAttribute('aria-current')).toBeNull();
+});
+it('outlines a missing translation with a dashed red line, never a red fill', () => {
+  renderKeys({ selected: null });
+  const badge = screen.getByText(textFor('en')('keys.missing'));
+  expect(badge.className.split(/\s+/)).toEqual(
+    expect.arrayContaining([
+      'border-dashed',
+      'border-[1.5px]',
+      'border-danger-line',
+      'text-danger-fg',
+    ])
+  );
+  expect(badge.className).not.toContain('bg-danger-bg');
+});
+```
+
+```tsx
+// tests/unit/draft-list.test.tsx, extending 'shows from struck through and to as text'
+expect(from.className.split(/\s+/)).toEqual(
+  expect.arrayContaining(['line-through', 'text-fg-muted', 'decoration-fg-faint'])
+);
+expect(from.className).not.toContain('text-danger-fg');
+expect(screen.getByText('أهلا').className).toContain('text-accent-fg');
+expect(screen.getByText(/· /).className).toContain('text-info-fg'); // rowHeading `key · locale`
+```
+
+```tsx
+// tests/unit/changes-panel.test.tsx, extending 'shows the diff on demand with added and removed lines'
+// (the lines are the ones that test already renders)
+expect(addedLine.className).toContain('bg-accent-soft');
+expect(removedLine.className.split(/\s+/)).toEqual(
+  expect.arrayContaining(['line-through', 'text-fg-muted', 'decoration-fg-faint'])
+);
+expect(hunkHeader.className).toContain('text-info-fg');
+expect(removedLine.className).not.toMatch(/danger/);
+```
+
+```ts
+// tests/unit/studio-colour-guard.test.ts
+it('draws red only as a dashed outline', () => {
+  const solid = studioFiles('src/studio').flatMap((f) =>
+    [...readFileSync(f, 'utf8').matchAll(/["'`]([^"'`]*)["'`]/g)]
+      .filter(
+        (m) =>
+          /(?<![\w-])(?:[\w-]+:)*border-danger-line(?![\w-])/.test(m[1]) &&
+          !/(?<![\w-])border-dashed(?![\w-])/.test(m[1])
+      )
+      .map((m) => `${f}: ${m[1]}`)
+  );
+  expect(solid).toEqual([]);
+});
+it('keeps amber off decoration', () =>
+  expect(
+    readFileSync('src/studio/features/dashboard/components/IframeViewer.tsx', 'utf8')
+  ).not.toMatch(/rounded-full bg-(?:danger|warning|success)-fg/));
+
+const literals = (f: string) =>
+  [...readFileSync(f, 'utf8').matchAll(/["'`]([^"'`]*)["'`]/g)].map((m) => m[1]);
+const has = (s: string, cls: string) =>
+  new RegExp(`(?<![\\w-])(?:[\\w-]+:)*${cls.replace(/[[\]]/g, '\\$&')}(?![\\w-])`).test(s);
+
+it('never fills with red', () =>
+  expect(
+    studioFiles('src/studio').flatMap((f) =>
+      literals(f)
+        .filter((s) => has(s, 'bg-danger-fg') || has(s, 'bg-danger-line'))
+        .map((s) => `${f}: ${s}`)
+    )
+  ).toEqual([]));
+
+it('raises by tone, never by shadow or blur', () =>
+  expect(
+    studioFiles('src/studio').flatMap((f) =>
+      literals(f)
+        .filter((s) =>
+          /(?<![\w-])(?:[\w-]+:)*(?:shadow(?:-(?:2xs|xs|sm|md|lg|xl|2xl|inner))?|backdrop-blur(?:-[\w[\]]+)?)(?![\w-])/.test(
+            s
+          )
+        )
+        .map((s) => `${f}: ${s}`)
+    )
+  ).toEqual([]));
+
+// The LocaleRow confirm button is an icon with an aria-label, so it has no text to prefix.
+const GLYPH_EXEMPT = ['p-1 text-success-fg hover:text-success-fg transition duration-150'];
+it('gives every success, warning and info message its glyph', () => {
+  const missing = studioFiles('src/studio').flatMap((f) =>
+    literals(f)
+      .filter(
+        (s) =>
+          (has(s, 'text-success-fg') && !has(s, 'glyph-done') && !GLYPH_EXEMPT.includes(s)) ||
+          (has(s, 'text-warning-fg') && !has(s, 'glyph-warn')) ||
+          (has(s, 'text-info-fg') && has(s, 'bg-info-bg') && !has(s, 'glyph-info'))
+      )
+      .map((s) => `${f}: ${s}`)
+  );
+  expect(missing).toEqual([]);
+  const css = readFileSync('src/studio/index.css', 'utf8');
+  for (const [name, glyph] of [
+    ['done', '✓'],
+    ['warn', '!'],
+    ['info', 'ⓘ'],
+  ]) {
+    expect(css).toContain(`@utility glyph-${name}`);
+    expect(css).toContain(`content: '${glyph}\\00a0' / '';`);
+  }
+});
+```
+
+```tsx
+// tests/unit/studio-hunk-touches.test.tsx, continued
+it('lists locale candidates in Hunk, with nothing amber before a choice', () => {
+  render(<LocalePicker candidates={['ar', 'fr']} onChoose={() => {}} onCancel={() => {}} />);
+  const ar = screen.getByRole('button', { name: 'ar' });
+  expect(ar.className.split(/\s+/)).toEqual(expect.arrayContaining(['text-info-fg', 'bg-raised']));
+  expect(ar.className).not.toMatch(/accent/);
+});
+```
+
+- [ ] **Step 2: Run to verify it fails**
+
+Run: `npx vitest run tests/unit/studio-hunk-touches.test.tsx tests/unit/draft-list.test.tsx tests/unit/changes-panel.test.tsx tests/unit/studio-colour-guard.test.ts`
+Expected: FAIL. The key is `text-fg`; there is no `aria-current` and no `key-row-bar`; `from` has `text-danger-fg`; the `+` diff line has `bg-success-bg`. `draws red only as a dashed outline` lists the error boxes in `ChangesPanel.tsx`, `TranslationEditor.tsx`, `DraftList.tsx: text-danger-fg border-danger-line bg-danger-bg` and the others. `keeps amber off decoration` fails on IframeViewer. `never fills with red` lists the Header coverage bar and the IframeViewer dot. `raises by tone, never by shadow or blur` lists every `shadow-*` and `backdrop-blur-*` literal. `gives every success, warning and info message its glyph` lists every `text-success-fg`/`text-warning-fg` literal and finds no `@utility glyph-done`. `lists locale candidates in Hunk` finds `text-accent-fg`.
+
+- [ ] **Step 3: Implement** the Produces conventions in the listed files. Change only these: colour, border-style, glyph, shadow and blur classes; `aria-current`; the one decorative bar span; and the three `@utility` rules. The bar uses logical `start-0`, so `studio-logical-properties.test.ts` stays green.
+
+- [ ] **Step 4: Run to verify it passes**
+
+Run: `npx vitest run`
+Expected: all pass, in particular `studio-hunk-touches`, `draft-list`, `changes-panel`, `translation-editor`, `review-panel`, `studio-layout`, `studio-colour-guard`, `studio-brand-tokens`, `studio-logical-properties` and `studio-i18n`, plus the Task 24 copy sweep (no copy was added; the bar is `aria-hidden` and has no text).
+Run: `npm run build`, then `npx playwright test tests/e2e/visual-sync.spec.ts tests/e2e/static-share.spec.ts tests/e2e/import-change-link.spec.ts tests/e2e/responsive-layout.spec.ts tests/e2e/theme.spec.ts tests/e2e/brand.spec.ts`
+Expected: all pass.
+
+- [ ] **Step 5: Draw the in-page hover outline in Hunk** (Owner flag 8; the one `src/client` change in Milestone 2, an exception to its "Server mode untouched" constraint). Visitors see this outline on the launch site's "Try the full Studio" demo, and brand §2.3 rules out purple and violet.
+
+  In `tests/unit/dom-interceptor.test.ts` add (import `readFileSync` from `node:fs`):
+
+```ts
+it('outlines the hovered string in Hunk, never indigo', () => {
+  // same setup as 'should show the floating overlay on mouseover of a keyed element'
+  const overlay = document.getElementById('livelocale-highlighter-overlay')!;
+  expect(overlay.style.border).toMatch(/^1\.5px dashed (?:#4fc3dc|rgb\(79, 195, 220\))$/i);
+  expect(overlay.style.boxShadow).toBe('none');
+});
+it('leaves no indigo in the client', () => {
+  for (const f of ['src/client/dom-interceptor.ts']) {
+    expect(readFileSync(f, 'utf8')).not.toMatch(/99,\s*102,\s*241|#a5b4fc/i);
+  }
+});
+```
+
+Run: `npx vitest run tests/unit/dom-interceptor.test.ts`
+Expected: FAIL. The border is `1.5px dashed rgba(99, 102, 241, 0.65)`, and the source still holds `99, 102, 241`.
+Implement the Produces bullet "The in-page hover outline is Hunk" in `src/client/dom-interceptor.ts`.
+Run: `npx vitest run tests/unit/dom-interceptor.test.ts tests/integration/iframe-communication.test.ts`, then `grep -rnE "99, *102, *241" src/client`
+Expected: PASS; the grep prints nothing.
+
+- [ ] **Step 6: Commit** (after the gate)
+
+```bash
+git add src/studio src/client/dom-interceptor.ts tests/unit/dom-interceptor.test.ts tests/unit/studio-hunk-touches.test.tsx tests/unit/draft-list.test.tsx tests/unit/changes-panel.test.tsx tests/unit/studio-colour-guard.test.ts
+git commit -m "feat(studio): show keys in cyan, the edited row in amber, old values struck, and red as a dashed outline
+
+Success, warning and info messages carry a glyph; depth comes from tone, with no shadows or blur.
+The in-page hover outline is cyan instead of indigo."
+```
+
+---
+
 ### Accessibility tasks: shared rules (Tasks 25–29)
 
 - They run on the final UI: brand tokens, both themes, both languages. Every new accessible name or announcement is a catalogue key with an Arabic entry (the Task 24 sweep and the Task 17 completeness test enforce it); the English values pinned below are what tests query, since tests render outside a provider (English).
 - Focus is drawn only by the global `:focus-visible` rule (Task 25); components never set `focus:` outline, ring or border utilities.
-- Colours stay inside the Task 10 table: a fix that needs a different colour picks another token of the right role (Task 12 map); a token value moves only with its `TOKENS` row and keeps `studio-brand-tokens.test.ts` green.
+- Colours stay inside the token table (Task 10, with the hunk values from Task 33): a fix that needs a different colour picks another token of the right role (Task 12 map); a token value moves only with its `TOKENS` row and keeps `studio-brand-tokens.test.ts` green.
 - E2E waits on `connection-status` (`data-status="connected"`, Task 21) and reaches controls by id or test id, never by English text or English accessible names, so the Arabic variants work (key paths such as `home.welcome_msg` are code, not copy, and may be matched). Unit tests render outside a provider and may query English names.
 
 ---
@@ -2849,7 +3294,7 @@ git commit -m "test(studio): check that every Studio string is translated, in bo
 
 **Interfaces:**
 
-- Consumes: the `focus` token (Task 10: light `#B23A1E`, dark `#FF7A5C`, already 3:1 on every surface by `studio-brand-tokens.test.ts`); `studioFiles` (Task 12); `STUDIO_THEME_KEY` (Task 9); `connection-status` (Task 21).
+- Consumes: the `focus` token (Task 33: light Patch ink `#8F5B00`, dark Patch `#FFB224`, already 3:1 on every surface and tint by `studio-brand-tokens.test.ts`: lowest 5.12:1 light, 8.46:1 dark); `studioFiles` (Task 12); `STUDIO_THEME_KEY` (Task 9); `connection-status` (Task 21).
 - Produces: `@layer base { :focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; } .overflow-y-auto :focus-visible, .overflow-auto :focus-visible { outline-offset: -2px; } }` (inside a scroll container an outside ring is clipped by the container's edge, so rows of the key list, drawers and dialogs draw it inset); no component sets its own focus style from here on.
 
 - [ ] **Step 1: Write the failing tests**
@@ -2879,7 +3324,7 @@ it('leaves no ad-hoc focus classes in Studio components', () => {
 - [ ] **Step 3: Implement** the base-layer rule.
 - [ ] **Step 4: Remove every ad-hoc focus class** the test lists; hover and other classes stay.
 - [ ] **Step 5: Run.** `npx vitest run tests/unit/studio-focus-ring.test.ts tests/unit/studio-colour-guard.test.ts tests/unit/studio-brand-tokens.test.ts` — PASS.
-- [ ] **Step 6: Add the E2E focus check** in `tests/e2e/a11y-keyboard.spec.ts`, `test.describe('Studio keyboard access')`. The ring colour is the brand's `focus` token: dark `rgb(255, 122, 92)`, light `rgb(178, 58, 30)`.
+- [ ] **Step 6: Add the E2E focus check** in `tests/e2e/a11y-keyboard.spec.ts`, `test.describe('Studio keyboard access')`. The ring colour is the brand's `focus` token: dark `rgb(255, 178, 36)`, light `rgb(143, 91, 0)`.
 
 ```ts
 const tabStops = async (page: Page, n: number) => {
@@ -2901,8 +3346,8 @@ const tabStops = async (page: Page, n: number) => {
   return seen;
 };
 for (const [theme, color] of [
-  ['dark', 'rgb(255, 122, 92)'],
-  ['light', 'rgb(178, 58, 30)'],
+  ['dark', 'rgb(255, 178, 36)'],
+  ['light', 'rgb(143, 91, 0)'],
 ] as const) {
   test(`shows a 2px solid brand focus ring on the first eight Tab stops in ${theme}`, async ({
     page,
@@ -3200,7 +3645,7 @@ git commit -m "feat(studio): announce saves, sends and errors to screen readers"
 
 ### Task 29: AA contrast in real use and an axe gate in the E2E suite
 
-The token pairs are AA by construction (Task 10). This task checks how components use them, then runs axe on every main screen in both themes and both languages.
+The token pairs are AA by construction (Task 10 names, Task 33 values and pairs). This task checks how components use them, then runs axe on every main screen in both themes and both languages.
 
 **Files:**
 
@@ -3210,7 +3655,7 @@ The token pairs are AA by construction (Task 10). This task checks how component
 
 **Interfaces:**
 
-- Consumes: `studioFiles` (Task 12); `classLiterals` (Task 19); `editKey` (Task 24); `TOKENS` and the contrast tests (Task 10); `STUDIO_THEME_KEY`, `STUDIO_LANGUAGE_KEY` (Task 9); ids and test ids listed in Task 24.
+- Consumes: `studioFiles` (Task 12); `classLiterals` (Task 19); `editKey` (Task 24); `TOKENS` and the contrast tests (Task 10, values and pairs from Task 33); `STUDIO_THEME_KEY`, `STUDIO_LANGUAGE_KEY` (Task 9); ids and test ids listed in Task 24.
 - Produces: `seriousViolations(page: Page): Promise<string[]>` in `tests/e2e/fixtures/axe.ts` — runs `new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).exclude('#app-preview-iframe').analyze()`, keeps `serious`/`critical` impacts, returns `` `${v.id}: ${node.target.join(' ')}` `` per failing node, sorted.
 
 - [ ] **Step 1: Write the failing usage tests**
@@ -3247,7 +3692,7 @@ it('never fades a text colour token', () => {
 });
 ```
 
-`faintMisuses(source, file): string[]` (in the test file) takes the `className` literals from `classLiterals(ts, source, file)` (Task 19; those with an `element`), and reports `` `${file}:${line}: ${cls}` `` for each class matching `/(?<![\w-])((?:[\w-]+:)*)(?:text|placeholder)-fg-faint(?:\/\d+)?(?![\w-])/` unless its variant prefix contains `disabled:` or the element has an `aria-hidden` attribute. Placeholders are not exempt: they are text. `fadedText(source, file)` reports every `/(?<![\w-])(?:[\w-]+:)*(?:text|placeholder)-[a-z][\w-]*\/\d+(?![\w-])/` match with its line.
+`faintMisuses(source, file): string[]` (in the test file) takes the `className` literals from `classLiterals(ts, source, file)` (Task 19; those with an `element`), and reports `` `${file}:${line}: ${cls}` `` for each class matching `/(?<![\w-])((?:[\w-]+:)*)(?:text|placeholder)-fg-faint(?:\/\d+)?(?![\w-])/` unless its variant prefix contains `disabled:` or the element has an `aria-hidden` attribute. Placeholders are not exempt: they are text. A `decoration-fg-faint` class (the Ghost strike on an old value, Task 35) is a line colour, not text, and is not reported. `fadedText(source, file)` reports every `/(?<![\w-])(?:[\w-]+:)*(?:text|placeholder)-[a-z][\w-]*\/\d+(?![\w-])/` match with its line.
 
 - [ ] **Step 2: Run to verify it fails.** `npx vitest run tests/unit/studio-contrast-use.test.ts` — FAIL on any faint or faded text the migration left (or on the missing helpers only, if Tasks 12–14 left none: then confirm each guard catches its first example).
 - [ ] **Step 3: Fix the uses.** A reported `fg-faint` becomes `fg-muted` (same variants), or gets `aria-hidden="true"` when it is pure decoration (arrows, separators); a faded text class loses its suffix.
@@ -3264,7 +3709,7 @@ it('never fades a text colour token', () => {
   Screens: dev at 1440x900 — `idle` (connected), `editor` (`home.welcome_msg` picked from the key list), `changes` (Changes dialog open), `manage` (Manage Languages toggle pressed), `import` (Import dialog open); dev at 1024x768 — `compact-keys` (Keys drawer open: assert; then Escape, open the side drawer with `studio-toggle-side` after picking `home.welcome_msg`: assert again); share — `tips` (first-run tips), `send` (tips done with name `Sara`, `editKey(page, 'home.welcome_msg', 'Hola')`, Send open).
 
 - [ ] **Step 6: Run the gate.** `npm run build`, then `npx playwright test tests/e2e/a11y-axe.spec.ts` — either 32 passed, or failures listing `<rule>: <selector>` per screen.
-- [ ] **Step 7: Fix every reported node** at its source: for `color-contrast`, switch the class to the token of the right role from the Task 12 map (e.g. coral text on a tint → `text-accent-fg`, never `text-accent`); only if a token pair itself fails, move that token's value in `index.css` and `TOKENS` together and add the failing pair to Task 10's `PAIRS`. No rule is disabled; nothing is excluded except `#app-preview-iframe`.
+- [ ] **Step 7: Fix every reported node** at its source: for `color-contrast`, switch the class to the token of the right role from the Task 12 map (e.g. amber text on a tint → `text-accent-fg`, never `text-accent`; secondary text on Wash → `text-fg`, never `text-fg-muted`; an old value → `text-fg-muted line-through decoration-fg-faint`, never `text-fg-faint`); only if a token pair itself fails, move that token's value in `index.css` and `TOKENS` together and add the failing pair to Task 33's `PAIRS`. No rule is disabled; nothing is excluded except `#app-preview-iframe`.
 - [ ] **Step 8: Run the full suites.** `npx vitest run` and `npx playwright test` — all pass (32 in a11y-axe, 6 in a11y-keyboard).
 - [ ] **Step 9: Commit** (after the gate). If a token value moved in Step 7, the body names it (`<token> <theme>: <old> -> <new>`).
 
@@ -3337,7 +3782,7 @@ it('describes the Studio language, theme and keyboard support', () => {
 - [ ] **Step 4: Write the changesets**, each with front matter `'livelocale': minor`:
   - `check-hardcoded.md`: "`livelocale check --hardcoded` finds JSX text that never went through translation, translations identical to the source locale, and translations in the wrong script, and fails CI on hardcoded text. Without the flag, `check` behaves as before."
   - `studio-arabic.md`: "The Studio is available in Arabic with a right-to-left layout."
-  - `studio-brand-theme.md`: "The Studio has a new look with the LiveLocale brand (colours, type and logo) in a light and a dark theme. Share links follow the system setting; the dev Studio starts dark until you choose System, Light or Dark in the header."
+  - `studio-brand-theme.md`: "The Studio has a new look with the LiveLocale brand (the "hunk" colours, Martian Mono and IBM Plex type, and the patch logo) in a light and a dark theme. Share links follow the system setting; the dev Studio starts dark until you choose System, Light or Dark in the header."
   - `studio-accessibility.md`: "The Studio shows a visible keyboard focus ring, names every control, works fully by keyboard, announces saves, sends and errors, and meets WCAG AA contrast."
 - [ ] **Step 5: Run.** `npx vitest run tests/unit/readme-check.test.ts tests/unit/readme-share.test.ts`, then `npm run format:check` — PASS, exit 0.
 - [ ] **Step 6: Commit** (after the gate)
@@ -3364,7 +3809,7 @@ git commit -m "docs: document check --hardcoded and the Studio's new look, Arabi
 - [ ] **Step 4: Without the flag nothing changes.** Run `npx livelocale check > next.txt; echo $?` and `npx -y livelocale@0.10.1 check > old.txt; echo $?` — same exit code, and `diff old.txt next.txt` is empty.
 - [ ] **Step 5: With the flag.** `npx livelocale check --hardcoded; echo $?` — exit 0 or 1, never 2 (the demo has `typescript`). `npx livelocale check --hardcoded --json` — no `setupProblems` key.
 - [ ] **Step 6: Judge every finding.** Each `hardcoded` finding must be visible text that really never went through translation; each `untranslated`/`wrong-script` warning must be a real identical or Latin value. Any false alarm blocks the release: add it as a failing case to `tests/unit/hardcoded-text.test.ts` or `tests/unit/hardcoded-jsx.test.ts`, fix, commit `fix(check): <what was misread>`, and repeat Steps 1–6 with a new prerelease.
-- [ ] **Step 7: Studio on the prerelease.** In the demo, start its dev server with the prerelease's Studio (as its README says) and open it: the Studio is in the brand's dark theme with the patch logo; the theme toggle turns it to Paper; the language switch mirrors it to Arabic in IBM Plex Sans Arabic; the browser's network panel shows no request to `fonts.googleapis.com` or `fonts.gstatic.com`. `npm view livelocale@next dist.unpackedSize` is within 5 % of the unpacked size recorded in Task 11's commit body. Any failure blocks the release like a false alarm in Step 6 (fix, new prerelease).
+- [ ] **Step 7: Studio on the prerelease.** In the demo, start its dev server with the prerelease's Studio (as its README says) and open it: the Studio is in the brand's dark theme (Night `#0C0D0F`) with the patch logo and the `livelocale` wordmark in Martian Mono; the theme toggle turns it to the light Print theme (`#F4F5F7`); the language switch mirrors it to Arabic in IBM Plex Sans Arabic; the browser's network panel shows no request to `fonts.googleapis.com` or `fonts.gstatic.com`. `npm view livelocale@next dist.unpackedSize` is within 5 % of the unpacked size recorded in Task 34's commit body. Any failure blocks the release like a false alarm in Step 6 (fix, new prerelease).
 - [ ] **Step 8: Report** to the owner the prerelease version, the exit codes, the finding counts by kind with one line per finding judged real, and the Step 7 result.
 
 ---
@@ -3398,35 +3843,38 @@ git commit -m "chore: release 0.11.0"
 
 Interface index: where each shared name is defined and who uses it.
 
-| Interface                                           | Plan uses                                                                                                                                                                                                                                                                                                              |
-| --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Preferences module                                  | One module `src/studio/preferences.ts` (Task 9): types, keys, stored readers, savers, both defaults                                                                                                                                                                                                                    |
-| Pref names and storage keys                         | `PrefName` `'studio-language'`, `'studio-theme'`; keys `livelocale:studio-language`, `livelocale:studio-theme`, exported as `STUDIO_LANGUAGE_KEY`, `STUDIO_THEME_KEY`                                                                                                                                                  |
-| Share vs dev detection                              | `isShareStudio(): boolean` in `runtime.ts` (static runtime, or a share folder whose manifest is missing); `defaultThemeChoice(isShareStudio)`, `initialThemeChoice({ stored, isShareStudio })`, `useTheme(isShareStudio)`                                                                                              |
-| `StudioLanguage`, `STUDIO_LANGUAGES`                | Defined in `preferences.ts`, re-exported by the catalogue                                                                                                                                                                                                                                                              |
-| `ThemeChoice`, `THEME_CHOICES`, `storedThemeChoice` | In `preferences.ts`                                                                                                                                                                                                                                                                                                    |
-| Header slot                                         | `settings?: ReactNode` in `data-testid="header-settings"`, after `#studio-changes-button`, before the version badge, always visible; `LanguageToggle` then `ThemeToggle`                                                                                                                                               |
-| Brand colour tokens                                 | 35 names (Task 10 table): `--lc-<name>` in `:root` (light) and `.dark` (dark), `--color-<name>: var(--lc-<name>)` in `@theme inline`, after the `@theme` block that holds the palette reset; `dark:` bound to the `.dark` class by `@custom-variant`; classes `bg-surface`, `text-fg`, `border-line`, `fill-accent`, … |
-| Token table and parsing                             | `tests/unit/helpers/studio-tokens.ts`: `TokenName`, `TOKENS`, `cssDecls`, `themeInline` (Task 10)                                                                                                                                                                                                                      |
-| Contrast                                            | `tests/unit/helpers/contrast.ts`: `contrastRatio(a, b)` for hex (Task 10); token pairs in `studio-brand-tokens.test.ts`, component use in `studio-contrast-use.test.ts` (Task 29)                                                                                                                                      |
-| Focus ring colour                                   | Token `focus` (light `#B23A1E`, dark `#FF7A5C`), defined in Task 10, drawn by the global `:focus-visible` rule from Task 25                                                                                                                                                                                            |
-| Brand type                                          | `--font-heading` (Bricolage Grotesque, Readex Pro), `--font-sans` (Inter, IBM Plex Sans Arabic), `--font-mono` (JetBrains Mono); `font-outfit` gone; Arabic sizing on `html[lang='ar']` (Task 11)                                                                                                                      |
-| Logo                                                | `BrandMark` (`components/BrandMark.tsx`, `data-testid="brand-mark"`, `fill-logo-ink`/`fill-accent-shadow`/`fill-accent`); `h1` text `livelocale` (Task 11)                                                                                                                                                             |
-| Colour migration                                    | Migration map in Task 12; `fixedColours`, `MIGRATED_FILES` (Tasks 12–13), whole-Studio guards, `unknownColourNames` (no `white`/`black` except `bg-white` on `#app-preview-iframe`) and the palette reset (Task 14)                                                                                                    |
-| Class string collector                              | `tests/unit/helpers/class-literals.ts`: `classLiterals(ts, source, file)` (Task 19); used by the logical-property guard and `faintMisuses` (Task 29)                                                                                                                                                                   |
-| E2E fixtures                                        | `tests/e2e/fixtures/fonts.ts` `loadedFaces` (Task 11); `tests/e2e/fixtures/theme.ts` `watchDark`, `seen` (Task 16); `tests/e2e/fixtures/share.ts` `editKey(page, key, value)` (Task 24)                                                                                                                                |
-| Studio file walker                                  | `tests/unit/helpers/studio-files.ts`: `studioFiles(dir, ext?)` (Task 12)                                                                                                                                                                                                                                               |
-| Theme control selectors                             | Buttons carry `data-theme-choice`, so tests work in Arabic                                                                                                                                                                                                                                                             |
-| Theme labels                                        | `THEME_LABELS` constant and its `dashboard/index.ts` export in Task 16, both removed in Task 21 for `theme.group/system/light/dark` keys                                                                                                                                                                               |
-| Document root `dark` class                          | Unconditional in `main.tsx` from Task 10; replaced in Task 16 by the system setting before `startStudio` and the resolved choice in `.finally`                                                                                                                                                                         |
-| Brand values in E2E                                 | Paper `rgb(255, 248, 240)`, Espresso `rgb(28, 23, 20)`, Coral `rgb(255, 107, 74)`, Coral (dark) `rgb(255, 122, 92)` (Task 16); focus ring `rgb(178, 58, 30)` / `rgb(255, 122, 92)` (Task 25)                                                                                                                           |
-| Hardcoded scan                                      | `findHardcodedText(ts, sourceText, fileName, allow, options?: { templates?: boolean })` (Task 4); `loadProjectTypeScript(dir): Promise<{ ts } \| { problem }>`, `TYPESCRIPT_MISSING`, `typescriptUnusable(version)` (Task 5)                                                                                           |
-| Studio copy sweep                                   | JSX sweep with `findHardcodedText` (Task 4, `templates: true`, words `LiveLocale`, `livelocale`, `English`); literal sweep `copyLiterals` with `isUserText` and `isMostlyLatin` and an explicit `EXEMPT` list; the E2E `expectNoEnglish` uses `isMostlyLatin` (Tasks 2, 24)                                            |
-| A11y test helpers                                   | `tests/unit/helpers/a11y.ts`: `unnamedControls`, `FIXTURES`, `renderFixture` (Task 26)                                                                                                                                                                                                                                 |
-| E2E readiness wait                                  | `ACTIVE` until Task 21; `connection-status` with `data-status="connected"` after it                                                                                                                                                                                                                                    |
-| New accessible names                                | Catalogue keys with Arabic from the start (table in Task 26)                                                                                                                                                                                                                                                           |
-| README and changesets                               | All in Task 30                                                                                                                                                                                                                                                                                                         |
-| Owner reviews                                       | Brand screenshots in Task 16 Step 9 (non-blocking); Arabic copy in Task 24 Step 6, checked in Task 32 Step 1                                                                                                                                                                                                           |
+| Interface                                           | Plan uses                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Preferences module                                  | One module `src/studio/preferences.ts` (Task 9): types, keys, stored readers, savers, both defaults                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Pref names and storage keys                         | `PrefName` `'studio-language'`, `'studio-theme'`; keys `livelocale:studio-language`, `livelocale:studio-theme`, exported as `STUDIO_LANGUAGE_KEY`, `STUDIO_THEME_KEY`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Share vs dev detection                              | `isShareStudio(): boolean` in `runtime.ts` (static runtime, or a share folder whose manifest is missing); `defaultThemeChoice(isShareStudio)`, `initialThemeChoice({ stored, isShareStudio })`, `useTheme(isShareStudio)`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `StudioLanguage`, `STUDIO_LANGUAGES`                | Defined in `preferences.ts`, re-exported by the catalogue                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `ThemeChoice`, `THEME_CHOICES`, `storedThemeChoice` | In `preferences.ts`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Header slot                                         | `settings?: ReactNode` in `data-testid="header-settings"`, after `#studio-changes-button`, before the version badge, always visible; `LanguageToggle` then `ThemeToggle`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Brand colour tokens                                 | 33 names (Task 10 names less `danger-solid` and `on-danger`; values from the Task 33 hunk table): `--lc-<name>` in `:root` (light) and `.dark` (dark), `--color-<name>: var(--lc-<name>)` in `@theme inline`, after the `@theme` block that holds the palette reset; `dark:` bound to the `.dark` class by `@custom-variant`; classes `bg-surface`, `text-fg`, `border-line`, `fill-accent`, …                                                                                                                                                                                                                                                                                                                  |
+| Token table and parsing                             | `tests/unit/helpers/studio-tokens.ts`: `TokenName`, `TOKENS` (values from Task 33), `cssDecls`, `themeInline` (Task 10)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Contrast                                            | `tests/unit/helpers/contrast.ts`: `contrastRatio(a, b)` for hex (Task 10); token pairs in `studio-brand-tokens.test.ts` (Task 33: 45 text pairs and 18 graphic pairs per theme), component use in `studio-contrast-use.test.ts` (Task 29)                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| Focus ring colour                                   | Token `focus` (light Patch ink `#8F5B00`, dark Patch `#FFB224`), defined in Task 10, valued in Task 33, drawn by the global `:focus-visible` rule from Task 25                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Brand type                                          | `--font-heading` (Martian Mono, IBM Plex Sans Arabic), `--font-sans` (IBM Plex Sans, IBM Plex Sans Arabic), `--font-mono` (IBM Plex Mono, IBM Plex Sans Arabic); `font-outfit` gone; Arabic sizing on `html[lang='ar']` (Task 11, faces from Task 34)                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Logo                                                | `BrandMark` (`components/BrandMark.tsx`, `data-testid="brand-mark"`, `fill-logo-ink`/`fill-accent-shadow`/`fill-accent`: lines `#15171B` light / `#E8E4D9` dark, shadow `#8A5600`, patch `#FFB224`); `h1` text `livelocale` in Martian Mono 500, −0.02em (Task 11, Task 34)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Colour migration                                    | Migration map in Task 12; `fixedColours`, `MIGRATED_FILES` (Tasks 12–13), whole-Studio guards, `unknownColourNames` (no `white`/`black` except `bg-white` on `#app-preview-iframe`) and the palette reset (Task 14); Task 35 conventions: keys, paths and links `text-info-fg`; selected row `bg-accent-soft` with `key-row-bar`; old value `text-fg-muted line-through decoration-fg-faint`, new value `text-accent-fg`; `border-danger-line` always with `border-dashed`; no `bg-danger-fg`/`bg-danger-line` fill; no `shadow-*` or `backdrop-blur-*`; `text-success-fg` with `glyph-done`, `text-warning-fg` with `glyph-warn`, info badges with `glyph-info` (all guarded in `studio-colour-guard.test.ts`) |
+| Class string collector                              | `tests/unit/helpers/class-literals.ts`: `classLiterals(ts, source, file)` (Task 19); used by the logical-property guard and `faintMisuses` (Task 29)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| E2E fixtures                                        | `tests/e2e/fixtures/fonts.ts` `loadedFaces` (Task 11); `tests/e2e/fixtures/theme.ts` `watchDark`, `seen` (Task 16); `tests/e2e/fixtures/share.ts` `editKey(page, key, value)` (Task 24)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Studio file walker                                  | `tests/unit/helpers/studio-files.ts`: `studioFiles(dir, ext?)` (Task 12)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Glyph utilities                                     | `glyph-done` ✓, `glyph-warn` !, `glyph-info` ⓘ as `@utility` rules in `src/studio/index.css` with empty alt text (Task 35)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Selected key row                                    | `aria-current="true"` and the `aria-hidden` `data-testid="key-row-bar"` span (Task 35)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| In-page hover outline                               | `src/client/dom-interceptor.ts`: `1.5px dashed #4FC3DC` on hover, `2px solid #4FC3DC` with Alt, no glow (Task 35)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Theme control selectors                             | Buttons carry `data-theme-choice`, so tests work in Arabic                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Theme labels                                        | `THEME_LABELS` constant and its `dashboard/index.ts` export in Task 16, both removed in Task 21 for `theme.group/system/light/dark` keys                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| Document root `dark` class                          | Unconditional in `main.tsx` from Task 10; replaced in Task 16 by the system setting before `startStudio` and the resolved choice in `.finally`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Brand values in E2E                                 | Print `rgb(244, 245, 247)`, Night `rgb(12, 13, 15)`, Patch `rgb(255, 178, 36)` (both themes), logo lines `rgb(21, 23, 27)` light / `rgb(232, 228, 217)` dark, patch shadow `rgb(138, 86, 0)` (Task 16 via Task 33, Task 34); focus ring `rgb(143, 91, 0)` light / `rgb(255, 178, 36)` dark (Task 25)                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Hardcoded scan                                      | `findHardcodedText(ts, sourceText, fileName, allow, options?: { templates?: boolean })` (Task 4); `loadProjectTypeScript(dir): Promise<{ ts } \| { problem }>`, `TYPESCRIPT_MISSING`, `typescriptUnusable(version)` (Task 5)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Studio copy sweep                                   | JSX sweep with `findHardcodedText` (Task 4, `templates: true`, words `LiveLocale`, `livelocale`, `English`); literal sweep `copyLiterals` with `isUserText` and `isMostlyLatin` and an explicit `EXEMPT` list; the E2E `expectNoEnglish` uses `isMostlyLatin` (Tasks 2, 24)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| A11y test helpers                                   | `tests/unit/helpers/a11y.ts`: `unnamedControls`, `FIXTURES`, `renderFixture` (Task 26)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| E2E readiness wait                                  | `ACTIVE` until Task 21; `connection-status` with `data-status="connected"` after it                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| New accessible names                                | Catalogue keys with Arabic from the start (table in Task 26)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| README and changesets                               | All in Task 30                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Owner reviews                                       | Brand screenshots in Task 16 Step 9 and again with the hunk values in Task 33 Step 7 (non-blocking); Arabic copy in Task 24 Step 6, checked in Task 32 Step 1                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 
 ## Review notes
 
@@ -3436,7 +3884,7 @@ Critic findings applied in full: 1–8, 10–20. Partly applied or applied diffe
 - **Revised for the amended spec §8 (2026-11-01).** Milestone 2 was rewritten when the owner declared the old Studio look a placeholder. Gone with "dark must look as today": the computed-colour dark baseline, the colour-class snapshot and `darkEquivalent` (findings 2 and 17 addressed them), the `--lc-*`-beside-shadcn deviation and the Noto Sans Arabic font. In their place: the brand token table with its AA pairs checked up front (Task 10), so contrast is designed in rather than repaired in Task 29; brand fonts and the logo (Task 11); a role-based migration map (Task 12); E2E checks that pin the brand's own values (Tasks 11, 16, 25). Task numbers 9 and 24–32 keep their meaning, so Milestone 1's references to Task 24 (the copy sweep) and Task 31 Step 6 (judging smoke findings) still hold.
 - **Finding 5, faint tokens:** kept as the exemption route, stricter than suggested: placeholders are not exempt (WCAG treats placeholder text as text), so only `disabled:` states and `aria-hidden` decoration may use `fg-faint` (Task 29); a guard against fading text tokens with an opacity suffix is added beside it.
 - **Finding 13, side drawer in axe:** added to the existing `compact-keys` screen as a second assertion rather than a new screen, so the gate stays at 8 screens × 4 variants = 32 tests.
-- **Loading flash (corrected in the second review):** the earlier note said the instant before `main.tsx` runs shows the browser's default page. It does not: the built stylesheet is linked in `<head>`, so that instant paints `:root`, the light Paper theme. From `main.tsx` on, the Task 16 change (follow the system before `startStudio`) keeps the share Studio under a dark system dark from its first render (pinned in `theme.spec.ts`); the light frame before it is Owner flag 7.
+- **Loading flash (corrected in the second review):** the earlier note said the instant before `main.tsx` runs shows the browser's default page. It does not: the built stylesheet is linked in `<head>`, so that instant paints `:root`, the light Print theme. From `main.tsx` on, the Task 16 change (follow the system before `startStudio`) keeps the share Studio under a dark system dark from its first render (pinned in `theme.spec.ts`); the light frame before it is Owner flag 7.
 - **Self-Review, proportion:** the plan remains long against the spec; what remains is mostly test code with the spec's exact values. No implementation bodies were added.
 
 Second review (Milestone 2 onward and the header; Tasks 1–8 unchanged), findings numbered as the critic gave them:
