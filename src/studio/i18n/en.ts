@@ -123,6 +123,11 @@ export const en = {
   'setup.title': 'Saving will fail until the server setup is fixed:',
   'setup.manifest_missing':
     'This Studio was opened from a website, but livelocale/manifest.json is missing or is not a LiveLocale manifest. Rebuild with share: true (or run livelocale pack) and upload the whole livelocale/ folder.',
+  'share.storage_problem':
+    'This browser cannot keep your changes after the tab closes (private window or blocked storage). Send them before you leave.',
+  'share.locale_actions_unsupported':
+    'Adding, renaming or deleting languages is not available on a share link. Ask your developer.',
+  'share.commit_unsupported': 'Use "Send to developer" to hand your changes over.',
   'editor.title': 'Translation Studio',
   'editor.manage': 'Manage Languages',
   'editor.back': 'Back to Editor',

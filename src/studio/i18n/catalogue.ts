@@ -83,3 +83,21 @@ export function textFor(lang: StudioLanguage): StudioText {
 }
 
 export const englishText: StudioText = textFor('en');
+
+/** Keys whose English text the Studio's own code passes along as a problem or an error message. */
+const OWN_MESSAGES: readonly StringKey[] = [
+  'setup.manifest_missing',
+  'share.storage_problem',
+  'share.locale_actions_unsupported',
+  'share.commit_unsupported',
+];
+
+/**
+ * `message` in the Studio language when it is one of the Studio's own messages (written in
+ * English by code that has no language, such as the share transport); any other message,
+ * such as a server error, is returned as given.
+ */
+export function studioMessage(t: StudioText, message: string): string {
+  const key = OWN_MESSAGES.find((k) => englishText(k) === message);
+  return key ? t(key) : message;
+}

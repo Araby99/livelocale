@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { isValidLocaleFormat } from '../../../../core/validate.js';
+import { studioMessage } from '../../../i18n/catalogue.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface LocaleRowProps {
@@ -115,7 +116,11 @@ export const LocaleRow = ({
           <span className="text-[10px] font-semibold text-danger-fg">
             {t('locales.confirm_delete')}
           </span>
-          {localError && <span className="text-[10px] text-danger-fg font-mono">{localError}</span>}
+          {localError && (
+            <span className="text-[10px] text-danger-fg font-mono">
+              {studioMessage(t, localError)}
+            </span>
+          )}
           <div className="flex items-center gap-2 justify-end">
             <button
               onClick={() => setDeleting(false)}
@@ -145,7 +150,9 @@ export const LocaleRow = ({
               </span>
             )}
             {localError && (
-              <span className="text-[10px] text-danger-fg font-mono mt-0.5">{localError}</span>
+              <span className="text-[10px] text-danger-fg font-mono mt-0.5">
+                {studioMessage(t, localError)}
+              </span>
             )}
           </div>
 

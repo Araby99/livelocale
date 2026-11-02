@@ -2,13 +2,21 @@
 import { describe, it, expect } from 'vitest';
 import {
   formatMessage,
+  studioMessage,
   textDirection,
+  textFor,
   type Catalogues,
   type Message,
   type StringKey,
 } from '../../src/studio/i18n/catalogue.js';
 import { en } from '../../src/studio/i18n/en.js';
 import { ar, SAME_IN_BOTH } from '../../src/studio/i18n/ar.js';
+import { STATIC_MANIFEST_MISSING } from '../../src/studio/config.js';
+import {
+  COMMIT_UNSUPPORTED,
+  LOCALE_ACTIONS_UNSUPPORTED,
+  STORAGE_PROBLEM,
+} from '../../src/studio/transport/static.js';
 
 const cat: Catalogues = {
   en: {
@@ -102,4 +110,18 @@ describe('the real catalogues', () => {
     expect(
       keys.filter((k) => !SAME_IN_BOTH.has(k) && JSON.stringify(ar[k]) === JSON.stringify(en[k]))
     ).toEqual([]));
+});
+
+describe('studioMessage', () => {
+  const arText = textFor('ar');
+  it("shows the Studio's own English messages in the Studio language", () => {
+    expect(studioMessage(arText, STATIC_MANIFEST_MISSING)).toBe(arText('setup.manifest_missing'));
+    expect(studioMessage(arText, STORAGE_PROBLEM)).toBe(arText('share.storage_problem'));
+    expect(studioMessage(arText, LOCALE_ACTIONS_UNSUPPORTED)).toBe(
+      arText('share.locale_actions_unsupported')
+    );
+    expect(studioMessage(arText, COMMIT_UNSUPPORTED)).toBe(arText('share.commit_unsupported'));
+  });
+  it('keeps any other message, such as a server error, as given', () =>
+    expect(studioMessage(arText, 'Token lacks write access')).toBe('Token lacks write access'));
 });

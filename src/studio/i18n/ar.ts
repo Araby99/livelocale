@@ -150,6 +150,11 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'setup.title': 'سيفشل الحفظ حتى يُصلح إعداد الخادم:',
   'setup.manifest_missing':
     'فُتح هذا الاستوديو من موقع ويب، لكن الملف livelocale/manifest.json مفقود أو ليس ملف بيان من LiveLocale. أعد البناء مع share: true (أو شغّل livelocale pack) ثم ارفع المجلد livelocale/ كاملًا.',
+  'share.storage_problem':
+    'لا يستطيع هذا المتصفح الاحتفاظ بتغييراتك بعد إغلاق التبويب (نافذة خاصة أو تخزين محظور). أرسلها قبل أن تغادر.',
+  'share.locale_actions_unsupported':
+    'لا يمكن إضافة اللغات أو إعادة تسميتها أو حذفها من رابط مشاركة. اطلب ذلك من المطوّر.',
+  'share.commit_unsupported': 'استخدم «إرسال إلى المطوّر» لتسليم تغييراتك.',
   'editor.title': 'استوديو الترجمة',
   'editor.manage': 'إدارة اللغات',
   'editor.back': 'العودة إلى المحرّر',

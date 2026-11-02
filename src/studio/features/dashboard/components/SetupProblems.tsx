@@ -1,4 +1,4 @@
-import { STATIC_MANIFEST_MISSING } from '../../../config.js';
+import { studioMessage } from '../../../i18n/catalogue.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface SetupProblemsProps {
@@ -10,7 +10,7 @@ interface SetupProblemsProps {
 
 /**
  * Banner for server setup problems that would make every save fail. The Studio's own
- * missing-manifest problem shows in the Studio language; server problems stay as given.
+ * problems (missing manifest, storage) show in the Studio language; server problems stay as given.
  */
 export const SetupProblems = ({ problems, title }: SetupProblemsProps) => {
   const { t } = useStudioText();
@@ -24,9 +24,7 @@ export const SetupProblems = ({ problems, title }: SetupProblemsProps) => {
       <p className="font-semibold text-danger-fg">{title ?? t('setup.title')}</p>
       <ul className="mt-1.5 space-y-1 list-disc ps-4">
         {problems.map((problem) => (
-          <li key={problem}>
-            {problem === STATIC_MANIFEST_MISSING ? t('setup.manifest_missing') : problem}
-          </li>
+          <li key={problem}>{studioMessage(t, problem)}</li>
         ))}
       </ul>
     </div>

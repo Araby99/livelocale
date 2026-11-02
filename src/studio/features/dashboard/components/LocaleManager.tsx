@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { isValidLocaleFormat } from '../../../../core/validate.js';
 import { LocaleRow } from './LocaleRow.jsx';
+import { studioMessage } from '../../../i18n/catalogue.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface LocaleManagerProps {
@@ -93,7 +94,7 @@ export const LocaleManager = ({
             />
           </svg>
           <div className="text-xs text-danger-fg font-mono leading-normal break-all">
-            {localError || error}
+            {studioMessage(t, (localError || error)!)}
           </div>
         </div>
       )}

@@ -17,12 +17,6 @@ function withCode(template: string, code: Readonly<Record<string, ReactNode>>): 
     );
 }
 
-const Code = ({ children }: { children: ReactNode }) => (
-  <span dir="ltr" className="font-mono">
-    {children}
-  </span>
-);
-
 interface IframeViewerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   appOrigin: string;
@@ -143,28 +137,54 @@ export const IframeViewer = ({
                 <p className="font-semibold text-fg">{t('viewer.slow_title')}</p>
                 <ul className="mt-2 space-y-1.5 list-disc ps-4">
                   <li>
-                    {withCode(t('viewer.cause_not_running'), { origin: <Code>{appOrigin}</Code> })}
+                    {withCode(t('viewer.cause_not_running'), {
+                      origin: (
+                        <code dir="ltr" className="font-mono">
+                          {appOrigin}
+                        </code>
+                      ),
+                    })}
                   </li>
                   <li>
                     {withCode(t('viewer.cause_framing'), {
-                      csp: <Code>frame-ancestors</Code>,
-                      xfo: <Code>X-Frame-Options</Code>,
-                      studio: <Code>{window.location.origin}</Code>,
+                      csp: (
+                        <code dir="ltr" className="font-mono">
+                          frame-ancestors
+                        </code>
+                      ),
+                      xfo: (
+                        <code dir="ltr" className="font-mono">
+                          X-Frame-Options
+                        </code>
+                      ),
+                      studio: (
+                        <code dir="ltr" className="font-mono">
+                          {window.location.origin}
+                        </code>
+                      ),
                     })}
                   </li>
                   <li>
                     {withCode(t('viewer.cause_provider'), {
-                      provider: <Code>LiveLocaleProvider</Code>,
-                      env: <Code>NEXT_PUBLIC_LIVELOCALE=preview</Code>,
+                      provider: (
+                        <code dir="ltr" className="font-mono">
+                          LiveLocaleProvider
+                        </code>
+                      ),
+                      env: (
+                        <code dir="ltr" className="font-mono">
+                          NEXT_PUBLIC_LIVELOCALE=preview
+                        </code>
+                      ),
                     })}
                   </li>
                 </ul>
                 <p className="mt-3 text-fg-muted">
                   {withCode(t('viewer.run_doctor'), {
                     command: (
-                      <span dir="ltr" className="font-mono text-fg select-all">
+                      <code dir="ltr" className="font-mono text-fg select-all">
                         npx livelocale doctor --app {appOrigin}
-                      </span>
+                      </code>
                     ),
                   })}
                 </p>
