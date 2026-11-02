@@ -1,0 +1,94 @@
+name: Site
+
+# Tests the landing site on every change to it, the brand or the product it packs (the demo's
+# packed Studio and the slider's `check --hardcoded` output are built from src/). Deploys to
+# GitHub Pages only when run by hand, or on pushes once the owner sets the SITE_LIVE variable.
+
+on:
+  push:
+    branches: [main]
+    paths: ['site/**', 'brand/**', 'src/**', 'package.json', 'package-lock.json', '.github/workflows/site.yml']
+  pull_request:
+    branches: [main]
+    paths: ['site/**', 'brand/**', 'src/**', 'package.json', 'package-lock.json', '.github/workflows/site.yml']
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Build Library & Studio
+        run: npm run build
+
+      - name: Install Site Dependencies
+        run: npm ci --prefix site
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Site E2E Tests
+        run: npm run test:site
+
+  deploy:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && vars.SITE_LIVE == 'true')
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+      contents: read
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Build Library & Studio
+        run: npm run build
+
+      - name: Install Site Dependencies
+        run: npm ci --prefix site
+
+      - name: Build Site
+        run: npm run site:build
+        env:
+          SITE_URL: ${{ vars.SITE_URL || 'https://araby99.github.io/livelocale/' }}
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
