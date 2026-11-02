@@ -364,6 +364,7 @@ export const ReviewPanel = ({
                         {applyResults[row.id] && (
                           <p
                             data-testid="apply-result"
+                            role={applyResults[row.id]!.state === 'failed' ? 'alert' : 'status'}
                             className={`mt-1 inline-block px-2 py-0.5 rounded-full bg-surface border border-line ${RESULT_CLASS[applyResults[row.id]!.state]}`}
                           >
                             {resultText(applyResults[row.id]!, t)}
@@ -380,7 +381,9 @@ export const ReviewPanel = ({
                                     : 'glyph-warn text-warning-fg'
                                 }
                               >
-                                {check.message}
+                                <span role={check.level === 'error' ? 'alert' : 'status'}>
+                                  {check.message}
+                                </span>
                               </li>
                             ))}
                           </ul>

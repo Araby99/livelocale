@@ -262,7 +262,7 @@ export const SendDialog = ({
         )}
 
         {overflow > 0 && (
-          <p className="glyph-warn text-xs text-warning-fg">
+          <p role="status" className="glyph-warn text-xs text-warning-fg">
             {t('send.overflow', { count: included.length, total: included.length + overflow })}
           </p>
         )}

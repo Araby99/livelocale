@@ -11,6 +11,9 @@ import { LocaleRow } from '../../src/studio/features/dashboard/components/Locale
 import { SendDialog } from '../../src/studio/features/dashboard/components/SendDialog.jsx';
 import { GitHubIssueAction } from '../../src/studio/features/dashboard/components/GitHubIssueAction.jsx';
 import { RepoPrompt } from '../../src/studio/features/dashboard/components/RepoPrompt.jsx';
+import { ReviewPanel } from '../../src/studio/features/dashboard/components/ReviewPanel.jsx';
+import type { ReviewState } from '../../src/studio/features/dashboard/hooks/useReview.js';
+import type { ReviewRow } from '../../src/studio/share/review.js';
 import type { GitState } from '../../src/studio/api.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
 import { MANIFEST, SHA_A, STUDIO_URL } from './helpers/share-fixtures.js';
@@ -100,6 +103,52 @@ function draft(i: number, status: Draft['status'] = 'unsent'): Draft {
     sentAt: status === 'sent' ? i : null,
   };
 }
+
+const reviewRow = (
+  r: Partial<ReviewRow> & Pick<ReviewRow, 'locale' | 'key' | 'to'>
+): ReviewRow => ({
+  from: null,
+  status: 'apply',
+  flags: [],
+  checks: [],
+  id: `${r.locale}\u0000${r.key}`,
+  ...r,
+});
+
+const reviewOf = (rows: ReviewRow[]): ReviewState => ({
+  token: 'lc1.abc',
+  set: {
+    branch: 'main',
+    base: 'abc1234',
+    src: 'en',
+    by: 'Sara',
+    note: '',
+    edits: rows.map(({ locale, key, from, to }) => ({ locale, key, from, to })),
+  },
+  rows,
+  sourceLocale: 'en',
+  target: 'local',
+});
+
+const renderReview = (
+  rows: ReviewRow[],
+  props: Partial<React.ComponentProps<typeof ReviewPanel>> = {}
+) =>
+  render(
+    <ReviewPanel
+      review={reviewOf(rows)}
+      error={null}
+      isLoading={false}
+      focusKey={null}
+      onSelectLocale={() => {}}
+      onClose={() => {}}
+      studioHref={STUDIO_URL}
+      repo={null}
+      repoFromManifest={false}
+      onRepoChange={() => {}}
+      {...props}
+    />
+  );
 
 function renderDialog(
   onMarkSent: (batch: Draft[]) => Promise<void> = vi.fn(async () => {}),
@@ -256,5 +305,70 @@ describe('Studio live regions', () => {
     expect(screen.getByRole('alert').textContent).toBe(
       'Enter it as owner/repo, for example acme/website.'
     );
+  });
+
+  it('announces a GitHubIssueAction copy failure as an alert', async () => {
+    copy.mockResolvedValueOnce(false);
+    render(
+      <GitHubIssueAction repo="acme/web" token={'lc1.' + 'A'.repeat(9000)} count={1} label="Open" />
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Copy change block' }));
+    expect((await screen.findByRole('alert')).textContent).toBe(
+      'Copying did not work. Copy the block below, then open GitHub and paste it.'
+    );
+  });
+
+  it('announces review check errors as alerts and warnings as status', () => {
+    renderReview([
+      reviewRow({
+        locale: 'ar',
+        key: 'home.cta',
+        from: 'A',
+        to: 'B',
+        status: 'conflict',
+        current: 'X',
+        checks: [{ level: 'warning', message: 'The text changed since it was copied.' }],
+      }),
+      reviewRow({
+        locale: 'fr',
+        key: 'home.greet',
+        from: 'Bonjour {name}',
+        to: 'Bonjour',
+        status: 'invalid',
+        message: 'Keep {name} in the text.',
+        checks: [{ level: 'error', message: 'Keep {name} in the text.' }],
+      }),
+    ]);
+    expect(screen.getByRole('alert').textContent).toBe('Keep {name} in the text.');
+    expect(screen.getByRole('status').textContent).toBe('The text changed since it was copied.');
+  });
+
+  it('announces a failed apply as an alert and the other apply results as status', () => {
+    const rows = [
+      reviewRow({ locale: 'en', key: 'home.a', from: 'A', to: 'A1' }),
+      reviewRow({ locale: 'en', key: 'home.b', from: 'B', to: 'B1' }),
+    ];
+    renderReview(rows, {
+      onApplyLocal: vi.fn(),
+      applyResults: {
+        [rows[0]!.id]: { state: 'applied' },
+        [rows[1]!.id]: { state: 'failed', message: 'Disk full.' },
+      },
+    });
+    expect(screen.getByRole('alert').textContent).toBe('Failed: Disk full.');
+    expect(screen.getByRole('status').textContent).toBe('Applied');
+  });
+
+  it('announces the SendDialog overflow notice as status', async () => {
+    renderDialog(
+      vi.fn(async () => {}),
+      Array.from({ length: 501 }, (_, i) => draft(i))
+    );
+    await screen.findByText('500 of 501 changes are in this link. Send again for the rest.');
+    expect(
+      screen
+        .getAllByRole('status')
+        .some((el) => el.textContent?.includes('500 of 501 changes are in this link.'))
+    ).toBe(true);
   });
 });

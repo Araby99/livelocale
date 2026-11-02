@@ -67,7 +67,9 @@ export function GitHubIssueAction({
       </div>
       {copied === 'failed' && (
         <>
-          <p className="text-[11px] text-fg-muted">{t('issue.copy_failed')}</p>
+          <p role="alert" className="text-[11px] text-fg-muted">
+            {t('issue.copy_failed')}
+          </p>
           <textarea
             data-testid="manual-copy"
             readOnly
