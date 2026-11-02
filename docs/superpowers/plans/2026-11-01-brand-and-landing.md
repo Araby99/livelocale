@@ -48,12 +48,14 @@ Project rules (repo and owner):
 
 ## Owner flags
 
+Owner approved flags 1–7 as written on 2026-11-02, choosing option (a) for flag 6.
+
 1. **New site devDependencies:** `opentype.js` (wordmark outlines; text in an SVG would depend on the viewer's fonts, and GitHub's CSP blocks fonts embedded in README SVGs), `lighthouse` and `chrome-launcher` (listed explicitly because Task 19 imports it), and five Fontsource packages. None reach the published package.
 2. **Scene 2 path:** Task 10 is the spike the spec asks for. Tasks 11–15 are written for the expected result (lightweight simulation in the hero plus "Try the full Studio" opening the real packed share Studio). If the spike chooses embedding, stop and amend Tasks 14–15 first.
 3. **Mistake 3 copy:** the untranslated word is Spanish: "CI catches what was never traducido." (fix: "translated").
 4. **Clips are WebM** (Playwright records WebM; the repo has no ffmpeg). Browsers without WebM (Safari before 14.1) show the poster frame.
 5. **js.org pull request and domain switch** are owner actions (Task 6 instructions, Task 20 checklist). The custom domain is set in Settings → Pages plus the `SITE_URL` variable; no `CNAME` file is committed (GitHub ignores it when Pages deploys from a custom Actions workflow).
-6. **js.org timing versus launching together (§7.2): owner chooses one before Task 20.** js.org reviewers need a live site before they merge.
+6. **js.org timing versus launching together (§7.2): owner chose (a), the unlisted preview (2026-11-02).** js.org reviewers need a live site before they merge.
    - **(a) Recommended: unlisted preview.** While `SITE_LIVE` is still off, the owner runs the `site` workflow once by `workflow_dispatch`, so `https://araby99.github.io/livelocale/` serves the site unannounced; the owner opens the js.org PR against it. Cost: the page is reachable (not linked anywhere) before 0.11.0, and `npm i livelocale` on it installs 0.10 until step 5 of `LAUNCH.md`. Launch day then goes out on `livelocale.js.org` with the final `og:url`.
    - **(b) Launch on github.io, switch later.** Nothing deploys before 0.11.0; the site launches at `https://araby99.github.io/livelocale/`, the js.org PR is opened after launch, and the domain switch follows. Cost: `og:url` and every shared link change after launch.
      Task 20's `LAUNCH.md` lists both orders; the owner deletes the one not chosen.

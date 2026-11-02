@@ -57,7 +57,7 @@ Inputs the spec implies but no feature test exercised in the drafts; each now ha
 
 ## Owner flags
 
-Decisions the owner should see before execution:
+Decisions the owner should see before execution (owner approved all seven as written on 2026-11-02):
 
 1. **Task 10 derives the colours the brand does not name.** Brand §2.3 fixes nine colours; the Studio also needs panel and card surfaces, a hover fill, a 3:1 control border, a coral tint, and danger/warning/success/info colours. Task 10 derives them as warm-tinted values beside the brand ones; every pair is AA-checked by a unit test. Task 16 Step 9 captures light and dark screenshots for the owner to look at (not a release blocker; the brand is final).
 2. **Coral as text in light uses a darker coral.** Coral `#FF6B4A` on Paper is 2.67:1, below AA for text and below 3:1 for the focus ring. Light coral text (`accent-fg`) and the light focus ring use `#B23A1E` (4.73:1 on `raised-hover` `#EFE3D6`, its lowest, and 5.1:1 or better on the other light surfaces and tints; `warning-fg` is lowest on `raised-hover` too, at 4.69:1; both pass AA, the margin is thin, and any light token edit re-runs the Task 10 pairs); coral fills keep `#FF6B4A` with Ink text on them (6.3:1), never white (brand rule).
