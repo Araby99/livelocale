@@ -47,10 +47,10 @@ export const KeysDirectory = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search keys or values..."
-            className="w-full h-9 pl-9 pr-4 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
+            className="w-full h-9 ps-9 pe-4 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
           />
           <svg
-            className="w-3.5 h-3.5 text-fg-muted absolute left-3 top-2.5"
+            className="w-3.5 h-3.5 text-fg-muted absolute start-3 top-2.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -110,14 +110,17 @@ export const KeysDirectory = ({
               <button
                 key={key}
                 onClick={() => selectKeyDirectly(key)}
-                className={`w-full text-left p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
+                className={`w-full text-start p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
                   isActive
                     ? 'bg-accent-soft border-accent-line text-fg shadow-sm'
                     : 'bg-surface hover:bg-surface border-transparent text-fg hover:text-fg'
                 }`}
               >
                 <div className="w-full flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-fg">
+                  <span
+                    dir="ltr"
+                    className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-fg"
+                  >
                     {key}
                   </span>
                   {isMissing && (

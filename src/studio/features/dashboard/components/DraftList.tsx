@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import type { Draft } from '../../../transport/drafts.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 export type DraftDisplayState = 'unsent' | 'sent' | 'live' | 'conflict';
 
@@ -45,29 +46,36 @@ const stateBadge = (state: DraftDisplayState) => (
 );
 
 const rowHeading = (d: Draft) => (
-  <span className="text-[11px] font-mono text-fg break-all">{`${d.key} · ${d.locale}`}</span>
+  <span dir="ltr" className="text-[11px] font-mono text-fg break-all">
+    {`${d.key} · ${d.locale}`}
+  </span>
 );
 
 /** The draft's built text struck through, then its new text. */
-const DraftValues = ({ d }: { d: Draft }) => (
-  <div className="text-[10px] leading-relaxed">
-    {d.from ? (
-      <span dir="auto" className="text-danger-fg line-through break-all">
-        {d.from}
+const DraftValues = ({ d }: { d: Draft }) => {
+  const { t } = useStudioText();
+  return (
+    <div className="text-[10px] leading-relaxed">
+      {d.from ? (
+        <span dir="auto" className="text-danger-fg line-through break-all">
+          {d.from}
+        </span>
+      ) : (
+        <em className="text-danger-fg line-through">empty</em>
+      )}
+      <span className="text-fg-muted" aria-hidden="true">
+        {` ${t('common.arrow')} `}
       </span>
-    ) : (
-      <em className="text-danger-fg line-through">empty</em>
-    )}
-    <span className="text-fg-muted"> → </span>
-    {d.to ? (
-      <span dir="auto" className="text-success-fg break-all">
-        {d.to}
-      </span>
-    ) : (
-      <em className="text-success-fg">empty</em>
-    )}
-  </div>
-);
+      {d.to ? (
+        <span dir="auto" className="text-success-fg break-all">
+          {d.to}
+        </span>
+      ) : (
+        <em className="text-success-fg">empty</em>
+      )}
+    </div>
+  );
+};
 
 const rowClass = 'px-3 py-2 rounded-xl bg-surface border border-line space-y-1';
 

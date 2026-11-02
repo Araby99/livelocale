@@ -71,6 +71,7 @@ export const LocaleRow = ({
           <input
             type="text"
             value={renameValue}
+            dir="ltr"
             onChange={(e) => setRenameValue(e.target.value)}
             disabled={isLoading}
             className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1 text-xs font-mono text-fg focus:outline-hidden focus:border-focus"
@@ -133,7 +134,9 @@ export const LocaleRow = ({
       ) : (
         <>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-semibold text-fg truncate">{code}</span>
+            <span dir="ltr" className="text-xs font-semibold text-fg truncate">
+              {code}
+            </span>
             {isActive && (
               <span className="text-[9px] text-accent-fg font-bold tracking-wide mt-0.5">
                 ACTIVE WORKSPACE

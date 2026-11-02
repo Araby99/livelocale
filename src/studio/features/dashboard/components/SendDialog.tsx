@@ -12,6 +12,7 @@ import {
   SEND_NOTE_MAX_CHARS,
 } from '../../../share/send.js';
 import { GitHubIssueAction } from './GitHubIssueAction.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { useDialog } from '../hooks/useDialog.js';
 import { copyText, downloadText, readPref, writePref } from '../../../share/browser.js';
 
@@ -57,6 +58,7 @@ export const SendDialog = ({
   studioHref,
   onMarkSent,
 }: SendDialogProps) => {
+  const { t } = useStudioText();
   const [name, setName] = useState(() => readPref('translator-name') ?? '');
   const [note, setNote] = useState('');
   const [includeSent, setIncludeSent] = useState(false);
@@ -240,7 +242,7 @@ export const SendDialog = ({
                 key={`${d.locale}/${d.key}`}
                 className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
               >
-                <span className="block text-[11px] font-mono text-fg break-all">
+                <span dir="ltr" className="block text-[11px] font-mono text-fg break-all">
                   {`${d.key} · ${d.locale}`}
                 </span>
                 <div className="text-[10px] leading-relaxed">
@@ -251,7 +253,9 @@ export const SendDialog = ({
                   ) : (
                     <em className="text-danger-fg line-through">empty</em>
                   )}
-                  <span className="text-fg-muted"> → </span>
+                  <span className="text-fg-muted" aria-hidden="true">
+                    {` ${t('common.arrow')} `}
+                  </span>
                   {d.to ? (
                     <span dir="auto" className="text-success-fg break-all">
                       {d.to}
@@ -278,6 +282,7 @@ export const SendDialog = ({
             id="studio-send-link"
             data-testid="change-link"
             type="text"
+            dir="ltr"
             readOnly
             value={shownLink}
             onFocus={(e) => e.currentTarget.select()}
@@ -305,7 +310,7 @@ export const SendDialog = ({
           </button>
           <button
             onClick={onClose}
-            className={`${actionButton} ml-auto text-fg-muted hover:text-fg bg-raised border-line hover:border-line-strong`}
+            className={`${actionButton} ms-auto text-fg-muted hover:text-fg bg-raised border-line hover:border-line-strong`}
           >
             Close
           </button>

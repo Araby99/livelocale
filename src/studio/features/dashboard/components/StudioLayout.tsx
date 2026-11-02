@@ -70,7 +70,7 @@ export const StudioLayout = ({
       <div
         id={KEYS_DRAWER_ID}
         data-testid={KEYS_DRAWER_ID}
-        className={isWide ? 'h-full shrink-0' : `${DRAWER} left-0`}
+        className={isWide ? 'h-full shrink-0' : `${DRAWER} start-0`}
         hidden={!isWide && compactOpen !== 'keys'}
       >
         {keys}
@@ -108,7 +108,7 @@ export const StudioLayout = ({
       <div
         id={SIDE_DRAWER_ID}
         data-testid={SIDE_DRAWER_ID}
-        className={isWide ? 'h-full shrink-0' : `${DRAWER} right-0`}
+        className={isWide ? 'h-full shrink-0' : `${DRAWER} end-0`}
         hidden={!isWide && compactOpen !== 'side'}
       >
         {side}

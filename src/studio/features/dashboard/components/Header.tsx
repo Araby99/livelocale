@@ -99,7 +99,10 @@ export const Header = ({
               </span>
             ) : (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] whitespace-nowrap min-w-0">
-                <span className="font-bold text-accent-fg">{`${isReviewing ? 'Viewing' : 'Editing'}: ${targetLocale.locale}`}</span>
+                <span
+                  dir="ltr"
+                  className="font-bold text-accent-fg"
+                >{`${isReviewing ? 'Viewing' : 'Editing'}: ${targetLocale.locale}`}</span>
                 <span className="hidden xl:inline text-fg-muted">
                   {SOURCE_HINTS[targetLocale.source]}
                 </span>
@@ -245,7 +248,10 @@ export const Header = ({
           </div>
         )}
 
-        <span className="hidden xl:block px-3 py-1 rounded-full bg-raised border border-line text-[10px] font-bold text-fg-muted select-none">
+        <span
+          dir="ltr"
+          className="hidden xl:block px-3 py-1 rounded-full bg-raised border border-line text-[10px] font-bold text-fg-muted select-none"
+        >
           v{__STUDIO_VERSION__} (BETA)
         </span>
       </div>

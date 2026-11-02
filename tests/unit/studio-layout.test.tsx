@@ -155,6 +155,12 @@ describe('StudioLayout', () => {
     }
   });
 
+  it('anchors the compact drawers to the start and end edges', () => {
+    renderLayout({ isWide: false, openPanel: 'keys' });
+    expect(screen.getByTestId('studio-drawer-keys').className.split(/\s+/)).toContain('start-0');
+    expect(screen.getByTestId('studio-drawer-side').className.split(/\s+/)).toContain('end-0');
+  });
+
   it('reports the open drawer through aria-expanded', () => {
     renderLayout({ isWide: false, openPanel: 'keys' });
     const keysToggle = screen.getByTestId('studio-toggle-keys');

@@ -3,6 +3,7 @@ import type { GitState } from '../../../api.js';
 import type { HistoryEntry } from '../hooks/useHistory.js';
 import type { Draft } from '../../../transport/drafts.js';
 import { DraftList } from './DraftList.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface ChangesPanelProps {
   isOpen: boolean;
@@ -75,6 +76,7 @@ export const ChangesPanel = ({
   liveNow,
   onDismissLiveNow,
 }: ChangesPanelProps) => {
+  const { t } = useStudioText();
   const [message, setMessage] = useState('');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
@@ -100,13 +102,16 @@ export const ChangesPanel = ({
       {/* Backdrop */}
       <div className="absolute inset-0 bg-overlay backdrop-blur-[2px]" onClick={onClose} />
 
-      <aside className="relative w-[520px] max-w-full h-full bg-raised border-l border-line shadow-2xl flex flex-col animate-in slide-in-from-right duration-200">
+      <aside className="relative w-[520px] max-w-full h-full bg-raised border-s border-line shadow-2xl flex flex-col animate-in slide-in-from-end duration-200">
         {/* Header */}
         <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-3">
             <h2 className="text-sm font-bold tracking-wide font-heading text-fg">Changes</h2>
             {git?.isRepo && git.branch && (
-              <span className="px-2 py-0.5 rounded-md bg-raised border border-line text-[10px] font-mono text-fg">
+              <span
+                dir="ltr"
+                className="px-2 py-0.5 rounded-md bg-raised border border-line text-[10px] font-mono text-fg"
+              >
                 {git.branch}
               </span>
             )}
@@ -200,7 +205,9 @@ export const ChangesPanel = ({
                       key={c.path}
                       className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-surface border border-line"
                     >
-                      <span className="text-[11px] font-mono text-fg break-all">{c.path}</span>
+                      <span dir="ltr" className="text-[11px] font-mono text-fg break-all">
+                        {c.path}
+                      </span>
                       <span
                         className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border shrink-0 ${
                           STATUS_STYLES[c.status] ?? STATUS_STYLES.modified
@@ -313,7 +320,13 @@ export const ChangesPanel = ({
                     {isGitHub ? (
                       <>
                         Pull request:{' '}
-                        <a href={lastCommit} target="_blank" rel="noreferrer" className="underline">
+                        <a
+                          href={lastCommit}
+                          dir="ltr"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="underline"
+                        >
                           {lastCommit}
                         </a>
                       </>
@@ -350,7 +363,7 @@ export const ChangesPanel = ({
                       className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-[11px] font-mono text-fg break-all">
+                        <span dir="ltr" className="text-[11px] font-mono text-fg break-all">
                           {entry.key}
                           <span className="text-fg-muted"> · {entry.locale}</span>
                         </span>
@@ -372,7 +385,9 @@ export const ChangesPanel = ({
                         <span className="text-danger-fg line-through break-all">
                           {entry.previousValue || <em>empty</em>}
                         </span>
-                        <span className="text-fg-muted"> → </span>
+                        <span className="text-fg-muted" aria-hidden="true">
+                          {` ${t('common.arrow')} `}
+                        </span>
                         <span className="text-success-fg break-all">
                           {entry.nextValue || <em>empty</em>}
                         </span>

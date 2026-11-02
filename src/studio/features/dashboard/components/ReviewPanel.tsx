@@ -229,7 +229,9 @@ export const ReviewPanel = ({
                         by={review.set.by}
                         label="Create pull request"
                       />
-                      <span className="text-[11px] font-mono text-fg-muted break-all">{repo}</span>
+                      <span dir="ltr" className="text-[11px] font-mono text-fg-muted break-all">
+                        {repo}
+                      </span>
                       {!repoFromManifest && (
                         <button
                           type="button"
@@ -276,6 +278,7 @@ export const ReviewPanel = ({
               <h3 className="text-xs font-semibold text-fg">Apply with the command line</h3>
               <code
                 data-testid="review-apply-command"
+                dir="ltr"
                 className="block px-3 py-2 rounded-lg bg-surface border border-line text-[11px] font-mono text-fg break-all"
               >
                 {command}
@@ -298,13 +301,13 @@ export const ReviewPanel = ({
               <p className="text-[11px] text-fg-muted">{RUN_WORKFLOW_HINT}</p>
             )}
 
-            <table className="w-full text-[11px] text-left border-collapse">
+            <table className="w-full text-[11px] text-start border-collapse">
               <thead className="text-fg-muted">
                 <tr>
-                  <th className="py-1 pr-2 font-semibold">Language</th>
-                  <th className="py-1 pr-2 font-semibold">Key</th>
-                  <th className="py-1 pr-2 font-semibold">Before</th>
-                  <th className="py-1 pr-2 font-semibold">After</th>
+                  <th className="py-1 pe-2 font-semibold">Language</th>
+                  <th className="py-1 pe-2 font-semibold">Key</th>
+                  <th className="py-1 pe-2 font-semibold">Before</th>
+                  <th className="py-1 pe-2 font-semibold">After</th>
                   <th className="py-1 font-semibold">Check</th>
                 </tr>
               </thead>
@@ -318,18 +321,21 @@ export const ReviewPanel = ({
                       aria-current={focused ? 'true' : undefined}
                       className={`border-t border-line ${focused ? 'bg-accent-soft' : ''}`}
                     >
-                      <td className="py-2 pr-2">
+                      <td className="py-2 pe-2">
                         <button
                           type="button"
                           onClick={() => onSelectLocale(row.locale)}
                           title={`Show the page in ${row.locale}`}
+                          dir="ltr"
                           className="font-mono text-accent-fg hover:text-accent-fg underline-offset-2 hover:underline"
                         >
                           {row.locale}
                         </button>
                       </td>
-                      <td className="py-2 pr-2 font-mono text-fg break-all">{row.key}</td>
-                      <td className="py-2 pr-2">
+                      <td dir="ltr" className="py-2 pe-2 font-mono text-fg break-all">
+                        {row.key}
+                      </td>
+                      <td className="py-2 pe-2">
                         <Value value={row.from} />
                         {row.status === 'conflict' && row.current !== undefined && (
                           <p className="mt-1 text-warning-fg">
@@ -340,7 +346,7 @@ export const ReviewPanel = ({
                           </p>
                         )}
                       </td>
-                      <td className="py-2 pr-2">
+                      <td className="py-2 pe-2">
                         <AfterCell row={row} />
                       </td>
                       <td className="py-2">

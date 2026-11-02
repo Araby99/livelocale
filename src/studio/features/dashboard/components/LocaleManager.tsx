@@ -60,6 +60,7 @@ export const LocaleManager = ({
           <input
             type="text"
             value={newLocaleCode}
+            dir="ltr"
             onChange={(e) => setNewLocaleCode(e.target.value)}
             placeholder="e.g. fr, es-MX"
             disabled={isLoading}
@@ -102,7 +103,7 @@ export const LocaleManager = ({
         <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider mb-1">
           Active Locales
         </label>
-        <div className="flex-1 overflow-y-auto space-y-2 pr-1 select-none">
+        <div className="flex-1 overflow-y-auto space-y-2 pe-1 select-none">
           {locales.map((l) => (
             <LocaleRow
               key={l}

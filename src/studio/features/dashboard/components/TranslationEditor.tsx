@@ -97,7 +97,10 @@ export const TranslationEditor = ({
             Clear Selection
           </button>
         </div>
-        <div className="bg-surface border border-line rounded-xl px-4 py-3 font-mono text-xs text-fg select-all break-all shadow-inner leading-relaxed">
+        <div
+          dir="ltr"
+          className="bg-surface border border-line rounded-xl px-4 py-3 font-mono text-xs text-fg select-all break-all shadow-inner leading-relaxed"
+        >
           {selected.key}
         </div>
       </div>

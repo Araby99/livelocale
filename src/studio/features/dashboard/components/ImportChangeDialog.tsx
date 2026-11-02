@@ -93,7 +93,7 @@ export const ImportChangeDialog = ({
           type="file"
           accept=".txt,text/plain"
           onChange={(e) => void chooseFile(e.target.files?.[0])}
-          className="mt-2 block w-full text-[11px] text-fg-muted file:mr-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-raised file:text-fg file:text-[11px] file:font-semibold"
+          className="mt-2 block w-full text-[11px] text-fg-muted file:me-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-raised file:text-fg file:text-[11px] file:font-semibold"
         />
 
         {shownError && (

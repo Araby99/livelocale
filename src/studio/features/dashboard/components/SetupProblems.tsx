@@ -17,7 +17,7 @@ export const SetupProblems = ({ problems, title = DEFAULT_TITLE }: SetupProblems
       className="mx-6 mt-4 rounded-xl border border-danger-line bg-danger-bg px-4 py-3 text-xs text-danger-fg select-text"
     >
       <p className="font-semibold text-danger-fg">{title}</p>
-      <ul className="mt-1.5 space-y-1 list-disc pl-4">
+      <ul className="mt-1.5 space-y-1 list-disc ps-4">
         {problems.map((problem) => (
           <li key={problem}>{problem}</li>
         ))}

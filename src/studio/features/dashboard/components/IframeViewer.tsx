@@ -116,27 +116,46 @@ export const IframeViewer = ({
               <div
                 role="status"
                 data-testid="slow-connection-help"
-                className="max-w-md mx-6 mt-2 rounded-xl border border-line bg-raised p-4 text-left text-xs text-fg"
+                className="max-w-md mx-6 mt-2 rounded-xl border border-line bg-raised p-4 text-start text-xs text-fg"
               >
                 <p className="font-semibold text-fg">Still connecting? Usual causes:</p>
-                <ul className="mt-2 space-y-1.5 list-disc pl-4">
+                <ul className="mt-2 space-y-1.5 list-disc ps-4">
                   <li>
-                    The app is not running at <span className="font-mono">{appOrigin}</span>.
+                    The app is not running at{' '}
+                    <span dir="ltr" className="font-mono">
+                      {appOrigin}
+                    </span>
+                    .
                   </li>
                   <li>
-                    The app blocks framing: its <span className="font-mono">frame-ancestors</span>{' '}
-                    or <span className="font-mono">X-Frame-Options</span> header must allow{' '}
-                    <span className="font-mono">{window.location.origin}</span>.
+                    The app blocks framing: its{' '}
+                    <span dir="ltr" className="font-mono">
+                      frame-ancestors
+                    </span>{' '}
+                    or{' '}
+                    <span dir="ltr" className="font-mono">
+                      X-Frame-Options
+                    </span>{' '}
+                    header must allow{' '}
+                    <span dir="ltr" className="font-mono">
+                      {window.location.origin}
+                    </span>
+                    .
                   </li>
                   <li>
-                    <span className="font-mono">LiveLocaleProvider</span> is not mounted, or
-                    LiveLocale is off in the app (preview builds need{' '}
-                    <span className="font-mono">NEXT_PUBLIC_LIVELOCALE=preview</span>).
+                    <span dir="ltr" className="font-mono">
+                      LiveLocaleProvider
+                    </span>{' '}
+                    is not mounted, or LiveLocale is off in the app (preview builds need{' '}
+                    <span dir="ltr" className="font-mono">
+                      NEXT_PUBLIC_LIVELOCALE=preview
+                    </span>
+                    ).
                   </li>
                 </ul>
                 <p className="mt-3 text-fg-muted">
                   Run{' '}
-                  <span className="font-mono text-fg select-all">
+                  <span dir="ltr" className="font-mono text-fg select-all">
                     npx livelocale doctor --app {appOrigin}
                   </span>{' '}
                   to check.

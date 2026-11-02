@@ -2,6 +2,7 @@ import type { Message, StringKey } from './catalogue.js';
 
 /** Arabic Studio copy in Modern Standard Arabic. A missing key falls back to English. */
 export const ar: Partial<Record<StringKey, Message>> = {
+  'common.arrow': '←',
   'language.switch_to_ar': 'عرض الاستوديو بالعربية',
   'language.switch_to_en': 'عرض الاستوديو بالإنجليزية',
 };
