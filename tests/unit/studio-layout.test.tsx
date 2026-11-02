@@ -10,6 +10,9 @@ import {
   StudioLayout,
   type StudioPanel,
 } from '../../src/studio/features/dashboard/components/StudioLayout.js';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.js';
+import { textFor } from '../../src/studio/i18n/catalogue.js';
+import type { StudioLanguage } from '../../src/studio/preferences.js';
 
 type ChangeListener = (event: { matches: boolean }) => void;
 
@@ -46,19 +49,22 @@ const renderLayout = (
     isWide: boolean;
     openPanel: StudioPanel;
     onOpenPanelChange: (p: StudioPanel) => void;
-  }>
+  }>,
+  lang: StudioLanguage = 'en'
 ) => {
   const onOpenPanelChange = props.onOpenPanelChange ?? vi.fn();
   const element = (isWide: boolean, openPanel: StudioPanel) => (
-    <StudioLayout
-      isWide={isWide}
-      keys={<div data-testid="keys-slot">keys</div>}
-      viewer={<div data-testid="viewer-slot">viewer</div>}
-      side={<Counter />}
-      sideLabel="Editor"
-      openPanel={openPanel}
-      onOpenPanelChange={onOpenPanelChange}
-    />
+    <StudioLanguageProvider initial={lang}>
+      <StudioLayout
+        isWide={isWide}
+        keys={<div data-testid="keys-slot">keys</div>}
+        viewer={<div data-testid="viewer-slot">viewer</div>}
+        side={<Counter />}
+        sideLabel="Editor"
+        openPanel={openPanel}
+        onOpenPanelChange={onOpenPanelChange}
+      />
+    </StudioLanguageProvider>
   );
   const result = render(element(props.isWide ?? false, props.openPanel ?? null));
   return { ...result, element, onOpenPanelChange };
@@ -159,6 +165,11 @@ describe('StudioLayout', () => {
     renderLayout({ isWide: false, openPanel: 'keys' });
     expect(screen.getByTestId('studio-drawer-keys').className.split(/\s+/)).toContain('start-0');
     expect(screen.getByTestId('studio-drawer-side').className.split(/\s+/)).toContain('end-0');
+  });
+
+  it('labels the Keys toggle in Arabic', () => {
+    renderLayout({ isWide: false }, 'ar');
+    expect(screen.getByTestId('studio-toggle-keys').textContent).toBe(textFor('ar')('layout.keys'));
   });
 
   it('reports the open drawer through aria-expanded', () => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import { SelectedElement } from '../types/index.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface KeysDirectoryProps {
   filteredKeys: string[];
@@ -27,15 +28,16 @@ export const KeysDirectory = ({
   selectKeyDirectly,
   className = 'w-[300px] shrink-0',
 }: KeysDirectoryProps) => {
+  const { t } = useStudioText();
   return (
     <div
       data-testid="keys-directory"
       className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
     >
       <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-heading text-fg">Locale Directory</h2>
+        <h2 className="text-sm font-bold tracking-wide font-heading text-fg">{t('keys.title')}</h2>
         <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-raised text-fg border border-line">
-          {filteredKeys.length} keys
+          {t('keys.count', { count: filteredKeys.length })}
         </span>
       </div>
 
@@ -46,7 +48,7 @@ export const KeysDirectory = ({
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search keys or values..."
+            placeholder={t('keys.search')}
             className="w-full h-9 ps-9 pe-4 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
           />
           <svg
@@ -66,7 +68,7 @@ export const KeysDirectory = ({
 
         <div className="flex items-center justify-between">
           <span className="text-[10px] text-fg-muted font-semibold uppercase tracking-wider">
-            Scope
+            {t('keys.scope')}
           </span>
           <div className="flex items-center gap-1 bg-surface border border-line rounded-lg p-0.5 select-none shrink-0">
             <button
@@ -77,7 +79,7 @@ export const KeysDirectory = ({
                   : 'text-fg-muted hover:text-fg'
               }`}
             >
-              All Keys
+              {t('keys.all')}
             </button>
             <button
               onClick={() => setFilterPageOnly(true)}
@@ -87,13 +89,9 @@ export const KeysDirectory = ({
                   ? 'bg-raised hover:bg-raised-hover text-fg border border-line shadow-sm'
                   : 'text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
-              title={
-                visibleKeys === null
-                  ? 'Waiting for preview connection...'
-                  : 'Only show keys on the current page'
-              }
+              title={visibleKeys === null ? t('keys.page_waiting') : t('keys.page_title')}
             >
-              Page Keys
+              {t('keys.page')}
             </button>
           </div>
         </div>
@@ -125,12 +123,14 @@ export const KeysDirectory = ({
                   </span>
                   {isMissing && (
                     <span className="px-1.5 py-0.5 rounded bg-danger-bg text-[8px] font-extrabold text-danger-fg border border-danger-line shrink-0 uppercase tracking-wider">
-                      Missing
+                      {t('keys.missing')}
                     </span>
                   )}
                 </div>
                 <span dir="auto" className="text-[10px] text-fg-muted break-all line-clamp-1">
-                  {valueText || <span className="italic text-fg-muted">Empty</span>}
+                  {valueText || (
+                    <span className="italic text-fg-muted">{t('keys.empty_value')}</span>
+                  )}
                 </span>
               </button>
             );
@@ -150,7 +150,7 @@ export const KeysDirectory = ({
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <span className="text-xs">No keys found</span>
+            <span className="text-xs">{t('keys.none')}</span>
           </div>
         )}
       </div>

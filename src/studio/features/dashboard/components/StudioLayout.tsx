@@ -1,4 +1,5 @@
 import React, { useEffect, type ReactNode } from 'react';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 /** The drawer open in compact mode, if any. */
 export type StudioPanel = 'keys' | 'side' | null;
@@ -44,6 +45,7 @@ export const StudioLayout = ({
   onOpenPanelChange,
   toolbar,
 }: StudioLayoutProps) => {
+  const { t } = useStudioText();
   const compactOpen = isWide ? null : openPanel;
 
   useEffect(() => {
@@ -87,7 +89,7 @@ export const StudioLayout = ({
               onClick={() => toggle('keys')}
               className={toggleClass(compactOpen === 'keys')}
             >
-              Keys
+              {t('layout.keys')}
             </button>
             <button
               type="button"

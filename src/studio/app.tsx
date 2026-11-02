@@ -121,7 +121,7 @@ export const App = () => {
     importError,
   } = useStudio();
   const theme = useTheme(isShareStudio());
-  const { lang, dir } = useStudioText();
+  const { lang, dir, t } = useStudioText();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
@@ -215,7 +215,7 @@ export const App = () => {
         isWide={isWide}
         openPanel={openPanel}
         onOpenPanelChange={setOpenPanel}
-        sideLabel={isReviewing ? 'Review' : 'Editor'}
+        sideLabel={isReviewing ? t('layout.review') : t('layout.editor')}
         keys={
           <KeysDirectory
             className={isWide ? undefined : 'w-full'}
@@ -238,7 +238,7 @@ export const App = () => {
               data-testid="app-preview-blocked"
               className="flex-1 flex items-center justify-center h-full bg-raised border border-line rounded-2xl p-6 text-center text-sm text-fg-muted"
             >
-              The app preview is unavailable until the setup problem above is fixed.
+              {t('viewer.preview_blocked')}
             </section>
           ) : (
             <IframeViewer

@@ -1,8 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type ReactNode } from 'react';
 import { ConnectionStatus } from '../types/index.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 /** How long the Studio waits for the app's bridge before suggesting causes. */
 export const SLOW_CONNECTION_MS = 8000;
+
+/**
+ * A catalogue sentence with code in it: each `{name}` placeholder of `template` becomes the
+ * matching node, so commands and origins keep their own left-to-right, monospace element.
+ */
+function withCode(template: string, code: Readonly<Record<string, ReactNode>>): ReactNode[] {
+  return template
+    .split(/\{(\w+)\}/)
+    .map((part, i) =>
+      i % 2 === 0 ? part : <React.Fragment key={part}>{code[part] ?? `{${part}}`}</React.Fragment>
+    );
+}
+
+const Code = ({ children }: { children: ReactNode }) => (
+  <span dir="ltr" className="font-mono">
+    {children}
+  </span>
+);
 
 interface IframeViewerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -19,6 +38,7 @@ export const IframeViewer = ({
   appUrl,
   connectionStatus,
 }: IframeViewerProps) => {
+  const { t } = useStudioText();
   // The browser never tells the parent page why a frame stayed blank (a CSP
   // frame-ancestors block only reaches the console), so after a while list the usual causes.
   const [isSlow, setIsSlow] = useState(false);
@@ -52,9 +72,11 @@ export const IframeViewer = ({
         <div className="flex items-center gap-4 w-1/3 justify-end">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
-              Status
+              {t('viewer.status')}
             </span>
             <span
+              data-testid="connection-status"
+              data-status={connectionStatus}
               className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                 connectionStatus === 'connected'
                   ? 'bg-success-bg text-success-fg border border-success-line'
@@ -63,14 +85,16 @@ export const IframeViewer = ({
                     : 'bg-danger-bg text-danger-fg border border-danger-line'
               }`}
             >
-              {connectionStatus === 'connected' ? 'ACTIVE' : 'CONNECTING'}
+              {connectionStatus === 'connected'
+                ? t('viewer.status_connected')
+                : t('viewer.status_connecting')}
             </span>
           </div>
 
           <button
             onClick={reloadIframe}
             className="p-1.5 hover:bg-raised-hover text-fg-muted hover:text-fg rounded-lg transition duration-200 border border-transparent hover:border-line-strong"
-            title="Reload Frame"
+            title={t('viewer.reload')}
           >
             <svg
               className="w-4 h-4"
@@ -106,11 +130,9 @@ export const IframeViewer = ({
             </div>
             <div className="text-center">
               <h3 className="text-fg font-semibold tracking-wide font-heading">
-                Connecting to Project
+                {t('viewer.connecting_title')}
               </h3>
-              <p className="text-xs text-fg-muted mt-1 font-mono">
-                Waiting for client bridge initialization...
-              </p>
+              <p className="text-xs text-fg-muted mt-1 font-mono">{t('viewer.connecting_body')}</p>
             </div>
             {isSlow && (
               <div
@@ -118,47 +140,33 @@ export const IframeViewer = ({
                 data-testid="slow-connection-help"
                 className="max-w-md mx-6 mt-2 rounded-xl border border-line bg-raised p-4 text-start text-xs text-fg"
               >
-                <p className="font-semibold text-fg">Still connecting? Usual causes:</p>
+                <p className="font-semibold text-fg">{t('viewer.slow_title')}</p>
                 <ul className="mt-2 space-y-1.5 list-disc ps-4">
                   <li>
-                    The app is not running at{' '}
-                    <span dir="ltr" className="font-mono">
-                      {appOrigin}
-                    </span>
-                    .
+                    {withCode(t('viewer.cause_not_running'), { origin: <Code>{appOrigin}</Code> })}
                   </li>
                   <li>
-                    The app blocks framing: its{' '}
-                    <span dir="ltr" className="font-mono">
-                      frame-ancestors
-                    </span>{' '}
-                    or{' '}
-                    <span dir="ltr" className="font-mono">
-                      X-Frame-Options
-                    </span>{' '}
-                    header must allow{' '}
-                    <span dir="ltr" className="font-mono">
-                      {window.location.origin}
-                    </span>
-                    .
+                    {withCode(t('viewer.cause_framing'), {
+                      csp: <Code>frame-ancestors</Code>,
+                      xfo: <Code>X-Frame-Options</Code>,
+                      studio: <Code>{window.location.origin}</Code>,
+                    })}
                   </li>
                   <li>
-                    <span dir="ltr" className="font-mono">
-                      LiveLocaleProvider
-                    </span>{' '}
-                    is not mounted, or LiveLocale is off in the app (preview builds need{' '}
-                    <span dir="ltr" className="font-mono">
-                      NEXT_PUBLIC_LIVELOCALE=preview
-                    </span>
-                    ).
+                    {withCode(t('viewer.cause_provider'), {
+                      provider: <Code>LiveLocaleProvider</Code>,
+                      env: <Code>NEXT_PUBLIC_LIVELOCALE=preview</Code>,
+                    })}
                   </li>
                 </ul>
                 <p className="mt-3 text-fg-muted">
-                  Run{' '}
-                  <span dir="ltr" className="font-mono text-fg select-all">
-                    npx livelocale doctor --app {appOrigin}
-                  </span>{' '}
-                  to check.
+                  {withCode(t('viewer.run_doctor'), {
+                    command: (
+                      <span dir="ltr" className="font-mono text-fg select-all">
+                        npx livelocale doctor --app {appOrigin}
+                      </span>
+                    ),
+                  })}
                 </p>
               </div>
             )}

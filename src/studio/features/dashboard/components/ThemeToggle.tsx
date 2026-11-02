@@ -1,11 +1,13 @@
 import React from 'react';
 import { THEME_CHOICES, type ThemeChoice } from '../../../preferences.js';
+import type { StringKey } from '../../../i18n/catalogue.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
-/** Button names for each theme choice; replaced by catalogue keys in Task 21. */
-export const THEME_LABELS: Record<ThemeChoice, string> = {
-  system: 'System theme',
-  light: 'Light theme',
-  dark: 'Dark theme',
+/** The catalogue key naming each theme choice. */
+const LABEL_KEYS: Record<ThemeChoice, StringKey> = {
+  system: 'theme.system',
+  light: 'theme.light',
+  dark: 'theme.dark',
 };
 
 const ICON_PATHS: Record<ThemeChoice, React.ReactNode> = {
@@ -35,33 +37,36 @@ export const ThemeToggle = ({
 }: {
   choice: ThemeChoice;
   onChange(choice: ThemeChoice): void;
-}) => (
-  <div role="group" aria-label="Theme" className="flex items-center gap-0.5">
-    {THEME_CHOICES.map((c) => (
-      <button
-        key={c}
-        type="button"
-        data-theme-choice={c}
-        aria-label={THEME_LABELS[c]}
-        title={THEME_LABELS[c]}
-        aria-pressed={c === choice}
-        onClick={() => onChange(c)}
-        className={`${BASE} ${c === choice ? PRESSED : UNPRESSED}`}
-      >
-        <svg
-          className="w-3.5 h-3.5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={2}
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-          focusable="false"
+}) => {
+  const { t } = useStudioText();
+  return (
+    <div role="group" aria-label={t('theme.group')} className="flex items-center gap-0.5">
+      {THEME_CHOICES.map((c) => (
+        <button
+          key={c}
+          type="button"
+          data-theme-choice={c}
+          aria-label={t(LABEL_KEYS[c])}
+          title={t(LABEL_KEYS[c])}
+          aria-pressed={c === choice}
+          onClick={() => onChange(c)}
+          className={`${BASE} ${c === choice ? PRESSED : UNPRESSED}`}
         >
-          {ICON_PATHS[c]}
-        </svg>
-      </button>
-    ))}
-  </div>
-);
+          <svg
+            className="w-3.5 h-3.5"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+            focusable="false"
+          >
+            {ICON_PATHS[c]}
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+};

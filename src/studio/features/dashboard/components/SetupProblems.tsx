@@ -1,3 +1,6 @@
+import { STATIC_MANIFEST_MISSING } from '../../../config.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+
 interface SetupProblemsProps {
   /** Problems reported by the server's `?action=info`, e.g. a token without write access. */
   problems: string[];
@@ -5,10 +8,12 @@ interface SetupProblemsProps {
   title?: string;
 }
 
-const DEFAULT_TITLE = 'Saving will fail until the server setup is fixed:';
-
-/** Banner for server setup problems that would make every save fail. */
-export const SetupProblems = ({ problems, title = DEFAULT_TITLE }: SetupProblemsProps) => {
+/**
+ * Banner for server setup problems that would make every save fail. The Studio's own
+ * missing-manifest problem shows in the Studio language; server problems stay as given.
+ */
+export const SetupProblems = ({ problems, title }: SetupProblemsProps) => {
+  const { t } = useStudioText();
   if (problems.length === 0) return null;
   return (
     <div
@@ -16,10 +21,12 @@ export const SetupProblems = ({ problems, title = DEFAULT_TITLE }: SetupProblems
       data-testid="setup-problems"
       className="mx-6 mt-4 rounded-xl border border-danger-line bg-danger-bg px-4 py-3 text-xs text-danger-fg select-text"
     >
-      <p className="font-semibold text-danger-fg">{title}</p>
+      <p className="font-semibold text-danger-fg">{title ?? t('setup.title')}</p>
       <ul className="mt-1.5 space-y-1 list-disc ps-4">
         {problems.map((problem) => (
-          <li key={problem}>{problem}</li>
+          <li key={problem}>
+            {problem === STATIC_MANIFEST_MISSING ? t('setup.manifest_missing') : problem}
+          </li>
         ))}
       </ul>
     </div>
