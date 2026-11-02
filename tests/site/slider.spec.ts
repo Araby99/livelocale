@@ -58,3 +58,53 @@ test('shows the same outlines and check output without JavaScript as the island'
   expect((await outlined(off)).sort()).toEqual(live);
   expect(await off.getByTestId('check-output').innerText()).toBe(liveOutput);
 });
+
+// Chromium floors a computed outline width to whole CSS pixels at every device scale (1.5px
+// computes as 1px), so the width is read from the stylesheet rule that declares the outline. The
+// shorthand holds a var(), so only the shorthand itself, not its longhands, has a value there.
+const declaredOutline = (page: import('@playwright/test').Page, selector: string) =>
+  page.evaluate((sel) => {
+    for (const sheet of Array.from(document.styleSheets))
+      for (const rule of Array.from(sheet.cssRules))
+        if (
+          rule instanceof CSSStyleRule &&
+          rule.selectorText.split(',').some((s) => s.trim() === sel) &&
+          rule.style.getPropertyValue('outline')
+        )
+          return rule.style.getPropertyValue('outline');
+    return null;
+  }, selector);
+
+test('outlines untranslated text with a 1.5px dashed Exit 1 line, never a red fill', async ({
+  page,
+}) => {
+  await page.goto('./#languages');
+  await expect(page.getByRole('slider')).toBeVisible();
+  const outlines = await page
+    .locator('[data-island="slider"] [data-lang="ar"] .is-untranslated')
+    .evaluateAll((els) =>
+      els.map((el) => {
+        const s = getComputedStyle(el);
+        return [s.outlineStyle, s.outlineColor, s.backgroundColor];
+      })
+    );
+  expect(outlines.length).toBeGreaterThan(0);
+  for (const [style, color, bg] of outlines) {
+    expect([style, color]).toEqual(['dashed', 'rgb(255, 84, 104)']);
+    expect(bg).not.toContain('255, 84, 104');
+  }
+  expect(await declaredOutline(page, '.is-untranslated')).toMatch(/^1\.5px dashed /);
+});
+
+test('labels each half with a Hunk locale chip', async ({ page }) => {
+  await page.goto('./#languages');
+  await expect(page.getByRole('slider')).toBeVisible();
+  const chips = page.locator('[data-island="slider"] .locale-chip');
+  await expect(chips).toHaveText(['en', 'ar']);
+  for (const s of await chips.evaluateAll((els) =>
+    els.map((el) => [getComputedStyle(el).color, getComputedStyle(el).fontFamily])
+  )) {
+    expect(s[0]).toBe('rgb(79, 195, 220)');
+    expect(s[1]).toMatch(/^"IBM Plex Mono"/);
+  }
+});

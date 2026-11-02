@@ -103,8 +103,9 @@
           </p>
           <div class="hero-grid">
             <div class="hero-copy">
+              <p class="diff-old"><del>Collect screenshots of every typo before launch.</del></p>
               <h1>
-                Stop
+                <span class="lead-patch">Stop</span>
                 <span data-mistake="hero.title"
                   ><span class="m-broken">colecting</span
                   ><span class="m-fixed"
@@ -127,14 +128,14 @@
               <p class="hero-lede">
                 You get a pull request. CI catches what was never
                 <span data-mistake="hero.ci"
-                  ><span class="m-broken">traducido</span
+                  ><span class="m-broken m-untranslated">traducido</span
                   ><span class="m-fixed"
                     ><span class="patch" data-ghost="traducido">translated</span></span
                   ></span
                 >.
               </p>
             </div>
-            <aside class="pr-card" data-testid="pr-card" aria-label="Your pull request">
+            <aside class="pr-card is-done" data-testid="pr-card" aria-label="Your pull request">
               <p class="pr-card-title">Your pull request</p>
               <ul class="pr-pairs">
                 <li>
@@ -209,13 +210,13 @@
         <div class="wrap">
           <h2 id="languages-title">Drag between languages.</h2>
           <p class="section-lede">
-            Strings nobody translated stay English and light up coral.
+            Strings nobody translated stay English, outlined in red.
             <code>check --hardcoded</code> finds the same ones in CI.
           </p>
           <div class="slider" data-island="slider">
             <div class="slider-track">
               <div class="slider-half" data-lang="en" lang="en">
-                <p class="slider-label">English</p>
+                <p class="slider-label">English <code class="locale-chip">en</code></p>
                 <p class="sample-nav">
                   <span data-key="nav.pricing">Pricing</span>
                   <span data-key="nav.docs">Docs</span>
@@ -228,7 +229,7 @@
                 <span class="sample-button">Start free trial</span>
               </div>
               <div class="slider-half" data-lang="ar" lang="ar" dir="rtl">
-                <p class="slider-label">العربية</p>
+                <p class="slider-label">العربية <code class="locale-chip">ar</code></p>
                 <p class="sample-nav">
                   <span data-key="nav.pricing">الأسعار</span>
                   <span data-key="nav.docs">التوثيق</span>

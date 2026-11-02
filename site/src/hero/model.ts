@@ -10,6 +10,8 @@ export interface Mistake {
   fixed: string;
   wrong: string;
   right: string;
+  /** The wrong word is text nobody translated, so it carries the dashed Exit 1 outline. */
+  untranslated?: true;
 }
 
 export const MISTAKES: readonly Mistake[] = [
@@ -33,6 +35,7 @@ export const MISTAKES: readonly Mistake[] = [
     fixed: 'You get a pull request. CI catches what was never translated.',
     wrong: 'traducido',
     right: 'translated',
+    untranslated: true,
   },
 ];
 

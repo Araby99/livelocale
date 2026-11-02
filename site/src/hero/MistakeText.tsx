@@ -1,6 +1,6 @@
 // One planted mistake in the hero copy. It is a keyboard-operable button: Alt+Click, Enter or
-// Space opens the editor. It shows the broken word, the coral patch once fixed, or the visitor's
-// own words with a hint when the edit is not the fix. On a touch device it is a plain button
+// Space opens the editor. It shows the broken word (outlined when it was never translated), the
+// flat amber patch once fixed, or the visitor's own words with a hint when the edit is not the fix. On a touch device it is a plain button
 // instead: a tap applies the fix at once, with no editor and no on-screen keyboard.
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { wordDiff, type HeroEdit, type Mistake } from './model';
@@ -16,6 +16,12 @@ interface MistakeTextProps {
 }
 
 export function MistakeText({ mistake, edit, fixed, onOpen, onTap, elementRef }: MistakeTextProps) {
+  const wrongText = mistake.untranslated ? (
+    <span className="m-untranslated">{mistake.wrong}</span>
+  ) : (
+    mistake.wrong
+  );
+
   if (onTap) {
     return fixed ? (
       <span ref={elementRef} data-mistake={mistake.key}>
@@ -32,7 +38,7 @@ export function MistakeText({ mistake, edit, fixed, onOpen, onTap, elementRef }:
         aria-label={`Fix ${mistake.wrong}`}
         onClick={onTap}
       >
-        {mistake.wrong}
+        {wrongText}
       </button>
     );
   }
@@ -73,7 +79,7 @@ export function MistakeText({ mistake, edit, fixed, onOpen, onTap, elementRef }:
         ) : typed !== undefined ? (
           <span className="m-edited">{typed}</span>
         ) : (
-          mistake.wrong
+          wrongText
         )}
       </span>
       {typed !== undefined && (

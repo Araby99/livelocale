@@ -80,11 +80,16 @@ export function HeroIsland({ base }: { base: string }) {
   return (
     <div className="hero-live">
       <p className="hero-bar" aria-live="polite">
-        <span>{leftLabel(left)}</span>
+        <span className={left === 0 ? 'bar-done' : undefined}>{leftLabel(left)}</span>
       </p>
       <div className="hero-grid">
         <div className="hero-copy" ref={copyRef}>
-          <h1>Stop {text('hero.title')} screenshots.</h1>
+          <p className="diff-old">
+            <del>Collect screenshots of every typo before launch.</del>
+          </p>
+          <h1>
+            <span className="lead-patch">Stop</span> {text('hero.title')} screenshots.
+          </h1>
           {touch ? (
             <>
               <p className="hero-hint">Tap a typo to fix it.</p>

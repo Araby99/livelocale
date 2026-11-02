@@ -39,6 +39,11 @@ main code {
   overflow-wrap: anywhere;
 }
 
+/* Inline links are Hunk, the colour of locations; the nav and the buttons keep their own. */
+main p a {
+  color: var(--hunk);
+}
+
 .chip {
   display: inline-block;
   max-width: 100%;
@@ -143,11 +148,12 @@ main code {
   color: var(--paper);
 }
 
-/* The red circle on a screenshot, in Exit 1 (5.68:1 on Surface). */
+/* The red circle on a screenshot: red is only a dashed outline or a word, here Exit 1 (5.68:1 on
+   Surface) around Paper text. */
 .ring {
   display: inline-block;
   padding: 1px 8px;
-  border: 2px solid var(--exit-1);
+  border: 2px dashed var(--exit-1);
   border-radius: 50%;
   color: var(--paper);
 }
@@ -180,6 +186,15 @@ main code {
   font-weight: 500;
 }
 
+/* Done is Exit 0, always with a check and a word. */
+.bar-done {
+  color: var(--exit-0);
+}
+
+.bar-done::before {
+  content: '✓ ' / '';
+}
+
 .bar-start,
 .m-broken {
   display: none;
@@ -191,12 +206,55 @@ main code {
   margin-top: 24px;
 }
 
+/* The headline as a diff pair: the old line struck through in Ghost, set at 24 px or more so the
+   3:1 large-text rule applies (Ghost is 3.66:1 on Night), then the h1 as the added line. The
+   markers are generated content with empty alt text, so they never join the text. */
+.diff-old {
+  color: var(--ghost);
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.diff-old::before {
+  content: '−' / '';
+  margin-inline-end: 0.5em;
+}
+
+.diff-old del {
+  text-decoration: line-through;
+}
+
 #hero h1 {
   /* Room above each line for the struck-through ghost of the old word. */
   padding-top: 0.45em;
   font-size: clamp(2.25rem, 1.2rem + 4.6vw, 4.5rem);
   letter-spacing: -0.035em;
   line-height: 1.35;
+}
+
+/* Floated, so the markup's whitespace after it stays at the start of the line and never joins
+   the h1's text. */
+#hero h1::before {
+  content: '+' / '';
+  float: inline-start;
+  margin-inline-end: 0.3em;
+  color: var(--patch);
+}
+
+/* The one tilted patch in the view (spec §2.3): Night on Patch (10.78:1) with a hard shadow,
+   no blur. */
+.lead-patch {
+  display: inline-block;
+  padding: 0 0.2em;
+  border-radius: 6px;
+  background: var(--patch);
+  box-shadow: 3px 4px 0 var(--patch-shadow);
+  color: var(--night);
+  line-height: 1.15;
+  transform: rotate(-3deg);
 }
 
 .hero-hint {
@@ -212,17 +270,17 @@ main code {
   line-height: 2.2;
 }
 
-/* The amber patch over a fixed word; Night text on Patch (10.78:1). */
+/* A fixed word: a flat amber fill, the edited string as a filled shape. Night text on Patch
+   (10.78:1), no tilt and no shadow, since "Stop" is the one tilted patch. */
 .patch {
   position: relative;
   display: inline-block;
   padding: 0 0.2em;
   border-radius: 6px;
   background: var(--patch);
-  box-shadow: 2px 3px 0 var(--patch-shadow);
   color: var(--night);
   line-height: 1.15;
-  transform: rotate(-3deg);
+  transform: none;
 }
 
 /* The old word, struck through above the patch. Generated content, so it never joins the
@@ -272,19 +330,34 @@ main code {
   overflow-wrap: anywhere;
 }
 
-.pr-pairs del,
+/* The card in diff grammar: the added line on a Wash row in Patch (8.46:1), the removed line
+   struck in Comment (small struck text someone must read is never Ghost). */
 .pr-pairs ins {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--wash);
+  color: var(--patch);
   text-decoration: none;
 }
 
 .pr-pairs del {
+  padding-inline: 6px;
   color: var(--comment);
+  text-decoration: line-through;
 }
 
 .pr-progress {
   margin-top: 12px;
   color: var(--comment);
   font-size: 0.875rem;
+}
+
+.pr-card.is-done .pr-progress {
+  color: var(--exit-0);
+}
+
+.pr-card.is-done .pr-progress::before {
+  content: '✓ ' / '';
 }
 
 .completion {
@@ -326,7 +399,12 @@ html.js [data-island='hero'] > .completion {
 }
 
 html.js [data-island='hero'] > .hero-grid .pr-progress {
+  color: var(--comment);
   font-size: 0;
+}
+
+html.js [data-island='hero'] > .hero-grid .pr-progress::before {
+  content: none;
 }
 
 html.js [data-island='hero'] > .hero-grid .pr-progress::after {
@@ -394,18 +472,18 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   width: 45%;
 }
 
+/* Alt+hover: where this string lives, in Hunk. */
 .clip-click .clip-target {
-  outline: 2px solid var(--paper);
+  outline: 2px solid var(--hunk);
   outline-offset: 3px;
 }
 
+/* The edited string and the Send button: flat Patch fills, no tilt and no shadow. */
 .clip-type .clip-target,
 .clip-send .clip-target {
   height: 18px;
   width: 55%;
   background: var(--patch);
-  box-shadow: 2px 3px 0 var(--patch-shadow);
-  transform: rotate(-3deg);
 }
 
 .clip-send .clip-line:nth-child(3) {
@@ -413,7 +491,7 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   width: 35%;
   justify-self: end;
   border-radius: 6px;
-  background: var(--edge);
+  background: var(--patch);
 }
 
 /* Scene 4: the static English | Arabic split at 50 %. */
@@ -440,6 +518,21 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   font-family: var(--font-display);
   font-size: 0.8125rem;
   font-weight: 500;
+}
+
+/* The locale code in Hunk, the colour of locations, with a decorative "carbon copy" offset. */
+.locale-chip {
+  display: inline-block;
+  margin-inline-start: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  box-shadow: 2px 2px 0 var(--rule);
+  color: var(--hunk);
+  font-family: var(--font-code);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 .sample-nav {
@@ -479,13 +572,17 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   font-weight: 600;
 }
 
-/* Text nobody translated: red is only an outline or a word, so the Exit 1 outline (5.68:1 on
-   Surface) carries the meaning alone and the text keeps its own colour on no fill. */
-.is-untranslated {
+/* Text nobody translated, in the slider and the hero: red is only an outline or a word, so the
+   dashed Exit 1 outline (5.68:1 on Surface) carries the meaning alone, on no fill and no tint. */
+.is-untranslated,
+.m-untranslated {
   border-radius: 4px;
-  outline: 2px solid var(--exit-1);
+  outline: 1.5px dashed var(--exit-1);
   outline-offset: 2px;
   background: none;
+}
+
+.is-untranslated {
   color: var(--paper);
 }
 
@@ -582,7 +679,7 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 }
 
 .footer-links a {
-  color: var(--paper);
+  color: var(--hunk);
 }
 
 @media (min-width: 720px) {

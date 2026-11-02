@@ -13,7 +13,11 @@ interface PrCardProps {
 
 export function PrCard({ edits, fixed, total, onSend, sendRef }: PrCardProps) {
   return (
-    <aside className="pr-card" data-testid="pr-card" aria-label="Your pull request">
+    <aside
+      className={fixed === total ? 'pr-card is-done' : 'pr-card'}
+      data-testid="pr-card"
+      aria-label="Your pull request"
+    >
       <p className="pr-card-title">Your pull request</p>
       {edits.length > 0 && (
         <ul className="pr-pairs">

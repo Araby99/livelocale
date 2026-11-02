@@ -76,7 +76,9 @@ export function LanguageSlider() {
         onPointerCancel={onPointerEnd}
       >
         <div ref={englishRef} className="slider-layer" data-lang="en" lang="en">
-          <p className="slider-label">English</p>
+          <p className="slider-label">
+            English <code className="locale-chip">en</code>
+          </p>
           <I18nextProvider i18n={instances.en}>
             <SamplePage findings={findings} />
           </I18nextProvider>
@@ -89,7 +91,9 @@ export function LanguageSlider() {
           dir="rtl"
           style={{ clipPath: `inset(0 0 0 ${value}%)` }}
         >
-          <p className="slider-label">العربية</p>
+          <p className="slider-label">
+            العربية <code className="locale-chip">ar</code>
+          </p>
           <I18nextProvider i18n={instances.ar}>
             <SamplePage findings={findings} />
           </I18nextProvider>

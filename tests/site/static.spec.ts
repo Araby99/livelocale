@@ -31,6 +31,96 @@ test.describe('without JavaScript', () => {
     await expect(page.getByText('Free, MIT, no account, no server.')).toBeVisible();
     await expect(page.locator('body')).not.toContainText(/\bPM\b/);
   });
+
+  test('writes the hero headline as a diff pair', async ({ page }) => {
+    for (const width of [1280, 360]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.goto('./');
+      const old = page.locator('#hero .diff-old');
+      await expect(old).toHaveText('Collect screenshots of every typo before launch.');
+      const ghost = await old.evaluate((el) => {
+        const s = getComputedStyle(el);
+        return {
+          color: s.color,
+          line: getComputedStyle(el.querySelector('del')!).textDecorationLine,
+          size: parseFloat(s.fontSize),
+          before: getComputedStyle(el, '::before').content,
+        };
+      });
+      expect(ghost.color).toBe('rgb(110, 107, 100)');
+      expect(ghost.line).toBe('line-through');
+      expect(ghost.size).toBeGreaterThanOrEqual(24);
+      expect(ghost.before).toContain('−');
+      const h1 = page.locator('#hero h1');
+      const plus = await h1.evaluate((el) => {
+        const s = getComputedStyle(el, '::before');
+        return [s.content, s.color];
+      });
+      expect(plus[0]).toContain('+');
+      expect(plus[1]).toBe('rgb(255, 178, 36)');
+      expect(await h1.innerText()).toBe('Stop collecting screenshots.');
+    }
+  });
+
+  test('puts the one tilted patch on "Stop"', async ({ page }) => {
+    await page.goto('./');
+    const lead = page.locator('#hero .lead-patch');
+    await expect(lead).toHaveText('Stop');
+    const s = await lead.evaluate((el) => {
+      const c = getComputedStyle(el);
+      return { bg: c.backgroundColor, color: c.color, transform: c.transform, shadow: c.boxShadow };
+    });
+    expect(s.bg).toBe('rgb(255, 178, 36)');
+    expect(s.color).toBe('rgb(12, 13, 15)');
+    expect(s.transform).not.toBe('none');
+    expect(s.shadow).toContain('rgb(138, 86, 0)');
+    expect(s.shadow).toContain('3px 4px 0px');
+    const patches = await page
+      .locator('#hero .patch')
+      .evaluateAll((els) =>
+        els.map((el) => [getComputedStyle(el).transform, getComputedStyle(el).backgroundColor])
+      );
+    expect(patches).toHaveLength(3);
+    for (const p of patches) expect(p).toEqual(['none', 'rgb(255, 178, 36)']);
+  });
+
+  test('shows done in Exit 0 with a check', async ({ page }) => {
+    await page.goto('./');
+    const [color, before] = await page
+      .locator('#hero .bar-done')
+      .evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el, '::before').content]);
+    expect(color).toBe('rgb(111, 214, 154)');
+    expect(before).toContain('✓');
+  });
+
+  test("circles the pile's mistakes in dashed red", async ({ page }) => {
+    await page.goto('./');
+    expect(
+      await page
+        .locator('.ring')
+        .first()
+        .evaluate((el) => {
+          const s = getComputedStyle(el);
+          return [s.borderTopStyle, s.borderTopColor];
+        })
+    ).toEqual(['dashed', 'rgb(255, 84, 104)']);
+  });
+
+  test('writes the PR card as a diff', async ({ page }) => {
+    await page.goto('./');
+    expect(
+      await page
+        .locator('.pr-pairs ins')
+        .first()
+        .evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color])
+    ).toEqual(['rgb(46, 36, 18)', 'rgb(255, 178, 36)']);
+    expect(
+      await page
+        .locator('.pr-pairs del')
+        .first()
+        .evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el).textDecorationLine])
+    ).toEqual(['rgb(140, 136, 125)', 'line-through']);
+  });
 });
 
 test('has no horizontal scroll at 360 px', async ({ page }) => {

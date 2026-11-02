@@ -104,3 +104,92 @@ test.describe('reduced motion', () => {
     ).toEqual(['none', '0s', 'none']);
   });
 });
+
+const PATCH = 'rgb(255, 178, 36)';
+
+async function altFix(page: import('@playwright/test').Page, key: string, text: string) {
+  await page.locator(`[data-mistake="${key}"]`).click({ modifiers: ['Alt'] });
+  await page.getByRole('dialog', { name: 'Edit text' }).getByRole('textbox').fill(text);
+  await page.keyboard.press('Enter');
+}
+
+// Chromium floors a computed outline width to whole CSS pixels at every device scale (1.5px
+// computes as 1px), so the width is read from the stylesheet rule that declares the outline. The
+// shorthand holds a var(), so only the shorthand itself, not its longhands, has a value there.
+const declaredOutline = (page: import('@playwright/test').Page, selector: string) =>
+  page.evaluate((sel) => {
+    for (const sheet of Array.from(document.styleSheets))
+      for (const rule of Array.from(sheet.cssRules))
+        if (
+          rule instanceof CSSStyleRule &&
+          rule.selectorText.split(',').some((s) => s.trim() === sel) &&
+          rule.style.getPropertyValue('outline')
+        )
+          return rule.style.getPropertyValue('outline');
+    return null;
+  }, selector);
+
+test('outlines the untranslated word until it is fixed', async ({ page }) => {
+  await page.goto('./#hero');
+  const word = page.locator('[data-mistake="hero.ci"] .m-untranslated');
+  await expect(word).toHaveText('traducido');
+  const s = await word.evaluate((el) => {
+    const c = getComputedStyle(el);
+    return [c.outlineStyle, c.outlineColor, c.backgroundColor];
+  });
+  expect(s).toEqual(['dashed', 'rgb(255, 84, 104)', 'rgba(0, 0, 0, 0)']);
+  expect(await declaredOutline(page, '.m-untranslated')).toMatch(/^1\.5px dashed /);
+  await altFix(page, FIXES[2][0], FIXES[2][1]);
+  await expect(page.locator('[data-mistake="hero.ci"] .patch')).toBeVisible();
+  await expect(word).toHaveCount(0);
+});
+
+test('keeps one tilted patch after every fix', async ({ page }) => {
+  await page.goto('./#hero');
+  for (const [key, text] of FIXES) await altFix(page, key, text);
+  await expect
+    .poll(() =>
+      page
+        .locator('#hero .hero-copy *')
+        .evaluateAll(
+          (els, patch) =>
+            els
+              .filter((el) => getComputedStyle(el).backgroundColor === patch)
+              .map((el) => el.textContent),
+          PATCH
+        )
+    )
+    .toEqual(['Stop', 'collecting', 'right', 'translated']);
+  await expect
+    .poll(() =>
+      page.locator('#hero *').evaluateAll(
+        (els, patch) =>
+          els
+            .filter((el) => {
+              const s = getComputedStyle(el);
+              return s.backgroundColor === patch && s.transform !== 'none';
+            })
+            .map((el) => el.textContent),
+        PATCH
+      )
+    )
+    .toEqual(['Stop']);
+  const done = page.locator('#hero .bar-done');
+  await expect(done).toHaveText('All fixed');
+  await expect(done).toHaveCSS('color', 'rgb(111, 214, 154)');
+});
+
+test('warns on a near-miss with an amber glyph', async ({ page }) => {
+  await page.goto('./#hero');
+  await altFix(page, 'hero.lede', 'Anyone on your team fixes text write on the site.');
+  const [glyph, glyphColor] = await page.locator('.m-try').evaluate((el) => {
+    const s = getComputedStyle(el, '::before');
+    return [s.content, s.color];
+  });
+  expect(glyph).toContain('!');
+  expect(glyphColor).toBe(PATCH);
+  const edited = page.locator('.m-edited');
+  await expect(edited).toHaveCSS('background-color', 'rgb(46, 36, 18)');
+  await expect(edited).toHaveCSS('text-decoration-line', 'none');
+  await expect(page.getByText('Try "right"')).toBeVisible();
+});
