@@ -11,6 +11,7 @@ node_modules/
 /playground-vite/dist/
 /site/dist/
 /site/demo/dist/
+/site/stage/dist/
 /site/public/favicon*
 /site/public/apple-touch-icon.png
 /site/public/og-image.png

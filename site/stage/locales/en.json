@@ -1,0 +1,76 @@
+{
+  "brand": "Tidewell",
+  "nav": {
+    "product": "Product",
+    "pricing": "Pricing",
+    "customers": "Customers",
+    "changelog": "Changelog",
+    "signIn": "Sign in",
+    "getStarted": "Get started"
+  },
+  "hero": {
+    "eyebrow": "Pricing",
+    "title": "Plans that grows with you",
+    "lede": "Send polished invoices, chase late payments on autopilot and see what every project really earned. Built for studios of one to fifty.",
+    "cta": "Start free trial",
+    "secondary": "Book a demo",
+    "note": "14 days free. No card required."
+  },
+  "billing": {
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "save": "Save 20%"
+  },
+  "plans": {
+    "solo": {
+      "name": "Solo",
+      "price": "$12",
+      "period": "per month",
+      "blurb": "For freelancers sending a handful of invoices a month.",
+      "f1": "Unlimited clients",
+      "f2": "Branded invoices and quotes",
+      "f3": "Card and bank payments",
+      "f4": "Automatic reminders",
+      "cta": "Choose Solo"
+    },
+    "studio": {
+      "name": "Studio",
+      "badge": "Most popular",
+      "price": "$29",
+      "period": "per month",
+      "blurb": "For small teams who bill by the project or the hour.",
+      "f1": "Everything in Solo",
+      "f2": "Time tracking for 5 people",
+      "f3": "Project profitability",
+      "f4": "Recurring retainers",
+      "cta": "Choose Studio"
+    },
+    "agency": {
+      "name": "Agency",
+      "price": "$79",
+      "period": "per month",
+      "blurb": "For growing studios with many clients and currencies.",
+      "f1": "Everything in Studio",
+      "f2": "Unlimited team members",
+      "f3": "Multi-currency and tax rules",
+      "f4": "Priority support",
+      "cta": "Choose Agency"
+    }
+  },
+  "faq": {
+    "title": "Questions, answered",
+    "q1": "Can I switch plans later?",
+    "a1": "Yes. Upgrade or downgrade at any time and we prorate the difference on your next bill.",
+    "q2": "Do my clients need an account?",
+    "a2": "No. They open a secure link, pay by card or bank transfer and get a receipt by email.",
+    "q3": "What happens after the trial?",
+    "a3": "Nothing, unless you pick a plan. Your clients and invoices stay saved for 90 days."
+  },
+  "footer": {
+    "tagline": "Invoicing for small studios.",
+    "copyright": "© 2026 Tidewell Labs",
+    "privacy": "Privacy",
+    "terms": "Terms",
+    "status": "Status"
+  }
+}

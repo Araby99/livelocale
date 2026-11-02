@@ -74,3 +74,16 @@ the repository settings below.
 
    No `CNAME` file is committed: GitHub ignores it when Pages deploys from a custom Actions
    workflow.
+
+## Hero video (spike)
+
+```sh
+# needs the root build (dist/); the recorder runs `npm run build` itself when it is missing
+node site/scripts/record-hero.mjs
+```
+
+Builds the fictional Tidewell pricing site in `site/stage/`, packs it with `livelocale pack`, serves
+it on a port in 5170-5179 and records the real share Studio in headless Chromium (CDP screencast,
+realtime 1x at 1600x1000). It writes `hero.mp4`, `hero.webm`, `poster.png`, `contact.png` (12
+frames, 4x3) and `chapters.json` to `site/media/hero/`. The cursor, click ripple and Alt keycap are
+an overlay the recorder injects into the Studio page; everything else on screen is the product.
