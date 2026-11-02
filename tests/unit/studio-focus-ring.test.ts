@@ -9,11 +9,28 @@ const AD_HOC =
 
 it('draws a 2px ring in the focus colour on :focus-visible', () =>
   expect(css).toMatch(
-    /:focus-visible\s*\{[^}]*outline:\s*2px solid var\(--color-focus\);[^}]*outline-offset:\s*2px;/
+    /:focus-visible,?[^{]*\{[^}]*outline:\s*2px solid var\(--color-focus\);[^}]*outline-offset:\s*2px;/
   ));
 
 it('draws the ring inset inside scroll containers, where an outside ring is clipped', () =>
   expect(css).toMatch(/\.overflow-y-auto :focus-visible[^{]*\{[^}]*outline-offset:\s*-2px;/));
+
+// Dark mode's focus colour is the amber fill itself, so an inset ring on an amber button would vanish.
+it('draws the inset ring in the on-fill ink on amber-filled controls', () => {
+  expect(css).toMatch(
+    /\.overflow-y-auto :is\(\.bg-accent, \.bg-warning-solid\):focus-visible[^{]*\{[^}]*outline-color:\s*var\(--color-on-accent\);/
+  );
+});
+
+// A file picker styled as a button is a label around a visually hidden input, which clips its ring.
+it('rings the label of a visually hidden input', () => {
+  expect(css).toMatch(
+    /label:has\(> \.sr-only:focus-visible\)[^{]*\{[^}]*outline:\s*2px solid var\(--color-focus\);/
+  );
+  expect(css).toMatch(
+    /\.overflow-y-auto label:has\(> \.sr-only:focus-visible\)[^{]*\{[^}]*outline-offset:\s*-2px;/
+  );
+});
 
 it('leaves no ad-hoc focus classes in Studio components', () => {
   const hits = studioFiles('src/studio', /\.tsx$/).flatMap((f) =>

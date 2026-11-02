@@ -180,7 +180,10 @@ html[lang='ar'] body {
     outline-color: var(--color-focus);
   }
 
-  :focus-visible {
+  /* A file picker styled as a button is a label around an sr-only input, which clips the input's
+     own ring to nothing, so the label draws it. */
+  :focus-visible,
+  label:has(> .sr-only:focus-visible) {
     outline: 2px solid var(--color-focus);
     outline-offset: 2px;
   }
@@ -190,7 +193,24 @@ html[lang='ar'] body {
   .overflow-x-auto :focus-visible,
   .overflow-scroll :focus-visible,
   .overflow-x-scroll :focus-visible,
-  .overflow-y-scroll :focus-visible {
+  .overflow-y-scroll :focus-visible,
+  .overflow-y-auto label:has(> .sr-only:focus-visible),
+  .overflow-auto label:has(> .sr-only:focus-visible),
+  .overflow-x-auto label:has(> .sr-only:focus-visible),
+  .overflow-scroll label:has(> .sr-only:focus-visible),
+  .overflow-x-scroll label:has(> .sr-only:focus-visible),
+  .overflow-y-scroll label:has(> .sr-only:focus-visible) {
     outline-offset: -2px;
+  }
+
+  /* An inset ring sits on the control's own fill. In dark mode the focus colour is the amber fill
+     itself, so on an amber-filled control the ring takes the ink drawn on that fill instead. */
+  .overflow-y-auto :is(.bg-accent, .bg-warning-solid):focus-visible,
+  .overflow-auto :is(.bg-accent, .bg-warning-solid):focus-visible,
+  .overflow-x-auto :is(.bg-accent, .bg-warning-solid):focus-visible,
+  .overflow-scroll :is(.bg-accent, .bg-warning-solid):focus-visible,
+  .overflow-x-scroll :is(.bg-accent, .bg-warning-solid):focus-visible,
+  .overflow-y-scroll :is(.bg-accent, .bg-warning-solid):focus-visible {
+    outline-color: var(--color-on-accent);
   }
 }

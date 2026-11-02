@@ -67,6 +67,39 @@ test.describe('keyboard journeys', () => {
     await page.keyboard.press('Enter');
     await expect(page.locator('#studio-translation-input')).toBeFocused();
   });
+  // Final review F3: in dark mode the focus colour is the amber Save fill, and inside the scrolling
+  // editor the ring is drawn inset, on that fill. It must not take the fill's colour.
+  test('keeps the Save focus ring visible on its amber fill in dark mode', async ({ page }) => {
+    await page.evaluate((key) => localStorage.setItem(key, 'dark'), STUDIO_THEME_KEY);
+    await page.reload();
+    await connected(page);
+    await page.locator('#studio-keys-search').focus();
+    await page.keyboard.type('home.welcome_msg');
+    await page.locator('[data-testid="keys-directory"] .overflow-y-auto > button').first().focus();
+    await page.keyboard.press('Enter');
+    const input = page.locator('#studio-translation-input');
+    await expect(input).toBeFocused();
+    await page.keyboard.press('End');
+    await page.keyboard.type(' (ring check)');
+    for (let i = 0; i < 12; i++) {
+      await page.keyboard.press('Tab');
+      if (await page.evaluate(() => document.activeElement?.id === 'studio-save-button')) break;
+    }
+    const ring = await page.locator('#studio-save-button').evaluate(async (el) => {
+      // The fill fades in from the disabled colour; compare the settled colours.
+      await Promise.all(el.getAnimations().map((a) => a.finished));
+      const s = getComputedStyle(el);
+      return {
+        focused: document.activeElement === el,
+        style: `${s.outlineStyle} ${s.outlineWidth}`,
+        offset: s.outlineOffset,
+        outline: s.outlineColor,
+        fill: s.backgroundColor,
+      };
+    });
+    expect(ring).toMatchObject({ focused: true, style: 'solid 2px', offset: '-2px' });
+    expect(ring.outline).not.toBe(ring.fill);
+  });
   test('opens and closes Changes by keyboard', async ({ page }) => {
     await page.locator('#studio-changes-button').focus();
     await page.keyboard.press('Enter');

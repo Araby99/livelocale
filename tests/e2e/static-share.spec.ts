@@ -358,3 +358,25 @@ test('developer creates the pull request on GitHub', async ({ browser }) => {
   await expect(page.getByPlaceholder('owner/repo')).toHaveCount(0);
   await context.close();
 });
+
+// Final review F4: Restore backup is a label around a visually hidden file input. The input takes
+// focus, but its own ring is clipped away, so the label must show the ring instead.
+test('shows a focus ring on Restore backup when the file input has keyboard focus', async ({
+  page,
+}) => {
+  await openStudio(page);
+  await page.locator('#studio-changes-button').focus();
+  await page.keyboard.press('Enter');
+  const file = page.locator('input[type="file"]');
+  await expect(file).toBeAttached();
+  for (let i = 0; i < 15; i++) {
+    await page.keyboard.press('Tab');
+    if (await file.evaluate((el) => document.activeElement === el)) break;
+  }
+  await expect(file).toBeFocused();
+  const label = await file.evaluate((el) => {
+    const s = getComputedStyle(el.closest('label')!);
+    return `${s.outlineStyle} ${s.outlineWidth}`;
+  });
+  expect(label).toBe('solid 2px');
+});
