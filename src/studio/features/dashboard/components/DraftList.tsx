@@ -154,6 +154,10 @@ export const DraftList = ({
                       disabled={isUndoing}
                       className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
                       title={t(isSent ? 'draft_list.remove_title' : 'draft_list.undo_title')}
+                      aria-label={t(isSent ? 'draft_list.remove_aria' : 'draft_list.undo_aria', {
+                        key: d.key,
+                        locale: d.locale,
+                      })}
                     >
                       {t(isSent ? 'draft_list.remove' : 'draft_list.undo')}
                     </button>

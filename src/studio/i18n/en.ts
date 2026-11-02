@@ -288,6 +288,8 @@ export const en = {
   'draft_list.undo_title': 'Go back to the published text',
   'draft_list.remove': 'Remove',
   'draft_list.remove_title': 'Removes it from this list. A link you already sent still carries it.',
+  'draft_list.undo_aria': 'Undo: go back to the published text of {key} ({locale})',
+  'draft_list.remove_aria': 'Remove: take {key} ({locale}) off this list',
   'draft_list.empty': 'empty',
   'draft_list.dismiss_live': 'Dismiss live changes',
   'draft_list.download': 'Download backup',

@@ -321,6 +321,8 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'draft_list.undo_title': 'عُد إلى النص المنشور',
   'draft_list.remove': 'إزالة',
   'draft_list.remove_title': 'يزيله من هذه القائمة. الرابط الذي أرسلته من قبل ما زال يحمله.',
+  'draft_list.undo_aria': 'تراجع: عُد إلى النص المنشور للمفتاح {key} ({locale})',
+  'draft_list.remove_aria': 'إزالة: أزل {key} ({locale}) من هذه القائمة',
   'draft_list.empty': 'فارغ',
   'draft_list.dismiss_live': 'أخفِ التغييرات المنشورة',
   'draft_list.download': 'نزّل نسخة احتياطية',
