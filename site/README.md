@@ -106,3 +106,14 @@ everything else on screen is the product.
 Knobs: `HERO_NO_ENCODE=1` acts the take and prints the beat times only; `HERO_SLOW`, `HERO_DPR` and
 `HERO_Q` (screencast JPEG quality) trade capture fps against sharpness; `HERO_KEEP_MASTER=<file>`
 keeps the near-lossless master for frame-by-frame review.
+
+After a new take, `node site/scripts/hero-frames.mjs` cuts the page's stills from `hero.mp4` with
+ffmpeg-static: the WebP poster (frame 0) and one frame per story step in `site/media/hero/frames/`.
+Each still's provenance (the second of the take it comes from) sits beside it in a `.json` sidecar.
+
+## The CI excerpt
+
+`site/sample/` is a cut of the Tidewell pricing hero with two strings broken on purpose. The build
+runs the real `check --hardcoded` on it (`site/scripts/hardcoded-report.mjs`) and sets the output
+into the developer story (`site/scripts/check-excerpt.mjs`); the build fails if the check finds
+nothing.

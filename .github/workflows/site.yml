@@ -1,7 +1,7 @@
 name: Site
 
 # Tests the landing site on every change to it, the brand or the product it packs (the demo's
-# packed Studio and the slider's `check --hardcoded` output are built from src/). Deploys to
+# packed Studio and the CI excerpt's `check --hardcoded` output are built from src/). Deploys to
 # GitHub Pages only when run by hand, or on pushes once the owner sets the SITE_LIVE variable.
 
 on:
