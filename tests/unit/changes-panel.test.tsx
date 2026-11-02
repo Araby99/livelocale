@@ -118,7 +118,7 @@ describe('ChangesPanel', () => {
     const props = renderPanel({ history: [entry] });
     expect(screen.getByText('home.title')).toBeTruthy();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Restore the previous value of home.title' })
+      screen.getByRole('button', { name: 'Undo: restore the previous value of home.title' })
     );
     expect(props.onUndo).toHaveBeenCalledWith(entry);
     cleanup();

@@ -274,7 +274,7 @@ export const en = {
   'changes.no_edits': 'No edits saved yet in this session.',
   'changes.undo': 'Undo',
   'changes.undo_title': 'Restore the previous value',
-  'changes.restore_aria': 'Restore the previous value of {key}',
+  'changes.restore_aria': 'Undo: restore the previous value of {key}',
   'changes.empty': 'empty',
   'draft_list.title': 'Your changes',
   'draft_list.none': 'No changes yet. Alt+Click any text in the app to fix it.',

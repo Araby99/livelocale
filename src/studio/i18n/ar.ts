@@ -308,7 +308,7 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'changes.no_edits': 'لم تُحفظ أي تعديلات في هذه الجلسة بعد.',
   'changes.undo': 'تراجع',
   'changes.undo_title': 'استعد القيمة السابقة',
-  'changes.restore_aria': 'استعد القيمة السابقة للمفتاح {key}',
+  'changes.restore_aria': 'تراجع: استعد القيمة السابقة للمفتاح {key}',
   'changes.empty': 'فارغ',
   'draft_list.title': 'تغييراتك',
   'draft_list.none': 'لا تغييرات بعد. اضغط Alt وانقر أي نص في التطبيق لتصحيحه.',
