@@ -160,7 +160,6 @@ function serve(root) {
   });
 }
 
-
 // ─── overlay (cursor, ripple, keycap), injected into the top page only ───────
 
 const OVERLAY = (spot) => {
@@ -389,7 +388,8 @@ function camTrack(keys, comp) {
     const { t, ease } = keys[i];
     const from = value(i - 1);
     const to = value(i);
-    const after = i + 1 < keys.length ? `if(lt(${T},${n(keys[i + 1].t)}),${to},${build(i + 1)})` : `${to}`;
+    const after =
+      i + 1 < keys.length ? `if(lt(${T},${n(keys[i + 1].t)}),${to},${build(i + 1)})` : `${to}`;
     if (ease <= 0 || from === to) return after;
     const p = `((${T}-${n(t)})/${n(ease)})`;
     return `if(lt(${T},${n(t + ease)}),${from}+${n(to - from)}*${p}*${p}*(3-2*${p}),${after})`;
@@ -445,9 +445,23 @@ async function encodeShot({ frames, endTs, camKeys }, work, name) {
   );
   const out = join(work, `${name}.mp4`);
   ffmpeg([
-    '-f', 'concat', '-safe', '0', '-i', listFile,
-    '-filter_complex_script', graphFile,
-    '-map', '[v]', '-c:v', 'libx264', '-crf', '10', '-preset', 'veryfast', out,
+    '-f',
+    'concat',
+    '-safe',
+    '0',
+    '-i',
+    listFile,
+    '-filter_complex_script',
+    graphFile,
+    '-map',
+    '[v]',
+    '-c:v',
+    'libx264',
+    '-crf',
+    '10',
+    '-preset',
+    'veryfast',
+    out,
   ]);
   return { file: out, duration, first: join(dir, '00000.jpg') };
 }
@@ -490,21 +504,67 @@ async function encode(shots, work) {
   const master = join(work, 'master.mp4');
   ffmpeg([
     ...encoded.flatMap((e) => ['-i', e.file]),
-    '-loop', '1', '-t', String(RISE + 0.1), '-i', encoded[0].first,
-    '-filter_complex_script', graphFile,
-    '-map', '[v]', '-c:v', 'libx264', '-crf', '10', '-preset', 'veryfast', master,
+    '-loop',
+    '1',
+    '-t',
+    String(RISE + 0.1),
+    '-i',
+    encoded[0].first,
+    '-filter_complex_script',
+    graphFile,
+    '-map',
+    '[v]',
+    '-c:v',
+    'libx264',
+    '-crf',
+    '10',
+    '-preset',
+    'veryfast',
+    master,
   ]);
   const duration = raw + RISE;
 
   const mp4 = join(OUT_DIR, 'hero.mp4');
   const webm = join(OUT_DIR, 'hero.webm');
   ffmpeg([
-    '-i', master, '-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'animation', '-crf', '23',
-    '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', mp4,
+    '-i',
+    master,
+    '-c:v',
+    'libx264',
+    '-preset',
+    'veryslow',
+    '-tune',
+    'animation',
+    '-crf',
+    '23',
+    '-profile:v',
+    'high',
+    '-pix_fmt',
+    'yuv420p',
+    '-movflags',
+    '+faststart',
+    '-an',
+    mp4,
   ]);
   ffmpeg([
-    '-i', master, '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '38', '-row-mt', '1',
-    '-deadline', 'good', '-cpu-used', '2', '-pix_fmt', 'yuv420p', '-an', webm,
+    '-i',
+    master,
+    '-c:v',
+    'libvpx-vp9',
+    '-b:v',
+    '0',
+    '-crf',
+    '38',
+    '-row-mt',
+    '1',
+    '-deadline',
+    'good',
+    '-cpu-used',
+    '2',
+    '-pix_fmt',
+    'yuv420p',
+    '-an',
+    webm,
   ]);
   ffmpeg(['-i', master, '-frames:v', '1', join(OUT_DIR, 'poster.png')]);
 
@@ -515,8 +575,12 @@ async function encode(shots, work) {
     ffmpeg(['-ss', t.toFixed(3), '-i', master, '-frames:v', '1', '-vf', 'scale=400:-2', tile]);
   }
   ffmpeg([
-    '-i', join(work, 'tile%02d.png'),
-    '-vf', 'tile=4x3:padding=6:margin=6:color=white', '-frames:v', '1',
+    '-i',
+    join(work, 'tile%02d.png'),
+    '-vf',
+    'tile=4x3:padding=6:margin=6:color=white',
+    '-frames:v',
+    '1',
     join(OUT_DIR, 'contact.png'),
   ]);
   // HERO_KEEP_MASTER=path copies the lossless-ish master out for frame-by-frame review.
@@ -745,7 +809,10 @@ async function main() {
     mark('send dialog open');
     const opened = cast.now();
     cam('send', 800);
-    const copy = await page.getByRole('dialog').getByRole('button', { name: 'Copy link' }).boundingBox();
+    const copy = await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Copy link' })
+      .boundingBox();
     // rest just below Copy link, off the diff rows
     if (copy) await me.move(copy.x + copy.width / 2, copy.y + copy.height + 10, 560, 0.06);
     const github = page.getByRole('dialog').getByRole('link', { name: 'Open on GitHub' });
