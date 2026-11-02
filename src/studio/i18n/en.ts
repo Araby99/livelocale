@@ -3,8 +3,8 @@ import type { Message } from './catalogue.js';
 /** English Studio copy: the source catalogue. Every key's Arabic lives in `ar.ts`. */
 export const en = {
   'common.arrow': '→',
-  'language.switch_to_ar': 'Show the Studio in Arabic',
-  'language.switch_to_en': 'Show the Studio in English',
+  'language.switch_to_ar': 'العربية: show the Studio in Arabic',
+  'language.switch_to_en': 'English: show the Studio in English',
   'tips.title': 'Welcome to LiveLocale',
   'tips.step1': 'Hold Alt/Option and click any text.',
   'tips.step2':

@@ -115,6 +115,7 @@ export const EditorPanel = ({
 
           <button
             type="button"
+            data-testid="manage-languages-toggle"
             onClick={() => setIsManageOpen(!isManageOpen)}
             className={`p-1.5 rounded-lg border transition duration-200 ${
               isManageOpen

@@ -81,7 +81,7 @@ export const KeysDirectory = ({
               type="button"
               onClick={() => setFilterPageOnly(false)}
               aria-pressed={!filterPageOnly}
-              className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
+              className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-colors duration-150 ${
                 !filterPageOnly
                   ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
                   : 'text-fg-muted hover:text-fg'
@@ -94,7 +94,7 @@ export const KeysDirectory = ({
               onClick={() => setFilterPageOnly(true)}
               aria-pressed={filterPageOnly}
               disabled={visibleKeys === null}
-              className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
+              className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-colors duration-150 ${
                 filterPageOnly
                   ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
                   : 'text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed'

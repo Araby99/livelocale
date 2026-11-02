@@ -3,8 +3,8 @@ import type { Message, StringKey } from './catalogue.js';
 /** Arabic Studio copy in Modern Standard Arabic. A missing key falls back to English. */
 export const ar: Partial<Record<StringKey, Message>> = {
   'common.arrow': '←',
-  'language.switch_to_ar': 'عرض الاستوديو بالعربية',
-  'language.switch_to_en': 'عرض الاستوديو بالإنجليزية',
+  'language.switch_to_ar': 'العربية: عرض الاستوديو بالعربية',
+  'language.switch_to_en': 'English: عرض الاستوديو بالإنجليزية',
   'tips.title': 'مرحبًا بك في LiveLocale',
   'tips.step1': 'اضغط مع الاستمرار على مفتاح Alt (أو Option في ماك) وانقر على أي نص.',
   'tips.step2': 'اكتب التصحيح، وستتحدّث الصفحة أثناء الكتابة، وتُحفظ تغييراتك في هذا المتصفح.',
