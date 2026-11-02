@@ -383,6 +383,7 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'review.now_on_site': 'الموجود على الموقع الآن:',
   'review.result_applied': 'طُبّق',
   'review.result_failed': 'فشل: {message}',
+  'review.apply_summary': 'انتهى التطبيق: طُبّق {applied}، وتُخطّي {skipped}، وفشل {failed}.',
   'review.result_skipped': 'تُخطّي: {reason}',
   'review.empty': 'فارغ',
   'repo.question': 'أي مستودع على GitHub يتلقى طلب الدمج؟',

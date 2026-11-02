@@ -144,6 +144,20 @@ export const ReviewPanel = ({
 
   const applyCount = counts ? counts.apply + (includeForced ? counts['needs-force'] : 0) : 0;
 
+  // One announcement for the whole apply, not one live region per row (which floods a screen reader).
+  const applySummary = useMemo(() => {
+    const results = Object.values(applyResults);
+    if (results.length === 0) return null;
+    const n = (state: ApplyResult['state']) => results.filter((r) => r.state === state).length;
+    const failed = n('failed');
+    const text = t('review.apply_summary', {
+      applied: n('applied'),
+      skipped: n('skipped'),
+      failed,
+    });
+    return { text, failed: failed > 0 };
+  }, [applyResults, t]);
+
   useEffect(() => {
     focusedRef.current?.scrollIntoView?.({ block: 'nearest' });
   }, [focusedId, focusSeq]);
@@ -187,6 +201,12 @@ export const ReviewPanel = ({
 
         {review && counts && link && command && (
           <>
+            <p role="status" className="sr-only">
+              {applySummary && !applySummary.failed ? applySummary.text : ''}
+            </p>
+            <p role="alert" className="sr-only">
+              {applySummary?.failed ? applySummary.text : ''}
+            </p>
             {(by !== '' || note !== '') && (
               <p
                 data-testid="review-note"
@@ -364,7 +384,6 @@ export const ReviewPanel = ({
                         {applyResults[row.id] && (
                           <p
                             data-testid="apply-result"
-                            role={applyResults[row.id]!.state === 'failed' ? 'alert' : 'status'}
                             className={`mt-1 inline-block px-2 py-0.5 rounded-full bg-surface border border-line ${RESULT_CLASS[applyResults[row.id]!.state]}`}
                           >
                             {resultText(applyResults[row.id]!, t)}
@@ -381,9 +400,7 @@ export const ReviewPanel = ({
                                     : 'glyph-warn text-warning-fg'
                                 }
                               >
-                                <span role={check.level === 'error' ? 'alert' : 'status'}>
-                                  {check.message}
-                                </span>
+                                {check.message}
                               </li>
                             ))}
                           </ul>

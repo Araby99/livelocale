@@ -342,6 +342,7 @@ export const en = {
   'review.now_on_site': 'Now on the site:',
   'review.result_applied': 'Applied',
   'review.result_failed': 'Failed: {message}',
+  'review.apply_summary': 'Apply finished: {applied} applied, {skipped} skipped, {failed} failed.',
   'review.result_skipped': 'Skipped: {reason}',
   'review.empty': 'empty',
   'repo.question': 'Which GitHub repository should get the pull request?',
