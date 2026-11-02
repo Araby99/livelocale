@@ -95,6 +95,7 @@ export const TranslationEditor = ({
             {t('editor.key')}
           </label>
           <button
+            type="button"
             onClick={onClear}
             className="text-[10px] font-medium text-fg-muted hover:text-fg transition duration-200"
           >
@@ -179,6 +180,7 @@ export const TranslationEditor = ({
         ) : (
           <textarea
             id="studio-translation-input"
+            aria-label={t('editor.translation_label')}
             dir="auto"
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
@@ -200,6 +202,7 @@ export const TranslationEditor = ({
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onForceSave}
               disabled={isLoading}
               className="h-8 px-3 rounded-lg text-[11px] font-semibold text-on-warning bg-warning-solid hover:bg-warning-solid/90 transition duration-150"
@@ -207,6 +210,7 @@ export const TranslationEditor = ({
               {t('editor.save_anyway')}
             </button>
             <button
+              type="button"
               onClick={onDismissWarning}
               className="h-8 px-3 rounded-lg text-[11px] font-semibold text-fg bg-raised border border-line-strong hover:border-line-strong transition duration-150"
             >
@@ -241,6 +245,7 @@ export const TranslationEditor = ({
       {/* Action buttons */}
       <div className="flex items-center gap-3 pt-4 shrink-0">
         <button
+          type="button"
           id="studio-save-button"
           onClick={onSave}
           disabled={!canSave}
@@ -252,7 +257,12 @@ export const TranslationEditor = ({
         >
           {isLoading ? (
             <>
-              <svg className="animate-spin h-4 w-4 text-on-accent" fill="none" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="animate-spin h-4 w-4 text-on-accent"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
                 <circle
                   className="opacity-25"
                   cx="12"

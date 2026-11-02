@@ -71,6 +71,7 @@ export function GitHubIssueAction({
           <textarea
             data-testid="manual-copy"
             readOnly
+            aria-label={t('issue.manual_copy_label')}
             value={block}
             rows={4}
             onFocus={(e) => e.currentTarget.select()}

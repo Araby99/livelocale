@@ -91,10 +91,14 @@ export const EditorPanel = ({
         <div className="flex items-center gap-2">
           {!isManageOpen && (
             <>
-              <label className="text-[10px] font-semibold text-fg-muted uppercase tracking-wider">
+              <label
+                htmlFor="studio-locale-select"
+                className="text-[10px] font-semibold text-fg-muted uppercase tracking-wider"
+              >
                 {t('editor.locale')}
               </label>
               <select
+                id="studio-locale-select"
                 value={locale}
                 dir="ltr"
                 onChange={(e) => onLocaleChange(e.target.value)}
@@ -110,16 +114,24 @@ export const EditorPanel = ({
           )}
 
           <button
+            type="button"
             onClick={() => setIsManageOpen(!isManageOpen)}
             className={`p-1.5 rounded-lg border transition duration-200 ${
               isManageOpen
                 ? 'bg-accent-soft border-accent-line text-accent-fg'
                 : 'bg-raised border-line text-fg-muted hover:text-fg hover:border-line-strong'
             }`}
+            aria-label={isManageOpen ? t('editor.back') : t('editor.manage')}
             title={isManageOpen ? t('editor.back') : t('editor.manage')}
           >
             {isManageOpen ? (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -128,7 +140,13 @@ export const EditorPanel = ({
                 />
               </svg>
             ) : (
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

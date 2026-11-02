@@ -149,6 +149,7 @@ export const DraftList = ({
                   <div className="flex items-center gap-2 shrink-0">
                     <StateBadge state={state} />
                     <button
+                      type="button"
                       onClick={() => onUndo(d)}
                       disabled={isUndoing}
                       className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
@@ -177,6 +178,7 @@ export const DraftList = ({
       )}
       {liveNow.length > 0 && onDismissLiveNow && (
         <button
+          type="button"
           onClick={onDismissLiveNow}
           className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
         >
@@ -186,6 +188,7 @@ export const DraftList = ({
 
       <div className="flex flex-wrap items-center gap-2 pt-2">
         <button
+          type="button"
           onClick={handleDownload}
           disabled={drafts.length === 0}
           className={`${footerButton} disabled:opacity-40 disabled:cursor-not-allowed`}
@@ -202,7 +205,7 @@ export const DraftList = ({
           />
         </label>
         {onReviewChange && (
-          <button onClick={onReviewChange} className={footerButton}>
+          <button type="button" onClick={onReviewChange} className={footerButton}>
             {t('draft_list.review')}
           </button>
         )}

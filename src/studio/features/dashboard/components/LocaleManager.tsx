@@ -54,11 +54,15 @@ export const LocaleManager = ({
     <div className="flex-1 flex flex-col p-6 overflow-y-auto space-y-6">
       {/* Add language form */}
       <form onSubmit={handleAdd} className="space-y-2.5">
-        <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+        <label
+          htmlFor="studio-new-locale"
+          className="text-[11px] font-bold text-fg-muted uppercase tracking-wider"
+        >
           {t('locales.add_label')}
         </label>
         <div className="flex items-center gap-2">
           <input
+            id="studio-new-locale"
             type="text"
             value={newLocaleCode}
             dir="ltr"

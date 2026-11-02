@@ -77,16 +77,25 @@ export const LocaleRow = ({
             dir="ltr"
             onChange={(e) => setRenameValue(e.target.value)}
             disabled={isLoading}
+            aria-label={t('locales.new_code_aria', { code })}
             className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1 text-xs font-mono text-fg"
             autoFocus
           />
           <button
+            type="button"
             onClick={handleRenameSave}
             disabled={isLoading}
             className="p-1 text-success-fg hover:text-success-fg transition duration-150"
+            aria-label={t('locales.save_rename')}
             title={t('locales.save_rename')}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -96,12 +105,20 @@ export const LocaleRow = ({
             </svg>
           </button>
           <button
+            type="button"
             onClick={() => setEditing(false)}
             disabled={isLoading}
             className="p-1 text-fg-muted hover:text-fg-muted transition duration-150"
+            aria-label={t('locales.cancel')}
             title={t('locales.cancel')}
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              aria-hidden="true"
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -123,6 +140,7 @@ export const LocaleRow = ({
           )}
           <div className="flex items-center gap-2 justify-end">
             <button
+              type="button"
               onClick={() => setDeleting(false)}
               disabled={isLoading}
               className="px-2.5 py-1 text-[10px] font-semibold bg-raised hover:bg-raised-hover text-fg rounded-lg transition"
@@ -130,6 +148,7 @@ export const LocaleRow = ({
               {t('locales.cancel')}
             </button>
             <button
+              type="button"
               onClick={handleDeleteConfirm}
               disabled={isLoading}
               className="px-2.5 py-1 text-[10px] font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg rounded-lg transition"
@@ -158,12 +177,20 @@ export const LocaleRow = ({
 
           <div className="flex items-center gap-1 shrink-0">
             <button
+              type="button"
               onClick={handleStartRename}
               disabled={isLoading}
               className="p-1.5 text-fg-muted hover:text-fg transition duration-150"
+              aria-label={t('locales.rename_aria', { code })}
               title={t('locales.rename_title')}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -173,15 +200,23 @@ export const LocaleRow = ({
               </svg>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setLocalError(null);
                 setDeleting(true);
               }}
               disabled={isLoading}
               className="p-1.5 text-fg-muted hover:text-danger-fg transition duration-150"
+              aria-label={t('locales.delete_aria', { code })}
               title={t('locales.delete_title')}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                aria-hidden="true"
+                className="w-3.5 h-3.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"

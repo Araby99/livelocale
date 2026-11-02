@@ -86,11 +86,14 @@ export const IframeViewer = ({
           </div>
 
           <button
+            type="button"
             onClick={reloadIframe}
             className="p-1.5 hover:bg-raised-hover text-fg-muted hover:text-fg rounded-lg transition duration-200 border border-transparent hover:border-line-strong"
+            aria-label={t('viewer.reload')}
             title={t('viewer.reload')}
           >
             <svg
+              aria-hidden="true"
               className="w-4 h-4"
               fill="none"
               stroke="currentColor"

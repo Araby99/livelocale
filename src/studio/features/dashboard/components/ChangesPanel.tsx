@@ -140,11 +140,14 @@ export const ChangesPanel = ({
           </div>
           <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={onRefresh}
               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-raised-hover border border-transparent hover:border-line-strong transition duration-150"
+              aria-label={t('changes.refresh')}
               title={t('changes.refresh')}
             >
               <svg
+                aria-hidden="true"
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
@@ -158,11 +161,14 @@ export const ChangesPanel = ({
               </svg>
             </button>
             <button
+              type="button"
               onClick={onClose}
               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-raised-hover border border-transparent hover:border-line-strong transition duration-150"
+              aria-label={t('changes.close')}
               title={t('changes.close')}
             >
               <svg
+                aria-hidden="true"
                 className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
@@ -240,6 +246,7 @@ export const ChangesPanel = ({
               {git?.isRepo && changes.length > 0 && (
                 <div className="space-y-2">
                   <button
+                    type="button"
                     onClick={() => setShowDiff((v) => !v)}
                     className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
                   >
@@ -274,6 +281,9 @@ export const ChangesPanel = ({
                     {t('changes.view_pr')}
                   </a>
                 )}
+                <label htmlFor="studio-commit-message" className="sr-only">
+                  {t('changes.commit_label')}
+                </label>
                 <textarea
                   id="studio-commit-message"
                   value={message}
@@ -293,6 +303,7 @@ export const ChangesPanel = ({
                 />
                 <div className="flex items-center gap-3">
                   <button
+                    type="button"
                     id="studio-commit-button"
                     onClick={handleCommit}
                     disabled={!canCommit || isGitLoading}
@@ -310,6 +321,7 @@ export const ChangesPanel = ({
                   </button>
                   {!confirmDiscard ? (
                     <button
+                      type="button"
                       onClick={() => setConfirmDiscard(true)}
                       disabled={changes.length === 0 || isGitLoading}
                       className="h-10 px-4 rounded-xl text-xs font-semibold text-danger-fg bg-danger-bg hover:bg-danger-bg border border-dashed border-danger-line disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
@@ -319,6 +331,7 @@ export const ChangesPanel = ({
                   ) : (
                     <div className="flex items-center gap-2">
                       <button
+                        type="button"
                         onClick={handleDiscard}
                         disabled={isGitLoading}
                         className="h-10 px-3 rounded-xl text-xs font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg transition duration-150"
@@ -326,6 +339,7 @@ export const ChangesPanel = ({
                         {t(isGitHub ? 'changes.reset_to_base' : 'changes.discard_all')}
                       </button>
                       <button
+                        type="button"
                         onClick={() => setConfirmDiscard(false)}
                         className="h-10 px-3 rounded-xl text-xs font-semibold text-fg-muted hover:text-fg bg-raised border border-line transition duration-150"
                       >
@@ -391,9 +405,11 @@ export const ChangesPanel = ({
                             {formatTime(entry.at)}
                           </span>
                           <button
+                            type="button"
                             onClick={() => onUndo(entry)}
                             disabled={isUndoing}
                             className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
+                            aria-label={t('changes.restore_aria', { key: entry.key })}
                             title={t('changes.undo_title')}
                           >
                             {t('changes.undo')}

@@ -200,6 +200,7 @@ export const Header = ({
 
         {!isReviewing && onSend && (
           <button
+            type="button"
             id="studio-send-button"
             onClick={onSend}
             disabled={!canSend}
@@ -223,6 +224,7 @@ export const Header = ({
         )}
 
         <button
+          type="button"
           id="studio-changes-button"
           onClick={onToggleChanges}
           className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold whitespace-nowrap transition duration-150 ${
@@ -233,6 +235,7 @@ export const Header = ({
           title={t('header.changes_title')}
         >
           <svg
+            aria-hidden="true"
             className="w-3.5 h-3.5"
             fill="none"
             stroke="currentColor"

@@ -276,6 +276,7 @@ export const SendDialog = ({
             type="text"
             dir="ltr"
             readOnly
+            aria-label={t('send.link_label')}
             value={shownLink}
             onFocus={(e) => e.currentTarget.select()}
             className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg"
@@ -285,6 +286,7 @@ export const SendDialog = ({
 
         <div className="flex flex-wrap items-center gap-2">
           <button
+            type="button"
             id="studio-send-copy"
             onClick={handleCopy}
             disabled={!canCopy}
@@ -293,6 +295,7 @@ export const SendDialog = ({
             {t('send.copy')}
           </button>
           <button
+            type="button"
             id="studio-send-download"
             onClick={handleDownload}
             disabled={!canDownload}
@@ -301,6 +304,7 @@ export const SendDialog = ({
             {t('send.download')}
           </button>
           <button
+            type="button"
             onClick={onClose}
             className={`${actionButton} ms-auto text-fg-muted hover:text-fg bg-raised border-line hover:border-line-strong`}
           >
@@ -341,6 +345,7 @@ export const SendDialog = ({
           <div role="status" className="space-y-2">
             <p className="glyph-warn text-xs text-warning-fg">{t('send.copy_failed')}</p>
             <button
+              type="button"
               onClick={() => markSent(included, 'copied')}
               className={`${actionButton} text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong`}
             >

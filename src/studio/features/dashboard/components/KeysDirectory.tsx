@@ -49,9 +49,11 @@ export const KeysDirectory = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('keys.search')}
+            aria-label={t('keys.search_label')}
             className="w-full h-9 ps-9 pe-4 bg-surface border border-line hover:border-line-strong rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
           />
           <svg
+            aria-hidden="true"
             className="w-3.5 h-3.5 text-fg-muted absolute start-3 top-2.5"
             fill="none"
             stroke="currentColor"
@@ -72,6 +74,7 @@ export const KeysDirectory = ({
           </span>
           <div className="flex items-center gap-1 bg-surface border border-line rounded-lg p-0.5 select-none shrink-0">
             <button
+              type="button"
               onClick={() => setFilterPageOnly(false)}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 !filterPageOnly
@@ -82,6 +85,7 @@ export const KeysDirectory = ({
               {t('keys.all')}
             </button>
             <button
+              type="button"
               onClick={() => setFilterPageOnly(true)}
               disabled={visibleKeys === null}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
@@ -106,6 +110,7 @@ export const KeysDirectory = ({
             const isMissing = localeData[key] === undefined;
             return (
               <button
+                type="button"
                 key={key}
                 onClick={() => selectKeyDirectly(key)}
                 aria-current={isActive ? 'true' : undefined}
