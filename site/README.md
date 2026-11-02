@@ -88,7 +88,17 @@ rule) and records the real share Studio in headless Chromium at 1600x1000, DPR 2
 Headless Chromium only paints about 8 frames a second at 3200x2000, so the take is acted three times
 slower than it plays, with CSS animations slowed to match, and the timestamps are scaled back. A
 camera move (an eased crop keyed to the beats the recorder logs) is added in ffmpeg, and the loop
-seam dips to the stage colour and fades back into frame 0. It writes `hero.mp4`, `hero.webm`,
+seam dips to the stage colour and fades back into frame 0.
+
+The stage is published as the public demo repository
+[Araby99/tidewell](https://github.com/Araby99/tidewell), set up with `npx livelocale init --share`.
+The pack runs with that repository's build identity (`DEMO_REPO`, `DEMO_BRANCH`, `DEMO_BASE`) and
+`--expose-repo`, so the change link names it and the Send dialog shows **Open on GitHub**. The take
+ends on that real click (the new tab is suppressed: headless and signed out, GitHub would only show
+its sign-in page), then dissolves into the real pull request the repository's workflow opened from
+the issue that link pre-fills (`PR_URL`): its Conversation tab, a click on **Files changed** and a
+cut to the diffs, recorded the same way from the public page. To make a new pull request, file the
+issue the recorder prints (`HERO_ISSUE_OUT=<file>` saves the link) and update `PR_URL`. It writes `hero.mp4`, `hero.webm`,
 `poster.png`, `contact.png` (12 frames, 4x3) and `chapters.json` to `site/media/hero/`. The cursor,
 click ripple and keycaps (Alt, EN → AR) are an overlay the recorder injects into the Studio page;
 everything else on screen is the product.

@@ -1,5 +1,5 @@
 {
-  "duration": 14.61,
+  "duration": 17.87,
   "chapters": [
     {
       "title": "Alt+Click the text",
@@ -7,11 +7,11 @@
     },
     {
       "title": "Fix it in every language",
-      "start": 5.16
+      "start": 5.21
     },
     {
-      "title": "Send it to your developer",
-      "start": 10.48
+      "title": "Get a pull request",
+      "start": 10.63
     }
   ]
 }

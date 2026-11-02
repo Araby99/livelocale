@@ -9,8 +9,11 @@
 // 1600x1000, DPR 2, and plays the storyboard with an injected cursor, click ripple and keycaps
 // (top page only, all pointer-events:none). Frames come from CDP Page.startScreencast with their
 // own timestamps and are encoded to constant 60 fps with ffmpeg-static. The camera (an eased crop
-// keyed to the beats the actor logs) is applied in ffmpeg; the UI itself is never touched. The loop
-// seam dips to the stage colour and fades back into frame 0. Output goes to site/media/hero/.
+// keyed to the beats the actor logs) is applied in ffmpeg; the UI itself is never touched. The take
+// ends on the Send dialog's real "Open on GitHub" click, then dissolves into the real pull request
+// (PR_URL, on the public demo repo) recorded the same way: its Conversation tab, a click on Files
+// changed, and a cut to the diffs. The loop seam dips to the stage colour and fades back into
+// frame 0. Output goes to site/media/hero/.
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
@@ -43,22 +46,46 @@ const DIP = 0.25; // seconds the last shot fades to the stage colour
 const RISE = 0.2; // seconds frame 0 then fades in from it, so the loop restarts on frame 0
 const DIP_COLOUR = '0xf7f4ee'; // the stage's --paper
 
+// The public demo repository the stage is published as (github.com/Araby99/tidewell). The pack runs
+// with the build identity a CI build of its main branch would have, so the change link names that
+// repository, branch and commit, and the Send dialog offers the real "Open on GitHub" button (which
+// needs exposeRepo). site/stage holds the same locales and markup as that commit.
+const DEMO_REPO = 'Araby99/tidewell';
+const DEMO_BRANCH = 'main';
+const DEMO_BASE = 'f10ae325b76b19a31df9b3cc1139d24808509579';
+const PACK_ENV = {
+  ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GITHUB_'))),
+  GITHUB_SERVER_URL: 'https://github.com',
+  GITHUB_REPOSITORY: DEMO_REPO,
+  GITHUB_REF_TYPE: 'branch',
+  GITHUB_REF_NAME: DEMO_BRANCH,
+  GITHUB_SHA: DEMO_BASE,
+};
+
 // Camera boxes in 1x page coordinates, all 1.6:1 like the frame.
 const CAM = {
   full: { x: 0, y: 0, w: 1600, h: 1000 },
   // the preview's top half and the editor; drops the Locale Directory and the card grid
   edit: { x: 348, y: 64, w: 1228, h: 767.5 },
-  // the Send dialog: name, both diff rows, the link and the buttons
-  send: { x: 416, y: 260, w: 768, h: 480 },
+  // the Send dialog: name, both diff rows, the link, the buttons and Open on GitHub
+  send: { x: 320, y: 200, w: 960, h: 600 },
+  // GitHub, the pull request's Conversation tab: title, bot author, the apply table, the tabs
+  prConversation: { x: 168, y: 178, w: 912, h: 570 },
+  // GitHub, Files changed: the title, the file tree and both locale diffs
+  prFiles: { x: 16, y: 178, w: 1264, h: 790 },
 };
+// The real pull request the workflow opened from the issue this Studio flow files (issue #1). The
+// ending is recorded from it as is: public, headless, not signed in.
+const PR_URL = 'https://github.com/Araby99/tidewell/pull/2';
+const XFADE = 0.3; // seconds the Studio dissolves into the pull request
 // Where the keycaps sit: bottom-centre of the preview, inside the `edit` box and clear of outlines.
 const KEY_SPOT = { x: 740, y: 770 };
 
 // ─── build and pack ──────────────────────────────────────────────────────────
 
-function run(cmd, args, cwd) {
+function run(cmd, args, cwd, env = process.env) {
   return new Promise((ok, fail) => {
-    const child = spawn(cmd, args, { cwd, stdio: 'inherit' });
+    const child = spawn(cmd, args, { cwd, env, stdio: 'inherit' });
     child.on('error', fail);
     child.on('exit', (code) =>
       code === 0 ? ok() : fail(new Error(`${cmd} ${args.join(' ')} exited with ${code}`))
@@ -87,8 +114,10 @@ async function buildStage() {
       'en',
       '--base',
       '/',
+      '--expose-repo',
     ],
-    SITE_DIR
+    SITE_DIR,
+    PACK_ENV
   );
 }
 
@@ -144,7 +173,7 @@ const OVERLAY = (spot) => {
       <style>
         [data-recorder-overlay] * { pointer-events: none; }
         .rec-cursor { position: absolute; left: 0; top: 0; width: 45.5px; height: 45.5px;
-          transform-origin: 5.25px 3.5px; will-change: transform;
+          transform-origin: 5.25px 3.5px; will-change: translate, scale;
           filter: drop-shadow(0 2px 4px rgba(0,0,0,.35)); transition: scale 120ms ease; }
         .rec-cursor.down { scale: .86; }
         .rec-ripple { position: absolute; width: 48px; height: 48px; margin: -24px 0 0 -24px;
@@ -171,7 +200,9 @@ const OVERLAY = (spot) => {
     let x = -100;
     let y = -100;
     const place = () => {
-      cursor.style.transform = `translate(${x - 5.25}px, ${y - 3.5}px)`;
+      // the translate property, not transform: `scale` composes outside `transform`, so a press
+      // would also scale the position and pull the cursor toward the top-left corner
+      cursor.style.translate = `${x - 5.25}px ${y - 3.5}px`;
     };
     window.__rec = {
       move(nx, ny) {
@@ -389,36 +420,77 @@ function ffmpeg(args) {
   if (res.status !== 0) throw new Error(`ffmpeg ${args.slice(0, 12).join(' ')} ... failed`);
 }
 
-async function encode(frames, endTs, camKeys, work) {
+/** One shot: its VFR screencast frames -> CFR 60 -> its camera, as a near-lossless mp4. */
+async function encodeShot({ frames, endTs, camKeys }, work, name) {
+  const dir = join(work, name);
+  await mkdir(dir, { recursive: true });
   const list = [];
   for (let i = 0; i < frames.length; i++) {
-    const name = join(work, `${String(i).padStart(5, '0')}.jpg`).replaceAll('\\', '/');
-    await writeFile(name, frames[i].data);
+    const file = join(dir, `${String(i).padStart(5, '0')}.jpg`).replaceAll('\\', '/');
+    await writeFile(file, frames[i].data);
     const next = i + 1 < frames.length ? frames[i + 1].ts : endTs;
     const seconds = (next - frames[i].ts) / SLOW; // back to video time
-    list.push(`file '${name}'`, `duration ${Math.max(0.001, seconds).toFixed(6)}`);
+    list.push(`file '${file}'`, `duration ${Math.max(0.001, seconds).toFixed(6)}`);
   }
   // the concat demuxer ignores the last duration unless the file is repeated
   list.push(list.at(-2));
-  const listFile = join(work, 'frames.txt');
+  const listFile = join(dir, 'frames.txt');
   await writeFile(listFile, list.join('\n'));
-  const raw = (endTs - frames[0].ts) / SLOW;
-
-  // master: VFR frames -> CFR 60 -> camera; dip the last shot to the stage colour, then fade
-  // frame 0 (full frame, like the opening) back in, so no two layouts are ever on screen together.
-  const graph =
+  const duration = (endTs - frames[0].ts) / SLOW;
+  const graphFile = join(dir, 'graph.txt');
+  await writeFile(
+    graphFile,
     `[0:v]fps=60,settb=AVTB,setpts=PTS-STARTPTS,${zoompan(camKeys)},` +
-    `trim=duration=${raw.toFixed(3)},setpts=PTS-STARTPTS,setsar=1,format=yuv420p,` +
-    `fade=t=out:st=${(raw - DIP).toFixed(3)}:d=${DIP}:color=${DIP_COLOUR}[a];` +
-    `[1:v]scale=${VIEW.width}:${VIEW.height}:flags=lanczos,fps=60,trim=duration=${RISE},` +
-    `setpts=PTS-STARTPTS,setsar=1,format=yuv420p,fade=t=in:st=0:d=${RISE}:color=${DIP_COLOUR}[b];` +
-    `[a][b]concat=n=2:v=1:a=0[v]`;
-  const graphFile = join(work, 'graph.txt');
-  await writeFile(graphFile, graph);
-  const master = join(work, 'master.mp4');
+      `trim=duration=${duration.toFixed(3)},setpts=PTS-STARTPTS,setsar=1,format=yuv420p[v]`
+  );
+  const out = join(work, `${name}.mp4`);
   ffmpeg([
     '-f', 'concat', '-safe', '0', '-i', listFile,
-    '-loop', '1', '-t', String(RISE + 0.1), '-i', join(work, '00000.jpg'),
+    '-filter_complex_script', graphFile,
+    '-map', '[v]', '-c:v', 'libx264', '-crf', '10', '-preset', 'veryfast', out,
+  ]);
+  return { file: out, duration, first: join(dir, '00000.jpg') };
+}
+
+/**
+ * Joins the shots (each later one by a `dissolve` or a hard `cut`), dips the last shot to the
+ * stage colour, then fades frame 0 (full frame, like the opening) back in, so the loop restarts on
+ * frame 0 and no two layouts are ever on screen together.
+ */
+async function encode(shots, work) {
+  const encoded = [];
+  for (let i = 0; i < shots.length; i++) encoded.push(await encodeShot(shots[i], work, `shot${i}`));
+  const parts = [];
+  let label = '[0:v]';
+  let length = encoded[0].duration;
+  for (let i = 1; i < shots.length; i++) {
+    const next = `[j${i}]`;
+    if (shots[i].join === 'dissolve') {
+      parts.push(
+        `${label}[${i}:v]xfade=transition=fade:duration=${XFADE}:offset=${(length - XFADE).toFixed(3)}${next}`
+      );
+      length += encoded[i].duration - XFADE;
+    } else {
+      parts.push(`${label}[${i}:v]concat=n=2:v=1:a=0${next}`);
+      length += encoded[i].duration;
+    }
+    label = next;
+  }
+  const raw = length;
+  const n = shots.length;
+  parts.push(
+    `${label}trim=duration=${raw.toFixed(3)},setpts=PTS-STARTPTS,` +
+      `fade=t=out:st=${(raw - DIP).toFixed(3)}:d=${DIP}:color=${DIP_COLOUR}[a]`,
+    `[${n}:v]scale=${VIEW.width}:${VIEW.height}:flags=lanczos,fps=60,trim=duration=${RISE},` +
+      `setpts=PTS-STARTPTS,setsar=1,format=yuv420p,fade=t=in:st=0:d=${RISE}:color=${DIP_COLOUR}[b]`,
+    `[a][b]concat=n=2:v=1:a=0[v]`
+  );
+  const graphFile = join(work, 'graph.txt');
+  await writeFile(graphFile, parts.join(';\n'));
+  const master = join(work, 'master.mp4');
+  ffmpeg([
+    ...encoded.flatMap((e) => ['-i', e.file]),
+    '-loop', '1', '-t', String(RISE + 0.1), '-i', encoded[0].first,
     '-filter_complex_script', graphFile,
     '-map', '[v]', '-c:v', 'libx264', '-crf', '10', '-preset', 'veryfast', master,
   ]);
@@ -452,6 +524,74 @@ async function encode(frames, endTs, camKeys, work) {
     await writeFile(process.env.HERO_KEEP_MASTER, await readFile(master));
   }
   return { duration };
+}
+
+// ─── the pull request on GitHub ──────────────────────────────────────────────
+
+/** Records PR_URL: the Conversation tab, a click on Files changed, then the diffs (two shots). */
+async function recordPullRequest(browser) {
+  const context = await browser.newContext({
+    viewport: VIEW,
+    deviceScaleFactor: DPR,
+    locale: 'en-US',
+    timezoneId: 'UTC',
+    colorScheme: 'light',
+    reducedMotion: 'no-preference',
+    bypassCSP: true, // GitHub's CSP would block the overlay's inline <style>
+  });
+  try {
+    await context.addInitScript(OVERLAY, KEY_SPOT);
+    const files = await context.newPage();
+    // Files changed loads first, off camera, so the cut after the click lands on a settled page.
+    await files.goto(`${PR_URL}/files`, { waitUntil: 'load' });
+    await files.locator('text=locales/en.json >> visible=true').first().waitFor();
+    await files.mouse.move(0, 0);
+    const page = await context.newPage();
+    await page.goto(PR_URL, { waitUntil: 'load' });
+    await page.getByText('wants to merge').first().waitFor();
+    await page.evaluate(() => document.fonts.ready);
+    await sleep(1200);
+
+    const tab = page.getByRole('link', { name: /Files changed/ }).first();
+    const tabAt = centre(await tab.boundingBox());
+    const me = actor(page);
+    await me.place(760, 640); // resting on the apply table
+    await sleep(300);
+
+    const cast = await startScreencast(page);
+    await cast.until(0.55);
+    await me.move(tabAt.x + 6, tabAt.y + 4, 650);
+    await wait(120);
+    await me.overlay('down', false);
+    await wait(80);
+    await me.overlay('up');
+    await wait(140);
+    const convEnd = await cast.stop();
+    const conversation = {
+      frames: cast.frames,
+      endTs: convEnd,
+      camKeys: [{ t: 0, ease: 0, box: CAM.prConversation }],
+    };
+
+    await files.bringToFront();
+    await files.evaluate(() => document.fonts.ready);
+    const me2 = actor(files);
+    await me2.place(tabAt.x + 6, tabAt.y + 4);
+    const cast2 = await startScreencast(files);
+    // the mouse stays where it clicked, then drifts down to the en.json change
+    await me2.move(tabAt.x + 40, tabAt.y + 470, 1100, 0.06);
+    await cast2.until(2.3);
+    const filesEnd = await cast2.stop();
+    const filesShot = {
+      frames: cast2.frames,
+      endTs: filesEnd,
+      camKeys: [{ t: 0, ease: 0, box: CAM.prFiles }],
+    };
+    const secs = (x) => (x.endTs - x.frames[0].ts) / SLOW;
+    return { conversation, files: filesShot, seconds: secs(conversation) + secs(filesShot) };
+  } finally {
+    await context.close();
+  }
 }
 
 // ─── main ────────────────────────────────────────────────────────────────────
@@ -594,7 +734,7 @@ async function main() {
     await wait(350);
 
     // 11-15 s: open Send; the real Send dialog with the change link (2 changes). Hold it.
-    chapter('Send it to your developer');
+    chapter('Get a pull request');
     const send = centre(
       await page.getByRole('button', { name: /Send to developer/ }).boundingBox()
     );
@@ -608,7 +748,27 @@ async function main() {
     const copy = await page.getByRole('dialog').getByRole('button', { name: 'Copy link' }).boundingBox();
     // rest just below Copy link, off the diff rows
     if (copy) await me.move(copy.x + copy.width / 2, copy.y + copy.height + 10, 560, 0.06);
-    await cast.until(opened + 3.2); // ~2.4 s still after the camera settles
+    const github = page.getByRole('dialog').getByRole('link', { name: 'Open on GitHub' });
+    const issueUrl = await github.getAttribute('href');
+    console.log(`  issue link the Studio built: ${issueUrl}`);
+    if (process.env.HERO_ISSUE_OUT) await writeFile(process.env.HERO_ISSUE_OUT, issueUrl);
+    // The real link and its real click handler (the batch is marked sent), but the new tab is not
+    // opened: headless and signed out, GitHub would only show its sign-in page. The issue that
+    // link pre-fills was filed once, by the maintainer, and is what PR_URL came from.
+    await page.evaluate(() =>
+      document.addEventListener(
+        'click',
+        (e) => e.target.closest?.('a[href^="https://github.com/"]') && e.preventDefault(),
+        true
+      )
+    );
+    await cast.until(opened + 1.25);
+    const gh = centre(await github.boundingBox());
+    await me.move(gh.x - 8, gh.y + 2, 520);
+    await wait(120);
+    await me.click();
+    mark('open on github clicked');
+    await wait(650);
 
     const endTs = await cast.stop();
     const frames = cast.frames;
@@ -618,8 +778,19 @@ async function main() {
         `(${(frames.length / seconds).toFixed(1)} fps, acted at 1/${SLOW} speed)`
     );
 
+    const pr = await recordPullRequest(browser);
+    const studioSeconds = seconds;
+
     if (process.env.HERO_NO_ENCODE) return; // timing runs while tuning the storyboard
-    const { duration } = await encode(frames, endTs, camKeys, work);
+    const { duration } = await encode(
+      [
+        { frames, endTs, camKeys },
+        { ...pr.conversation, join: 'dissolve' },
+        { ...pr.files, join: 'cut' },
+      ],
+      work
+    );
+    console.log(`studio ${studioSeconds.toFixed(2)} s, pull request ${pr.seconds.toFixed(2)} s`);
     await writeFile(
       join(OUT_DIR, 'chapters.json'),
       `${JSON.stringify({ duration: Number(duration.toFixed(2)), chapters }, null, 2)}\n`
