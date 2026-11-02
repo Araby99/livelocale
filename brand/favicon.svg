@@ -1,11 +1,11 @@
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <style>@media (prefers-color-scheme: dark){.l{fill:#F6EEE6}.p{fill:#FF7A5C}}</style>
-  <g class="l" fill="#1D1712">
+  <rect width="64" height="64" rx="12" fill="#0C0D0F"/>
+  <g fill="#E8E4D9">
     <rect x="4" y="12" width="20" height="8" rx="4"/><rect x="28" y="12" width="28" height="8" rx="4"/>
     <rect x="4" y="28" width="16" height="8" rx="4"/>
     <rect x="4" y="44" width="24" height="8" rx="4"/><rect x="32" y="44" width="12" height="8" rx="4"/>
   </g>
   <g transform="rotate(-7 39 32)">
-    <rect x="24" y="24" width="28" height="16" rx="4" class="p" fill="#FF6B4A"/>
+    <rect x="24" y="24" width="28" height="16" rx="4" fill="#FFB224"/>
   </g>
 </svg>

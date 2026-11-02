@@ -3,11 +3,10 @@
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { markSvg, smallMarkSvg } from './marks.mjs';
+import { NIGHT, faviconSvg, markSvg, onNight } from './marks.mjs';
 
 const BRAND_DIR = fileURLToPath(new URL('../../../brand/', import.meta.url));
 const TEMPLATES = new URL('../../../brand/src/', import.meta.url);
-const PAPER = '#FFF8F0';
 
 export const PNG_TARGETS = [
   { file: 'favicon-16.png', width: 16, height: 16 },
@@ -17,20 +16,27 @@ export const PNG_TARGETS = [
   { file: 'og-image.png', width: 1200, height: 630 },
 ];
 
-/** A page showing one SVG at `size` px, centred on `background` (transparent when omitted). */
+/**
+ * A page showing one SVG at `size` px, centred on `background` (transparent when omitted). The SVG
+ * is embedded unchanged and sized by its wrapper.
+ */
 function svgPage(svg, size, background) {
   const fill = background ? `background:${background};` : '';
-  return `<!doctype html><html><body style="margin:0;${fill}display:grid;place-items:center;width:100vw;height:100vh">${svg.replace('<svg ', `<svg width="${size}" height="${size}" `)}</body></html>`;
+  const box = `width:${size}px;height:${size}px`;
+  return `<!doctype html><html><head><style>svg{display:block;width:100%;height:100%}</style></head><body style="margin:0;${fill}display:grid;place-items:center;width:100vw;height:100vh"><div style="${box}">${svg}</div></body></html>`;
 }
 
-/** How each target is produced: inline HTML or a template URL, and whether it keeps transparency. */
-function sources(studioShot) {
+/**
+ * How each target is produced: inline HTML or a template URL, and whether it keeps transparency.
+ * The favicons keep it outside the Night square's rounded corners; the rest are opaque Night.
+ */
+export function pngSources(studioShot) {
   const og = new URL('og.html', TEMPLATES);
   if (studioShot) og.search = `?shot=${encodeURIComponent(pathToFileURL(studioShot).href)}`;
   return {
-    'favicon-16.png': { html: svgPage(smallMarkSvg(), 16), transparent: true },
-    'favicon-32.png': { html: svgPage(markSvg('light'), 32), transparent: true },
-    'apple-touch-icon.png': { html: svgPage(markSvg('light'), 140, PAPER), transparent: false },
+    'favicon-16.png': { html: svgPage(faviconSvg(), 16), transparent: true },
+    'favicon-32.png': { html: svgPage(onNight(markSvg('dark')), 32), transparent: true },
+    'apple-touch-icon.png': { html: svgPage(markSvg('dark'), 140, NIGHT), transparent: false },
     'avatar-512.png': { url: new URL('avatar.html', TEMPLATES).href, transparent: false },
     'og-image.png': { url: og.href, transparent: false },
   };
@@ -42,7 +48,7 @@ export async function renderPngs(outDir, opts = {}) {
   const browser = await chromium.launch();
   try {
     await mkdir(outDir, { recursive: true });
-    const plan = sources(opts.studioShot);
+    const plan = pngSources(opts.studioShot);
     for (const { file, width, height } of PNG_TARGETS) {
       const source = plan[file];
       const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });

@@ -1,22 +1,26 @@
 // The patch mark, built from the master SVG in the brand spec (§2.2). The master is the source of
-// truth for every size: dark only swaps the three colours, small sizes only drop elements.
+// truth for every size: dark only swaps the line colour, small sizes only drop elements.
 
 export const MASTER_MARK = `<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <g fill="#1D1712">
+  <g fill="#15171B">
     <rect x="6" y="11" width="20" height="8" rx="4"/><rect x="29" y="11" width="29" height="8" rx="4"/>
     <rect x="6" y="28" width="14" height="8" rx="4"/>
     <rect x="25" y="31" width="29" height="2" rx="1" opacity=".5"/>
     <rect x="6" y="45" width="23" height="8" rx="4"/><rect x="32" y="45" width="12" height="8" rx="4"/>
   </g>
   <g transform="rotate(-7 39 32)">
-    <rect x="24.5" y="24.5" width="30" height="15" rx="4.5" fill="#C2472C"/>
-    <rect x="23" y="23" width="30" height="15" rx="4.5" fill="#FF6B4A"/>
+    <rect x="24.5" y="24.5" width="30" height="15" rx="4.5" fill="#8A5600"/>
+    <rect x="23" y="23" width="30" height="15" rx="4.5" fill="#FFB224"/>
   </g>
 </svg>`;
 
+/** The page background the dark mark sits on in the favicon, the touch icon and the avatar. */
+export const NIGHT = '#0C0D0F';
+
+/** The mark's fills per theme (spec §2.2): only the lines differ between light and dark. */
 export const COLORS = {
-  light: { ink: '#1D1712', coral: '#FF6B4A', shadow: '#C2472C' },
-  dark: { ink: '#F6EEE6', coral: '#FF7A5C', shadow: '#9E3A24' },
+  light: { lines: '#15171B', patch: '#FFB224', shadow: '#8A5600' },
+  dark: { lines: '#E8E4D9', patch: '#FFB224', shadow: '#8A5600' },
 };
 
 const HAIRLINE = '<rect x="25" y="31" width="29" height="2" rx="1" opacity=".5"/>';
@@ -26,12 +30,12 @@ function withColors(svg, theme) {
   const from = COLORS.light;
   const to = COLORS[theme];
   return svg
-    .replaceAll(`"${from.ink}"`, `"${to.ink}"`)
-    .replaceAll(`"${from.coral}"`, `"${to.coral}"`)
+    .replaceAll(`"${from.lines}"`, `"${to.lines}"`)
+    .replaceAll(`"${from.patch}"`, `"${to.patch}"`)
     .replaceAll(`"${from.shadow}"`, `"${to.shadow}"`);
 }
 
-/** The full mark: identical to the master on light, the three colours swapped on dark. */
+/** The full mark: identical to the master on light, the line colour swapped on dark. */
 export function markSvg(theme) {
   return withColors(MASTER_MARK, theme);
 }
@@ -49,24 +53,27 @@ const SNAP_TO_GRID = [
 
 /**
  * The 16 px mark: the master without the hairline "old line" and the patch shadow, with its edges
- * snapped to the 16 px pixel grid.
+ * snapped to the 16 px pixel grid, in the theme's colours.
  */
-export function smallMarkSvg() {
+export function smallMarkSvg(theme = 'light') {
   const small = MASTER_MARK.split('\n')
     .filter((line) => line.trim() !== HAIRLINE && line.trim() !== SHADOW)
     .join('\n');
-  return SNAP_TO_GRID.reduce((svg, [from, to]) => svg.replace(from, to), small);
+  return withColors(
+    SNAP_TO_GRID.reduce((svg, [from, to]) => svg.replace(from, to), small),
+    theme
+  );
 }
 
-/** The SVG favicon: the small mark, switching to the dark colours under a dark system setting. */
+/** A 64-unit mark on a Night square with rounded corners (rx 12), drawn as its first child. */
+export function onNight(svg) {
+  const [open, ...rest] = svg.split('\n');
+  return [open, `  <rect width="64" height="64" rx="12" fill="${NIGHT}"/>`, ...rest].join('\n');
+}
+
+/** The SVG favicon: the dark small mark on Night, the same under every colour scheme. */
 export function faviconSvg() {
-  const { ink, coral } = COLORS.dark;
-  const style = `  <style>@media (prefers-color-scheme: dark){.l{fill:${ink}}.p{fill:${coral}}}</style>`;
-  const lines = smallMarkSvg()
-    .replace(`<g fill="${COLORS.light.ink}">`, `<g class="l" fill="${COLORS.light.ink}">`)
-    .replace(`fill="${COLORS.light.coral}"/>`, `class="p" fill="${COLORS.light.coral}"/>`)
-    .split('\n');
-  return [lines[0], style, ...lines.slice(1)].join('\n');
+  return onNight(smallMarkSvg('dark'));
 }
 
 const MARK_SIZE = 64;
@@ -74,7 +81,7 @@ const WORDMARK_GAP = 18;
 
 /**
  * The horizontal logo: the mark at x 0–64, an 18-unit gap, then the wordmark outlines in the
- * theme's ink. The wordmark path is already vertically centred on y 32 and starts at x 0.
+ * theme's line colour. The wordmark path is already vertically centred on y 32 and starts at x 0.
  */
 export function logoSvg(theme, wordmark) {
   const x = MARK_SIZE + WORDMARK_GAP;
@@ -83,7 +90,7 @@ export function logoSvg(theme, wordmark) {
   return [
     `<svg viewBox="0 0 ${width} ${MARK_SIZE}" xmlns="http://www.w3.org/2000/svg">`,
     ...body,
-    `  <path transform="translate(${x} 0)" fill="${COLORS[theme].ink}" d="${wordmark.d}"/>`,
+    `  <path transform="translate(${x} 0)" fill="${COLORS[theme].lines}" d="${wordmark.d}"/>`,
     '</svg>',
   ].join('\n');
 }
