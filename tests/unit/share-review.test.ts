@@ -5,9 +5,12 @@ import type { ChangeEdit, ChangeSet } from '../../src/core/change-link.js';
 import { RISK_FLAG_MESSAGES } from '../../src/core/save-rules.js';
 import {
   buildReviewRows,
-  REVIEW_STATUS_LABELS,
+  REVIEW_STATUS_KEYS,
   reviewSummary,
 } from '../../src/studio/share/review.js';
+import { englishText, textFor } from '../../src/studio/i18n/catalogue.js';
+
+const label = (status: keyof typeof REVIEW_STATUS_KEYS) => englishText(REVIEW_STATUS_KEYS[status]);
 
 const targets = new Map<string, LocaleTarget>([
   [
@@ -47,13 +50,13 @@ describe('buildReviewRows', () => {
   it('marks an edit ready when the site still shows the old text', () => {
     const [row] = rows([e('ar', 'home.title', 'مرحبا', 'أهلا')]);
     expect(row).toMatchObject({ id: 'ar\u0000home.title', status: 'apply', checks: [] });
-    expect(REVIEW_STATUS_LABELS[row!.status]).toBe('Ready');
+    expect(label(row!.status)).toBe('Ready');
   });
 
   it('marks an edit already applied when the site shows the new text', () => {
     const [row] = rows([e('ar', 'home.title', 'قديم', 'مرحبا')]);
     expect(row).toMatchObject({ status: 'already', checks: [] });
-    expect(REVIEW_STATUS_LABELS[row!.status]).toBe('Already applied');
+    expect(label(row!.status)).toBe('Already applied');
   });
 
   it('flags a conflict and shows what the site has now', () => {
@@ -67,7 +70,7 @@ describe('buildReviewRows', () => {
       targets: changed,
     });
     expect(row).toMatchObject({ status: 'conflict', current: 'أهلا بكم' });
-    expect(REVIEW_STATUS_LABELS.conflict).toBe('Changed since');
+    expect(label('conflict')).toBe('Changed since');
   });
 
   it('treats a new key with from null as ready', () => {
@@ -85,19 +88,41 @@ describe('buildReviewRows', () => {
   it('reports a dropped placeholder as an error, or a warning with Save anyway', () => {
     const [invalid] = rows([e('ar', 'cart.count', null, 'لديك عناصر')]);
     expect(invalid!.status).toBe('invalid');
-    expect(REVIEW_STATUS_LABELS.invalid).toBe('Invalid');
+    expect(label('invalid')).toBe('Invalid');
     expect(invalid!.checks).toEqual([
       { level: 'error', message: expect.stringContaining('{count}') },
     ]);
 
     const [forced] = rows([e('ar', 'cart.count', null, 'لديك عناصر', true)]);
     expect(forced!.status).toBe('needs-force');
-    expect(REVIEW_STATUS_LABELS['needs-force']).toBe('Saved with “Save anyway”');
+    expect(label('needs-force')).toBe('Saved with “Save anyway”');
     expect(forced!.checks).toEqual([
       { level: 'warning', message: `${forced!.message} Saved with “Save anyway”.` },
     ]);
     expect(forced!.checks[0]!.message).toContain('{count}');
   });
+
+  it('translates its own wrapper and keeps the core message English', () => {
+    const [row] = buildReviewRows({
+      set: set([e('ar', 'cart.count', null, 'لديك عناصر', true)]),
+      sourceLocale: 'en',
+      targets,
+      allowForce: false,
+      t: textFor('ar'),
+    });
+    expect(row!.status).toBe('needs-force');
+    expect(row!.checks[0]!.message.startsWith(row!.message!)).toBe(true);
+    expect(row!.checks[0]!.message.endsWith(textFor('ar')('review.saved_anyway'))).toBe(true);
+  });
+
+  it('maps every status to a catalogue key', () =>
+    expect(Object.keys(REVIEW_STATUS_KEYS).sort()).toEqual([
+      'already',
+      'apply',
+      'conflict',
+      'invalid',
+      'needs-force',
+    ]));
 
   it('uses the current source text as the reference for source-locale edits', () => {
     const [row] = rows([e('en', 'home.title', 'Welcome', 'Hi {name}')]);

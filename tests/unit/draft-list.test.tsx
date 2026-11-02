@@ -4,10 +4,12 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import {
   DraftList,
-  DRAFT_STATUS_LABELS,
+  DRAFT_STATUS_KEYS,
   draftDisplayState,
 } from '../../src/studio/features/dashboard/components/DraftList.jsx';
 import type { Draft } from '../../src/studio/transport/drafts.js';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import { englishText, textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 const d = (o: Partial<Draft> = {}): Draft => ({
   scope: 'path:/',
@@ -25,7 +27,10 @@ const d = (o: Partial<Draft> = {}): Draft => ({
   ...o,
 });
 
-const renderList = (overrides: Partial<React.ComponentProps<typeof DraftList>> = {}) => {
+const renderList = (
+  overrides: Partial<React.ComponentProps<typeof DraftList>> = {},
+  lang?: StudioLanguage
+) => {
   const props = {
     drafts: [] as Draft[],
     onUndo: vi.fn(async () => {}),
@@ -34,7 +39,8 @@ const renderList = (overrides: Partial<React.ComponentProps<typeof DraftList>> =
     onRestoreBackup: vi.fn(async () => ''),
     ...overrides,
   };
-  render(<DraftList {...props} />);
+  const list = <DraftList {...props} />;
+  render(lang ? <StudioLanguageProvider initial={lang}>{list}</StudioLanguageProvider> : list);
   return props;
 };
 
@@ -47,7 +53,10 @@ describe('DraftList', () => {
     expect(draftDisplayState(d())).toBe('unsent');
     expect(draftDisplayState(d({ status: 'sent' }))).toBe('sent');
     expect(draftDisplayState(d({ status: 'sent', conflict: true }))).toBe('conflict');
-    expect(DRAFT_STATUS_LABELS).toEqual({
+    const labels = Object.fromEntries(
+      Object.entries(DRAFT_STATUS_KEYS).map(([state, key]) => [state, englishText(key)])
+    );
+    expect(labels).toEqual({
       unsent: 'Not sent',
       sent: 'Sent',
       live: 'Live now',
@@ -143,6 +152,16 @@ describe('DraftList', () => {
     renderList({ onReviewChange });
     fireEvent.click(screen.getByRole('button', { name: 'Review a change link or file' }));
     expect(onReviewChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('points the change arrow to the left in Arabic', () => {
+    const ar = textFor('ar');
+    renderList({ drafts: [d(), d({ key: 'home.b', status: 'sent', sentAt: 2 })] }, 'ar');
+    expect(screen.getAllByText('←').length).toBeGreaterThan(0);
+    expect(screen.getByText(ar('draft_list.status_unsent'))).toBeTruthy();
+    expect(screen.getByRole('button', { name: ar('draft_list.undo') })).toBeTruthy();
+    expect(screen.getByRole('button', { name: ar('draft_list.remove') })).toBeTruthy();
+    expect(screen.getByRole('button', { name: ar('draft_list.download') })).toBeTruthy();
   });
 
   it('labels live entries "Live now" without an action button', () => {

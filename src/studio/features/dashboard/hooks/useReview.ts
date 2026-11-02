@@ -10,7 +10,8 @@ import type { LocalesLayout } from '../../../../core/share-manifest.js';
 import { sourceReference } from '../../../../core/save-rules.js';
 import { saveTranslation, type LiveLocaleMode } from '../../../api.js';
 import { describeLinkError } from '../../../share/send.js';
-import { REVIEW_STATUS_LABELS, buildReviewRows, type ReviewRow } from '../../../share/review.js';
+import { REVIEW_STATUS_KEYS, buildReviewRows, type ReviewRow } from '../../../share/review.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import type { ConnectionStatus } from '../types/index.js';
 
 /** Where a reviewed link would be applied: a pull request on GitHub, or the local files. */
@@ -53,12 +54,6 @@ export interface UseReviewParams {
 }
 
 const LINK_HASH_PREFIX = '#lc1.';
-const NO_LINK = 'No change link found. A change link contains "lc1.".';
-
-const FORCED_NOT_INCLUDED = 'Saved with “Save anyway”; tick the box to include it.';
-
-const sourceFailed = (sourceLocale: string) =>
-  `The source locale "${sourceLocale}" could not be loaded.`;
 
 /** Reads every locale the set touches plus the source locale; a locale that fails is null. */
 async function loadTargets(
@@ -112,9 +107,12 @@ export function useReview(p: UseReviewParams): {
   const [applyResults, setApplyResults] = useState<Record<string, ApplyResult>>({});
   const [isApplying, setIsApplying] = useState(false);
 
-  // Latest props for the async open and the hash listener.
+  // Latest props and Studio text for the async open, the hash listener and the local apply.
   const propsRef = useRef(p);
   propsRef.current = p;
+  const { t } = useStudioText();
+  const textRef = useRef(t);
+  textRef.current = t;
   // Tokens already opened from the hash, so each one opens only once.
   const openedRef = useRef(new Set<string>());
   // Only the latest open may set state.
@@ -127,6 +125,7 @@ export function useReview(p: UseReviewParams): {
   const open = useCallback(async (input: string, fromHash: boolean): Promise<boolean> => {
     const request = ++requestRef.current;
     const isCurrent = () => request === requestRef.current;
+    const t = textRef.current;
     setOpenedFromHash(fromHash);
     setError(null);
     setIsLoading(true);
@@ -140,8 +139,8 @@ export function useReview(p: UseReviewParams): {
         if (isCurrent()) {
           setError(
             err instanceof ChangeLinkError && err.code === 'NOT_FOUND'
-              ? NO_LINK
-              : describeLinkError(err)
+              ? t('review.no_link')
+              : describeLinkError(err, t)
           );
         }
         return false;
@@ -152,11 +151,11 @@ export function useReview(p: UseReviewParams): {
       const sourceLocale = props.sourceLocale ?? (props.locales.includes(set.src) ? set.src : 'en');
       const targets = await loadTargets(props, set, sourceLocale);
       if (!targets.get(sourceLocale)) {
-        if (isCurrent()) setError(sourceFailed(sourceLocale));
+        if (isCurrent()) setError(t('review.source_failed', { locale: sourceLocale }));
         return false;
       }
 
-      const rows = buildReviewRows({ set, sourceLocale, targets });
+      const rows = buildReviewRows({ set, sourceLocale, targets, t });
       if (!isCurrent()) return false;
       openedRef.current.add(token);
       const opened: ReviewState = { token, set, rows, sourceLocale, target };
@@ -208,6 +207,7 @@ export function useReview(p: UseReviewParams): {
     const current = reviewRef.current;
     if (current === null || current.review.target !== 'local') return;
     const { review: opened, targets } = current;
+    const t = textRef.current;
     const ctx = {
       sourceLocale: opened.sourceLocale,
       source: targets.get(opened.sourceLocale)?.dict ?? {},
@@ -220,7 +220,7 @@ export function useReview(p: UseReviewParams): {
         if (row.status !== 'apply' && !(forced && includeForced)) {
           results[row.id] = {
             state: 'skipped',
-            reason: forced ? FORCED_NOT_INCLUDED : REVIEW_STATUS_LABELS[row.status],
+            reason: forced ? t('review.forced_not_included') : t(REVIEW_STATUS_KEYS[row.status]),
           };
           continue;
         }
@@ -252,6 +252,7 @@ export function useReview(p: UseReviewParams): {
           set: opened.set,
           sourceLocale: opened.sourceLocale,
           targets: targetsNow,
+          t,
         });
         const rebuilt: ReviewState = { ...opened, rows };
         reviewRef.current = { review: rebuilt, targets: targetsNow };

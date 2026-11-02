@@ -4,6 +4,7 @@ import type { HistoryEntry } from '../hooks/useHistory.js';
 import type { Draft } from '../../../transport/drafts.js';
 import { DraftList } from './DraftList.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import type { StringKey } from '../../../i18n/catalogue.js';
 
 interface ChangesPanelProps {
   isOpen: boolean;
@@ -37,6 +38,13 @@ const STATUS_STYLES: Record<string, string> = {
   added: 'text-success-fg border-success-line bg-success-bg',
   deleted: 'text-danger-fg border-danger-line bg-danger-bg',
   renamed: 'text-info-fg border-info-line bg-info-bg',
+};
+
+const STATUS_KEYS: Readonly<Record<string, StringKey>> = {
+  modified: 'changes.status_modified',
+  added: 'changes.status_added',
+  deleted: 'changes.status_deleted',
+  renamed: 'changes.status_renamed',
 };
 
 const diffLineClass = (line: string): string => {
@@ -87,6 +95,18 @@ export const ChangesPanel = ({
   const isGitHub = git?.mode === 'github';
   const canCommit = Boolean(git?.isRepo) && changes.length > 0 && message.trim().length > 0;
 
+  // A sentence with an inline code element at its {code} placeholder.
+  const withCode = (key: StringKey, code: string) => {
+    const [before, after] = t(key).split('{code}');
+    return (
+      <>
+        {before}
+        <code className="font-mono text-fg-muted">{code}</code>
+        {after}
+      </>
+    );
+  };
+
   const handleCommit = async () => {
     const hash = await onCommit(message.trim());
     if (hash) setMessage('');
@@ -106,7 +126,9 @@ export const ChangesPanel = ({
         {/* Header */}
         <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-bold tracking-wide font-heading text-fg">Changes</h2>
+            <h2 className="text-sm font-bold tracking-wide font-heading text-fg">
+              {t('changes.title')}
+            </h2>
             {git?.isRepo && git.branch && (
               <span
                 dir="ltr"
@@ -120,7 +142,7 @@ export const ChangesPanel = ({
             <button
               onClick={onRefresh}
               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-raised-hover border border-transparent hover:border-line-strong transition duration-150"
-              title="Refresh"
+              title={t('changes.refresh')}
             >
               <svg
                 className="w-4 h-4"
@@ -138,7 +160,7 @@ export const ChangesPanel = ({
             <button
               onClick={onClose}
               className="p-1.5 rounded-lg text-fg-muted hover:text-fg hover:bg-raised-hover border border-transparent hover:border-line-strong transition duration-150"
-              title="Close"
+              title={t('changes.close')}
             >
               <svg
                 className="w-4 h-4"
@@ -174,30 +196,25 @@ export const ChangesPanel = ({
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-                  Locale files
+                  {t('changes.locale_files')}
                 </label>
                 <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
-                  {changes.length} changed
+                  {t('changes.changed', { count: changes.length })}
                 </span>
               </div>
 
               {git === null ? (
-                <p className="text-xs text-fg-muted">Loading git status…</p>
+                <p className="text-xs text-fg-muted">{t('changes.loading')}</p>
               ) : !git.available ? (
                 <p className="text-xs text-fg-muted leading-relaxed">
-                  Git integration is disabled for this handler. Enable it by removing{' '}
-                  <code className="font-mono text-fg-muted">git: false</code> from the route
-                  configuration.
+                  {withCode('changes.git_disabled', 'git: false')}
                 </p>
               ) : !git.isRepo ? (
                 <p className="text-xs text-fg-muted leading-relaxed">
-                  The locales directory is not inside a git repository, or the{' '}
-                  <code className="font-mono text-fg-muted">git</code> command is not on PATH.
+                  {withCode('changes.not_repo', 'git')}
                 </p>
               ) : changes.length === 0 ? (
-                <p className="text-xs text-fg-muted">
-                  Working tree is clean. Edits you save will show up here.
-                </p>
+                <p className="text-xs text-fg-muted">{t('changes.clean')}</p>
               ) : (
                 <ul className="space-y-1.5">
                   {changes.map((c) => (
@@ -213,7 +230,7 @@ export const ChangesPanel = ({
                           STATUS_STYLES[c.status] ?? STATUS_STYLES.modified
                         }`}
                       >
-                        {c.status}
+                        {STATUS_KEYS[c.status] ? t(STATUS_KEYS[c.status]!) : c.status}
                       </span>
                     </li>
                   ))}
@@ -226,7 +243,7 @@ export const ChangesPanel = ({
                     onClick={() => setShowDiff((v) => !v)}
                     className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
                   >
-                    {showDiff ? 'Hide diff' : 'Show diff'}
+                    {t(showDiff ? 'changes.hide_diff' : 'changes.show_diff')}
                   </button>
                   {showDiff && (
                     <pre className="max-h-72 overflow-auto rounded-xl bg-surface border border-line p-3 text-[10px] font-mono leading-relaxed whitespace-pre">
@@ -245,7 +262,7 @@ export const ChangesPanel = ({
             {git?.isRepo && (
               <section className="space-y-3">
                 <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-                  {isGitHub ? 'Propose' : 'Commit'}
+                  {t(isGitHub ? 'changes.propose' : 'changes.commit_section')}
                 </label>
                 {isGitHub && git?.pullRequestUrl && (
                   <a
@@ -254,7 +271,7 @@ export const ChangesPanel = ({
                     rel="noreferrer"
                     className="block text-[11px] text-accent-fg hover:text-accent-fg underline underline-offset-2"
                   >
-                    View the open pull request
+                    {t('changes.view_pr')}
                   </a>
                 )}
                 <textarea
@@ -262,15 +279,15 @@ export const ChangesPanel = ({
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   disabled={isGitLoading || changes.length === 0}
-                  placeholder={
+                  placeholder={t(
                     changes.length === 0
                       ? isGitHub
-                        ? 'No changes on the branch yet'
-                        : 'Nothing to commit'
+                        ? 'changes.placeholder_branch_clean'
+                        : 'changes.placeholder_nothing'
                       : isGitHub
-                        ? 'Pull request title, e.g. "Update checkout copy"'
-                        : 'i18n: describe the copy change…'
-                  }
+                        ? 'changes.placeholder_pr'
+                        : 'changes.placeholder_commit'
+                  )}
                   maxLength={500}
                   className="w-full min-h-20 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-3 text-xs text-fg placeholder-fg-muted font-sans resize-none transition duration-150 disabled:opacity-60"
                 />
@@ -281,13 +298,15 @@ export const ChangesPanel = ({
                     disabled={!canCommit || isGitLoading}
                     className="flex-1 h-10 rounded-xl text-xs font-semibold tracking-wide bg-accent hover:bg-accent-hover active:bg-accent-hover text-on-accent disabled:bg-raised disabled:text-fg-faint disabled:cursor-not-allowed transition duration-150"
                   >
-                    {isGitLoading
-                      ? 'Working…'
-                      : isGitHub
-                        ? git?.pullRequestUrl
-                          ? 'Pull request is open'
-                          : 'Open pull request'
-                        : 'Commit locale changes'}
+                    {t(
+                      isGitLoading
+                        ? 'changes.working'
+                        : isGitHub
+                          ? git?.pullRequestUrl
+                            ? 'changes.pr_open'
+                            : 'changes.open_pr'
+                          : 'changes.commit'
+                    )}
                   </button>
                   {!confirmDiscard ? (
                     <button
@@ -295,7 +314,7 @@ export const ChangesPanel = ({
                       disabled={changes.length === 0 || isGitLoading}
                       className="h-10 px-4 rounded-xl text-xs font-semibold text-danger-fg bg-danger-bg hover:bg-danger-bg border border-danger-line disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
                     >
-                      {isGitHub ? 'Reset branch' : 'Discard'}
+                      {t(isGitHub ? 'changes.reset_branch' : 'changes.discard')}
                     </button>
                   ) : (
                     <div className="flex items-center gap-2">
@@ -304,13 +323,13 @@ export const ChangesPanel = ({
                         disabled={isGitLoading}
                         className="h-10 px-3 rounded-xl text-xs font-semibold text-on-danger bg-danger-solid hover:bg-danger-solid/90 active:bg-danger-solid transition duration-150"
                       >
-                        {isGitHub ? 'Reset to base' : 'Discard all'}
+                        {t(isGitHub ? 'changes.reset_to_base' : 'changes.discard_all')}
                       </button>
                       <button
                         onClick={() => setConfirmDiscard(false)}
                         className="h-10 px-3 rounded-xl text-xs font-semibold text-fg-muted hover:text-fg bg-raised border border-line transition duration-150"
                       >
-                        Keep
+                        {t('changes.keep')}
                       </button>
                     </div>
                   )}
@@ -319,7 +338,7 @@ export const ChangesPanel = ({
                   <p className="text-[11px] text-success-fg font-mono break-all">
                     {isGitHub ? (
                       <>
-                        Pull request:{' '}
+                        {t('changes.pull_request')}{' '}
                         <a
                           href={lastCommit}
                           dir="ltr"
@@ -331,7 +350,7 @@ export const ChangesPanel = ({
                         </a>
                       </>
                     ) : (
-                      <>Committed as {lastCommit}. Push whenever you are ready.</>
+                      t('changes.committed', { hash: lastCommit })
                     )}
                   </p>
                 )}
@@ -347,14 +366,14 @@ export const ChangesPanel = ({
             <section className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-                  This session
+                  {t('changes.session')}
                 </label>
                 <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg-muted border border-line">
-                  {history.length} edits
+                  {t('changes.edits', { count: history.length })}
                 </span>
               </div>
               {history.length === 0 ? (
-                <p className="text-xs text-fg-muted">No edits saved yet in this session.</p>
+                <p className="text-xs text-fg-muted">{t('changes.no_edits')}</p>
               ) : (
                 <ul className="space-y-1.5">
                   {history.map((entry) => (
@@ -375,21 +394,21 @@ export const ChangesPanel = ({
                             onClick={() => onUndo(entry)}
                             disabled={isUndoing}
                             className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
-                            title="Restore the previous value"
+                            title={t('changes.undo_title')}
                           >
-                            Undo
+                            {t('changes.undo')}
                           </button>
                         </div>
                       </div>
                       <div className="text-[10px] leading-relaxed">
-                        <span className="text-danger-fg line-through break-all">
-                          {entry.previousValue || <em>empty</em>}
+                        <span dir="auto" className="text-danger-fg line-through break-all">
+                          {entry.previousValue || <em>{t('changes.empty')}</em>}
                         </span>
                         <span className="text-fg-muted" aria-hidden="true">
                           {` ${t('common.arrow')} `}
                         </span>
-                        <span className="text-success-fg break-all">
-                          {entry.nextValue || <em>empty</em>}
+                        <span dir="auto" className="text-success-fg break-all">
+                          {entry.nextValue || <em>{t('changes.empty')}</em>}
                         </span>
                       </div>
                     </li>

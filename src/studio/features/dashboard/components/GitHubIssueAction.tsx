@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { buildIssueRequest } from '../../../share/github-issue.js';
 import { copyText } from '../../../share/browser.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface GitHubIssueActionProps {
   repo: string;
@@ -10,11 +11,6 @@ interface GitHubIssueActionProps {
   label: string;
   onOpened?: () => void;
 }
-
-const TOO_LARGE = 'Too large for a GitHub issue. Run npx livelocale apply with this link instead.';
-const COPY_BLOCK = 'Copy change block';
-const OPEN_AND_PASTE = 'Open GitHub and paste';
-const COPY_FAILED = 'Copying did not work. Copy the block below, then open GitHub and paste it.';
 
 const actionButton =
   'inline-flex items-center h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong';
@@ -32,11 +28,16 @@ export function GitHubIssueAction({
   label,
   onOpened,
 }: GitHubIssueActionProps) {
+  const { t } = useStudioText();
   const [copied, setCopied] = useState<'ok' | 'failed' | null>(null);
   const request = buildIssueRequest(repo, token, count, by);
 
   if (request.tooLarge || request.url === null) {
-    return <p className="text-[11px] text-warning-fg">{TOO_LARGE}</p>;
+    return (
+      <p className="text-[11px] text-warning-fg">
+        {t('issue.too_large', { command: 'npx livelocale apply' })}
+      </p>
+    );
   }
 
   const link = (text: string) => (
@@ -60,13 +61,13 @@ export function GitHubIssueAction({
     <div className="space-y-2">
       <div className="flex flex-wrap items-center gap-2">
         <button type="button" onClick={copy} className={actionButton}>
-          {COPY_BLOCK}
+          {t('issue.copy_block')}
         </button>
-        {copied !== null && link(OPEN_AND_PASTE)}
+        {copied !== null && link(t('issue.open_and_paste'))}
       </div>
       {copied === 'failed' && (
         <>
-          <p className="text-[11px] text-fg-muted">{COPY_FAILED}</p>
+          <p className="text-[11px] text-fg-muted">{t('issue.copy_failed')}</p>
           <textarea
             data-testid="manual-copy"
             readOnly

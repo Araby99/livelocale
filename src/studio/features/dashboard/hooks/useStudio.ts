@@ -223,7 +223,7 @@ export const useStudio = () => {
       window.location.hash = findChangeToken(text);
       return true;
     } catch (err) {
-      setImportError(describeLinkError(err));
+      setImportError(describeLinkError(err, t));
       return false;
     }
   };

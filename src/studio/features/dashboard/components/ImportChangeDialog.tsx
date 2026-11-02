@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDialog } from '../hooks/useDialog.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface ImportChangeDialogProps {
   isOpen: boolean;
@@ -10,8 +11,6 @@ interface ImportChangeDialogProps {
   error: string | null;
 }
 
-const FILE_FAILED = 'This file could not be read. Paste the link instead.';
-
 /** Paste a change link, or choose the file a translator sent, to review it. */
 export const ImportChangeDialog = ({
   isOpen,
@@ -19,6 +18,7 @@ export const ImportChangeDialog = ({
   onSubmit,
   error,
 }: ImportChangeDialogProps) => {
+  const { t } = useStudioText();
   const [text, setText] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -40,7 +40,7 @@ export const ImportChangeDialog = ({
     try {
       setText(await file.text());
     } catch {
-      setFileError(FILE_FAILED);
+      setFileError(t('import.file_failed'));
     }
   };
 
@@ -67,14 +67,12 @@ export const ImportChangeDialog = ({
         className="bg-raised border border-line rounded-2xl w-full max-w-lg p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 select-text"
       >
         <h3 id="studio-import-title" className="text-base font-bold text-fg font-heading">
-          Import change link
+          {t('import.title')}
         </h3>
-        <p className="text-xs text-fg-muted mt-2 leading-relaxed">
-          Review a translator’s changes before they are written to your local files.
-        </p>
+        <p className="text-xs text-fg-muted mt-2 leading-relaxed">{t('import.body')}</p>
 
         <label htmlFor="studio-import-text" className="block mt-5 text-xs font-semibold text-fg">
-          Paste a change link
+          {t('import.paste_label')}
         </label>
         <textarea
           id="studio-import-text"
@@ -86,7 +84,7 @@ export const ImportChangeDialog = ({
         />
 
         <label htmlFor="studio-import-file" className="block mt-4 text-xs font-semibold text-fg">
-          or choose a file
+          {t('import.file_label')}
         </label>
         <input
           id="studio-import-file"
@@ -108,7 +106,7 @@ export const ImportChangeDialog = ({
             onClick={onClose}
             className="px-4 py-2 text-xs font-semibold text-fg-muted hover:text-fg bg-raised border border-line hover:border-line-strong rounded-xl transition duration-150"
           >
-            Cancel
+            {t('import.cancel')}
           </button>
           <button
             type="button"
@@ -116,7 +114,7 @@ export const ImportChangeDialog = ({
             disabled={text.trim() === '' || isSubmitting}
             className="px-4 py-2 text-xs font-semibold text-on-accent bg-accent border border-accent-line hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition duration-150"
           >
-            Review changes
+            {t('import.submit')}
           </button>
         </div>
       </div>

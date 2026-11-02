@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import type { Draft } from '../../../transport/drafts.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import type { StringKey } from '../../../i18n/catalogue.js';
 
 export type DraftDisplayState = 'unsent' | 'sent' | 'live' | 'conflict';
 
-export const DRAFT_STATUS_LABELS: Record<DraftDisplayState, string> = {
-  unsent: 'Not sent',
-  sent: 'Sent',
-  live: 'Live now',
-  conflict: 'Changed by someone else, please check',
+/** The catalogue key of each display state's label. */
+export const DRAFT_STATUS_KEYS: Readonly<Record<DraftDisplayState, StringKey>> = {
+  unsent: 'draft_list.status_unsent',
+  sent: 'draft_list.status_sent',
+  live: 'draft_list.status_live',
+  conflict: 'draft_list.status_conflict',
 };
 
 const STATE_STYLES: Record<DraftDisplayState, string> = {
@@ -17,8 +19,6 @@ const STATE_STYLES: Record<DraftDisplayState, string> = {
   live: 'text-success-fg border-success-line bg-success-bg',
   conflict: 'text-danger-fg border-danger-line bg-danger-bg',
 };
-
-const REMOVE_TITLE = 'Removes it from this list. A link you already sent still carries it.';
 
 /** How a saved draft is shown: a conflict wins over its send status. */
 export function draftDisplayState(d: Draft): Exclude<DraftDisplayState, 'live'> {
@@ -37,13 +37,16 @@ interface DraftListProps {
   onDismissLiveNow?: () => void;
 }
 
-const stateBadge = (state: DraftDisplayState) => (
-  <span
-    className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
-  >
-    {DRAFT_STATUS_LABELS[state]}
-  </span>
-);
+const StateBadge = ({ state }: { state: DraftDisplayState }) => {
+  const { t } = useStudioText();
+  return (
+    <span
+      className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
+    >
+      {t(DRAFT_STATUS_KEYS[state])}
+    </span>
+  );
+};
 
 const rowHeading = (d: Draft) => (
   <span dir="ltr" className="text-[11px] font-mono text-fg break-all">
@@ -61,7 +64,7 @@ const DraftValues = ({ d }: { d: Draft }) => {
           {d.from}
         </span>
       ) : (
-        <em className="text-danger-fg line-through">empty</em>
+        <em className="text-danger-fg line-through">{t('draft_list.empty')}</em>
       )}
       <span className="text-fg-muted" aria-hidden="true">
         {` ${t('common.arrow')} `}
@@ -71,7 +74,7 @@ const DraftValues = ({ d }: { d: Draft }) => {
           {d.to}
         </span>
       ) : (
-        <em className="text-success-fg">empty</em>
+        <em className="text-success-fg">{t('draft_list.empty')}</em>
       )}
     </div>
   );
@@ -93,15 +96,16 @@ export const DraftList = ({
   liveNow = [],
   onDismissLiveNow,
 }: DraftListProps) => {
+  const { t } = useStudioText();
   const [result, setResult] = useState<string | null>(null);
 
   const handleDownload = async () => {
     setResult(null);
     try {
       await onDownloadBackup();
-      setResult('Backup downloaded.');
+      setResult(t('draft_list.backup_downloaded'));
     } catch (err: any) {
-      setResult(err?.message || 'Could not create the backup.');
+      setResult(err?.message || t('draft_list.backup_failed'));
     }
   };
 
@@ -113,7 +117,7 @@ export const DraftList = ({
     try {
       setResult(await onRestoreBackup(file));
     } catch (err: any) {
-      setResult(err?.message || 'Could not restore the backup.');
+      setResult(err?.message || t('draft_list.restore_failed'));
     } finally {
       // Lets the same file be chosen again.
       input.value = '';
@@ -124,7 +128,7 @@ export const DraftList = ({
     <section className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-          Your changes
+          {t('draft_list.title')}
         </h3>
         <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
           {drafts.length}
@@ -132,9 +136,7 @@ export const DraftList = ({
       </div>
 
       {drafts.length === 0 && liveNow.length === 0 ? (
-        <p className="text-xs text-fg-muted">
-          No changes yet. Alt+Click any text in the app to fix it.
-        </p>
+        <p className="text-xs text-fg-muted">{t('draft_list.none')}</p>
       ) : (
         <ul className="space-y-1.5">
           {drafts.map((d) => {
@@ -145,14 +147,14 @@ export const DraftList = ({
                 <div className="flex items-center justify-between gap-3">
                   {rowHeading(d)}
                   <div className="flex items-center gap-2 shrink-0">
-                    {stateBadge(state)}
+                    <StateBadge state={state} />
                     <button
                       onClick={() => onUndo(d)}
                       disabled={isUndoing}
                       className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
-                      title={isSent ? REMOVE_TITLE : 'Go back to the published text'}
+                      title={t(isSent ? 'draft_list.remove_title' : 'draft_list.undo_title')}
                     >
-                      {isSent ? 'Remove' : 'Undo'}
+                      {t(isSent ? 'draft_list.remove' : 'draft_list.undo')}
                     </button>
                   </div>
                 </div>
@@ -164,7 +166,9 @@ export const DraftList = ({
             <li key={`live:${d.locale}/${d.key}`} className={rowClass}>
               <div className="flex items-center justify-between gap-3">
                 {rowHeading(d)}
-                <div className="flex items-center gap-2 shrink-0">{stateBadge('live')}</div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <StateBadge state="live" />
+                </div>
               </div>
               <DraftValues d={d} />
             </li>
@@ -176,7 +180,7 @@ export const DraftList = ({
           onClick={onDismissLiveNow}
           className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
         >
-          Dismiss live changes
+          {t('draft_list.dismiss_live')}
         </button>
       )}
 
@@ -186,10 +190,10 @@ export const DraftList = ({
           disabled={drafts.length === 0}
           className={`${footerButton} disabled:opacity-40 disabled:cursor-not-allowed`}
         >
-          Download backup
+          {t('draft_list.download')}
         </button>
         <label className={`${footerButton} inline-flex items-center`}>
-          Restore backup
+          {t('draft_list.restore')}
           <input
             type="file"
             accept=".txt,text/plain"
@@ -199,7 +203,7 @@ export const DraftList = ({
         </label>
         {onReviewChange && (
           <button onClick={onReviewChange} className={footerButton}>
-            Review a change link or file
+            {t('draft_list.review')}
           </button>
         )}
       </div>
