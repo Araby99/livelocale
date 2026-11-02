@@ -25,8 +25,8 @@ const DRAWER = 'absolute top-12 bottom-0 z-30 w-[min(400px,45vw)] p-2';
 const toggleClass = (open: boolean) =>
   `px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition duration-150 ${
     open
-      ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-      : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700'
+      ? 'bg-accent-soft border-accent-line text-accent-fg'
+      : 'bg-raised border-line text-fg hover:text-fg hover:border-line-strong'
   }`;
 
 /**
@@ -63,7 +63,7 @@ export const StudioLayout = ({
 
   return (
     <main
-      className={`flex-1 flex overflow-hidden min-h-0 bg-linear-to-b from-[#0b0f19] to-[#070a10] ${
+      className={`flex-1 flex overflow-hidden min-h-0 bg-app ${
         isWide ? 'gap-6 p-6' : 'relative gap-0 p-2'
       }`}
     >

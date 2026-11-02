@@ -148,7 +148,7 @@ export const App = () => {
   );
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-[#0b0f19] text-slate-100 font-sans select-none overflow-hidden antialiased">
+    <div className="w-screen h-screen flex flex-col bg-app text-fg font-sans select-none overflow-hidden antialiased">
       <TokenModal isOpen={needsToken} onSubmit={submitToken} />
 
       <Header
@@ -219,7 +219,7 @@ export const App = () => {
           isAppPreviewBlocked() ? (
             <section
               data-testid="app-preview-blocked"
-              className="flex-1 flex items-center justify-center h-full bg-slate-900 border border-slate-800 rounded-2xl p-6 text-center text-sm text-slate-400"
+              className="flex-1 flex items-center justify-center h-full bg-raised border border-line rounded-2xl p-6 text-center text-sm text-fg-muted"
             >
               The app preview is unavailable until the setup problem above is fixed.
             </section>

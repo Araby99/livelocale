@@ -14,9 +14,9 @@ export const SetupProblems = ({ problems, title = DEFAULT_TITLE }: SetupProblems
     <div
       role="alert"
       data-testid="setup-problems"
-      className="mx-6 mt-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-xs text-rose-200 select-text"
+      className="mx-6 mt-4 rounded-xl border border-danger-line bg-danger-bg px-4 py-3 text-xs text-danger-fg select-text"
     >
-      <p className="font-semibold text-rose-100">{title}</p>
+      <p className="font-semibold text-danger-fg">{title}</p>
       <ul className="mt-1.5 space-y-1 list-disc pl-4">
         {problems.map((problem) => (
           <li key={problem}>{problem}</li>

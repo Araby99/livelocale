@@ -1,20 +1,10 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import { BrandMark } from '../../src/studio/features/dashboard/components/BrandMark.js';
-
-/** Every file under `dir` whose name matches `ext`, sorted, with forward slashes. */
-const studioFiles = (dir: string, ext: RegExp): string[] =>
-  readdirSync(dir)
-    .flatMap((name) => {
-      const file = join(dir, name).replace(/\\/g, '/');
-      if (statSync(file).isDirectory()) return studioFiles(file, ext);
-      return ext.test(file) ? [file] : [];
-    })
-    .sort();
+import { studioFiles } from './helpers/studio-files.js';
 
 const css = readFileSync('src/studio/index.css', 'utf8');
 const main = readFileSync('src/studio/main.tsx', 'utf8');

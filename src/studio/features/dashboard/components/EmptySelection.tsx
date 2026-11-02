@@ -3,13 +3,8 @@ import React from 'react';
 export const EmptySelection = () => {
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
-      <div className="w-16 h-16 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex items-center justify-center text-indigo-400 shadow-xs mb-6">
-        <svg
-          className="w-8 h-8 text-indigo-500"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
+      <div className="w-16 h-16 rounded-2xl bg-accent-soft border border-accent-line flex items-center justify-center text-fg shadow-xs mb-6">
+        <svg className="w-8 h-8 text-fg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -18,8 +13,8 @@ export const EmptySelection = () => {
           />
         </svg>
       </div>
-      <h3 className="text-slate-200 font-semibold tracking-wide font-heading">Select an Element</h3>
-      <p className="text-xs text-slate-500 max-w-xs mt-2 leading-relaxed">
+      <h3 className="text-fg font-semibold tracking-wide font-heading">Select an Element</h3>
+      <p className="text-xs text-fg-muted max-w-xs mt-2 leading-relaxed">
         Hover over elements in the live preview iframe and click to load them into the visual
         editing sidebar.
       </p>

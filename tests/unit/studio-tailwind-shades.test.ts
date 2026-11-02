@@ -1,6 +1,7 @@
 // @vitest-environment node
-import { readdirSync, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { it, expect } from 'vitest';
+import { studioFiles } from './helpers/studio-files.js';
 
 /** Tailwind's default palette steps; any other step generates no CSS rule. */
 const SHADES = new Set([
@@ -19,14 +20,6 @@ const SHADES = new Set([
 const PALETTE =
   'slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose';
 const COLOR_CLASS = new RegExp(String.raw`\b[a-z-]+-(?:${PALETTE})-(\d+)\b`, 'g');
-
-function studioFiles(dir: string): string[] {
-  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-    const path = `${dir}/${entry.name}`;
-    if (entry.isDirectory()) return studioFiles(path);
-    return /\.tsx?$/.test(entry.name) ? [path] : [];
-  });
-}
 
 it('uses only Tailwind colour shades that exist', () => {
   const unknown = studioFiles('src/studio').flatMap((file) =>

@@ -74,12 +74,12 @@ export const Header = ({
       : null;
 
   return (
-    <header className="h-16 bg-[#080b11]/90 backdrop-blur-md border-b border-slate-900/60 px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
+    <header className="h-16 bg-surface/90 backdrop-blur-md border-b border-line px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
       <div className="flex items-center gap-3 shrink-0">
         <BrandMark className="h-8 w-8 shrink-0" />
         <div>
           <h1 className="text-base font-extrabold font-heading text-fg">livelocale</h1>
-          <p className="hidden xl:block text-[10px] text-slate-500 font-medium tracking-wider uppercase mt-0.5">
+          <p className="hidden xl:block text-[10px] text-fg-muted font-medium tracking-wider uppercase mt-0.5">
             Live Visual Translation Studio
           </p>
         </div>
@@ -94,25 +94,25 @@ export const Header = ({
             className="flex items-center gap-2 select-none min-w-0 overflow-hidden"
           >
             {targetLocale.source === null ? (
-              <span className="px-2.5 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-semibold text-slate-400 whitespace-nowrap truncate min-w-0">
+              <span className="px-2.5 py-1 rounded-full bg-raised border border-line text-[10px] font-semibold text-fg-muted whitespace-nowrap truncate min-w-0">
                 Language: not chosen yet
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] whitespace-nowrap min-w-0">
-                <span className="font-bold text-indigo-200">{`${isReviewing ? 'Viewing' : 'Editing'}: ${targetLocale.locale}`}</span>
-                <span className="hidden xl:inline text-slate-400">
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] whitespace-nowrap min-w-0">
+                <span className="font-bold text-accent-fg">{`${isReviewing ? 'Viewing' : 'Editing'}: ${targetLocale.locale}`}</span>
+                <span className="hidden xl:inline text-fg-muted">
                   {SOURCE_HINTS[targetLocale.source]}
                 </span>
               </span>
             )}
             {mismatch && (
-              <span className="flex items-center gap-1.5 text-[10px] text-amber-300 whitespace-nowrap shrink-0">
+              <span className="flex items-center gap-1.5 text-[10px] text-warning-fg whitespace-nowrap shrink-0">
                 <span className="hidden xl:inline">{`This text looks like ${mismatch}.`}</span>
                 <button
                   type="button"
                   onClick={() => onChooseLocale?.(mismatch)}
                   title={`This text looks like ${mismatch}.`}
-                  className="px-2 py-0.5 rounded-md bg-amber-500/10 border border-amber-500/30 font-semibold hover:bg-amber-500/20 transition duration-150"
+                  className="px-2 py-0.5 rounded-md bg-warning-bg border border-warning-line font-semibold hover:bg-warning-bg transition duration-150"
                 >
                   {`Switch to ${mismatch}`}
                 </button>
@@ -126,31 +126,29 @@ export const Header = ({
           className={`items-center gap-2.5 shrink-0 ${targetLocale ? 'hidden xl:flex' : 'flex'}`}
           title={`${coveragePercentage}% of keys translated`}
         >
-          <span className="text-[10px] text-slate-500 font-medium select-none whitespace-nowrap">
+          <span className="text-[10px] text-fg-muted font-medium select-none whitespace-nowrap">
             Coverage
           </span>
-          <div className="w-16 xl:w-28 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+          <div className="w-16 xl:w-28 h-1.5 bg-raised rounded-full overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${coveragePercentage}%`,
-                background:
-                  coveragePercentage >= 80
-                    ? 'linear-gradient(90deg, #34d399, #059669)'
-                    : coveragePercentage >= 40
-                      ? 'linear-gradient(90deg, #fbbf24, #f59e0b)'
-                      : 'linear-gradient(90deg, #f87171, #ef4444)',
-              }}
+              className={`h-full rounded-full transition-all duration-700 ease-out ${
+                coveragePercentage >= 80
+                  ? 'bg-success-fg'
+                  : coveragePercentage >= 40
+                    ? 'bg-warning-fg'
+                    : 'bg-danger-fg'
+              }`}
+              style={{ width: `${coveragePercentage}%` }}
             />
           </div>
-          <span className="text-[10px] font-bold font-mono text-slate-400 select-none tabular-nums">
+          <span className="text-[10px] font-bold font-mono text-fg-muted select-none tabular-nums">
             {coveragePercentage}%
           </span>
         </div>
 
         {mode === 'preview' && (
           <span
-            className="px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-extrabold tracking-wider text-amber-300 select-none"
+            className="px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-extrabold tracking-wider text-warning-fg select-none"
             title="Edits go to a git branch on the server; nothing is written locally."
           >
             PREVIEW
@@ -160,7 +158,7 @@ export const Header = ({
         {reviewCount !== null && (
           <span
             data-testid="review-chip"
-            className="shrink-0 px-2.5 py-1 rounded-full bg-indigo-600/10 border border-indigo-500/30 text-[10px] font-semibold text-indigo-200 select-none whitespace-nowrap"
+            className="shrink-0 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] font-semibold text-fg select-none whitespace-nowrap"
           >
             {reviewingLabel(reviewCount)}
           </span>
@@ -171,7 +169,7 @@ export const Header = ({
             id="studio-close-review"
             type="button"
             onClick={onCloseReview}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
           >
             Close review
           </button>
@@ -180,7 +178,7 @@ export const Header = ({
         {!isReviewing && unsentCount > 0 && (
           <span
             data-testid="unsent-counter"
-            className="shrink-0 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-[10px] font-semibold text-amber-300 select-none whitespace-nowrap"
+            className="shrink-0 px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-semibold text-warning-fg select-none whitespace-nowrap"
             title="Saved in this browser only. Send them to your developer before you leave."
           >
             {unsentLabel(unsentCount)}
@@ -192,7 +190,7 @@ export const Header = ({
             id="studio-send-button"
             onClick={onSend}
             disabled={!canSend}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-indigo-600 border-indigo-500 text-indigo-50 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-accent border-accent-line text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
             title="Turn your changes into a link or file for your developer"
           >
             Send to developer
@@ -204,7 +202,7 @@ export const Header = ({
             id="studio-import-button"
             type="button"
             onClick={onImport}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700 transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
             title="Review a translator's change link and apply it to your local files"
           >
             Import change link
@@ -216,8 +214,8 @@ export const Header = ({
           onClick={onToggleChanges}
           className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold whitespace-nowrap transition duration-150 ${
             isChangesOpen
-              ? 'bg-indigo-600/20 border-indigo-500 text-indigo-300'
-              : 'bg-slate-900 border-slate-800 text-slate-300 hover:text-slate-100 hover:border-slate-700'
+              ? 'bg-accent-soft border-accent-line text-accent-fg'
+              : 'bg-raised border-line text-fg hover:text-fg hover:border-line-strong'
           }`}
           title="Review, commit, or undo locale changes"
         >
@@ -235,7 +233,7 @@ export const Header = ({
           </svg>
           Changes
           {changesCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-mono font-bold text-amber-300">
+            <span className="px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-[10px] font-mono font-bold text-warning-fg">
               {changesCount}
             </span>
           )}
@@ -247,7 +245,7 @@ export const Header = ({
           </div>
         )}
 
-        <span className="hidden xl:block px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 select-none">
+        <span className="hidden xl:block px-3 py-1 rounded-full bg-raised border border-line text-[10px] font-bold text-fg-muted select-none">
           v{__STUDIO_VERSION__} (BETA)
         </span>
       </div>

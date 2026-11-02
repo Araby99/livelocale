@@ -30,29 +30,27 @@ export const KeysDirectory = ({
   return (
     <div
       data-testid="keys-directory"
-      className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
     >
-      <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-heading text-slate-200">
-          Locale Directory
-        </h2>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-900 text-indigo-400 border border-slate-800">
+      <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
+        <h2 className="text-sm font-bold tracking-wide font-heading text-fg">Locale Directory</h2>
+        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-raised text-fg border border-line">
           {filteredKeys.length} keys
         </span>
       </div>
 
       {/* Search Box & Page Filter Toggle */}
-      <div className="p-4 border-b border-slate-800/80 shrink-0 bg-slate-900/40 space-y-3">
+      <div className="p-4 border-b border-line shrink-0 bg-raised space-y-3">
         <div className="relative">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search keys or values..."
-            className="w-full h-9 pl-9 pr-4 bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-lg text-xs text-slate-200 placeholder-slate-600 transition duration-150"
+            className="w-full h-9 pl-9 pr-4 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
           />
           <svg
-            className="w-3.5 h-3.5 text-slate-600 absolute left-3 top-2.5"
+            className="w-3.5 h-3.5 text-fg-muted absolute left-3 top-2.5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -67,16 +65,16 @@ export const KeysDirectory = ({
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
+          <span className="text-[10px] text-fg-muted font-semibold uppercase tracking-wider">
             Scope
           </span>
-          <div className="flex items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg p-0.5 select-none shrink-0">
+          <div className="flex items-center gap-1 bg-surface border border-line rounded-lg p-0.5 select-none shrink-0">
             <button
               onClick={() => setFilterPageOnly(false)}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 !filterPageOnly
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line shadow-sm'
+                  : 'text-fg-muted hover:text-fg'
               }`}
             >
               All Keys
@@ -86,8 +84,8 @@ export const KeysDirectory = ({
               disabled={visibleKeys === null}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 filterPageOnly
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed'
+                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line shadow-sm'
+                  : 'text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
               title={
                 visibleKeys === null
@@ -114,30 +112,30 @@ export const KeysDirectory = ({
                 onClick={() => selectKeyDirectly(key)}
                 className={`w-full text-left p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
                   isActive
-                    ? 'bg-indigo-600/10 border-indigo-500 text-slate-100 shadow-sm'
-                    : 'bg-slate-950/20 hover:bg-slate-950/50 border-transparent text-slate-300 hover:text-slate-200'
+                    ? 'bg-accent-soft border-accent-line text-fg shadow-sm'
+                    : 'bg-surface hover:bg-raised-hover border-transparent text-fg hover:text-fg'
                 }`}
               >
                 <div className="w-full flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-indigo-400">
+                  <span className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-fg">
                     {key}
                   </span>
                   {isMissing && (
-                    <span className="px-1.5 py-0.5 rounded bg-rose-500/10 text-[8px] font-extrabold text-rose-400 border border-rose-500/20 shrink-0 uppercase tracking-wider">
+                    <span className="px-1.5 py-0.5 rounded bg-danger-bg text-[8px] font-extrabold text-danger-fg border border-danger-line shrink-0 uppercase tracking-wider">
                       Missing
                     </span>
                   )}
                 </div>
-                <span dir="auto" className="text-[10px] text-slate-500 break-all line-clamp-1">
-                  {valueText || <span className="italic text-slate-700">Empty</span>}
+                <span dir="auto" className="text-[10px] text-fg-muted break-all line-clamp-1">
+                  {valueText || <span className="italic text-fg-muted">Empty</span>}
                 </span>
               </button>
             );
           })
         ) : (
-          <div className="h-full flex flex-col items-center justify-center p-6 text-center text-slate-600 select-none">
+          <div className="h-full flex flex-col items-center justify-center p-6 text-center text-fg-muted select-none">
             <svg
-              className="w-8 h-8 text-slate-700 mb-2"
+              className="w-8 h-8 text-fg-muted mb-2"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
