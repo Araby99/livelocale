@@ -4,147 +4,99 @@ import { scrollThrough } from './fixtures/scroll';
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('shows every section, the fixed hero and the end of the pile', async ({ page }) => {
+  test('renders both stories one after the other and every section', async ({ page }) => {
     await page.goto('./');
     await expect(page.locator('h1')).toHaveText('Stop collecting screenshots.', {
       useInnerText: true,
     });
-    expect(
-      await page
-        .locator('#hero .patch')
-        .first()
-        .evaluate((el) => {
-          const s = getComputedStyle(el, '::before');
-          return [s.content, s.color, s.textDecorationLine];
-        })
-    ).toEqual(['"colecting"', 'rgb(110, 107, 100)', 'line-through']);
-    await expect(page.getByTestId('pr-card')).toContainText('3 of 3 fixed');
-    await expect(page.getByText("That's LiveLocale. Install it.")).toBeVisible();
-    await expect(page.locator('.pile-pr')).toBeVisible();
-    for (const h of [
-      'How it works',
-      'Drag between languages.',
-      'Works where you already are',
-      'Start in two minutes',
-    ])
+    await expect(page.locator('.doors-row')).toBeHidden();
+    const developer = page.getByRole('heading', { level: 2, name: 'When you ship the site' });
+    const fixer = page.getByRole('heading', { level: 2, name: 'When you fix the text' });
+    await expect(developer).toBeVisible();
+    await expect(fixer).toBeVisible();
+    const [d, f] = await Promise.all([developer.boundingBox(), fixer.boundingBox()]);
+    expect(d!.y).toBeLessThan(f!.y);
+    for (const h of ['Works where you already are', 'Start in two minutes'])
       await expect(page.getByRole('heading', { level: 2, name: h })).toBeVisible();
     await expect(page.getByText('Free, MIT, no account, no server.')).toBeVisible();
     await expect(page.locator('body')).not.toContainText(/\bPM\b/);
   });
 
-  test('writes the hero headline as a diff pair', async ({ page }) => {
-    for (const width of [1280, 360]) {
-      await page.setViewportSize({ width, height: 800 });
-      await page.goto('./');
-      const old = page.locator('#hero .diff-old');
-      await expect(old).toHaveText('Collect screenshots of every typo before launch.');
-      const ghost = await old.evaluate((el) => {
-        const s = getComputedStyle(el);
-        return {
-          color: s.color,
-          line: getComputedStyle(el.querySelector('del')!).textDecorationLine,
-          size: parseFloat(s.fontSize),
-          before: getComputedStyle(el, '::before').content,
-        };
-      });
-      expect(ghost.color).toBe('rgb(110, 107, 100)');
-      expect(ghost.line).toBe('line-through');
-      expect(ghost.size).toBeGreaterThanOrEqual(24);
-      expect(ghost.before).toContain('−');
-      const h1 = page.locator('#hero h1');
-      const plus = await h1.evaluate((el) => {
-        const s = getComputedStyle(el, '::before');
-        return [s.content, s.color];
-      });
-      expect(plus[0]).toContain('+');
-      expect(plus[1]).toBe('rgb(255, 178, 36)');
-      expect(await h1.innerText()).toBe('Stop collecting screenshots.');
-    }
+  test('shows the real check output in the one-job colours', async ({ page }) => {
+    await page.goto('./');
+    const out = page.getByTestId('check-output');
+    await expect(out).toContainText('npx livelocale check --hardcoded');
+    await expect(out).toContainText('"Book a demo"');
+    await expect(out).toContainText('[ar] hero.note');
+    await expect(out).not.toContainText(/🔎|🌐|-{10}|[A-Z]:\//);
+    const colours = await out.evaluate((el) => {
+      const c = (sel: string) => getComputedStyle(el.querySelector(sel)!);
+      return {
+        fail: c('.c-fail').color,
+        key: c('.c-key').color,
+        outline: `${c('.c-hardcoded').outlineStyle} ${c('.c-hardcoded').outlineColor}`,
+        warn: c('.c-warn-glyph').backgroundColor,
+        nums: c('code').fontVariantNumeric,
+      };
+    });
+    expect(colours).toEqual({
+      fail: 'rgb(255, 84, 104)',
+      key: 'rgb(79, 195, 220)',
+      outline: 'dashed rgb(255, 84, 104)',
+      warn: 'rgb(255, 178, 36)',
+      nums: 'tabular-nums',
+    });
   });
 
   test('puts the one tilted patch on "Stop"', async ({ page }) => {
     await page.goto('./');
-    const lead = page.locator('#hero .lead-patch');
-    await expect(lead).toHaveText('Stop');
-    const s = await lead.evaluate((el) => {
+    const s = await page.locator('h1 .patch').evaluate((el) => {
       const c = getComputedStyle(el);
-      return { bg: c.backgroundColor, color: c.color, transform: c.transform, shadow: c.boxShadow };
+      return { text: el.textContent, bg: c.backgroundColor, color: c.color, t: c.transform };
     });
-    expect(s.bg).toBe('rgb(255, 178, 36)');
-    expect(s.color).toBe('rgb(12, 13, 15)');
-    expect(s.transform).not.toBe('none');
-    expect(s.shadow).toContain('rgb(138, 86, 0)');
-    expect(s.shadow).toContain('3px 4px 0px');
-    const patches = await page
-      .locator('#hero .patch')
-      .evaluateAll((els) =>
-        els.map((el) => [getComputedStyle(el).transform, getComputedStyle(el).backgroundColor])
-      );
-    expect(patches).toHaveLength(3);
-    for (const p of patches) expect(p).toEqual(['none', 'rgb(255, 178, 36)']);
+    expect(s).toMatchObject({ text: 'Stop', bg: 'rgb(255, 178, 36)', color: 'rgb(12, 13, 15)' });
+    expect(s.t).not.toBe('none');
   });
+});
 
-  test('shows done in Exit 0 with a check', async ({ page }) => {
-    await page.goto('./');
-    const [color, before] = await page
-      .locator('#hero .bar-done')
-      .evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el, '::before').content]);
-    expect(color).toBe('rgb(111, 214, 154)');
-    expect(before).toContain('✓');
-  });
-
-  test("circles the pile's mistakes in dashed red", async ({ page }) => {
-    await page.goto('./');
-    expect(
-      await page
-        .locator('.ring')
-        .first()
-        .evaluate((el) => {
-          const s = getComputedStyle(el);
-          return [s.borderTopStyle, s.borderTopColor];
-        })
-    ).toEqual(['dashed', 'rgb(255, 84, 104)']);
-  });
-
-  test('writes the PR card as a diff', async ({ page }) => {
-    await page.goto('./');
-    expect(
-      await page
-        .locator('.pr-pairs ins')
-        .first()
-        .evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).color])
-    ).toEqual(['rgb(46, 36, 18)', 'rgb(255, 178, 36)']);
-    expect(
-      await page
-        .locator('.pr-pairs del')
-        .first()
-        .evaluate((el) => [getComputedStyle(el).color, getComputedStyle(el).textDecorationLine])
-    ).toEqual(['rgb(140, 136, 125)', 'line-through']);
-  });
+test('points at the real pull request and repository', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('a[href="https://github.com/Araby99/tidewell/pull/2"]')).toHaveCount(2);
+  await expect(page.locator('a[href="https://github.com/Araby99/tidewell"]')).toHaveCount(1);
+  await expect(page.locator('a[href="demo/livelocale/index.html"]')).toHaveText(
+    'Try the live demo'
+  );
 });
 
 test('has no horizontal scroll at 360 px', async ({ page }) => {
-  await page.setViewportSize({ width: 360, height: 780 });
-  await page.goto('./');
-  await scrollThrough(page);
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  for (const hash of ['', '#fixer']) {
+    await page.setViewportSize({ width: 360, height: 780 });
+    await page.goto(`./${hash}`);
+    await scrollThrough(page);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
+      360
+    );
+  }
 });
 
-test('reaches every link by keyboard with a visible patch ring', async ({ page }) => {
+test('reaches every control by keyboard with a visible patch ring', async ({ page }) => {
   await page.goto('./');
-  // Only what is shown: before the hero island mounts, html.js hides its completion link.
-  const links = await page.locator('a[href]:visible, button:visible').count();
+  // One Tab stop for the radio group (arrows move inside it), so count it once.
+  const stops =
+    (await page.locator('a[href]:visible, button:visible, summary:visible').count()) + 1;
   const seen = new Set<string>();
-  for (let i = 0; i < links; i++) {
+  for (let i = 0; i < stops; i++) {
     await page.keyboard.press('Tab');
     const [id, ring] = await page.evaluate((n) => {
-      const el = document.activeElement as HTMLElement;
-      el.dataset.tabSeen ??= String(n);
+      const active = document.activeElement as HTMLElement;
+      active.dataset.tabSeen ??= String(n);
+      // The door radios are invisible; their label draws the ring.
+      const el = (active.matches('input[type="radio"]') ? active.closest('label') : active)!;
       const s = getComputedStyle(el);
-      return [el.dataset.tabSeen, `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor}`];
+      return [active.dataset.tabSeen, `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor}`];
     }, i);
     seen.add(id);
     expect(ring).toMatch(/^solid 2px rgb\(255, 178, 36\)$/);
   }
-  expect(seen.size).toBe(links); // every Tab reached a new element
+  expect(seen.size).toBe(stops); // every Tab reached a new element
 });

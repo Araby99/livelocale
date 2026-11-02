@@ -3,31 +3,20 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { runSampleCheck } from '../../../site/scripts/hardcoded-report.mjs';
-import { readFindings, summaryLine } from '../../../site/src/slider/report';
 
 const CLI = 'dist/codemod/index.js';
 const hasBuild = fs.existsSync(CLI);
 
-it('shapes untranslated keys and hardcoded text into outline targets', () => {
-  const f = readFindings({
-    issues: [
-      { kind: 'untranslated', locale: 'ar', key: 'plans.upgrade' },
-      { kind: 'hardcoded', text: 'Start free trial' },
-      { kind: 'unused', key: 'x' },
-    ],
-  });
-  expect(f).toEqual({ keys: ['plans.upgrade'], texts: ['Start free trial'], count: 2 });
-  expect(summaryLine(f)).toBe('✖ 2 strings never translated: found by check --hardcoded');
-});
-
-it.skipIf(!hasBuild)('finds exactly the two planted strings in the sample', () => {
-  const { report, output } = runSampleCheck({ cli: CLI, sampleDir: 'site/sample' });
-  expect(readFindings(report as never)).toEqual({
-    keys: ['plans.upgrade'],
-    texts: ['Start free trial'],
-    count: 2,
-  });
-  expect(output).toContain('Start free trial');
+it.skipIf(!hasBuild)('finds exactly the two planted strings in the CI sample', () => {
+  const { report, output, status } = runSampleCheck({ cli: CLI, sampleDir: 'site/sample' });
+  const issues = (report as { issues: Array<{ kind: string; key?: string; text?: string }> })
+    .issues;
+  expect(issues.map((i) => [i.kind, i.key ?? i.text])).toEqual([
+    ['hardcoded', 'Book a demo'],
+    ['untranslated', 'hero.note'],
+  ]);
+  expect(status).toBe(1);
+  expect(output).toContain('"Book a demo"');
   expect(output).not.toContain(path.resolve('site/sample'));
 });
 

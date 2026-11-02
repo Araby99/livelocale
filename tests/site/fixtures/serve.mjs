@@ -1,6 +1,7 @@
 // Static server for the built site: serves <root> under <base> (as GitHub Pages serves a project
 // site) and 404s everything else, so a root-relative URL fails the tests instead of working by
-// accident. Text responses are gzipped when the client accepts it, as Pages does.
+// accident. Text responses are gzipped when the client accepts it, and byte ranges are honoured
+// (browsers need them to seek a video), as Pages does.
 // Usage: node tests/site/fixtures/serve.mjs <root> <port> <base>
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
@@ -17,6 +18,7 @@ const MIME = {
   '.jpg': 'image/jpeg',
   '.webp': 'image/webp',
   '.webm': 'video/webm',
+  '.mp4': 'video/mp4',
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8',
@@ -62,6 +64,26 @@ const server = createServer(async (req, res) => {
   const ext = extname(file).toLowerCase();
   let body = await readFile(file);
   const headers = { 'Content-Type': MIME[ext] ?? 'application/octet-stream' };
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range ?? '');
+  if (range && !GZIP.has(ext)) {
+    const size = body.length;
+    const start = range[1] ? Number(range[1]) : size - Number(range[2]);
+    const end = range[1] && range[2] ? Math.min(Number(range[2]), size - 1) : size - 1;
+    if (!(start >= 0 && start <= end)) {
+      res.writeHead(416, { 'Content-Range': `bytes */${size}` });
+      res.end();
+      return;
+    }
+    res.writeHead(206, {
+      ...headers,
+      'Accept-Ranges': 'bytes',
+      'Content-Range': `bytes ${start}-${end}/${size}`,
+      'Content-Length': end - start + 1,
+    });
+    res.end(req.method === 'HEAD' ? undefined : body.subarray(start, end + 1));
+    return;
+  }
+  if (!GZIP.has(ext)) headers['Accept-Ranges'] = 'bytes';
   if (GZIP.has(ext) && /\bgzip\b/.test(req.headers['accept-encoding'] ?? '')) {
     body = gzipSync(body);
     headers['Content-Encoding'] = 'gzip';

@@ -1,13 +1,8 @@
 import type { Page } from '@playwright/test';
 
-/** Selectors that exist once an island has mounted (Tasks 9 and 14 append to this list). */
-export const ISLAND_READY: string[] = [];
-ISLAND_READY.push('[data-island] [role="slider"]');
-ISLAND_READY.push('[data-mistake][tabindex]');
-
 /**
  * Scrolls from the top to the bottom one viewport at a time, one animation frame per step, so
- * every `loadWhenNear` island fires; then waits for each island to mount and the network to idle.
+ * every lazy image and the on-screen video logic fire; then waits for the network to idle.
  */
 export async function scrollThrough(page: Page): Promise<void> {
   await page.evaluate(async () => {
@@ -20,8 +15,5 @@ export async function scrollThrough(page: Page): Promise<void> {
     scrollTo(0, bottom());
     await nextFrame();
   });
-  for (const selector of ISLAND_READY) {
-    await page.locator(selector).first().waitFor({ state: 'attached' });
-  }
   await page.waitForLoadState('networkidle');
 }
