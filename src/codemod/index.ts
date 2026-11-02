@@ -6,8 +6,8 @@ import * as net from 'net';
 import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures, normalizeAppUrl } from './doctor.js';
-import { runCheck, formatCheckReport, hasCheckFailures } from './check.js';
-import { checkExitCode, parseCheckArgs, type CheckArgs } from './check-cli.js';
+import { runCheck, formatCheckReport } from './check.js';
+import { checkExitCode, checkSummaryLines, parseCheckArgs, type CheckArgs } from './check-cli.js';
 import {
   checkBuildArgs,
   checkPackArgs,
@@ -504,7 +504,6 @@ async function runCheckCommand(args: string[]) {
     process.exit(1);
   }
 
-  const failed = hasCheckFailures(report);
   // exitCode, not exit(): exiting immediately can truncate a large report piped to another tool.
   process.exitCode = checkExitCode(report);
   if (json) {
@@ -524,16 +523,7 @@ async function runCheckCommand(args: string[]) {
     console.log('--------------------------------------------------');
   }
 
-  const fails = report.issues.filter((i) => i.level === 'fail').length;
-  const warns = report.issues.filter((i) => i.level === 'warn').length;
-  if (failed) {
-    console.log(`❌ ${fails} problem(s), ${warns} warning(s).`);
-  } else {
-    console.log(
-      warns > 0 ? `✅ No problems, ${warns} warning(s) worth a look.` : `✅ Translations look good.`
-    );
-  }
-  for (const problem of report.setupProblems ?? []) console.log(`❌ ${problem}`);
+  for (const line of checkSummaryLines(report)) console.log(line);
 }
 
 /** Prints each pack warning, then where the share folder went and the link path to open. */

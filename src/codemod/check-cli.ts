@@ -53,3 +53,18 @@ export function checkExitCode(report: CheckReport): 0 | 1 | 2 {
   if (report.setupProblems && report.setupProblems.length > 0) return 2;
   return hasCheckFailures(report) ? 1 : 0;
 }
+
+/**
+ * The closing lines of the human `check` output. A setup problem replaces the success line,
+ * so a run that exits 2 never also says the translations look good.
+ */
+export function checkSummaryLines(report: CheckReport): string[] {
+  const fails = report.issues.filter((i) => i.level === 'fail').length;
+  const warns = report.issues.filter((i) => i.level === 'warn').length;
+  const setup = (report.setupProblems ?? []).map((problem) => `❌ ${problem}`);
+  if (hasCheckFailures(report)) return [`❌ ${fails} problem(s), ${warns} warning(s).`, ...setup];
+  if (setup.length > 0) return setup;
+  return [
+    warns > 0 ? `✅ No problems, ${warns} warning(s) worth a look.` : `✅ Translations look good.`,
+  ];
+}
