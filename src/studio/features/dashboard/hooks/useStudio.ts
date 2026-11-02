@@ -29,6 +29,7 @@ import { useFirstRun } from './useFirstRun.js';
 import { useReview } from './useReview.js';
 import { findChangeToken } from '../../../../core/change-link.js';
 import { describeLinkError } from '../../../share/send.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
@@ -41,6 +42,7 @@ const runtimeProblems = (): string[] => {
  * cross-cutting UI feedback state (loading, errors).
  */
 export const useStudio = () => {
+  const { t } = useStudioText();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
@@ -348,6 +350,7 @@ export const useStudio = () => {
     studioHref: () => window.location.href,
     translatorName: () => readPref('translator-name'),
     download: downloadText,
+    t,
   });
 
   // During a review Alt+Click only points at the row; nothing is edited.

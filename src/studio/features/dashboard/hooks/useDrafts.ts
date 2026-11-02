@@ -5,10 +5,11 @@ import {
   type ReconcileResult,
   type StaticTransport,
 } from '../../../transport/static.js';
+import { englishText, type StudioText } from '../../../i18n/catalogue.js';
 
-/** The header counter's text: '1 change not sent' or '<n> changes not sent'. */
-export function unsentLabel(n: number): string {
-  return n === 1 ? '1 change not sent' : `${n} changes not sent`;
+/** The header counter's text, e.g. '1 change not sent' or '<n> changes not sent'. */
+export function unsentLabel(n: number, t: StudioText = englishText): string {
+  return t('drafts.unsent', { count: n });
 }
 
 /**

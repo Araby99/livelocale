@@ -34,18 +34,6 @@ interface BatchLink {
   count: number;
 }
 
-const COPIED = 'Link copied. Paste it to your developer in chat or email.';
-const COPY_FAILED =
-  'Copy did not work in this browser. Select the link above, copy it, then press “I copied it”.';
-const DOWNLOADED = 'File saved. Send it to your developer.';
-const OPENED = 'GitHub opened in a new tab.';
-const TOO_LONG = 'This batch is too long for a chat message. Use Download file instead.';
-const GITHUB_HINT =
-  'Press “Submit new issue” on GitHub. A pull-request link appears as a comment about a minute later.';
-const NOTHING_TO_SEND = 'There are no changes to send.';
-
-const changes = (n: number) => (n === 1 ? '1 change' : `${n} changes`);
-
 const actionButton =
   'h-9 px-4 rounded-xl text-xs font-semibold border transition duration-150 disabled:opacity-40 disabled:cursor-not-allowed';
 
@@ -116,13 +104,13 @@ export const SendDialog = ({
       })
       .catch((err: unknown) => {
         if (seq === encodeSeq.current) {
-          setEncodeError('Could not create the link: ' + describeLinkError(err));
+          setEncodeError(t('send.encode_failed', { reason: describeLinkError(err, t) }));
         }
       })
       .finally(() => {
         if (seq === encodeSeq.current) setEncoding(false);
       });
-  }, [isOpen, manifest, included, name, note, studioHref]);
+  }, [isOpen, manifest, included, name, note, studioHref, t]);
 
   if (!isOpen || !manifest) return null;
 
@@ -151,7 +139,7 @@ export const SendDialog = ({
       await onMarkSent(batch);
       setOutcome(done);
     } catch (err: any) {
-      setActionError(err?.message || 'Could not mark the changes as sent.');
+      setActionError(err?.message || t('send.mark_failed'));
     }
   };
 
@@ -170,7 +158,7 @@ export const SendDialog = ({
     try {
       downloadText(changeFileName('changes', new Date()), shownLink + '\n');
     } catch (err: any) {
-      setActionError(err?.message || 'Could not save the file.');
+      setActionError(err?.message || t('send.save_failed'));
       return;
     }
     await markSent(batch, 'downloaded');
@@ -191,11 +179,11 @@ export const SendDialog = ({
         className="bg-raised border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4"
       >
         <h3 id="studio-send-title" className="text-base font-bold text-fg font-heading">
-          Send to developer
+          {t('send.title')}
         </h3>
 
         <label className="block space-y-1">
-          <span className="text-[11px] font-semibold text-fg-muted">Your name</span>
+          <span className="text-[11px] font-semibold text-fg-muted">{t('send.name_label')}</span>
           <input
             id="studio-send-name"
             type="text"
@@ -208,9 +196,7 @@ export const SendDialog = ({
         </label>
 
         <label className="block space-y-1">
-          <span className="text-[11px] font-semibold text-fg-muted">
-            Note for the developer (optional)
-          </span>
+          <span className="text-[11px] font-semibold text-fg-muted">{t('send.note_label')}</span>
           <textarea
             id="studio-send-note"
             dir="auto"
@@ -229,12 +215,12 @@ export const SendDialog = ({
               checked={includeSent}
               onChange={(e) => setIncludeSent(e.target.checked)}
             />
-            {`Also include ${changes(alreadySent)} already sent`}
+            {t('send.include_sent', { count: alreadySent })}
           </label>
         )}
 
         {showingSent ? null : included.length === 0 ? (
-          <p className="text-xs text-fg-muted">{NOTHING_TO_SEND}</p>
+          <p className="text-xs text-fg-muted">{t('send.nothing_to_send')}</p>
         ) : (
           <ul data-testid="send-dialog-changes" className="max-h-48 overflow-y-auto space-y-1.5">
             {included.map((d) => (
@@ -251,7 +237,7 @@ export const SendDialog = ({
                       {d.from}
                     </span>
                   ) : (
-                    <em className="text-danger-fg line-through">empty</em>
+                    <em className="text-danger-fg line-through">{t('send.empty')}</em>
                   )}
                   <span className="text-fg-muted" aria-hidden="true">
                     {` ${t('common.arrow')} `}
@@ -261,7 +247,7 @@ export const SendDialog = ({
                       {d.to}
                     </span>
                   ) : (
-                    <em className="text-success-fg">empty</em>
+                    <em className="text-success-fg">{t('send.empty')}</em>
                   )}
                 </div>
               </li>
@@ -271,7 +257,7 @@ export const SendDialog = ({
 
         {overflow > 0 && (
           <p className="text-xs text-warning-fg">
-            {`${included.length} of ${included.length + overflow} changes are in this link. Send again for the rest.`}
+            {t('send.overflow', { count: included.length, total: included.length + overflow })}
           </p>
         )}
 
@@ -289,7 +275,7 @@ export const SendDialog = ({
             className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg"
           />
         )}
-        {tooLong && <p className="text-xs text-warning-fg">{TOO_LONG}</p>}
+        {tooLong && <p className="text-xs text-warning-fg">{t('send.too_long')}</p>}
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -298,7 +284,7 @@ export const SendDialog = ({
             disabled={!canCopy}
             className={`${actionButton} text-on-accent bg-accent hover:bg-accent-hover border-accent-line`}
           >
-            Copy link
+            {t('send.copy')}
           </button>
           <button
             id="studio-send-download"
@@ -306,13 +292,13 @@ export const SendDialog = ({
             disabled={!canDownload}
             className={`${actionButton} text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong`}
           >
-            Download file
+            {t('send.download')}
           </button>
           <button
             onClick={onClose}
             className={`${actionButton} ms-auto text-fg-muted hover:text-fg bg-raised border-line hover:border-line-strong`}
           >
-            Close
+            {t('send.close')}
           </button>
         </div>
 
@@ -323,36 +309,36 @@ export const SendDialog = ({
               token={shown.token}
               count={shown.count}
               by={name}
-              label="Open on GitHub"
+              label={t('send.open_github')}
               onOpened={() => void markSent(included, 'opened')}
             />
-            <p className="text-[11px] text-fg-muted">{GITHUB_HINT}</p>
+            <p className="text-[11px] text-fg-muted">{t('send.github_hint')}</p>
           </div>
         )}
 
         {outcome === 'copied' && (
           <p role="status" className="text-xs text-success-fg">
-            {COPIED}
+            {t('send.copied')}
           </p>
         )}
         {outcome === 'downloaded' && (
           <p role="status" className="text-xs text-success-fg">
-            {DOWNLOADED}
+            {t('send.downloaded')}
           </p>
         )}
         {outcome === 'opened' && (
           <p role="status" className="text-xs text-success-fg">
-            {OPENED}
+            {t('send.opened')}
           </p>
         )}
         {outcome === 'copy-failed' && (
           <div role="status" className="space-y-2">
-            <p className="text-xs text-warning-fg">{COPY_FAILED}</p>
+            <p className="text-xs text-warning-fg">{t('send.copy_failed')}</p>
             <button
               onClick={() => markSent(included, 'copied')}
               className={`${actionButton} text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong`}
             >
-              I copied it
+              {t('send.copied_confirm')}
             </button>
           </div>
         )}
