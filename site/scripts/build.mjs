@@ -27,23 +27,28 @@ function runNode(args, env) {
 /**
  * Builds the whole site into site/dist. SITE_URL in env sets the base (see site-config.ts); its
  * normalised form reaches index.html as %VITE_SITE_URL%, so the share tags carry absolute URLs.
- * The slider's `check --hardcoded` report runs first (it needs the built CLI in the root dist).
- * Last, the hero demo is built, packed with the share Studio (no --expose-repo, so the Studio
- * offers no GitHub action) and copied to site/dist/demo/.
+ * The CI excerpt's `check --hardcoded` report runs first (it needs the built CLI in the root dist).
+ * Last, the live demo is built: Tidewell, the same stage site the hero video is filmed on, with its
+ * two planted mistakes, packed with the share Studio under <base>demo/ (no --expose-repo, so the
+ * Studio offers no GitHub action) and copied to site/dist/demo/.
  */
 export async function buildSite(env) {
   const { siteUrl, base } = siteConfig(env);
   writeSampleReport();
   await syncBrand();
   await runNode([VITE_BIN, 'build'], { ...env, VITE_SITE_URL: siteUrl });
-  await runNode([VITE_BIN, 'build', '--config', 'demo/vite.config.ts'], env);
+  // --base is passed through node, so Git Bash never rewrites the path.
+  await runNode(
+    [VITE_BIN, 'build', '--config', 'stage/vite.config.ts', '--base', `${base}demo/`],
+    env
+  );
   await runNode(
     [
       '../dist/codemod/index.js',
       'pack',
       'dist',
       '--dir',
-      'demo',
+      'stage',
       '--locales',
       'locales',
       '--source',
@@ -53,7 +58,7 @@ export async function buildSite(env) {
     ],
     env
   );
-  await cp(join(SITE_DIR, 'demo', 'dist'), join(SITE_DIR, 'dist', 'demo'), { recursive: true });
+  await cp(join(SITE_DIR, 'stage', 'dist'), join(SITE_DIR, 'dist', 'demo'), { recursive: true });
   console.log('site/dist complete');
 }
 

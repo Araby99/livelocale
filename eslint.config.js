@@ -13,7 +13,7 @@ export default [
       'test-results/**',
       'playground/.next/**',
       'site/dist/**',
-      'site/demo/dist/**',
+      'site/stage/dist/**',
     ],
   },
   {
