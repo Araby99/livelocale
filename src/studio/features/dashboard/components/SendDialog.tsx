@@ -192,7 +192,7 @@ export const SendDialog = ({
             maxLength={SEND_NAME_MAX_CHARS}
             value={name}
             onChange={(e) => handleNameChange(e.target.value)}
-            className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs text-fg focus:outline-none focus:border-focus"
+            className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs text-fg"
           />
         </label>
 
@@ -205,7 +205,7 @@ export const SendDialog = ({
             maxLength={SEND_NOTE_MAX_CHARS}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-xs text-fg focus:outline-none focus:border-focus resize-none"
+            className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-xs text-fg resize-none"
           />
         </label>
 

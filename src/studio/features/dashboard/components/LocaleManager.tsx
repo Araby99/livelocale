@@ -65,7 +65,7 @@ export const LocaleManager = ({
             onChange={(e) => setNewLocaleCode(e.target.value)}
             placeholder={t('locales.add_placeholder')}
             disabled={isLoading}
-            className="flex-1 min-w-0 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-2.5 text-xs text-fg placeholder-fg-muted font-mono transition duration-155"
+            className="flex-1 min-w-0 bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-2.5 text-xs text-fg placeholder-fg-muted font-mono transition duration-155"
           />
           <button
             type="submit"

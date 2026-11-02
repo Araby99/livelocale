@@ -168,3 +168,23 @@ html[lang='ar'] {
 html[lang='ar'] body {
   line-height: 1.7;
 }
+
+/* One focus ring for every control; components never set their own. Inside a scroll container an
+   outside ring is clipped by the container's edge, so rows of the key list, drawers and dialogs draw it inset. */
+@layer base {
+  /* The resting outline colour is already the focus colour, so `transition` and `transition-colors`
+     (which animate outline-color) cannot fade the ring in from the text colour. */
+  * {
+    outline-color: var(--color-focus);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+
+  .overflow-y-auto :focus-visible,
+  .overflow-auto :focus-visible {
+    outline-offset: -2px;
+  }
+}

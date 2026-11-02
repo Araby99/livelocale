@@ -289,7 +289,7 @@ export const ChangesPanel = ({
                         : 'changes.placeholder_commit'
                   )}
                   maxLength={500}
-                  className="w-full min-h-20 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-3 text-xs text-fg placeholder-fg-muted font-sans resize-none transition duration-150 disabled:opacity-60"
+                  className="w-full min-h-20 bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-3 text-xs text-fg placeholder-fg-muted font-sans resize-none transition duration-150 disabled:opacity-60"
                 />
                 <div className="flex items-center gap-3">
                   <button

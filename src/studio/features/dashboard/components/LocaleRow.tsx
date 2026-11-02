@@ -77,7 +77,7 @@ export const LocaleRow = ({
             dir="ltr"
             onChange={(e) => setRenameValue(e.target.value)}
             disabled={isLoading}
-            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1 text-xs font-mono text-fg focus:outline-hidden focus:border-focus"
+            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1 text-xs font-mono text-fg"
             autoFocus
           />
           <button

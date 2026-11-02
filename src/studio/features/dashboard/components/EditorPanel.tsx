@@ -98,7 +98,7 @@ export const EditorPanel = ({
                 value={locale}
                 dir="ltr"
                 onChange={(e) => onLocaleChange(e.target.value)}
-                className="bg-raised border border-line hover:border-line-strong text-fg text-xs rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-focus cursor-pointer font-mono"
+                className="bg-raised border border-line hover:border-line-strong text-fg text-xs rounded-lg px-2.5 py-1.5 cursor-pointer font-mono"
               >
                 {locales.map((l) => (
                   <option key={l} value={l}>

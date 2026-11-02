@@ -80,7 +80,7 @@ export const ImportChangeDialog = ({
           onChange={(e) => setText(e.target.value)}
           rows={5}
           spellCheck={false}
-          className="mt-2 w-full px-3 py-2 rounded-xl bg-surface border border-line focus:border-focus outline-none text-[11px] font-mono text-fg break-all resize-y"
+          className="mt-2 w-full px-3 py-2 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg break-all resize-y"
         />
 
         <label htmlFor="studio-import-file" className="block mt-4 text-xs font-semibold text-fg">

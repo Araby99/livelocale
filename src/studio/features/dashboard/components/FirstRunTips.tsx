@@ -56,7 +56,7 @@ export const FirstRunTips = ({ open, name, onNameChange, onDismiss }: FirstRunTi
           dir="auto"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
-          className="mt-1 w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs text-fg focus:outline-none focus:border-focus"
+          className="mt-1 w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs text-fg"
         />
         <div className="flex items-center justify-end mt-6">
           <button

@@ -37,7 +37,7 @@ export const RepoPrompt = ({ initial = '', onSave }: RepoPromptProps) => {
             setInvalid(false);
           }}
           aria-invalid={invalid || undefined}
-          className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs font-mono text-fg focus:outline-none focus:border-focus"
+          className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs font-mono text-fg"
         />
       </label>
       {invalid && <p className="text-[11px] text-danger-fg">{t('repo.malformed')}</p>}

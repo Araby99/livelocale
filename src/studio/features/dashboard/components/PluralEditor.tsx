@@ -64,7 +64,7 @@ export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditor
   };
 
   const inputClass =
-    'w-full bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-lg px-3 py-2 text-xs text-fg placeholder-fg-muted transition duration-150 disabled:opacity-60';
+    'w-full bg-surface border border-line hover:border-line-strong rounded-lg px-3 py-2 text-xs text-fg placeholder-fg-muted transition duration-150 disabled:opacity-60';
 
   return (
     <div className="space-y-3" data-testid="plural-editor">

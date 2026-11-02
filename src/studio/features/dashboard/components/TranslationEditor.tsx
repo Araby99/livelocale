@@ -184,7 +184,7 @@ export const TranslationEditor = ({
             onChange={(e) => onInputChange(e.target.value)}
             disabled={isLoading}
             placeholder={t('editor.input_placeholder')}
-            className="w-full min-h-32 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-muted font-sans resize-none transition duration-205 leading-relaxed"
+            className="w-full min-h-32 bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-muted font-sans resize-none transition duration-205 leading-relaxed"
           />
         )}
       </div>

@@ -49,7 +49,7 @@ export const KeysDirectory = ({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('keys.search')}
-            className="w-full h-9 ps-9 pe-4 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
+            className="w-full h-9 ps-9 pe-4 bg-surface border border-line hover:border-line-strong rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
           />
           <svg
             className="w-3.5 h-3.5 text-fg-muted absolute start-3 top-2.5"
