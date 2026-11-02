@@ -22,6 +22,7 @@ import {
   WIDE_LAYOUT_QUERY,
   type StudioPanel,
 } from './features/dashboard/index.js';
+import { TRANSLATION_INPUT_ID } from './features/dashboard/constants.js';
 import { isAppPreviewBlocked, isShareStudio } from './runtime.js';
 import { useStudioText } from './i18n/StudioLanguage.js';
 
@@ -153,6 +154,20 @@ export const App = () => {
     [selectKeyDirectly]
   );
 
+  // A pick made from the keyboard lands in the editor, so typing goes straight into the
+  // translation. The frame lets the new selection and the opened drawer render first.
+  const focusEditor = useCallback(() => {
+    setOpenPanel('side');
+    requestAnimationFrame(() => {
+      // An unsaved-changes prompt may have opened instead; it keeps the focus.
+      if (document.querySelector('[aria-modal="true"]') !== null) return;
+      const target =
+        document.getElementById(TRANSLATION_INPUT_ID) ??
+        document.querySelector('[data-testid="editor-panel"]')?.querySelector('input');
+      target?.focus();
+    });
+  }, []);
+
   return (
     <div
       data-testid="studio-root"
@@ -228,6 +243,7 @@ export const App = () => {
             setFilterPageOnly={setFilterPageOnly}
             visibleKeys={visibleKeys}
             selectKeyDirectly={pickKey}
+            onKeyActivatedByKeyboard={focusEditor}
           />
         }
         viewer={

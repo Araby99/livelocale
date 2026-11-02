@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { STUDIO_THEME_KEY } from '../../src/studio/preferences.js';
+import { STUDIO_LANGUAGE_KEY, STUDIO_THEME_KEY } from '../../src/studio/preferences.js';
 
 const tabStops = async (page: Page, n: number) => {
   const seen: { tag: string; outline: string; width: string; color: string }[] = [];
@@ -42,4 +42,79 @@ test.describe('Studio keyboard access', () => {
         expect(s).toMatchObject({ outline: 'solid', width: '2px', color });
     });
   }
+});
+
+const connected = (page: Page) =>
+  expect(page.getByTestId('connection-status')).toHaveAttribute('data-status', 'connected', {
+    timeout: 90_000,
+  });
+const changesDialog = (page: Page) =>
+  page.locator('[role="dialog"][aria-labelledby="studio-changes-title"]');
+
+test.describe('keyboard journeys', () => {
+  test.beforeEach(async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('http://localhost:3010');
+    await connected(page);
+  });
+  test('picks a key from the list and lands in the editor by keyboard', async ({ page }) => {
+    await page.locator('#studio-keys-search').focus();
+    await page.keyboard.type('home.welcome_msg');
+    const row = page.locator('[data-testid="keys-directory"] .overflow-y-auto > button').first();
+    await row.focus();
+    // Task 25: inside the scrolling list the ring is drawn inset, so it is never clipped
+    expect(await row.evaluate((el) => getComputedStyle(el).outlineOffset)).toBe('-2px');
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#studio-translation-input')).toBeFocused();
+  });
+  test('opens and closes Changes by keyboard', async ({ page }) => {
+    await page.locator('#studio-changes-button').focus();
+    await page.keyboard.press('Enter');
+    await expect(changesDialog(page)).toBeVisible();
+    expect(await changesDialog(page).evaluate((d) => d.contains(document.activeElement))).toBe(
+      true
+    );
+    await page.keyboard.press('Escape');
+    await expect(changesDialog(page)).toBeHidden();
+    await expect(page.locator('#studio-changes-button')).toBeFocused();
+  });
+  test('opens the Keys drawer by keyboard at 1024x768 and returns focus on Escape', async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1024, height: 768 }); // below 1280, the compact layout with drawers
+    await page.getByTestId('studio-toggle-keys').focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#studio-keys-search')).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('studio-drawer-keys')).toBeHidden();
+    await expect(page.getByTestId('studio-toggle-keys')).toBeFocused();
+  });
+});
+
+// Review Focus 4 (outside the describe: the language is set before the first goto)
+test('reaches the language and theme controls by keyboard in Arabic', async ({ page }) => {
+  await page.addInitScript((key) => localStorage.setItem(key, 'ar'), STUDIO_LANGUAGE_KEY);
+  await page.goto('http://localhost:3010');
+  await connected(page);
+  await expect(page.getByTestId('studio-root')).toHaveAttribute('dir', 'rtl');
+  const ring = () =>
+    page.evaluate(() => {
+      const s = getComputedStyle(document.activeElement!);
+      return `${s.outlineStyle} ${s.outlineWidth}`;
+    });
+  await page.locator('#studio-language-toggle').focus();
+  expect(await ring()).toBe('solid 2px');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('[data-theme-choice="system"]')).toBeFocused();
+  expect(await ring()).toBe('solid 2px');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('[data-theme-choice="light"]')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('[data-theme-choice="light"]')).toHaveAttribute('aria-pressed', 'true');
+  expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(
+    false
+  );
+  await page.locator('#studio-language-toggle').focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('studio-root')).toHaveAttribute('dir', 'ltr');
 });

@@ -3,6 +3,7 @@ import { SelectedElement } from '../types/index.js';
 import { extractPlaceholders } from '../../../../core/placeholders.js';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
 import { PluralEditor } from './PluralEditor.jsx';
+import { TRANSLATION_INPUT_ID } from '../constants.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
@@ -179,7 +180,7 @@ export const TranslationEditor = ({
           />
         ) : (
           <textarea
-            id="studio-translation-input"
+            id={TRANSLATION_INPUT_ID}
             aria-label={t('editor.translation_label')}
             dir="auto"
             value={inputValue}

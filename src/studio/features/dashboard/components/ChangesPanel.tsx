@@ -3,6 +3,7 @@ import type { GitState } from '../../../api.js';
 import type { HistoryEntry } from '../hooks/useHistory.js';
 import type { Draft } from '../../../transport/drafts.js';
 import { DraftList } from './DraftList.js';
+import { useDialog } from '../hooks/useDialog.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
@@ -60,7 +61,7 @@ const formatTime = (epoch: number) =>
   new Date(epoch).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
 /**
- * Slide-over panel with the git view of the locales directory (status, diff,
+ * Slide-over modal dialog with the git view of the locales directory (status, diff,
  * commit, discard) and the session's edit history with per-entry undo.
  */
 export const ChangesPanel = ({
@@ -88,6 +89,7 @@ export const ChangesPanel = ({
   const [message, setMessage] = useState('');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
+  const dialogRef = useDialog<HTMLElement>(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -122,11 +124,20 @@ export const ChangesPanel = ({
       {/* Backdrop */}
       <div className="absolute inset-0 bg-overlay" onClick={onClose} />
 
-      <aside className="relative w-[520px] max-w-full h-full bg-raised border-s border-line flex flex-col animate-in slide-in-from-end duration-200">
+      <aside
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="studio-changes-title"
+        className="relative w-[520px] max-w-full h-full bg-raised border-s border-line flex flex-col animate-in slide-in-from-end duration-200"
+      >
         {/* Header */}
         <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-bold tracking-wide font-heading text-fg">
+            <h2
+              id="studio-changes-title"
+              className="text-sm font-bold tracking-wide font-heading text-fg"
+            >
               {t('changes.title')}
             </h2>
             {git?.isRepo && git.branch && (

@@ -12,6 +12,8 @@ interface KeysDirectoryProps {
   setFilterPageOnly: (filter: boolean) => void;
   visibleKeys: string[] | null;
   selectKeyDirectly: (key: string) => void;
+  /** Called after a pick made from the keyboard (Enter or Space), not by a pointer click. */
+  onKeyActivatedByKeyboard?: (key: string) => void;
   /** Width and flex classes; defaults to the fixed column width. */
   className?: string;
 }
@@ -26,6 +28,7 @@ export const KeysDirectory = ({
   setFilterPageOnly,
   visibleKeys,
   selectKeyDirectly,
+  onKeyActivatedByKeyboard,
   className = 'w-[300px] shrink-0',
 }: KeysDirectoryProps) => {
   const { t } = useStudioText();
@@ -45,6 +48,7 @@ export const KeysDirectory = ({
       <div className="p-4 border-b border-line shrink-0 bg-raised space-y-3">
         <div className="relative">
           <input
+            id="studio-keys-search"
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -76,6 +80,7 @@ export const KeysDirectory = ({
             <button
               type="button"
               onClick={() => setFilterPageOnly(false)}
+              aria-pressed={!filterPageOnly}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 !filterPageOnly
                   ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
@@ -87,6 +92,7 @@ export const KeysDirectory = ({
             <button
               type="button"
               onClick={() => setFilterPageOnly(true)}
+              aria-pressed={filterPageOnly}
               disabled={visibleKeys === null}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 filterPageOnly
@@ -112,7 +118,11 @@ export const KeysDirectory = ({
               <button
                 type="button"
                 key={key}
-                onClick={() => selectKeyDirectly(key)}
+                onClick={(event) => {
+                  selectKeyDirectly(key);
+                  // A click from Enter or Space carries detail 0; a pointer click counts its presses.
+                  if (event.detail === 0) onKeyActivatedByKeyboard?.(key);
+                }}
                 aria-current={isActive ? 'true' : undefined}
                 className={`w-full text-start p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
                   isActive

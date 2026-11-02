@@ -1,5 +1,6 @@
-import React, { useEffect, type ReactNode } from 'react';
+import React, { useEffect, useRef, type ReactNode } from 'react';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { FOCUSABLE_SELECTOR } from '../hooks/useDialog.js';
 
 /** The drawer open in compact mode, if any. */
 export type StudioPanel = 'keys' | 'side' | null;
@@ -47,6 +48,22 @@ export const StudioLayout = ({
 }: StudioLayoutProps) => {
   const { t } = useStudioText();
   const compactOpen = isWide ? null : openPanel;
+  const keysDrawerRef = useRef<HTMLDivElement>(null);
+  const sideDrawerRef = useRef<HTMLDivElement>(null);
+  const keysToggleRef = useRef<HTMLButtonElement>(null);
+  const sideToggleRef = useRef<HTMLButtonElement>(null);
+  // The drawer its own toggle opened. Only such a drawer takes focus on open and hands it back
+  // to the toggle on Escape; one opened from outside (an Alt+Click pick) leaves focus alone.
+  const openedByToggle = useRef<StudioPanel>(null);
+
+  useEffect(() => {
+    if (compactOpen === null || compactOpen !== openedByToggle.current) {
+      openedByToggle.current = null;
+      return;
+    }
+    const drawer = compactOpen === 'keys' ? keysDrawerRef.current : sideDrawerRef.current;
+    drawer?.querySelector<HTMLElement>(FOCUSABLE_SELECTOR)?.focus();
+  }, [compactOpen]);
 
   useEffect(() => {
     if (compactOpen === null) return;
@@ -54,14 +71,24 @@ export const StudioLayout = ({
       if (event.key !== 'Escape' || event.defaultPrevented) return;
       // An open dialog owns Escape; the drawer behind it stays open.
       if (document.querySelector('[aria-modal="true"]') !== null) return;
+      const opener =
+        openedByToggle.current !== compactOpen
+          ? null
+          : compactOpen === 'keys'
+            ? keysToggleRef.current
+            : sideToggleRef.current;
       onOpenPanelChange(null);
+      opener?.focus();
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [compactOpen, onOpenPanelChange]);
 
-  const toggle = (panel: Exclude<StudioPanel, null>) =>
-    onOpenPanelChange(openPanel === panel ? null : panel);
+  const toggle = (panel: Exclude<StudioPanel, null>) => {
+    const opening = openPanel !== panel;
+    openedByToggle.current = opening ? panel : null;
+    onOpenPanelChange(opening ? panel : null);
+  };
 
   return (
     <main
@@ -70,6 +97,7 @@ export const StudioLayout = ({
       }`}
     >
       <div
+        ref={keysDrawerRef}
         id={KEYS_DRAWER_ID}
         data-testid={KEYS_DRAWER_ID}
         className={isWide ? 'h-full shrink-0' : `${DRAWER} start-0`}
@@ -82,6 +110,7 @@ export const StudioLayout = ({
         {!isWide && (
           <div className="flex items-center gap-2 shrink-0 select-none">
             <button
+              ref={keysToggleRef}
               type="button"
               data-testid="studio-toggle-keys"
               aria-expanded={compactOpen === 'keys'}
@@ -92,6 +121,7 @@ export const StudioLayout = ({
               {t('layout.keys')}
             </button>
             <button
+              ref={sideToggleRef}
               type="button"
               data-testid="studio-toggle-side"
               aria-expanded={compactOpen === 'side'}
@@ -108,6 +138,7 @@ export const StudioLayout = ({
       </div>
 
       <div
+        ref={sideDrawerRef}
         id={SIDE_DRAWER_ID}
         data-testid={SIDE_DRAWER_ID}
         className={isWide ? 'h-full shrink-0' : `${DRAWER} end-0`}
