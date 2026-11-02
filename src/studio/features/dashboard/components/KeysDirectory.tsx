@@ -113,7 +113,7 @@ export const KeysDirectory = ({
                 className={`w-full text-left p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
                   isActive
                     ? 'bg-accent-soft border-accent-line text-fg shadow-sm'
-                    : 'bg-surface hover:bg-raised-hover border-transparent text-fg hover:text-fg'
+                    : 'bg-surface hover:bg-surface border-transparent text-fg hover:text-fg'
                 }`}
               >
                 <div className="w-full flex items-center justify-between gap-2">
