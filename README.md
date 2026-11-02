@@ -1,6 +1,10 @@
-# LiveLocale
-
 <div align="center">
+  <h1>
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="brand/logo-dark.svg">
+      <img src="brand/logo.svg" alt="livelocale" height="64">
+    </picture>
+  </h1>
   <p><strong>Click any text in your app. Fix the translation. Ship it as a pull request.</strong></p>
   <p>Keep next-intl or react-i18next. LiveLocale adds in-context editing for Next.js and React + Vite: no account, no server, no browser extension. Your translations stay as JSON in git.</p>
   

@@ -36,11 +36,26 @@ export function markSvg(theme) {
   return withColors(MASTER_MARK, theme);
 }
 
-/** The 16 px mark: the master without the hairline "old line" and the patch shadow. */
+// At 16 px one pixel is 4 units and the master's bars sit on quarter pixels, so they render
+// blurred; the small mark snaps every edge to the 4-unit grid (same layout, 1 px between words).
+const SNAP_TO_GRID = [
+  ['x="6" y="11" width="20" height="8"', 'x="4" y="12" width="20" height="8"'],
+  ['x="29" y="11" width="29" height="8"', 'x="28" y="12" width="28" height="8"'],
+  ['x="6" y="28" width="14" height="8"', 'x="4" y="28" width="16" height="8"'],
+  ['x="6" y="45" width="23" height="8"', 'x="4" y="44" width="24" height="8"'],
+  ['x="32" y="45" width="12" height="8"', 'x="32" y="44" width="12" height="8"'],
+  ['x="23" y="23" width="30" height="15" rx="4.5"', 'x="24" y="24" width="28" height="16" rx="4"'],
+];
+
+/**
+ * The 16 px mark: the master without the hairline "old line" and the patch shadow, with its edges
+ * snapped to the 16 px pixel grid.
+ */
 export function smallMarkSvg() {
-  return MASTER_MARK.split('\n')
+  const small = MASTER_MARK.split('\n')
     .filter((line) => line.trim() !== HAIRLINE && line.trim() !== SHADOW)
     .join('\n');
+  return SNAP_TO_GRID.reduce((svg, [from, to]) => svg.replace(from, to), small);
 }
 
 /** The SVG favicon: the small mark, switching to the dark colours under a dark system setting. */

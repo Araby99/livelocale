@@ -1,0 +1,138 @@
+<!doctype html>
+<!--
+  The 1200×630 share image (rendered to og-image.png). Open with ?shot=<file URL> to show a
+  Studio screenshot in the right half.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>livelocale og-image</title>
+    <style>
+      @font-face {
+        font-family: 'Bricolage Grotesque';
+        font-weight: 800;
+        src: url('../../site/node_modules/@fontsource/bricolage-grotesque/files/bricolage-grotesque-latin-800-normal.woff2')
+          format('woff2');
+      }
+      @font-face {
+        font-family: 'Inter';
+        font-weight: 500;
+        src: url('../../site/node_modules/@fontsource/inter/files/inter-latin-500-normal.woff2')
+          format('woff2');
+      }
+      @font-face {
+        font-family: 'JetBrains Mono';
+        font-weight: 500;
+        src: url('../../site/node_modules/@fontsource/jetbrains-mono/files/jetbrains-mono-latin-500-normal.woff2')
+          format('woff2');
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: #fff8f0;
+        color: #1d1712;
+      }
+      body {
+        box-sizing: border-box;
+        display: flex;
+        gap: 48px;
+        padding: 64px 72px;
+      }
+      .copy {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .logo {
+        display: block;
+        height: 56px;
+        width: auto;
+        align-self: flex-start;
+      }
+      h1 {
+        margin: auto 0 0;
+        font:
+          800 76px/1.08 'Bricolage Grotesque',
+          sans-serif;
+        letter-spacing: -0.02em;
+      }
+      .patch {
+        display: inline-block;
+        padding: 0 14px;
+        border-radius: 12px;
+        background: #ff6b4a;
+        color: #1d1712;
+        transform: rotate(-4deg);
+        box-shadow: 4px 5px 0 #c2472c;
+      }
+      .sub {
+        margin: 28px 0 0;
+        font:
+          500 36px/1.3 'Inter',
+          sans-serif;
+        color: #6b5b4d;
+      }
+      .bottom {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 28px;
+        margin-top: auto;
+      }
+      code {
+        white-space: nowrap;
+        padding: 12px 18px;
+        border-radius: 10px;
+        background: #f3e6d8;
+        color: #1d1712;
+        font:
+          500 26px/1 'JetBrains Mono',
+          monospace;
+      }
+      .url {
+        font:
+          500 26px/1 'Inter',
+          sans-serif;
+        color: #6b5b4d;
+      }
+      #studio {
+        flex: 1;
+        min-width: 0;
+        align-self: center;
+      }
+      #studio[hidden] {
+        display: none;
+      }
+      #studio img {
+        display: block;
+        width: 100%;
+        border: 1px solid #e9dccd;
+        border-radius: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="copy">
+      <img class="logo" src="../logo.svg" alt="livelocale" />
+      <h1>Stop collecting <span class="patch">screenshots.</span></h1>
+      <p class="sub">Stop finding untranslated text on launch day.</p>
+      <div class="bottom">
+        <code>npx livelocale init --share</code>
+        <span class="url">livelocale.js.org</span>
+      </div>
+    </main>
+    <aside id="studio" hidden><img alt="" /></aside>
+    <script>
+      const shot = new URLSearchParams(location.search).get('shot');
+      if (shot) {
+        const studio = document.getElementById('studio');
+        studio.querySelector('img').src = shot;
+        studio.hidden = false;
+      }
+    </script>
+  </body>
+</html>
