@@ -8,8 +8,9 @@
 //   - wide: the Studio shots lose the idle bottom fifth (the pricing cards); the Send dialog and the
 //     pull request, which fill the frame's height, are scaled down whole and set on Surface.
 //   - narrow: the Studio shots stack the page (headline and buttons) over the editor, so a phone
-//     sees the text change and the field it is typed in; the dialog and GitHub are cut to their
-//     readable middle.
+//     sees the text change and the field it is typed in, with a Surface seam between the two crops
+//     so they read as two panes of one window, not a collage; the dialog and GitHub are cut to
+//     their readable middle.
 // Run after a new recording, then hero-frames.mjs: node site/scripts/hero-cuts.mjs
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -20,6 +21,8 @@ const FFMPEG = require('ffmpeg-static');
 const HERO = fileURLToPath(new URL('../media/hero/', import.meta.url));
 const MASTER = `${HERO}hero.mp4`;
 const SURFACE = '0x16181D';
+/** The band of Surface, in output pixels, between the page and the editor in a stacked shot. */
+export const SEAM = 6;
 
 /** The master's camera cuts, in seconds: where each shot starts. */
 const SHOTS = [
@@ -72,10 +75,11 @@ export function filterGraph(name) {
     const how = camera[shot.camera];
     if (typeof how === 'string') return `[0:v]${trim},${how},setsar=1[s${i}]`;
     const pageOut = 280; // both page crops are about 2.6:1; the editor takes the rest
+    // The seam is padded under the page; the editor keeps its scale and gives up its bottom rows.
     return [
       `[0:v]${trim},split[a${i}][b${i}]`,
-      `[a${i}]${how.page},scale=${w}:${pageOut}[p${i}]`,
-      `[b${i}]${how.editor},scale=${w}:${h - pageOut}[e${i}]`,
+      `[a${i}]${how.page},scale=${w}:${pageOut},pad=${w}:${pageOut + SEAM}:0:0:color=${SURFACE}[p${i}]`,
+      `[b${i}]${how.editor},scale=${w}:${h - pageOut},crop=${w}:${h - pageOut - SEAM}:0:0[e${i}]`,
       `[p${i}][e${i}]vstack,setsar=1[s${i}]`,
     ].join(';');
   });
