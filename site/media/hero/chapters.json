@@ -1,17 +1,17 @@
 {
-  "duration": 14.05,
+  "duration": 14.61,
   "chapters": [
     {
       "title": "Alt+Click the text",
-      "start": 1.24
+      "start": 0.8
     },
     {
       "title": "Fix it in every language",
-      "start": 6.42
+      "start": 5.16
     },
     {
-      "title": "Send it as a pull request",
-      "start": 11.46
+      "title": "Send it to your developer",
+      "start": 10.48
     }
   ]
 }

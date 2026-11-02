@@ -83,7 +83,16 @@ node site/scripts/record-hero.mjs
 ```
 
 Builds the fictional Tidewell pricing site in `site/stage/`, packs it with `livelocale pack`, serves
-it on a port in 5170-5179 and records the real share Studio in headless Chromium (CDP screencast,
-realtime 1x at 1600x1000). It writes `hero.mp4`, `hero.webm`, `poster.png`, `contact.png` (12
-frames, 4x3) and `chapters.json` to `site/media/hero/`. The cursor, click ripple and Alt keycap are
-an overlay the recorder injects into the Studio page; everything else on screen is the product.
+it on a port in 5170-5179 (browsed as `http://tidewell.example` through a Chromium host-resolver
+rule) and records the real share Studio in headless Chromium at 1600x1000, DPR 2 (CDP screencast).
+Headless Chromium only paints about 8 frames a second at 3200x2000, so the take is acted three times
+slower than it plays, with CSS animations slowed to match, and the timestamps are scaled back. A
+camera move (an eased crop keyed to the beats the recorder logs) is added in ffmpeg, and the loop
+seam dips to the stage colour and fades back into frame 0. It writes `hero.mp4`, `hero.webm`,
+`poster.png`, `contact.png` (12 frames, 4x3) and `chapters.json` to `site/media/hero/`. The cursor,
+click ripple and keycaps (Alt, EN → AR) are an overlay the recorder injects into the Studio page;
+everything else on screen is the product.
+
+Knobs: `HERO_NO_ENCODE=1` acts the take and prints the beat times only; `HERO_SLOW`, `HERO_DPR` and
+`HERO_Q` (screencast JPEG quality) trade capture fps against sharpness; `HERO_KEEP_MASTER=<file>`
+keeps the near-lossless master for frame-by-frame review.

@@ -152,6 +152,10 @@ a {
   font-weight: 800;
   letter-spacing: -0.035em;
 }
+/* Arabic runs taller: trim the top so the plan buttons stay in the video frame. */
+html[dir='rtl'] .hero {
+  padding-top: 6px;
+}
 html[dir='rtl'] .hero h1 {
   letter-spacing: 0;
   line-height: 1.3;

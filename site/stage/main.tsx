@@ -1,7 +1,8 @@
 // Tidewell: a fictional invoicing product's pricing page, the stage the hero video is recorded on.
 // Every visible string goes through t(), wrapped with wrapTranslationEngine so the packed share
-// Studio can edit it by Alt+Click. The headline typo and the one untranslated Arabic button are
-// deliberate: the video fixes both.
+// Studio can edit it by Alt+Click. The headline typo and the one Arabic button with no translation
+// (hero.cta is missing from ar.json, so i18next falls back to English) are deliberate: the video
+// fixes both.
 import '@fontsource/plus-jakarta-sans/400.css';
 import '@fontsource/plus-jakarta-sans/500.css';
 import '@fontsource/plus-jakarta-sans/600.css';
