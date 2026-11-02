@@ -1,28 +1,9 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@theme {
-  /* Semantic colors mapped to CSS variables */
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  --color-popover: hsl(var(--popover));
-  --color-popover-foreground: hsl(var(--popover-foreground));
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
+@custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
   /* Radius scale */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -33,54 +14,130 @@
   --font-outfit: 'Outfit', system-ui, sans-serif;
 }
 
+@theme inline {
+  /* Brand colour tokens, switched by the .dark class */
+  --color-app: var(--lc-app);
+  --color-surface: var(--lc-surface);
+  --color-raised: var(--lc-raised);
+  --color-raised-hover: var(--lc-raised-hover);
+  --color-line: var(--lc-line);
+  --color-line-strong: var(--lc-line-strong);
+  --color-fg: var(--lc-fg);
+  --color-fg-muted: var(--lc-fg-muted);
+  --color-fg-faint: var(--lc-fg-faint);
+  --color-accent: var(--lc-accent);
+  --color-accent-hover: var(--lc-accent-hover);
+  --color-accent-shadow: var(--lc-accent-shadow);
+  --color-on-accent: var(--lc-on-accent);
+  --color-accent-fg: var(--lc-accent-fg);
+  --color-accent-soft: var(--lc-accent-soft);
+  --color-accent-line: var(--lc-accent-line);
+  --color-focus: var(--lc-focus);
+  --color-logo-ink: var(--lc-logo-ink);
+  --color-danger-fg: var(--lc-danger-fg);
+  --color-danger-bg: var(--lc-danger-bg);
+  --color-danger-line: var(--lc-danger-line);
+  --color-danger-solid: var(--lc-danger-solid);
+  --color-on-danger: var(--lc-on-danger);
+  --color-warning-fg: var(--lc-warning-fg);
+  --color-warning-bg: var(--lc-warning-bg);
+  --color-warning-line: var(--lc-warning-line);
+  --color-warning-solid: var(--lc-warning-solid);
+  --color-on-warning: var(--lc-on-warning);
+  --color-success-fg: var(--lc-success-fg);
+  --color-success-bg: var(--lc-success-bg);
+  --color-success-line: var(--lc-success-line);
+  --color-info-fg: var(--lc-info-fg);
+  --color-info-bg: var(--lc-info-bg);
+  --color-info-line: var(--lc-info-line);
+  --color-overlay: var(--lc-overlay);
+}
+
+/* Token values stay upper-case hex, as in the brand table, so Prettier skips both blocks. */
+/* prettier-ignore */
 :root {
-  --background: 220 33% 98%;
-  --foreground: 224 71.4% 4.1%;
-  --card: 0 0% 100%;
-  --card-foreground: 224 71.4% 4.1%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 224 71.4% 4.1%;
-  --primary: 221.2 83.2% 53.3%;
-  --primary-foreground: 210 40% 98%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  --accent: 210 40% 96.1%;
-  --accent-foreground: 222.2 47.4% 11.2%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 221.2 83.2% 53.3%;
+  color-scheme: light;
+  --lc-app: #FFF8F0;
+  --lc-surface: #FFFDFA;
+  --lc-raised: #F7EEE4;
+  --lc-raised-hover: #EFE3D6;
+  --lc-line: #E9DCCD;
+  --lc-line-strong: #8C7764;
+  --lc-fg: #1D1712;
+  --lc-fg-muted: #6B5B4D;
+  --lc-fg-faint: #A08B78;
+  --lc-accent: #FF6B4A;
+  --lc-accent-hover: #FF8264;
+  --lc-accent-shadow: #C2472C;
+  --lc-on-accent: #1D1712;
+  --lc-accent-fg: #B23A1E;
+  --lc-accent-soft: #FFE9E2;
+  --lc-accent-line: #F5B9A8;
+  --lc-focus: #B23A1E;
+  --lc-logo-ink: #1D1712;
+  --lc-danger-fg: #B42318;
+  --lc-danger-bg: #FDECEA;
+  --lc-danger-line: #F2B8B0;
+  --lc-danger-solid: #B42318;
+  --lc-on-danger: #FFFFFF;
+  --lc-warning-fg: #8A5A00;
+  --lc-warning-bg: #FDF3DC;
+  --lc-warning-line: #E9CF8F;
+  --lc-warning-solid: #8A5A00;
+  --lc-on-warning: #FFFFFF;
+  --lc-success-fg: #1A6B37;
+  --lc-success-bg: #E6F4EA;
+  --lc-success-line: #A7D7B5;
+  --lc-info-fg: #1E5FA8;
+  --lc-info-bg: #E7F0FA;
+  --lc-info-line: #A9C7EA;
+  --lc-overlay: #1D171273;
   --radius: 0.5rem;
 }
 
+/* prettier-ignore */
 .dark {
-  --background: 222.2 84% 4.9%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 84% 4.9%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 84% 4.9%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 224.3 76.3% 48%;
+  color-scheme: dark;
+  --lc-app: #1C1714;
+  --lc-surface: #231D19;
+  --lc-raised: #2D2520;
+  --lc-raised-hover: #3A302A;
+  --lc-line: #3B312A;
+  --lc-line-strong: #94806F;
+  --lc-fg: #F6EEE6;
+  --lc-fg-muted: #CBBBAA;
+  --lc-fg-faint: #7D6A5B;
+  --lc-accent: #FF7A5C;
+  --lc-accent-hover: #FF9478;
+  --lc-accent-shadow: #9E3A24;
+  --lc-on-accent: #1C1714;
+  --lc-accent-fg: #FF8A6E;
+  --lc-accent-soft: #3A231C;
+  --lc-accent-line: #6E3426;
+  --lc-focus: #FF7A5C;
+  --lc-logo-ink: #F6EEE6;
+  --lc-danger-fg: #FF8A80;
+  --lc-danger-bg: #3A1E1A;
+  --lc-danger-line: #6E2E26;
+  --lc-danger-solid: #C7362B;
+  --lc-on-danger: #FFFFFF;
+  --lc-warning-fg: #F5C26B;
+  --lc-warning-bg: #3A2E17;
+  --lc-warning-line: #6B5426;
+  --lc-warning-solid: #F5C26B;
+  --lc-on-warning: #1C1714;
+  --lc-success-fg: #7FD49A;
+  --lc-success-bg: #183222;
+  --lc-success-line: #2F5E3E;
+  --lc-info-fg: #8DBEF5;
+  --lc-info-bg: #172839;
+  --lc-info-line: #2E4E73;
+  --lc-overlay: #000000A6;
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: var(--color-app);
+  color: var(--color-fg);
   font-family:
     'Inter',
     system-ui,

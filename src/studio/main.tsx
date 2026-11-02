@@ -13,6 +13,9 @@ import './index.css';
 import App from './app.js';
 import { startStudio } from './bootstrap.js';
 
+// The Studio stays dark until the theme toggle lands.
+document.documentElement.classList.add('dark');
+
 // Decide between the HTTP API and a static share folder before the first render.
 startStudio({
   href: location.href,
