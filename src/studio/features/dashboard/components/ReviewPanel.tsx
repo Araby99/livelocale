@@ -169,7 +169,7 @@ export const ReviewPanel = ({
       className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
     >
       <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">Review</h2>
+        <h2 className="text-sm font-bold tracking-wide font-heading text-slate-200">Review</h2>
         <button
           type="button"
           onClick={onClose}

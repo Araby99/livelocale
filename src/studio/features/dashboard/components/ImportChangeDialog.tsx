@@ -66,7 +66,7 @@ export const ImportChangeDialog = ({
         aria-labelledby="studio-import-title"
         className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 select-text"
       >
-        <h3 id="studio-import-title" className="text-base font-bold text-slate-200 font-outfit">
+        <h3 id="studio-import-title" className="text-base font-bold text-slate-200 font-heading">
           Import change link
         </h3>
         <p className="text-xs text-slate-400 mt-2 leading-relaxed">

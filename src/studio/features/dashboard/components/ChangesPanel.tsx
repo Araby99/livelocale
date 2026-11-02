@@ -104,7 +104,7 @@ export const ChangesPanel = ({
         {/* Header */}
         <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-3">
-            <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">Changes</h2>
+            <h2 className="text-sm font-bold tracking-wide font-heading text-slate-200">Changes</h2>
             {git?.isRepo && git.branch && (
               <span className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-indigo-400">
                 {git.branch}

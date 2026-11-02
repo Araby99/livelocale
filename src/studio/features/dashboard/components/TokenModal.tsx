@@ -33,7 +33,7 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
         className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 space-y-4"
       >
         <div>
-          <h3 id="studio-token-title" className="text-base font-bold text-slate-200 font-outfit">
+          <h3 id="studio-token-title" className="text-base font-bold text-slate-200 font-heading">
             Access token required
           </h3>
           <p className="text-xs text-slate-400 mt-2 leading-relaxed">

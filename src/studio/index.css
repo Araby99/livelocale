@@ -10,8 +10,10 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* Custom font */
-  --font-outfit: 'Outfit', system-ui, sans-serif;
+  /* Brand type: each Latin face first, then its Arabic face */
+  --font-heading: 'Bricolage Grotesque', 'Readex Pro', system-ui, sans-serif;
+  --font-sans: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @theme inline {
@@ -138,9 +140,14 @@
 body {
   background-color: var(--color-app);
   color: var(--color-fg);
-  font-family:
-    'Inter',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Arabic reads better a little larger and with more line height; rem sizes scale with it. */
+html[lang='ar'] {
+  font-size: 108%;
+}
+
+html[lang='ar'] body {
+  line-height: 1.7;
 }

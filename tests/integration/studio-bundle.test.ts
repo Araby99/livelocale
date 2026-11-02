@@ -19,6 +19,7 @@ describe.skipIf(!fs.existsSync('dist/studio/index.html'))('built Studio bundle',
     expect(html).not.toMatch(/fonts\.(googleapis|gstatic)\.com/);
     expect(html).toContain('name="robots" content="noindex, nofollow"');
     expect(fs.readdirSync('dist/studio/assets').some((f) => f.endsWith('.woff2'))).toBe(true);
-    expect(dirBytes('dist/studio')).toBeLessThan(1_000_000);
+    // The brand faces (Latin and Arabic, woff2 plus woff fallbacks) put the bundle near 1.2 MB.
+    expect(dirBytes('dist/studio')).toBeLessThan(1_500_000);
   });
 });

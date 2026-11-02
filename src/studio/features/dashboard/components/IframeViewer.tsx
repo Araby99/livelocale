@@ -105,7 +105,7 @@ export const IframeViewer = ({
               <div className="absolute inset-0 rounded-full border-2 border-t-indigo-500 animate-spin"></div>
             </div>
             <div className="text-center">
-              <h3 className="text-slate-200 font-semibold tracking-wide font-outfit">
+              <h3 className="text-slate-200 font-semibold tracking-wide font-heading">
                 Connecting to Project
               </h3>
               <p className="text-xs text-slate-500 mt-1 font-mono">

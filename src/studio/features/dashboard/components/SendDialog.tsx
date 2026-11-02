@@ -188,7 +188,7 @@ export const SendDialog = ({
         aria-labelledby="studio-send-title"
         className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4"
       >
-        <h3 id="studio-send-title" className="text-base font-bold text-slate-200 font-outfit">
+        <h3 id="studio-send-title" className="text-base font-bold text-slate-200 font-heading">
           Send to developer
         </h3>
 

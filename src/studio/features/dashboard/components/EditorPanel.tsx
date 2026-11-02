@@ -80,7 +80,7 @@ export const EditorPanel = ({
     >
       {/* Panel Header */}
       <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-outfit text-slate-200">
+        <h2 className="text-sm font-bold tracking-wide font-heading text-slate-200">
           {isManageOpen ? 'Manage Languages' : 'Translation Studio'}
         </h2>
 

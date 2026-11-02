@@ -23,7 +23,7 @@ export const FirstRunTips = ({ open, name, onNameChange, onDismiss }: FirstRunTi
         aria-labelledby="studio-tips-title"
         className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl"
       >
-        <h3 id="studio-tips-title" className="text-base font-bold text-slate-200 font-outfit">
+        <h3 id="studio-tips-title" className="text-base font-bold text-slate-200 font-heading">
           Welcome to LiveLocale
         </h3>
         <ol className="mt-3 space-y-2 list-decimal list-inside text-xs text-slate-300 leading-relaxed">

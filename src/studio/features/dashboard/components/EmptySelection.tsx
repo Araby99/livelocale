@@ -18,7 +18,7 @@ export const EmptySelection = () => {
           />
         </svg>
       </div>
-      <h3 className="text-slate-200 font-semibold tracking-wide font-outfit">Select an Element</h3>
+      <h3 className="text-slate-200 font-semibold tracking-wide font-heading">Select an Element</h3>
       <p className="text-xs text-slate-500 max-w-xs mt-2 leading-relaxed">
         Hover over elements in the live preview iframe and click to load them into the visual
         editing sidebar.

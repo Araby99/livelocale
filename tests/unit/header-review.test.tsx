@@ -63,4 +63,10 @@ describe('Header in Review mode', () => {
     renderHeader({ targetLocale });
     expect(screen.getByTestId('target-locale').textContent).toContain('Editing: ar');
   });
+
+  it('shows the patch mark and the lower-case wordmark', () => {
+    renderHeader({});
+    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('livelocale');
+    expect(screen.getByTestId('brand-mark')).toBeTruthy();
+  });
 });

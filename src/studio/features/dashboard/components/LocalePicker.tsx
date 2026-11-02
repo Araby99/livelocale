@@ -24,7 +24,7 @@ export const LocalePicker = ({ candidates, onChoose, onCancel }: LocalePickerPro
       >
         <h3
           id="studio-locale-picker-title"
-          className="text-base font-bold text-slate-200 font-outfit"
+          className="text-base font-bold text-slate-200 font-heading"
         >
           Which language are you editing?
         </h3>
