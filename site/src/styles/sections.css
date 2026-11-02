@@ -629,7 +629,7 @@ html:not(.js) .story + .story {
 }
 
 /* ---------- The diff grammar (spec §2.4a) ----------
-   Old text is a struck Ghost line after −; the fix is a Wash row after a filled amber +, the
+   Old text is Comment letters under a Ghost strike after −; the fix is a Wash row after a filled amber +, the
    edited words on a Patch fill; files and locales are Hunk; the result is Exit 0 with a check. */
 
 .diff {
@@ -716,13 +716,16 @@ html:not(.js) .story + .story {
   font-weight: 600;
 }
 
+/* Old text stays readable: the letters in Comment (AA on Surface), the strike line in Ghost, as
+   the Studio draws a removed value. */
 .d-del,
 .d-del del {
-  color: var(--ghost);
+  color: var(--comment);
 }
 
 .d-del del {
   text-decoration: line-through;
+  text-decoration-color: var(--ghost);
   text-decoration-thickness: 1px;
 }
 

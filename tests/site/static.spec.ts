@@ -76,7 +76,7 @@ test('points at the real pull request and repository', async ({ page }) => {
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
 
-  test('writes the pull request as a diff: struck ghost, amber plus, locale chips, exit 0', async ({
+  test('writes the pull request as a diff: struck old text, amber plus, locale chips, exit 0', async ({
     page,
   }) => {
     await page.goto('./');
@@ -86,6 +86,7 @@ test.describe('without JavaScript', () => {
       const c = (sel: string) => getComputedStyle(el.querySelector(sel)!);
       return {
         old: `${c('.d-del del').color} ${c('.d-del del').textDecorationLine}`,
+        strike: c('.d-del del').textDecorationColor,
         row: c('.d-add').backgroundColor,
         plus: c('.d-add .d-sign').backgroundColor,
         chip: c('.chip').color,
@@ -93,7 +94,8 @@ test.describe('without JavaScript', () => {
       };
     });
     expect(s).toEqual({
-      old: 'rgb(110, 107, 100) line-through',
+      old: 'rgb(140, 136, 125) line-through',
+      strike: 'rgb(110, 107, 100)',
       row: 'rgb(46, 36, 18)',
       plus: 'rgb(255, 178, 36)',
       chip: 'rgb(79, 195, 220)',
@@ -111,6 +113,42 @@ test.describe('without JavaScript', () => {
     await expect(pair.locator('del')).toHaveText('Was: Plans that grows with you');
     await expect(pair.locator('ins')).toHaveText('Now: Plans that grow with you');
   });
+});
+
+test('sets struck old text in letters that pass AA on the background they sit on', async ({
+  page,
+}) => {
+  await page.goto('./');
+  // Every removed line, in the pull request diff and the fixer's pair (both render without a door
+  // chosen, since the check reads computed styles, not visibility).
+  const ratios = await page.locator('.d-del del').evaluateAll((dels) => {
+    const rgb = (v: string) =>
+      v
+        .match(/\d+(\.\d+)?/g)!
+        .slice(0, 4)
+        .map(Number);
+    const lum = ([r, g, b]: number[]) => {
+      const ch = (c: number) => {
+        const s = c / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      };
+      return 0.2126 * ch(r) + 0.7152 * ch(g) + 0.0722 * ch(b);
+    };
+    const backdrop = (el: Element | null): number[] => {
+      for (let n = el; n; n = n.parentElement) {
+        const c = rgb(getComputedStyle(n).backgroundColor);
+        if (c.length < 4 || c[3] > 0) return c.slice(0, 3);
+      }
+      return rgb(getComputedStyle(document.body).backgroundColor);
+    };
+    return dels.map((del) => {
+      const fg = lum(rgb(getComputedStyle(del).color));
+      const bg = lum(backdrop(del));
+      return (Math.max(fg, bg) + 0.05) / (Math.min(fg, bg) + 0.05);
+    });
+  });
+  expect(ratios.length).toBeGreaterThanOrEqual(3);
+  for (const ratio of ratios) expect(ratio).toBeGreaterThanOrEqual(4.5);
 });
 
 test('has no horizontal scroll at 360 px', async ({ page }) => {

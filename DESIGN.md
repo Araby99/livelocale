@@ -195,8 +195,8 @@ A near-black, low-chroma ground with warm paper text and five signal hues, each 
 - **Rule** (rule): 1px hairlines between steps, around panels, under the window bar, above the footer; also the empty track of a chapter's progress bar.
 - **Edge** (edge): the stronger 1px border for interactive outlines (outline button, play button, hovered and current chapter chips) and the scrollbar thumb on hover. 3.87:1 on Night, so it carries non-text affordance.
 - **Paper** (paper): all primary text and headings.
-- **Comment** (comment): secondary text: notes, captions, footer, step numbers, diff line numbers, CI prompts and comments, idle chapter chips. AA on Night and Surface.
-- **Ghost** (ghost): old text, struck through, in a removed diff line. 3.66:1 on Night and 3.34:1 on Surface, so it is history only, never prose.
+- **Comment** (comment): secondary text: notes, captions, footer, step numbers, diff line numbers, CI prompts and comments, idle chapter chips, and the letters of a removed diff line. AA on Night and Surface (5.02:1).
+- **Ghost** (ghost): the strike line through old text in a removed diff line, as the Studio draws it; the struck letters themselves are Comment so they stay readable. 3.66:1 on Night and 3.34:1 on Surface, so Ghost is a line, never letters.
 
 ### Named Rules
 
@@ -292,7 +292,7 @@ A two-option radiogroup styled as one Surface track (4px padding, 12px radius, 1
 
 ### The Diff (signature)
 
-Real pull-request diffs drawn in the brand: a Surface panel in IBM Plex Mono, a file row with a locale chip and a Hunk path, a Comment hunk header, Comment line numbers, removed lines in struck Ghost after a `−`, added lines on Amber Wash after a filled amber `+` square (3px radius), the edited words on a Patch fill, and a closing result row in Exit 0 Green with a check icon. The fixer's old/new pair uses the same signs and fills without line numbers.
+Real pull-request diffs drawn in the brand: a Surface panel in IBM Plex Mono, a file row with a locale chip and a Hunk path, a Comment hunk header, Comment line numbers, removed lines in Comment letters under a 1px Ghost strike after a `−` (the letters pass AA on Surface; a computed-contrast test checks every removed line), added lines on Amber Wash after a filled amber `+` square (3px radius), the edited words on a Patch fill, and a closing result row in Exit 0 Green with a check icon. The fixer's old/new pair uses the same signs and fills without line numbers.
 
 ### The Product Window
 
@@ -315,7 +315,7 @@ The hero video sits in one minimal browser frame: a Surface frame with a 12px ra
 - **Don't** use glows, blurs, gradients or purple anywhere.
 - **Don't** draw Patch Amber as a border, underline or text colour on dark; the focus ring is the only amber line.
 - **Don't** fill anything with Exit 1 Red; failure is a dashed outline.
-- **Don't** set prose, captions or any text that must be read in Ghost; it is below AA for body text.
+- **Don't** set prose, captions or any text that must be read in Ghost, struck old text included; it is below AA for body text. Ghost is the strike line only.
 - **Don't** tilt an element or give it a hard offset shadow unless it is the Patch Amber patch itself.
 - **Don't** add a light theme or a colour outside this palette.
 - **Don't** set labels in uppercase or with wide tracking.
