@@ -1,0 +1,442 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-02T20:50:39.815Z",
+  "title": "Design System: livelocale",
+  "extensions": {
+    "colorMeta": {
+      "night": {
+        "role": "neutral",
+        "displayName": "Night",
+        "canonical": "#0c0d0f",
+        "tonalRamp": [
+          "oklch(15% 0.002 264.4)",
+          "oklch(26% 0.003 264.4)",
+          "oklch(38% 0.005 264.4)",
+          "oklch(50% 0.005 264.4)",
+          "oklch(62% 0.005 264.4)",
+          "oklch(74% 0.005 264.4)",
+          "oklch(85% 0.004 264.4)",
+          "oklch(95% 0.003 264.4)"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Surface",
+        "canonical": "#16181d",
+        "tonalRamp": [
+          "oklch(15% 0.004 268.2)",
+          "oklch(26% 0.007 268.2)",
+          "oklch(38% 0.010 268.2)",
+          "oklch(50% 0.010 268.2)",
+          "oklch(62% 0.010 268.2)",
+          "oklch(74% 0.010 268.2)",
+          "oklch(85% 0.010 268.2)",
+          "oklch(95% 0.007 268.2)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#2a2d33",
+        "tonalRamp": [
+          "oklch(15% 0.005 264.4)",
+          "oklch(26% 0.008 264.4)",
+          "oklch(38% 0.012 264.4)",
+          "oklch(50% 0.012 264.4)",
+          "oklch(62% 0.012 264.4)",
+          "oklch(74% 0.012 264.4)",
+          "oklch(85% 0.011 264.4)",
+          "oklch(95% 0.008 264.4)"
+        ]
+      },
+      "edge": {
+        "role": "neutral",
+        "displayName": "Edge",
+        "canonical": "#6b6f7a",
+        "tonalRamp": [
+          "oklch(15% 0.007 269.8)",
+          "oklch(26% 0.012 269.8)",
+          "oklch(38% 0.018 269.8)",
+          "oklch(50% 0.018 269.8)",
+          "oklch(62% 0.018 269.8)",
+          "oklch(74% 0.018 269.8)",
+          "oklch(85% 0.017 269.8)",
+          "oklch(95% 0.012 269.8)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#e8e4d9",
+        "tonalRamp": [
+          "oklch(15% 0.006 90.2)",
+          "oklch(26% 0.011 90.2)",
+          "oklch(38% 0.015 90.2)",
+          "oklch(50% 0.015 90.2)",
+          "oklch(62% 0.015 90.2)",
+          "oklch(74% 0.015 90.2)",
+          "oklch(85% 0.014 90.2)",
+          "oklch(95% 0.010 90.2)"
+        ]
+      },
+      "comment": {
+        "role": "neutral",
+        "displayName": "Comment",
+        "canonical": "#8c887d",
+        "tonalRamp": [
+          "oklch(15% 0.007 90.3)",
+          "oklch(26% 0.012 90.3)",
+          "oklch(38% 0.017 90.3)",
+          "oklch(50% 0.017 90.3)",
+          "oklch(62% 0.017 90.3)",
+          "oklch(74% 0.017 90.3)",
+          "oklch(85% 0.016 90.3)",
+          "oklch(95% 0.011 90.3)"
+        ]
+      },
+      "ghost": {
+        "role": "neutral",
+        "displayName": "Ghost",
+        "canonical": "#6e6b64",
+        "tonalRamp": [
+          "oklch(15% 0.005 87.5)",
+          "oklch(26% 0.008 87.5)",
+          "oklch(38% 0.011 87.5)",
+          "oklch(50% 0.011 87.5)",
+          "oklch(62% 0.011 87.5)",
+          "oklch(74% 0.011 87.5)",
+          "oklch(85% 0.011 87.5)",
+          "oklch(95% 0.008 87.5)"
+        ]
+      },
+      "patch": {
+        "role": "primary",
+        "displayName": "Patch Amber",
+        "canonical": "#ffb224",
+        "tonalRamp": [
+          "oklch(15% 0.066 75.8)",
+          "oklch(26% 0.114 75.8)",
+          "oklch(38% 0.164 75.8)",
+          "oklch(50% 0.164 75.8)",
+          "oklch(62% 0.164 75.8)",
+          "oklch(74% 0.164 75.8)",
+          "oklch(85% 0.153 75.8)",
+          "oklch(95% 0.109 75.8)"
+        ]
+      },
+      "patch-hover": {
+        "role": "primary",
+        "displayName": "Patch Lit",
+        "canonical": "#ffc150",
+        "tonalRamp": [
+          "oklch(15% 0.058 79.4)",
+          "oklch(26% 0.100 79.4)",
+          "oklch(38% 0.145 79.4)",
+          "oklch(50% 0.145 79.4)",
+          "oklch(62% 0.145 79.4)",
+          "oklch(74% 0.145 79.4)",
+          "oklch(85% 0.135 79.4)",
+          "oklch(95% 0.097 79.4)"
+        ]
+      },
+      "patch-shadow": {
+        "role": "primary",
+        "displayName": "Patch Underside",
+        "canonical": "#8a5600",
+        "tonalRamp": [
+          "oklch(15% 0.043 69.6)",
+          "oklch(26% 0.075 69.6)",
+          "oklch(38% 0.109 69.6)",
+          "oklch(50% 0.109 69.6)",
+          "oklch(62% 0.109 69.6)",
+          "oklch(74% 0.109 69.6)",
+          "oklch(85% 0.101 69.6)",
+          "oklch(95% 0.072 69.6)"
+        ]
+      },
+      "wash": {
+        "role": "primary",
+        "displayName": "Amber Wash",
+        "canonical": "#2e2412",
+        "tonalRamp": [
+          "oklch(15% 0.013 81.2)",
+          "oklch(26% 0.023 81.2)",
+          "oklch(38% 0.033 81.2)",
+          "oklch(50% 0.033 81.2)",
+          "oklch(62% 0.033 81.2)",
+          "oklch(74% 0.033 81.2)",
+          "oklch(85% 0.031 81.2)",
+          "oklch(95% 0.022 81.2)"
+        ]
+      },
+      "hunk": {
+        "role": "secondary",
+        "displayName": "Hunk Cyan",
+        "canonical": "#4fc3dc",
+        "tonalRamp": [
+          "oklch(15% 0.043 214.5)",
+          "oklch(26% 0.075 214.5)",
+          "oklch(38% 0.109 214.5)",
+          "oklch(50% 0.109 214.5)",
+          "oklch(62% 0.109 214.5)",
+          "oklch(74% 0.109 214.5)",
+          "oklch(85% 0.101 214.5)",
+          "oklch(95% 0.072 214.5)"
+        ]
+      },
+      "exit-1": {
+        "role": "tertiary",
+        "displayName": "Exit 1 Red",
+        "canonical": "#ff5468",
+        "tonalRamp": [
+          "oklch(15% 0.082 17.9)",
+          "oklch(26% 0.143 17.9)",
+          "oklch(38% 0.206 17.9)",
+          "oklch(50% 0.206 17.9)",
+          "oklch(62% 0.206 17.9)",
+          "oklch(74% 0.206 17.9)",
+          "oklch(85% 0.192 17.9)",
+          "oklch(95% 0.137 17.9)"
+        ]
+      },
+      "exit-0": {
+        "role": "tertiary",
+        "displayName": "Exit 0 Green",
+        "canonical": "#6fd69a",
+        "tonalRamp": [
+          "oklch(15% 0.052 156.3)",
+          "oklch(26% 0.090 156.3)",
+          "oklch(38% 0.130 156.3)",
+          "oklch(50% 0.130 156.3)",
+          "oklch(62% 0.130 156.3)",
+          "oklch(74% 0.130 156.3)",
+          "oklch(85% 0.121 156.3)",
+          "oklch(95% 0.087 156.3)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "The one hero headline."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Section headings; the close steps up to clamp(2rem, 1.3rem + 2.2vw, 3.25rem)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Step headings beside a Comment numeral."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Door labels, the switch caption, the works-with terms. Sentence case."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Prose, 44 to 52ch measure."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Navigation, chapter chips, notes and captions."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Diffs (1.6) and code blocks (1.75); 13px under 600px."
+      }
+    },
+    "shadows": [
+      {
+        "name": "patch-underside",
+        "value": "3px 4px 0 #8a5600",
+        "purpose": "Hard offset under the tilted Patch Amber patch only; reproduces the logo mark."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "The one authored easing: door patch slide, story patch-in, poster fade."
+      },
+      {
+        "name": "door-slide",
+        "value": "transform 520ms var(--ease-out)",
+        "purpose": "The amber patch moving between doors; the label colour follows over 260ms."
+      },
+      {
+        "name": "step-patch-in",
+        "value": "words 560ms, artefact clip-path wipe 720ms, 80ms stagger per step",
+        "purpose": "A story entering after a door switch."
+      },
+      {
+        "name": "hover",
+        "value": "160ms ease (buttons), 200ms ease (chapter chips)",
+        "purpose": "Background and border state changes."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none; transition: none",
+        "purpose": "Everything stops under prefers-reduced-motion: reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "door-compact",
+        "value": "420px"
+      },
+      {
+        "name": "gutter-wide",
+        "value": "600px"
+      },
+      {
+        "name": "video-wide",
+        "value": "640px"
+      },
+      {
+        "name": "split",
+        "value": "900px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button (install command)",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The copyable install command on a Patch fill; the developer primary action.",
+      "html": "<button class=\"ds-cmd\" type=\"button\"><span><span class=\"ds-cmd-prompt\">$</span> npx livelocale init</span><span class=\"ds-cmd-state\"><svg class=\"ds-icon\" viewBox=\"0 0 20 20\" aria-hidden=\"true\"><rect x=\"7\" y=\"7\" width=\"10\" height=\"10\" rx=\"2\"/><path d=\"M13 4.5V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h.5\"/></svg>Copy</span></button>",
+      "css": ".ds-cmd{display:inline-flex;align-items:center;gap:14px;min-height:48px;padding:0 8px 0 18px;border:0;border-radius:8px;background:var(--patch);color:var(--night);font-family:var(--font-code);font-size:1rem;font-weight:500;cursor:pointer;transition:background-color 160ms ease}.ds-cmd:hover{background:var(--patch-hover)}.ds-cmd:focus-visible{outline:2px solid var(--patch);outline-offset:3px;border-radius:4px}.ds-cmd-prompt{color:var(--patch-shadow)}.ds-cmd-state{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:5px;background:color-mix(in srgb,var(--night) 10%,transparent);font-family:var(--font-body);font-size:.875rem;font-weight:600}.ds-icon{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Primary Button (link)",
+      "kind": "button",
+      "refersTo": "button-primary-large",
+      "description": "Amber slab link with a trailing arrow; the fixer primary action.",
+      "html": "<a class=\"ds-btn-patch\" href=\"#\">Open the live demo <svg class=\"ds-icon\" viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M4 10h11.5M11 5.5 15.5 10 11 14.5\"/></svg></a>",
+      "css": ".ds-btn-patch{display:inline-flex;align-items:center;gap:10px;min-height:56px;padding:0 22px;border-radius:8px;background:var(--patch);color:var(--night);font-family:var(--font-body);font-size:1.0625rem;font-weight:600;text-decoration:none;transition:background-color 160ms ease}.ds-btn-patch:hover{background:var(--patch-hover)}.ds-btn-patch:focus-visible{outline:2px solid var(--patch);outline-offset:3px;border-radius:4px}.ds-icon{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "The secondary action: hairline Edge outline, Surface fill on hover.",
+      "html": "<a class=\"ds-btn-outline\" href=\"#\">Try the live demo <svg class=\"ds-icon\" viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"M4 10h11.5M11 5.5 15.5 10 11 14.5\"/></svg></a>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:0 18px;border:1px solid var(--edge);border-radius:8px;color:var(--paper);font-family:var(--font-body);font-weight:500;text-decoration:none;transition:background-color 160ms ease}.ds-btn-outline:hover{background:var(--surface)}.ds-btn-outline:focus-visible{outline:2px solid var(--patch);outline-offset:3px;border-radius:4px}.ds-icon{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Header Navigation",
+      "kind": "nav",
+      "refersTo": "navigation",
+      "description": "Logo lockup left, plain Paper text links right.",
+      "html": "<header class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\"><svg viewBox=\"0 0 64 64\" width=\"30\" height=\"30\" aria-hidden=\"true\"><g fill=\"#E8E4D9\"><rect x=\"6\" y=\"11\" width=\"20\" height=\"8\" rx=\"4\"/><rect x=\"29\" y=\"11\" width=\"29\" height=\"8\" rx=\"4\"/><rect x=\"6\" y=\"28\" width=\"14\" height=\"8\" rx=\"4\"/><rect x=\"25\" y=\"31\" width=\"29\" height=\"2\" rx=\"1\" opacity=\".5\"/><rect x=\"6\" y=\"45\" width=\"23\" height=\"8\" rx=\"4\"/><rect x=\"32\" y=\"45\" width=\"12\" height=\"8\" rx=\"4\"/></g><g transform=\"rotate(-7 39 32)\"><rect x=\"24.5\" y=\"24.5\" width=\"30\" height=\"15\" rx=\"4.5\" fill=\"#8A5600\"/><rect x=\"23\" y=\"23\" width=\"30\" height=\"15\" rx=\"4.5\" fill=\"#FFB224\"/></g></svg><span>livelocale</span></a><nav><a href=\"#\">GitHub</a><a href=\"#\">Docs</a></nav></header>",
+      "css": ".ds-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 16px;background:var(--night)}.ds-brand{display:inline-flex;align-items:center;gap:10px;color:var(--paper);text-decoration:none;font-family:var(--font-display);font-size:1.25rem;font-weight:500;letter-spacing:-.02em;line-height:1}.ds-nav nav{display:flex;gap:24px}.ds-nav nav a{padding-block:8px;color:var(--paper);font-family:var(--font-body);font-size:.9375rem;font-weight:500;text-decoration:none}.ds-nav nav a:hover{text-decoration:underline;text-decoration-color:var(--edge)}.ds-nav a:focus-visible{outline:2px solid var(--patch);outline-offset:3px;border-radius:4px}"
+    },
+    {
+      "name": "Chapter Chips",
+      "kind": "chip",
+      "refersTo": "chapter-chip",
+      "description": "Video chapter chips; the current one fills with Surface and shows a progress bar.",
+      "html": "<div class=\"ds-chapters\"><button class=\"ds-chapter\" aria-current=\"step\" style=\"--progress:.6\"><span class=\"ds-chapter-n\">1</span>Alt+Click the text<span class=\"ds-chapter-bar\"></span></button><button class=\"ds-chapter\"><span class=\"ds-chapter-n\">2</span>Fix it in every language<span class=\"ds-chapter-bar\"></span></button></div>",
+      "css": ".ds-chapters{display:flex;gap:8px}.ds-chapter{position:relative;display:inline-flex;align-items:baseline;gap:10px;padding:10px 14px 13px;border:1px solid var(--rule);border-radius:8px;background:transparent;color:var(--comment);font-family:var(--font-body);font-size:.9375rem;font-weight:500;white-space:nowrap;cursor:pointer;transition:color 200ms ease,background-color 200ms ease,border-color 200ms ease}.ds-chapter:hover{color:var(--paper);border-color:var(--edge)}.ds-chapter:focus-visible{outline:2px solid var(--patch);outline-offset:3px;border-radius:4px}.ds-chapter[aria-current=step]{border-color:var(--edge);background:var(--surface);color:var(--paper)}.ds-chapter-n{font-family:var(--font-display);font-size:.75rem;font-weight:500}.ds-chapter-bar{position:absolute;inset:auto 14px 5px;height:2px;border-radius:1px;background:var(--rule);opacity:0}.ds-chapter-bar::after{content:\"\";position:absolute;inset:0;border-radius:inherit;background:var(--comment);transform:scaleX(var(--progress,0));transform-origin:left center}.ds-chapter[aria-current=step] .ds-chapter-bar{opacity:1}"
+    },
+    {
+      "name": "Door Switch",
+      "kind": "custom",
+      "refersTo": "door-switch",
+      "description": "Two-option radiogroup; the amber patch slides to the chosen door.",
+      "html": "<div class=\"ds-doors\" role=\"radiogroup\" aria-label=\"How it works when\"><span class=\"ds-doors-patch\"></span><label class=\"ds-door\"><input type=\"radio\" name=\"ds-door\" value=\"developer\" checked><span>I ship the site</span></label><label class=\"ds-door\"><input type=\"radio\" name=\"ds-door\" value=\"fixer\"><span>I fix the text</span></label></div>",
+      "css": ".ds-doors{position:relative;display:inline-grid;grid-template-columns:1fr 1fr;padding:4px;border:1px solid var(--rule);border-radius:12px;background:var(--surface)}.ds-doors-patch{position:absolute;inset:4px auto 4px 4px;width:calc(50% - 4px);border-radius:8px;background:var(--patch);transition:transform 520ms var(--ease-out)}.ds-doors:has(input[value=fixer]:checked) .ds-doors-patch{transform:translateX(100%)}.ds-door{position:relative;padding:12px 22px;border-radius:8px;color:var(--paper);font-family:var(--font-display);font-size:.9375rem;font-weight:500;letter-spacing:-.01em;text-align:center;white-space:nowrap;cursor:pointer;transition:color 260ms var(--ease-out)}.ds-door:has(input:checked){color:var(--night)}.ds-door:has(input:focus-visible){outline:2px solid var(--patch);outline-offset:4px}.ds-door input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer}"
+    },
+    {
+      "name": "Diff",
+      "kind": "card",
+      "refersTo": "diff-add-row",
+      "description": "Pull-request diff in the brand: struck Ghost removals, Wash additions with a filled amber plus, Exit 0 result.",
+      "html": "<div class=\"ds-diff\"><p class=\"ds-diff-file\"><span class=\"ds-chip\">en</span><span class=\"ds-path\">locales/en.json</span></p><ol class=\"ds-lines\"><li class=\"ds-del\"><span class=\"ds-n\">13</span><span class=\"ds-sign\">−</span><del>\"title\": \"Plans that grows with you\",</del></li><li class=\"ds-add\"><span class=\"ds-n\">13</span><span class=\"ds-sign\">+</span><ins>\"title\": \"Plans that <mark>grow</mark> with you\",</ins></li></ol><p class=\"ds-result\"><svg class=\"ds-icon\" viewBox=\"0 0 20 20\" aria-hidden=\"true\"><path d=\"m4 10.5 4 4 8-9\"/></svg>pull request opened</p></div>",
+      "css": ".ds-diff{overflow:hidden;border:1px solid var(--rule);border-radius:10px;background:var(--surface);color:var(--paper);font-family:var(--font-code);font-size:.875rem;font-weight:500;line-height:1.6}.ds-diff p{margin:0}.ds-diff-file{display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--rule)}.ds-path{color:var(--hunk)}.ds-chip{display:inline-block;padding:0 7px;border:1px solid var(--hunk);border-radius:4px;background:var(--night);color:var(--hunk);font-size:.8125rem;line-height:1.5}.ds-lines{margin:0;padding:6px 0;list-style:none}.ds-lines li{display:grid;grid-template-columns:2.75rem 1.5rem minmax(0,1fr);align-items:baseline;padding-inline-end:16px}.ds-n{padding-inline-end:12px;color:var(--comment);text-align:right;font-variant-numeric:tabular-nums}.ds-sign{justify-self:center;width:1.15rem;height:1.15rem;border-radius:3px;line-height:1.15rem;text-align:center;font-weight:600}.ds-del,.ds-del del{color:var(--ghost)}.ds-add{background:var(--wash)}.ds-add ins{text-decoration:none}.ds-add .ds-sign,.ds-diff mark{background:var(--patch);color:var(--night)}.ds-diff mark{padding:0 .15em;border-radius:3px}.ds-result{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--rule);color:var(--exit-0);font-family:var(--font-body);font-weight:600}.ds-icon{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}"
+    },
+    {
+      "name": "Code Block with CI output",
+      "kind": "card",
+      "refersTo": "code-block",
+      "description": "Surface code panel; untranslated text gets the dashed Exit 1 outline, failures read in Exit 1.",
+      "html": "<pre class=\"ds-code\"><code><span class=\"ds-c\">$</span> npx livelocale check --hardcoded\n<span class=\"ds-k\">src/PricingHero.tsx</span>  <span class=\"ds-hard\">Book a demo</span>\n<span class=\"ds-fail\">1 hardcoded string, exit 1</span></code></pre>",
+      "css": ".ds-code{margin:0;padding:20px 22px;overflow-x:auto;border:1px solid var(--rule);border-radius:10px;background:var(--surface);color:var(--paper);font-family:var(--font-code);font-size:.875rem;font-weight:500;line-height:1.75}.ds-c{color:var(--comment)}.ds-k{color:var(--hunk)}.ds-fail{color:var(--exit-1)}.ds-hard{padding:0 3px;border-radius:3px;outline:1.5px dashed var(--exit-1);outline-offset:1px}"
+    },
+    {
+      "name": "Inline Code and Link",
+      "kind": "custom",
+      "refersTo": "inline-code",
+      "description": "Locations read in Hunk Cyan: inline code on Surface, links with a 45% cyan underline.",
+      "html": "<p class=\"ds-prose\">Run <code>npx livelocale init</code>, then open <a href=\"#\">pull request #2</a>.</p>",
+      "css": ".ds-prose{margin:0;color:var(--paper);font-family:var(--font-body);font-size:1.0625rem;line-height:1.6}.ds-prose code{padding:.08em .36em;border-radius:4px;background:var(--surface);color:var(--hunk);font-family:var(--font-code);font-size:.88em;font-weight:500}.ds-prose a{color:var(--hunk);text-decoration-thickness:1px;text-decoration-color:color-mix(in srgb,var(--hunk) 45%,transparent);text-underline-offset:.22em}.ds-prose a:hover{text-decoration-color:var(--hunk);text-decoration-thickness:2px}.ds-prose a:focus-visible{outline:2px solid var(--patch);outline-offset:3px;border-radius:4px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Your Website, as a Diff",
+    "overview": "The whole system is a code review rendered as a page. The ground is a dark editor at night, text is warm paper, and every colour beyond those has exactly one job lifted from a diff: amber marks a change a person made, cyan marks where a string lives, struck grey is the old text, red fails the build and green means done. Nothing is decorative colour. If a hue appears, it is saying one of those five things.\n\nDensity is calm and single-column. One 1000px column carries the header, the framed product film, the two-door switch, the numbered steps and the close; everything aligns to the video's edges. Depth comes from three tones of near-black separated by hairline rules, never from glow, blur or gradient. Type is split by role: Martian Mono speaks (headlines, numbers, labels), IBM Plex Sans explains, IBM Plex Mono shows real code and real output, and IBM Plex Sans Arabic stands beside every Latin face so a right-to-left string never falls back to a system font.\n\nThe one tilted, offset amber patch from the logo is the signature. It sits behind the fixed word in the headline and slides between the two doors; it is the only element allowed to tilt or cast a hard shadow.",
+    "keyCharacteristics": [
+      "Dark only (`color-scheme: dark`); Night ground, Surface panels, 1px Rule hairlines.",
+      "One job per colour, taken from diff grammar.",
+      "Amber is a fill, never a line, except for the focus ring.",
+      "Monospace display face for every heading and numeral; humanist sans for prose.",
+      "Real artefacts (filmed video, real diffs, real CI output) in place of illustration.",
+      "One authored motion moment: the door switch and the steps patching in."
+    ],
+    "rules": [
+      {
+        "name": "The One Job Rule",
+        "body": "Each signal hue means one thing. Amber is a human change, cyan is a location, red is a failure, green is success. A colour borrowed for decoration breaks the reading of every diff on the page.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fill-Not-Line Rule",
+        "body": "Patch Amber appears as a fill. The single exception is the 2px focus ring, where amber marks \"you are here\". Amber borders, amber text on dark, and amber underlines are not part of the system.",
+        "section": "colors"
+      },
+      {
+        "name": "The Dashed Failure Rule",
+        "body": "Exit 1 Red is a 1.5px dashed outline around the offending text, never a red fill or a red background panel. Failure points at the string; it does not flood the screen.",
+        "section": "colors"
+      },
+      {
+        "name": "The Speaking Mono Rule",
+        "body": "Martian Mono is for headings, numerals and short labels only. Paragraphs, captions and buttons other than the install command are IBM Plex Sans.",
+        "section": "typography"
+      },
+      {
+        "name": "The Arabic Beside Rule",
+        "body": "Every font stack names IBM Plex Sans Arabic second, and any `lang=\"ar\"` run is set at 1.08em with line-height 1.7 so Arabic does not read smaller and tighter than the Latin beside it.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tone-Not-Shadow Rule",
+        "body": "A panel is raised by moving from Night to Surface and drawing a Rule hairline around it. If an element needs to feel higher than Surface, it gets a border in Edge, not a shadow.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Logo Patch Rule",
+        "body": "Tilt (a few degrees anticlockwise) and a hard offset shadow are the logo's patch and are allowed only on a Patch Amber fill that represents the patch itself.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep every signal hue to its one job: Patch for a human change or the primary action, Hunk for locations, Exit 1 for failure, Exit 0 for success.",
+      "Do raise panels by tone (Night to Surface) and a 1px Rule hairline.",
+      "Do put Night text on every Patch fill and use Patch Lit for its hover.",
+      "Do use the shared focus ring on every interactive element: 2px solid Patch, 3px offset, 4px radius.",
+      "Do set headings, numerals and short labels in Martian Mono and everything else in IBM Plex Sans; keep IBM Plex Sans Arabic second in every stack.",
+      "Do show real artefacts (the filmed product, real diffs, real CI output) and give each screenshot a 1px Rule border at 10px radius.",
+      "Do turn off every animation and transition under `prefers-reduced-motion: reduce`, and give any looping video a visible pause control."
+    ],
+    "donts": [
+      "Don't use glows, blurs, gradients or purple anywhere.",
+      "Don't draw Patch Amber as a border, underline or text colour on dark; the focus ring is the only amber line.",
+      "Don't fill anything with Exit 1 Red; failure is a dashed outline.",
+      "Don't set prose, captions or any text that must be read in Ghost; it is below AA for body text.",
+      "Don't tilt an element or give it a hard offset shadow unless it is the Patch Amber patch itself.",
+      "Don't add a light theme or a colour outside this palette.",
+      "Don't set labels in uppercase or with wide tracking."
+    ]
+  }
+}
