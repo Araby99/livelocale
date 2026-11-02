@@ -1,7 +1,9 @@
 // The broken hero, live: the visitor fixes the three planted mistakes, each edit adds a pair to
 // the pull-request card, and Send shows the real change link. It renders exactly the shell's
-// html.js start state first, so nothing moves when it mounts.
+// html.js start state first, so nothing moves when it mounts. On a touch device the mistakes are
+// tap-the-typo buttons and a note says the real thing is Alt+Click on a computer.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { prefersTouch } from '../lib/input-mode';
 import { EditPopover } from './EditPopover';
 import { MistakeText } from './MistakeText';
 import { MISTAKES, applyEdit, isFixed, leftLabel, progress } from './model';
@@ -19,6 +21,7 @@ export function HeroIsland({ base }: { base: string }) {
   const [edits, setEdits] = useState<HeroEdit[]>([]);
   const [editing, setEditing] = useState<MistakeKey | null>(null);
   const [sending, setSending] = useState(false);
+  const [touch] = useState(() => prefersTouch((q) => window.matchMedia(q)));
   const mistakeEls = useRef(new Map<MistakeKey, HTMLElement>());
   const copyRef = useRef<HTMLDivElement>(null);
   const sendRef = useRef<HTMLButtonElement>(null);
@@ -47,6 +50,13 @@ export function HeroIsland({ base }: { base: string }) {
     setEditing(null);
   };
   const dismiss = useCallback(() => setEditing(null), []);
+  // A tap applies the fix itself. The tapped button turns into the patch, so focus moves only
+  // when the last fix brings up the completion.
+  const tap = (key: MistakeKey) => {
+    const next = applyEdit(edits, key, mistake(key).fixed);
+    if (progress(next).done && !done) pendingFocus.current = 'completion';
+    setEdits(next);
+  };
 
   const text = (key: MistakeKey) => {
     const m = mistake(key);
@@ -56,6 +66,7 @@ export function HeroIsland({ base }: { base: string }) {
         edit={edits.find((e) => e.key === key)}
         fixed={isFixed(edits, key)}
         onOpen={() => setEditing(key)}
+        onTap={touch ? () => tap(key) : undefined}
         elementRef={(el) => {
           if (el) mistakeEls.current.set(key, el);
           else mistakeEls.current.delete(key);
@@ -74,7 +85,16 @@ export function HeroIsland({ base }: { base: string }) {
       <div className="hero-grid">
         <div className="hero-copy" ref={copyRef}>
           <h1>Stop {text('hero.title')} screenshots.</h1>
-          <p className="hero-hint">↑ hold Alt and click the typo</p>
+          {touch ? (
+            <>
+              <p className="hero-hint">Tap a typo to fix it.</p>
+              <p className="hero-note">
+                On a computer, hold Alt and click any text to edit the real thing.
+              </p>
+            </>
+          ) : (
+            <p className="hero-hint">↑ hold Alt and click the typo</p>
+          )}
           <p className="hero-lede">
             Anyone on your team fixes text {text('hero.lede')} on the site.
           </p>

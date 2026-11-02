@@ -33,6 +33,30 @@
   background: color-mix(in srgb, var(--coral) 12%, transparent);
 }
 
+/* Tap-the-typo on touch devices: the broken word as a button that still reads as hero text,
+   marked with a wavy underline in coral shadow (3:1 on paper for a graphic that carries meaning). */
+.hero-live button.m-tap {
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-decoration: underline wavy var(--coral-shadow);
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.hero-note {
+  max-width: 40ch;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
 /* An edit that is not the fix: the visitor's words, a dashed coral underline and a hint. */
 .m-edited {
   text-decoration: underline dashed var(--coral);

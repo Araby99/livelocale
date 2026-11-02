@@ -1,6 +1,7 @@
 // One planted mistake in the hero copy. It is a keyboard-operable button: Alt+Click, Enter or
 // Space opens the editor. It shows the broken word, the coral patch once fixed, or the visitor's
-// own words with a hint when the edit is not the fix.
+// own words with a hint when the edit is not the fix. On a touch device it is a plain button
+// instead: a tap applies the fix at once, with no editor and no on-screen keyboard.
 import type { KeyboardEvent, MouseEvent } from 'react';
 import { wordDiff, type HeroEdit, type Mistake } from './model';
 
@@ -9,10 +10,33 @@ interface MistakeTextProps {
   edit: HeroEdit | undefined;
   fixed: boolean;
   onOpen: () => void;
-  elementRef: (el: HTMLSpanElement | null) => void;
+  /** Tap-the-typo: when set, the mistake is a button that calls this instead of opening the editor. */
+  onTap?: () => void;
+  elementRef: (el: HTMLElement | null) => void;
 }
 
-export function MistakeText({ mistake, edit, fixed, onOpen, elementRef }: MistakeTextProps) {
+export function MistakeText({ mistake, edit, fixed, onOpen, onTap, elementRef }: MistakeTextProps) {
+  if (onTap) {
+    return fixed ? (
+      <span ref={elementRef} data-mistake={mistake.key}>
+        <span className="patch" data-ghost={mistake.wrong}>
+          {mistake.right}
+        </span>
+      </span>
+    ) : (
+      <button
+        ref={elementRef}
+        type="button"
+        className="m-tap"
+        data-mistake={mistake.key}
+        aria-label={`Fix ${mistake.wrong}`}
+        onClick={onTap}
+      >
+        {mistake.wrong}
+      </button>
+    );
+  }
+
   // An edit that is not the fix shows the words the visitor changed (an emptied word shows "…").
   const typed = edit && !fixed ? wordDiff(edit.from, edit.to).added || '…' : undefined;
   const shown = fixed ? mistake.right : (typed ?? mistake.wrong);
