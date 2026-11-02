@@ -13,15 +13,13 @@
 }
 
 .hero-live button.button-quiet {
-  border: 1px solid var(--ink);
+  border: 1px solid var(--edge);
 }
 
 .hero-live button.button:disabled {
-  background: var(--line);
-  box-shadow: none;
-  color: var(--muted);
+  background: var(--raised);
+  color: var(--comment);
   cursor: not-allowed;
-  transform: none;
 }
 
 [data-mistake][role='button'] {
@@ -30,11 +28,12 @@
 }
 
 [data-mistake][role='button']:hover {
-  background: color-mix(in srgb, var(--coral) 12%, transparent);
+  background: var(--raised);
 }
 
 /* Tap-the-typo on touch devices: the broken word as a button that still reads as hero text,
-   marked with a wavy underline in coral shadow (3:1 on paper for a graphic that carries meaning). */
+   marked with a wavy underline in Edge (3.87:1 on Night for a graphic that carries meaning; never
+   amber or red). */
 .hero-live button.m-tap {
   padding: 0;
   border: 0;
@@ -43,7 +42,7 @@
   color: inherit;
   font: inherit;
   letter-spacing: inherit;
-  text-decoration: underline wavy var(--coral-shadow);
+  text-decoration: underline wavy var(--edge);
   text-decoration-thickness: 0.06em;
   text-underline-offset: 0.2em;
   cursor: pointer;
@@ -53,21 +52,21 @@
 .hero-note {
   max-width: 40ch;
   margin-top: 4px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.9375rem;
 }
 
-/* An edit that is not the fix: the visitor's words, a dashed coral underline and a hint. */
+/* An edit that is not the fix: the visitor's words on a Wash fill (Paper on Wash is 12.00:1)
+   and a hint. */
 .m-edited {
-  text-decoration: underline dashed var(--coral);
-  text-decoration-thickness: 0.08em;
-  text-underline-offset: 0.18em;
+  border-radius: 4px;
+  background: var(--wash);
 }
 
 .m-try {
   display: inline-block;
   margin-inline-start: 0.4em;
-  color: var(--muted);
+  color: var(--comment);
   font-family: var(--font-body);
   font-size: 0.875rem;
   font-weight: 500;
@@ -81,10 +80,9 @@
   z-index: 5;
   width: min(24rem, 100%);
   padding: 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 10px;
-  background: var(--paper);
-  box-shadow: 0 16px 36px -18px color-mix(in srgb, var(--ink) 60%, transparent);
+  background: var(--raised);
 }
 
 .edit-popover textarea {
@@ -92,10 +90,10 @@
   box-sizing: border-box;
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid var(--muted);
+  border: 1px solid var(--edge);
   border-radius: 6px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--surface);
+  color: var(--paper);
   font: inherit;
   font-size: 1rem;
   line-height: 1.5;
@@ -112,7 +110,7 @@
 }
 
 .edit-popover-keys {
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.8125rem;
 }
 
@@ -147,14 +145,14 @@
   width: min(36rem, calc(100vw - 32px));
   max-width: none;
   padding: 20px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 12px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--raised);
+  color: var(--paper);
 }
 
 .send-dialog::backdrop {
-  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  background: color-mix(in srgb, var(--night) 75%, transparent);
 }
 
 .send-title {
@@ -167,10 +165,10 @@
   width: 100%;
   margin-top: 14px;
   padding: 8px 10px;
-  border: 1px solid var(--muted);
+  border: 1px solid var(--edge);
   border-radius: 6px;
-  background: var(--paper);
-  color: var(--ink);
+  background: var(--surface);
+  color: var(--paper);
   font-family: var(--font-code);
   font-size: 0.8125rem;
   word-break: break-all;
@@ -197,9 +195,9 @@
 .completion-note {
   flex-basis: 100%;
   max-width: 60ch;
-  color: var(--muted);
+  color: var(--comment);
 }
 
 .completion-note a {
-  color: var(--ink);
+  color: var(--paper);
 }

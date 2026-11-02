@@ -1,0 +1,38 @@
+// @vitest-environment node
+import * as fs from 'node:fs';
+import { MASTER_MARK } from '../../../site/scripts/brand/marks.mjs';
+
+const html = fs.readFileSync('site/index.html', 'utf8');
+const rects = (svg: string) =>
+  [...svg.matchAll(/<rect\b([^>]*?)\/?>/g)].map((m) =>
+    m[1]
+      .replace(/\s*fill="[^"]*"/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  );
+
+it('inlines the dark mark in the header and the Night theme colour', () => {
+  for (const text of [
+    'fill="#E8E4D9"',
+    'fill="#FFB224"',
+    'fill="#8A5600"',
+    '<meta name="theme-color" content="#0C0D0F"',
+    '<meta name="color-scheme" content="dark"',
+  ])
+    expect(html).toContain(text);
+  expect(html).not.toMatch(/#1D1712|#FF6B4A|#C2472C|#FFF8F0/i);
+});
+
+it("keeps the header mark's geometry identical to the master", () => {
+  const header = /<header[\s\S]*?<\/header>/.exec(html)![0];
+  const svg = /<svg[\s\S]*?<\/svg>/.exec(header)![0];
+  expect(rects(svg)).toEqual(rects(MASTER_MARK));
+  expect(svg).toContain('transform="rotate(-7 39 32)"');
+});
+
+it('keeps the demo sample app off the withdrawn palette', () => {
+  const demo = fs.readFileSync('site/demo/index.html', 'utf8');
+  expect(demo).toContain('#f4f5f7');
+  expect(demo).toContain('#15171b');
+  expect(demo).not.toMatch(/#fff8f0|#1d1712/i);
+});

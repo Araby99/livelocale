@@ -22,6 +22,20 @@ test('self-hosts the brand fonts', async ({ page }) => {
   const loaded = await page.evaluate(() =>
     [...document.fonts].filter((f) => f.status === 'loaded').map((f) => f.family)
   );
-  expect(loaded).toEqual(expect.arrayContaining(['Bricolage Grotesque', 'Inter']));
-  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(255, 248, 240)');
+  expect(loaded).toEqual(
+    expect.arrayContaining([
+      'Martian Mono',
+      'IBM Plex Sans',
+      'IBM Plex Mono',
+      'IBM Plex Sans Arabic',
+    ])
+  );
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(12, 13, 15)');
+  await expect(page.locator('body')).toHaveCSS('color', 'rgb(232, 228, 217)');
+  expect(
+    await page
+      .locator('[data-lang="ar"] .sample-title')
+      .first()
+      .evaluate((el) => getComputedStyle(el).fontFamily)
+  ).toMatch(/^"IBM Plex Sans", "IBM Plex Sans Arabic"/);
 });

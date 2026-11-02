@@ -17,7 +17,7 @@ test.describe('without JavaScript', () => {
           const s = getComputedStyle(el, '::before');
           return [s.content, s.color, s.textDecorationLine];
         })
-    ).toEqual(['"colecting"', 'rgb(107, 91, 77)', 'line-through']);
+    ).toEqual(['"colecting"', 'rgb(110, 107, 100)', 'line-through']);
     await expect(page.getByTestId('pr-card')).toContainText('3 of 3 fixed');
     await expect(page.getByText("That's LiveLocale. Install it.")).toBeVisible();
     await expect(page.locator('.pile-pr')).toBeVisible();
@@ -40,7 +40,7 @@ test('has no horizontal scroll at 360 px', async ({ page }) => {
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
 });
 
-test('reaches every link by keyboard with a visible ink ring', async ({ page }) => {
+test('reaches every link by keyboard with a visible patch ring', async ({ page }) => {
   await page.goto('./');
   // Only what is shown: before the hero island mounts, html.js hides its completion link.
   const links = await page.locator('a[href]:visible, button:visible').count();
@@ -54,7 +54,7 @@ test('reaches every link by keyboard with a visible ink ring', async ({ page }) 
       return [el.dataset.tabSeen, `${s.outlineStyle} ${s.outlineWidth} ${s.outlineColor}`];
     }, i);
     seen.add(id);
-    expect(ring).toMatch(/^solid 2px rgb\((29, 23, 18|246, 238, 230)\)$/);
+    expect(ring).toMatch(/^solid 2px rgb\(255, 178, 36\)$/);
   }
   expect(seen.size).toBe(links); // every Tab reached a new element
 });

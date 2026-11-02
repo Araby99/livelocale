@@ -1,19 +1,28 @@
-/* Brand tokens (spec §2.3 and §2.4). No other colour is introduced. */
+/* Brand tokens, the hunk palette (spec §2.3 and §2.4). The site is dark only; no other colour is
+   introduced. Depth comes from tone: Night, then Surface, then Raised. */
 :root {
-  --paper: #fff8f0;
-  --ink: #1d1712;
-  --coral: #ff6b4a;
-  --coral-shadow: #c2472c;
-  --muted: #6b5b4d;
-  --line: #e9dccd;
-  --espresso: #1c1714;
-  --cream: #f6eee6;
-  --coral-dark: #ff7a5c;
+  color-scheme: dark;
 
-  /* Latin face first, Arabic face second, in every stack. */
-  --font-heading: 'Bricolage Grotesque', 'Readex Pro', system-ui, sans-serif;
-  --font-body: Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif;
-  --font-code: 'JetBrains Mono', ui-monospace, monospace;
+  --night: #0c0d0f;
+  --surface: #16181d;
+  --raised: #1e2127;
+  --rule: #2a2d33;
+  --edge: #6b6f7a;
+  --paper: #e8e4d9;
+  --comment: #8c887d;
+  --ghost: #6e6b64;
+  --patch: #ffb224;
+  --patch-hover: #ffc150;
+  --patch-shadow: #8a5600;
+  --wash: #2e2412;
+  --hunk: #4fc3dc;
+  --exit-1: #ff5468;
+  --exit-0: #6fd69a;
+
+  /* Latin face first, Arabic face second, in every stack. Martian Mono is display only. */
+  --font-display: 'Martian Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;
+  --font-body: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-code: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 /* Arabic reads small and tight beside Latin at the same size. */

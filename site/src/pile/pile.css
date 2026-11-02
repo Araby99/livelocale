@@ -27,7 +27,7 @@
     grid-area: 1 / 1;
   }
 
-  /* The headline sits over the cards on a Paper backing, as in the mockup. */
+  /* The headline sits over the cards on a solid Night backing, with no shadow. */
   html.js .pile-title {
     position: relative;
     z-index: 2;
@@ -35,7 +35,7 @@
     margin-bottom: 12vh;
     padding: 4px 10px 2px;
     border-radius: 8px;
-    background: var(--paper);
+    background: var(--night);
     opacity: clamp(0, (1 - var(--p)) * 2.5, 1);
   }
 

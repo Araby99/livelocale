@@ -1,10 +1,11 @@
 /* Section layout and the static end state of every scene. Without JavaScript the page shows the
    fixed hero and the collapsed pile; the islands' tasks add the `html.js` start states. Only
-   brand tokens are used; shadows and tints are mixes of them. Single column below 720 px. */
+   brand tokens are used; depth comes from tone (Night, Surface, Raised), never a blurred shadow.
+   Single column below 720 px. */
 
 main > section {
   padding-block: 56px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--rule);
 }
 
 main > section:first-child {
@@ -28,7 +29,7 @@ main p {
 .section-lede {
   max-width: 60ch;
   margin-top: 12px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 1.125rem;
 }
 
@@ -43,8 +44,8 @@ main code {
   max-width: 100%;
   padding: 10px 14px;
   border-radius: 8px;
-  background: var(--espresso);
-  color: var(--cream);
+  background: var(--surface);
+  color: var(--paper);
   font-size: 0.9375rem;
   overflow-wrap: anywhere;
 }
@@ -53,40 +54,34 @@ main code {
   display: inline-block;
   padding: 10px 18px;
   border-radius: 8px;
-  background: var(--coral);
-  box-shadow: 2px 3px 0 var(--coral-shadow);
-  color: var(--ink);
+  background: var(--patch);
+  color: var(--night);
   font-weight: 600;
   text-decoration: none;
 }
 
 .button:hover {
-  background: color-mix(in srgb, var(--coral) 85%, var(--coral-shadow));
+  background: var(--patch-hover);
 }
 
-.button:active {
-  box-shadow: none;
-  transform: translate(2px, 3px);
-}
-
+/* The quiet button: no fill, an Edge outline and Paper text. */
 .button-quiet {
-  border: 1px solid var(--ink);
+  border: 1px solid var(--edge);
   background: transparent;
-  box-shadow: none;
+  color: var(--paper);
 }
 
 .button-quiet:hover {
-  background: color-mix(in srgb, var(--line) 60%, var(--paper));
+  background: var(--raised);
 }
 
-/* The paper card used by the pile and the pull-request card. */
+/* The card used by the pile and the pull-request card: a Surface tone, no shadow. */
 .pile-card,
 .pile-pr,
 .pr-card {
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 10px;
-  background: var(--paper);
-  box-shadow: 0 12px 30px -18px color-mix(in srgb, var(--ink) 55%, transparent);
+  background: var(--surface);
 }
 
 /* Scene 1: the screenshot pile. Static state: the cards stacked behind the pull request. */
@@ -95,9 +90,9 @@ main code {
 }
 
 .pile-title {
-  font-family: var(--font-heading);
+  font-family: var(--font-display);
   font-size: clamp(2rem, 1.3rem + 3vw, 3.25rem);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.05;
   text-align: center;
@@ -119,7 +114,7 @@ main code {
   gap: 4px;
   width: min(100%, 220px);
   padding: 10px 12px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.8125rem;
 }
 
@@ -145,16 +140,16 @@ main code {
 }
 
 .pile-note {
-  color: var(--ink);
+  color: var(--paper);
 }
 
-/* The red circle on a screenshot; coral shadow keeps 3:1 against paper. */
+/* The red circle on a screenshot, in Exit 1 (5.68:1 on Surface). */
 .ring {
   display: inline-block;
   padding: 1px 8px;
-  border: 2px solid var(--coral-shadow);
+  border: 2px solid var(--exit-1);
   border-radius: 50%;
-  color: var(--ink);
+  color: var(--paper);
 }
 
 .pile-pr {
@@ -162,7 +157,7 @@ main code {
   z-index: 1;
   width: min(100%, 300px);
   padding: 16px 18px;
-  border-inline-start: 4px solid var(--coral);
+  background: var(--raised);
 }
 
 .pile-pr-title {
@@ -171,7 +166,7 @@ main code {
 
 .pile-pr-meta {
   margin-top: 4px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.875rem;
 }
 
@@ -179,8 +174,10 @@ main code {
 .hero-bar {
   display: flex;
   justify-content: flex-end;
-  color: var(--muted);
+  color: var(--comment);
+  font-family: var(--font-display);
   font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .bar-start,
@@ -204,9 +201,8 @@ main code {
 
 .hero-hint {
   margin-top: 8px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.9375rem;
-  font-style: italic;
 }
 
 .hero-lede {
@@ -216,15 +212,15 @@ main code {
   line-height: 2.2;
 }
 
-/* The coral patch over a fixed word; ink text on coral (white on coral fails AA). */
+/* The amber patch over a fixed word; Night text on Patch (10.78:1). */
 .patch {
   position: relative;
   display: inline-block;
   padding: 0 0.2em;
   border-radius: 6px;
-  background: var(--coral);
-  box-shadow: 2px 3px 0 var(--coral-shadow);
-  color: var(--ink);
+  background: var(--patch);
+  box-shadow: 2px 3px 0 var(--patch-shadow);
+  color: var(--night);
   line-height: 1.15;
   transform: rotate(-3deg);
 }
@@ -236,7 +232,7 @@ main code {
   position: absolute;
   bottom: 100%;
   left: 0.1em;
-  color: var(--muted);
+  color: var(--ghost);
   font-family: var(--font-body);
   font-size: max(0.4em, 0.8125rem);
   font-weight: 500;
@@ -282,12 +278,12 @@ main code {
 }
 
 .pr-pairs del {
-  color: var(--muted);
+  color: var(--comment);
 }
 
 .pr-progress {
   margin-top: 12px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.875rem;
 }
 
@@ -298,7 +294,7 @@ main code {
   gap: 12px 16px;
   margin-top: 40px;
   padding-top: 24px;
-  border-top: 1px dashed var(--line);
+  border-top: 1px dashed var(--rule);
 }
 
 .completion-title {
@@ -373,7 +369,7 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 
 .steps figcaption p {
   margin-top: 6px;
-  color: var(--muted);
+  color: var(--comment);
 }
 
 .clip-placeholder {
@@ -382,16 +378,16 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   gap: 12px;
   aspect-ratio: 16 / 10;
   padding: 24px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 12px;
-  background: color-mix(in srgb, var(--line) 35%, var(--paper));
+  background: var(--surface);
 }
 
 .clip-line {
   height: 10px;
   width: 70%;
   border-radius: 5px;
-  background: color-mix(in srgb, var(--ink) 18%, var(--paper));
+  background: var(--rule);
 }
 
 .clip-line:nth-child(3) {
@@ -399,7 +395,7 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 }
 
 .clip-click .clip-target {
-  outline: 2px solid var(--ink);
+  outline: 2px solid var(--paper);
   outline-offset: 3px;
 }
 
@@ -407,8 +403,8 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 .clip-send .clip-target {
   height: 18px;
   width: 55%;
-  background: var(--coral);
-  box-shadow: 2px 3px 0 var(--coral-shadow);
+  background: var(--patch);
+  box-shadow: 2px 3px 0 var(--patch-shadow);
   transform: rotate(-3deg);
 }
 
@@ -417,7 +413,7 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   width: 35%;
   justify-self: end;
   border-radius: 6px;
-  background: var(--ink);
+  background: var(--edge);
 }
 
 /* Scene 4: the static English | Arabic split at 50 %. */
@@ -429,9 +425,9 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 12px;
-  background: var(--paper);
+  background: var(--surface);
 }
 
 .slider-half {
@@ -439,16 +435,11 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   padding: 20px 16px 24px;
 }
 
-.slider-half[data-lang='ar'] {
-  /* The divider is the Arabic half's left edge whatever its direction. */
-  border-left: 3px solid var(--coral);
-  border-radius: 0 11px 11px 0;
-  background: color-mix(in srgb, var(--coral) 6%, var(--paper));
-}
-
 .slider-label {
-  color: var(--muted);
+  color: var(--comment);
+  font-family: var(--font-display);
   font-size: 0.8125rem;
+  font-weight: 500;
 }
 
 .sample-nav {
@@ -460,17 +451,18 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   font-weight: 500;
 }
 
+/* Somebody else's website, so its title is in the body face, not the display face. */
 .sample-title {
   margin-top: 12px;
-  font-family: var(--font-heading);
+  font-family: var(--font-body);
   font-size: clamp(1.125rem, 0.9rem + 1.2vw, 1.625rem);
-  font-weight: 800;
+  font-weight: 600;
   line-height: 1.15;
 }
 
 .sample-sub {
   margin-top: 10px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.9375rem;
 }
 
@@ -479,21 +471,22 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   max-width: 100%;
   margin-top: 14px;
   padding: 6px 10px;
+  border: 1px solid var(--edge);
   border-radius: 6px;
-  background: var(--ink);
+  background: var(--raised);
   color: var(--paper);
   font-size: 0.875rem;
   font-weight: 600;
 }
 
-/* Text nobody translated: the outline carries the meaning alone, so it uses coral shadow
-   (3:1 on paper, WCAG 1.4.11) over a coral tint that keeps ink text AA. */
+/* Text nobody translated: red is only an outline or a word, so the Exit 1 outline (5.68:1 on
+   Surface) carries the meaning alone and the text keeps its own colour on no fill. */
 .is-untranslated {
   border-radius: 4px;
-  outline: 2px solid var(--coral-shadow);
+  outline: 2px solid var(--exit-1);
   outline-offset: 2px;
-  background: color-mix(in srgb, var(--coral) 16%, var(--paper));
-  color: var(--ink);
+  background: none;
+  color: var(--paper);
 }
 
 .slider-handle {
@@ -504,10 +497,10 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   place-items: center;
   width: 32px;
   height: 32px;
+  border: 2px solid var(--edge);
   border-radius: 50%;
-  background: var(--coral);
-  box-shadow: 0 0 0 4px var(--paper);
-  color: var(--ink);
+  background: var(--raised);
+  color: var(--paper);
   font-size: 0.9375rem;
   transform: translate(-50%, -50%);
 }
@@ -516,8 +509,8 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
   margin-top: 16px;
   padding: 14px 16px;
   border-radius: 8px;
-  background: var(--espresso);
-  color: var(--cream);
+  background: var(--surface);
+  color: var(--paper);
   font-family: var(--font-code);
   font-size: 0.8125rem;
   font-weight: 500;
@@ -546,20 +539,21 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 
 .frameworks li {
   padding: 8px 14px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--rule);
   border-radius: 999px;
-  font-weight: 600;
+  font-family: var(--font-display);
+  font-weight: 500;
 }
 
 .hosts {
   display: grid;
   gap: 8px;
   margin-top: 20px;
-  color: var(--muted);
+  color: var(--comment);
 }
 
 .hosts code {
-  color: var(--ink);
+  color: var(--paper);
 }
 
 #start .chip {
@@ -575,7 +569,7 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 
 .start-note {
   margin-top: 16px;
-  color: var(--muted);
+  color: var(--comment);
 }
 
 .footer-links {
@@ -588,7 +582,7 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 }
 
 .footer-links a {
-  color: var(--ink);
+  color: var(--paper);
 }
 
 @media (min-width: 720px) {
@@ -607,11 +601,5 @@ html.js [data-island='hero'] > .hero-grid .pr-card::after {
 
   .slider-half {
     padding: 28px 28px 32px;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .button:active {
-    transform: none;
   }
 }

@@ -12,17 +12,22 @@
   min-width: 0;
   padding: 20px 16px 24px;
   border-radius: 11px;
-  background: var(--paper);
+  background: var(--surface);
 }
 
 .slider-layer-ar {
-  background: color-mix(in srgb, var(--coral) 6%, var(--paper));
   transition: clip-path 160ms ease-out;
+}
+
+/* Somebody else's website, so its title is in the body face, as in the static split. */
+.sample-page h3 {
+  font-family: var(--font-body);
+  font-weight: 600;
 }
 
 .sample-page > p {
   margin-top: 10px;
-  color: var(--muted);
+  color: var(--comment);
   font-size: 0.9375rem;
 }
 
@@ -40,9 +45,9 @@
   max-width: 100%;
   margin-top: 14px;
   padding: 6px 10px;
-  border: 0;
+  border: 1px solid var(--edge);
   border-radius: 6px;
-  background: var(--ink);
+  background: var(--raised);
   color: var(--paper);
   font: inherit;
   font-size: 0.875rem;
@@ -50,22 +55,23 @@
 }
 
 .sample-cta.is-untranslated {
-  background: color-mix(in srgb, var(--coral) 16%, var(--paper));
-  color: var(--ink);
+  background: var(--raised);
+  color: var(--paper);
 }
 
 .slider-divider {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 3px;
-  background: var(--coral);
+  width: 2px;
+  background: var(--edge);
   transform: translateX(-50%);
   transition: left 160ms ease-out;
   pointer-events: none;
 }
 
-/* The handle: a coral circle with an ink arrow, its hit area 44 px square. */
+/* The handle: a Raised circle with an Edge ring and a Paper arrow, its hit area 44 px square.
+   Amber means a person changed something, so neither the handle nor the divider uses it. */
 .slider-track-live .slider-handle {
   width: 44px;
   height: 44px;
