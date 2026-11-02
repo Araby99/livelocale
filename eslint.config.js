@@ -12,10 +12,17 @@ export default [
       'playwright-report/**',
       'test-results/**',
       'playground/.next/**',
+      'site/dist/**',
+      'site/demo/dist/**',
     ],
   },
   {
-    files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}', 'playground/**/*.{ts,tsx}'],
+    files: [
+      'src/**/*.{ts,tsx}',
+      'tests/**/*.{ts,tsx}',
+      'playground/**/*.{ts,tsx}',
+      'site/**/*.{ts,tsx}',
+    ],
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
@@ -41,6 +48,20 @@ export default [
     settings: {
       react: {
         version: 'detect',
+      },
+    },
+  },
+  {
+    // The site's Node build scripts.
+    files: ['site/**/*.mjs'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        process: 'readonly',
+        console: 'readonly',
+        URL: 'readonly',
+        Buffer: 'readonly',
       },
     },
   },

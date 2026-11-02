@@ -9,6 +9,10 @@ node_modules/
 /playground/.next/
 /playground/out/
 /playground-vite/dist/
+/site/dist/
+/site/public/favicon*
+/site/public/apple-touch-icon.png
+/site/public/og-image.png
 
 # Testing
 /coverage/

@@ -1,0 +1,23 @@
+/* Brand tokens (spec §2.3 and §2.4). No other colour is introduced. */
+:root {
+  --paper: #fff8f0;
+  --ink: #1d1712;
+  --coral: #ff6b4a;
+  --coral-shadow: #c2472c;
+  --muted: #6b5b4d;
+  --line: #e9dccd;
+  --espresso: #1c1714;
+  --cream: #f6eee6;
+  --coral-dark: #ff7a5c;
+
+  /* Latin face first, Arabic face second, in every stack. */
+  --font-heading: 'Bricolage Grotesque', 'Readex Pro', system-ui, sans-serif;
+  --font-body: Inter, 'IBM Plex Sans Arabic', system-ui, sans-serif;
+  --font-code: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+/* Arabic reads small and tight beside Latin at the same size. */
+:lang(ar) {
+  font-size: 1.08em;
+  line-height: 1.7;
+}

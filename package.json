@@ -75,14 +75,17 @@
     "test:e2e": "playwright test",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "lint": "node scripts/check-invisible-chars.mjs && eslint \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"README.md\"",
-    "format:write": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"README.md\"",
+    "lint": "node scripts/check-invisible-chars.mjs && eslint \"src/**/*.{ts,tsx}\" \"tests/**/*.{ts,tsx}\" \"site/src/**/*.{ts,tsx}\" \"site/scripts/**/*.mjs\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"site/src/**/*.{ts,tsx}\" \"site/scripts/**/*.mjs\" \"README.md\"",
+    "format:write": "prettier --write \"src/**/*.{ts,tsx,css}\" \"tests/**/*.{ts,tsx}\" \"site/src/**/*.{ts,tsx}\" \"site/scripts/**/*.mjs\" \"README.md\"",
     "typecheck": "tsc --noEmit",
     "changeset": "changeset",
     "version": "changeset version",
     "prepare": "husky",
-    "brand:build": "npm run brand --prefix site"
+    "brand:build": "npm run brand --prefix site",
+    "site:build": "npm run build --prefix site",
+    "site:typecheck": "tsc -p site/tsconfig.json --noEmit",
+    "test:site": "playwright test --config playwright.site.config.ts"
   },
   "peerDependencies": {
     "next": ">=13.0.0",

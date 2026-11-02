@@ -3,6 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/sync-brand.mjs && vite",
     "brand": "node scripts/brand/build-svgs.mjs && node scripts/brand/render-pngs.mjs"
   },
   "devDependencies": {
@@ -12,5 +14,11 @@
     "@fontsource/jetbrains-mono": "^5.3.0",
     "@fontsource/readex-pro": "^5.3.0",
     "opentype.js": "^2.0.0"
+  },
+  "dependencies": {
+    "i18next": "^26.7.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-i18next": "^17.1.11"
   }
 }
