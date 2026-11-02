@@ -41,7 +41,7 @@
 - 🌍 **Preview mode for non-developers:** Run a token-protected Studio against a preview deployment; every save becomes a commit on a GitHub branch and one click opens the pull request.
 - 🧾 **Review, commit, undo:** The Studio's Changes panel shows git status and a diff of your locale files, commits them with a message, discards them, and undoes any edit from the session.
 - 🩺 **Doctor:** `npx livelocale doctor` finds the usual integration mistakes before you open the Studio.
-- ✅ **Translation check for CI:** `npx livelocale check` fails the build on missing keys, placeholder drift between locales, and broken ICU syntax, and lists keys nothing uses.
+- ✅ **Translation check for CI:** `npx livelocale check` fails the build on missing keys, placeholder drift between locales, and broken ICU syntax, and lists keys nothing uses, and, with `--hardcoded`, text that never went through translation.
 - 🛑 **Safety switches:** `LIVELOCALE=off` kill switch, and automatic shut-off on hosting platforms so a staging build can never leak watermarks.
 - 🧭 **App Router and Pages Router:** One handler works with both `route.ts` and `pages/api` signatures.
 - 🌐 **Works beyond localhost:3000:** Point the Studio at any port or hostname with `--app` or `?app=`, and allow Codespaces or custom origins with one env var.
@@ -171,6 +171,17 @@ Open `http://localhost:3010` to view the Studio, loaded with your app. `--app` d
 `http://localhost:3000`; you can also switch apps without restarting by opening
 `http://localhost:3010/?app=http://localhost:3001`.
 
+The Studio has the new LiveLocale look, in light and dark. It speaks English and Arabic; the share
+link follows the browser language, and the switch is in the header. Share links also follow your
+system's light or dark setting; the dev Studio starts dark until you pick System, Light or Dark.
+Its fonts ship inside the package, so the Studio loads nothing from Google. Every control works by
+keyboard, with a visible focus ring.
+
+The look is the brand's "hunk" palette: amber fills for the patch, the primary button and the
+edited row, with Martian Mono and IBM Plex type. The bundled fonts (Martian Mono, IBM Plex Sans,
+IBM Plex Mono and IBM Plex Sans Arabic) are under the SIL Open Font License 1.1; each family's
+licence ships in `dist/studio/fonts-licenses/`.
+
 ---
 
 ### 6. Check your setup
@@ -266,7 +277,7 @@ npx livelocale doctor [--dir <path>] [--locales <path>] [--app <url>] [--share] 
 A read-only consistency check of your translations, built for CI. It runs in any `NODE_ENV`.
 
 ```bash
-npx livelocale check [--dir <path>] [--locales <path>] [--source <locale>] [--no-unused] [--strict] [--json]
+npx livelocale check [--dir <path>] [--locales <path>] [--source <locale>] [--no-unused] [--strict] [--json] [--hardcoded] [--allow <word>]
 ```
 
 | Finding                                                                         | Level   |
@@ -293,6 +304,86 @@ English's two are not reported.
 ```yaml
 # .github/workflows/i18n.yml
 - run: npx livelocale check
+```
+
+### Catch untranslated text before launch
+
+`--hardcoded` adds three findings to `check`:
+
+| Finding                                                                                   | Level   |
+| ----------------------------------------------------------------------------------------- | ------- |
+| `hardcoded`: JSX text or a user-facing attribute that never went through translation      | problem |
+| `untranslated`: a translation identical to the source locale                              | warning |
+| `wrong-script`: a translation mostly in Latin letters for a non-Latin locale (`ar`, `ja`) | warning |
+
+Hardcoded text always fails the run. The other two are warnings and fail only with `--strict`.
+Text is read from JSX children and from the attributes a user reads or hears (`alt`, `title`,
+`placeholder`, `aria-label`, `label` and the other `aria-` text attributes); each finding prints
+its file, line and column, and the source text shortened to 60 characters. Translation values are
+never printed.
+
+```bash
+npx livelocale check --hardcoded
+```
+
+```yaml
+# .github/workflows/i18n.yml
+- run: npx livelocale check --hardcoded
+```
+
+Without `--hardcoded`, `check` behaves as before, so an upgrade does not break an existing pipeline.
+
+**Opting out.** Put `// livelocale-ignore-next-line` (or `{/* livelocale-ignore-next-line */}`
+inside JSX) either on the line above the text or on the line above the element that holds it,
+which is where Prettier leaves it for multi-line JSX:
+
+```tsx
+// livelocale-ignore-next-line
+const label = <span>LiveLocale</span>;
+
+<footer>
+  {/* livelocale-ignore-next-line */}
+  <img
+    src="/brand/livelocale-logo.svg"
+    alt="LiveLocale logo"
+    width={120}
+    height={32}
+    className="logo"
+  />
+</footer>;
+```
+
+A `// livelocale-ignore-file` comment at the top of a file skips the whole file. Brand names and
+other words that are never translated go in a `livelocale.allow` file at the project root, one per
+line; a `key:` line exempts a translation key from `untranslated` and `wrong-script`, for a value
+that is the same in every language:
+
+```text
+# livelocale.allow
+LiveLocale
+GitHub
+key:checkout.brand
+```
+
+`--allow <word>` adds a word or phrase for one run, and can be repeated. Allowed words are matched
+as whole words, case-sensitively.
+
+**What is skipped.** Test and story files (`*.test.*`, `*.spec.*`, `*.stories.*`, `*.cy.*`,
+`*.e2e.*`), the folders `__tests__`, `__mocks__`, `__fixtures__`, `fixtures`, `.storybook`, `e2e`
+and `cypress`, `.d.ts` files, folders the key scanner ignores (`node_modules`, build output) and
+paths in `.gitignore`. Code-like strings are not reported: URLs, emails, paths, ids, `kebab-case`,
+`snake_case`, `camelCase` and `CONSTANT` tokens, dotted keys, and shell commands. Elements such as
+`<code>`, `<pre>`, `<kbd>`, `<script>`, `<style>` and `<Trans>` are not looked into.
+
+**Limits.** Only JSX is checked: Vue, Svelte, Angular and HTML templates are not, and neither are
+object literals such as page metadata. And text built at run time is not seen: a template string
+with substitutions, a concatenation or a value from an API.
+
+**Requirement.** The JSX scan uses your project's own `typescript`; without it the other checks
+still run and the command exits with code 2. Install it with:
+
+```bash
+npm install -D typescript
 ```
 
 ### `pack`
