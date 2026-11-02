@@ -10,7 +10,7 @@ import { SetupProblems } from './SetupProblems.js';
 import { GitHubIssueAction } from './GitHubIssueAction.js';
 import { RepoPrompt } from './RepoPrompt.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
-import type { StudioText } from '../../../i18n/catalogue.js';
+import { studioMessage, type StudioText } from '../../../i18n/catalogue.js';
 
 /** Above this many characters the command reads the link from the clipboard (cmd.exe caps arguments at 8,191). */
 export const APPLY_COMMAND_MAX_CHARS = 8000;
@@ -66,7 +66,7 @@ const resultText = (result: ApplyResult, t: StudioText) =>
   result.state === 'applied'
     ? t('review.result_applied')
     : result.state === 'failed'
-      ? t('review.result_failed', { message: result.message })
+      ? t('review.result_failed', { message: studioMessage(t, result.message) })
       : t('review.result_skipped', { reason: result.reason });
 
 const STATUS_ORDER: EditStatus[] = ['apply', 'already', 'conflict', 'needs-force', 'invalid'];

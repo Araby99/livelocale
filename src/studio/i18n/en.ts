@@ -128,6 +128,8 @@ export const en = {
   'share.locale_actions_unsupported':
     'Adding, renaming or deleting languages is not available on a share link. Ask your developer.',
   'share.commit_unsupported': 'Use "Send to developer" to hand your changes over.',
+  'share.load_failed': 'Could not load {path} ({status}).',
+  'share.unknown_language': 'Unknown language "{locale}".',
   'editor.title': 'Translation Studio',
   'editor.manage': 'Manage Languages',
   'editor.back': 'Back to Editor',
@@ -220,6 +222,9 @@ export const en = {
   'errors.locale_unknown': 'Could not tell which language to edit.',
   'errors.client_error': 'Client-side error occurred.',
   'errors.backup_share_only': 'Backups work only on a share link.',
+  'errors.unauthorized': 'Unauthorized',
+  'errors.translation_rejected': 'The translation was rejected.',
+  'errors.server_status': 'Server responded with status {status}',
   'changes.title': 'Changes',
   'changes.refresh': 'Refresh',
   'changes.close': 'Close',

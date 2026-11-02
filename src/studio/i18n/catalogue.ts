@@ -90,14 +90,37 @@ const OWN_MESSAGES: readonly StringKey[] = [
   'share.storage_problem',
   'share.locale_actions_unsupported',
   'share.commit_unsupported',
+  'share.load_failed',
+  'share.unknown_language',
+  'errors.unauthorized',
+  'errors.translation_rejected',
+  'errors.server_status',
 ];
+
+/** The values of `message` when it is `template` with its `{name}` placeholders filled in. */
+function matchTemplate(template: string, message: string): Record<string, string> | null {
+  const names: string[] = [];
+  const pattern = template
+    .split(/\{(\w+)\}/)
+    .map((part, i) => {
+      if (i % 2 === 0) return part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      names.push(part);
+      return '([\\s\\S]+?)';
+    })
+    .join('');
+  const match = new RegExp(`^${pattern}$`).exec(message);
+  return match ? Object.fromEntries(names.map((name, i) => [name, match[i + 1] ?? ''])) : null;
+}
 
 /**
  * `message` in the Studio language when it is one of the Studio's own messages (written in
- * English by code that has no language, such as the share transport); any other message,
- * such as a server error, is returned as given.
+ * English by code that has no language, such as the share transport or the API client), with
+ * the values it carries kept; any other message, such as a server error, is returned as given.
  */
 export function studioMessage(t: StudioText, message: string): string {
-  const key = OWN_MESSAGES.find((k) => englishText(k) === message);
-  return key ? t(key) : message;
+  for (const key of OWN_MESSAGES) {
+    const params = matchTemplate(englishText(key), message);
+    if (params) return t(key, params);
+  }
+  return message;
 }

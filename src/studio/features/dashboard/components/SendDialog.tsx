@@ -13,6 +13,7 @@ import {
 } from '../../../share/send.js';
 import { GitHubIssueAction } from './GitHubIssueAction.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { studioMessage } from '../../../i18n/catalogue.js';
 import { useDialog } from '../hooks/useDialog.js';
 import { copyText, downloadText, readPref, writePref } from '../../../share/browser.js';
 
@@ -342,7 +343,9 @@ export const SendDialog = ({
             </button>
           </div>
         )}
-        {actionError && <p className="text-xs text-danger-fg break-words">{actionError}</p>}
+        {actionError && (
+          <p className="text-xs text-danger-fg break-words">{studioMessage(t, actionError)}</p>
+        )}
       </div>
     </div>
   );

@@ -119,13 +119,15 @@ export async function createStaticTransport(
       cache: 'no-cache',
       credentials: 'same-origin',
     });
-    if (!response.ok) throw new Error(`Could not load ${path} (${response.status}).`);
+    if (!response.ok) {
+      throw new Error(englishText('share.load_failed', { path, status: response.status }));
+    }
     return (await response.json()) as Record<string, unknown>;
   }
 
   function readBuiltLocale(locale: string): Promise<Record<string, unknown>> {
     if (!isKnownLocale(locale)) {
-      return Promise.reject(new Error(`Unknown language "${locale}".`));
+      return Promise.reject(new Error(englishText('share.unknown_language', { locale })));
     }
     let pending = built.get(locale);
     if (!pending) {

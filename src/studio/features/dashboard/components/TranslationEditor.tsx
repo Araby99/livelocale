@@ -4,7 +4,7 @@ import { extractPlaceholders } from '../../../../core/placeholders.js';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
 import { PluralEditor } from './PluralEditor.jsx';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
-import type { StringKey } from '../../../i18n/catalogue.js';
+import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
 export interface SaveWarning {
   code: string;
@@ -229,7 +229,9 @@ export const TranslationEditor = ({
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <div className="text-xs text-danger-fg font-mono leading-normal break-all">{error}</div>
+          <div className="text-xs text-danger-fg font-mono leading-normal break-all">
+            {studioMessage(t, error)}
+          </div>
         </div>
       )}
 

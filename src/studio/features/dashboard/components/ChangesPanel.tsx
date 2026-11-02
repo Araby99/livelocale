@@ -4,7 +4,7 @@ import type { HistoryEntry } from '../hooks/useHistory.js';
 import type { Draft } from '../../../transport/drafts.js';
 import { DraftList } from './DraftList.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
-import type { StringKey } from '../../../i18n/catalogue.js';
+import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
 interface ChangesPanelProps {
   isOpen: boolean;
@@ -356,7 +356,7 @@ export const ChangesPanel = ({
                 )}
                 {gitError && (
                   <div className="bg-danger-bg border border-danger-line rounded-xl p-3 text-xs text-danger-fg font-mono break-all">
-                    {gitError}
+                    {studioMessage(t, gitError)}
                   </div>
                 )}
               </section>

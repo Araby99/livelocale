@@ -122,6 +122,23 @@ describe('studioMessage', () => {
     );
     expect(studioMessage(arText, COMMIT_UNSUPPORTED)).toBe(arText('share.commit_unsupported'));
   });
+  it('shows its own messages that carry values in the Studio language, values kept', () => {
+    const enText = textFor('en');
+    for (const [key, params] of [
+      ['errors.unauthorized', undefined],
+      ['errors.translation_rejected', undefined],
+      ['errors.server_status', { status: 503 }],
+      ['share.load_failed', { path: 'locales/fr.json', status: 404 }],
+      ['share.unknown_language', { locale: 'xx' }],
+    ] as const) {
+      const english = enText(key, params);
+      expect(english).not.toBe(key);
+      expect(studioMessage(arText, english)).toBe(arText(key, params));
+      expect(studioMessage(arText, english)).not.toBe(english);
+    }
+  });
+  it('keeps a message that only contains one of its own', () =>
+    expect(studioMessage(arText, 'Proxy: Unauthorized')).toBe('Proxy: Unauthorized'));
   it('keeps any other message, such as a server error, as given', () =>
     expect(studioMessage(arText, 'Token lacks write access')).toBe('Token lacks write access'));
 });

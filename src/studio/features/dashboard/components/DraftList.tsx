@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import type { Draft } from '../../../transport/drafts.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
-import type { StringKey } from '../../../i18n/catalogue.js';
+import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
 export type DraftDisplayState = 'unsent' | 'sent' | 'live' | 'conflict';
 
@@ -209,7 +209,7 @@ export const DraftList = ({
       </div>
       {result && (
         <p role="status" className="text-[11px] text-fg-muted break-words">
-          {result}
+          {studioMessage(t, result)}
         </p>
       )}
     </section>

@@ -155,6 +155,8 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'share.locale_actions_unsupported':
     'لا يمكن إضافة اللغات أو إعادة تسميتها أو حذفها من رابط مشاركة. اطلب ذلك من المطوّر.',
   'share.commit_unsupported': 'استخدم «إرسال إلى المطوّر» لتسليم تغييراتك.',
+  'share.load_failed': 'تعذّر تحميل {path} ({status}).',
+  'share.unknown_language': 'لغة غير معروفة: {locale}.',
   'editor.title': 'استوديو الترجمة',
   'editor.manage': 'إدارة اللغات',
   'editor.back': 'العودة إلى المحرّر',
@@ -244,6 +246,9 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'errors.locale_unknown': 'تعذّر معرفة اللغة التي تحرّرها. انقر النص مرة أخرى.',
   'errors.client_error': 'حدث خطأ في التطبيق. أعد تحميل الإطار.',
   'errors.backup_share_only': 'النسخ الاحتياطية تعمل في رابط المشاركة فقط.',
+  'errors.unauthorized': 'غير مصرّح بالدخول.',
+  'errors.translation_rejected': 'رُفضت الترجمة.',
+  'errors.server_status': 'ردّ الخادم برمز الحالة {status}.',
   'changes.title': 'التغييرات',
   'changes.refresh': 'تحديث',
   'changes.close': 'إغلاق',

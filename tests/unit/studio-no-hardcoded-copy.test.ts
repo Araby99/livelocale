@@ -13,17 +13,6 @@ const allow = parseAllowFile('LiveLocale\nlivelocale\nEnglish\n');
 
 /** Literals the literal sweep may keep in English: [file, text, reason]. */
 const EXEMPT: ReadonlyArray<readonly [file: string, text: string, reason: string]> = [
-  ['src/studio/api.ts', 'Unauthorized', "stands in for the server's English error (spec §12.1)"],
-  [
-    'src/studio/api.ts',
-    'The translation was rejected.',
-    "stands in for the server's English error (spec §12.1)",
-  ],
-  [
-    'src/studio/api.ts',
-    'Server responded with status ',
-    "stands in for the server's English error (spec §12.1)",
-  ],
   ['src/studio/api.ts', 'Bearer ', 'the HTTP Authorization scheme'],
   [
     'src/studio/config.ts',
@@ -55,14 +44,6 @@ const EXEMPT: ReadonlyArray<readonly [file: string, text: string, reason: string
       ] as const
   ),
   ['src/studio/transport/drafts.ts', '+++ b/', 'a diff header, written for the repository'],
-  ...['Could not load ', 'Unknown language "'].map(
-    (text) =>
-      [
-        'src/studio/transport/static.ts',
-        text,
-        "the share transport's stand-in for the server's English error (spec §12.1)",
-      ] as const
-  ),
   ...['Cannot save "', '" in ', ': it would replace translations that are not a single text.'].map(
     (text) =>
       [
