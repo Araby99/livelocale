@@ -106,14 +106,14 @@ README section "Catch untranslated text before launch" with a CI example, the op
 
 ## 8. Feature: light theme
 
-- **Amended 2026-11-01 (owner: the previous Studio look was a placeholder, not branding).** The Studio is restyled with the LiveLocale brand from `docs/superpowers/specs/2026-11-01-brand-and-landing-design.md` §2: light = Paper/Ink/Coral, dark = Espresso/Cream/Coral (dark), type = Bricolage Grotesque (headings), Inter (UI), JetBrains Mono (code), Readex Pro and IBM Plex Sans Arabic for the Arabic Studio, and the logo in the header.
+- **Amended 2026-11-01 (owner: the previous Studio look was a placeholder, not branding).** The Studio is restyled with the LiveLocale brand from `docs/superpowers/specs/2026-11-01-brand-and-landing-design.md` §2: dark = Night/Paper/Patch and light = Print/Ink/Patch with the one-job accents (§2.3, the "hunk" palette, revised 2026-11-02), type = Martian Mono (display), IBM Plex Sans (UI), IBM Plex Mono (code), IBM Plex Sans Arabic for the Arabic Studio (§2.4), and the logo in the header.
 - The Studio's components move from hardcoded palette classes (about 200 `slate-…`/`bg-[#…]` uses) to one set of semantic colour tokens defined from the brand palette for both themes. Today's colours are not preserved.
 - A toggle (system / light / dark) in the header, remembered per browser. Defaults (Claude's call after the builder check): the **dev/preview Studio** stays dark until the person chooses, so current users see no change; the **share Studio** follows the system setting (`prefers-color-scheme`).
 - Dark mode no longer has to look as it does today; both themes follow the brand and meet WCAG AA. The defaults above still apply (the dev Studio starts dark, now in the brand's dark theme).
 
 ## 9. Constraints
 
-- No runtime dependencies (optional peer `typescript` only; devDependencies allowed: `axe-core`/`@axe-core/playwright`, and the brand fonts from Fontsource: Bricolage Grotesque, Inter, JetBrains Mono, Readex Pro, IBM Plex Sans Arabic).
+- No runtime dependencies (optional peer `typescript` only; devDependencies allowed: `axe-core`/`@axe-core/playwright`, and the brand fonts from Fontsource: Martian Mono, IBM Plex Sans, IBM Plex Mono, IBM Plex Sans Arabic).
 - Node ≥ 18; browser-safe core rules from the share-link plan still apply to `src/core`.
 - `check` without `--hardcoded` and the server-mode Studio flows behave as in 0.10.x; existing tests stay green.
 - Release as `0.11.0` (minor), with a `next` prerelease build and a smoke check of `check --hardcoded` on the demo repo Translation-Test before `latest`.
