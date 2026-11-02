@@ -146,11 +146,11 @@ button {
   stroke-linejoin: round;
 }
 
-/* The one column: the video fills about three quarters of a desktop screen and everything else
+/* The one column: the video fills about 70 percent of a desktop screen and everything else
    aligns to its edges. */
 .col {
   width: 100%;
-  max-width: calc(1080px + 2 * var(--gutter));
+  max-width: calc(1000px + 2 * var(--gutter));
   margin-inline: auto;
   padding-inline: var(--gutter);
 }
@@ -160,7 +160,7 @@ button {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding-block: 20px;
+  padding-block: 14px;
 }
 
 .brand {

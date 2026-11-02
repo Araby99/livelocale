@@ -5,17 +5,19 @@
 /* ---------- Hero ---------- */
 
 .hero {
-  padding-block: 32px 0;
+  padding-block: 16px 0;
 }
 
+/* One band: the headline, then the sentence, the two actions and the proof beside it, so the
+   playing video, its chips and the pause button all fit in a 900 px tall desktop screen. */
 .hero-head {
   display: grid;
   gap: 20px;
 }
 
 .hero h1 {
-  font-size: clamp(2.125rem, 1.1rem + 3.6vw, 4.25rem);
-  line-height: 1.04;
+  font-size: clamp(2.125rem, 1.2rem + 2.4vw, 3rem);
+  line-height: 1.06;
   letter-spacing: -0.035em;
   max-width: 17ch;
 }
@@ -34,14 +36,19 @@
 
 .hero-aside {
   display: grid;
-  gap: 24px;
+  gap: 12px;
 }
 
 .hero-lede {
   max-width: 44ch;
-  font-size: 1.1875rem;
+  font-size: 1.0625rem;
   line-height: 1.5;
   color: var(--paper);
+}
+
+.hero-proof {
+  color: var(--comment);
+  font-size: 0.9375rem;
 }
 
 .actions {
@@ -51,18 +58,36 @@
 }
 
 @media (min-width: 900px) {
-  .hero {
-    padding-top: 56px;
+  .hero-head {
+    gap: 16px;
   }
 
-  .hero-head {
-    gap: 28px;
+  /* The headline takes one line; the sentence and the proof sit beside the two actions. */
+  .hero h1 {
+    max-width: none;
   }
 
   .hero-aside {
     grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'lede actions'
+      'proof actions';
     align-items: center;
-    gap: 32px;
+    column-gap: 40px;
+    row-gap: 6px;
+  }
+
+  .hero-lede {
+    grid-area: lede;
+  }
+
+  .hero-proof {
+    grid-area: proof;
+  }
+
+  .actions {
+    grid-area: actions;
+    flex-wrap: nowrap;
   }
 }
 
@@ -145,9 +170,10 @@ html:not(.js) .cmd {
 /* ---------- The filmed demo ---------- */
 
 .demo {
-  margin-block: 40px 0;
+  margin-block: 20px 0;
 }
 
+/* One browser frame, address only: the Studio inside the video has its own window chrome. */
 .window {
   overflow: hidden;
   border: 1px solid var(--rule);
@@ -157,30 +183,14 @@ html:not(.js) .cmd {
 
 .window-bar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
-  padding: 9px 14px;
+  justify-content: center;
+  padding: 7px 14px;
   border-bottom: 1px solid var(--rule);
 }
 
-.window-dots {
-  display: flex;
-  gap: 7px;
-}
-
-.window-dots i {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--rule);
-}
-
 .window-address {
-  flex: 1 1 200px;
-  max-width: 440px;
-  margin-inline: auto;
-  padding: 4px 12px;
+  width: min(100%, 440px);
+  padding: 3px 12px;
   border-radius: 6px;
   background: var(--night);
   color: var(--comment);
@@ -196,34 +206,34 @@ html:not(.js) .cmd {
   color: var(--hunk);
 }
 
-.window-label {
-  color: var(--comment);
-  font-size: 0.8125rem;
-  white-space: nowrap;
+/* The screen: the 2:1 cut, or the 4:5 phone cut (demo-video.ts picks the same way). The poster is
+   a frame of that cut with the fix already made; it fades once the video is playing. */
+.screen {
+  position: relative;
+  aspect-ratio: 2 / 1;
+  background: var(--night);
 }
 
-.demo-video {
+.demo-video,
+.poster img {
+  position: absolute;
+  inset: 0;
   width: 100%;
-  height: auto;
-  aspect-ratio: 8 / 5;
-  background: var(--night);
+  height: 100%;
   object-fit: cover;
 }
 
+.poster img {
+  transition: opacity 400ms var(--ease-out);
+}
+
+.demo[data-started] .poster img {
+  opacity: 0;
+}
+
 @media (max-width: 639px) {
-  .window-dots {
-    display: none;
-  }
-
-  .window-address {
-    flex-basis: 100%;
-    max-width: none;
-  }
-
-  .window-label {
-    flex-basis: 100%;
-    text-align: center;
-    font-size: 0.75rem;
+  .screen {
+    aspect-ratio: 4 / 5;
   }
 }
 
@@ -231,7 +241,7 @@ html:not(.js) .cmd {
   display: flex;
   align-items: stretch;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 html:not(.js) .demo-controls {
@@ -386,7 +396,7 @@ html:not(.js) .demo-controls {
 }
 
 .transcript {
-  margin-top: 12px;
+  margin-top: 24px;
   color: var(--comment);
   font-size: 0.9375rem;
 }
@@ -402,6 +412,10 @@ html:not(.js) .demo-controls {
 
 .transcript summary:hover {
   color: var(--paper);
+}
+
+.transcript-note {
+  margin-top: 12px;
 }
 
 .transcript ol {
@@ -422,7 +436,7 @@ html:not(.js) .demo-controls {
   align-items: center;
   justify-content: center;
   gap: 12px 20px;
-  margin-top: 56px;
+  margin-top: 12px;
 }
 
 html:not(.js) .doors-row {
@@ -500,8 +514,9 @@ html:not(.js) .doors-row {
 
 /* ---------- The stories ---------- */
 
-.js[data-door='developer'] #fixer,
-.js[data-door='fixer'] #developer {
+/* With JavaScript only the chosen door's story and close show; without it, both, in order. */
+.js[data-door='developer'] [data-door='fixer'],
+.js[data-door='fixer'] [data-door='developer'] {
   display: none;
 }
 
@@ -609,6 +624,198 @@ html:not(.js) .story + .story {
   border-color: var(--edge);
 }
 
+.shot-narrow img {
+  max-width: 440px;
+}
+
+/* ---------- The diff grammar (spec §2.4a) ----------
+   Old text is a struck Ghost line after −; the fix is a Wash row after a filled amber +, the
+   edited words on a Patch fill; files and locales are Hunk; the result is Exit 0 with a check. */
+
+.diff {
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  font-family: var(--font-code);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.diff-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.diff-lines + .diff-file {
+  border-top: 1px solid var(--rule);
+}
+
+.diff-path {
+  color: var(--hunk);
+}
+
+/* Locale chips: Hunk, mono, with a small hard "carbon copy" offset (decorative). */
+.chip {
+  display: inline-block;
+  padding: 0 7px;
+  border: 1px solid var(--hunk);
+  border-radius: 4px;
+  background: var(--night);
+  color: var(--hunk);
+  font-family: var(--font-code);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--hunk) 30%, var(--night));
+}
+
+.diff-lines {
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+}
+
+.diff-lines li {
+  display: grid;
+  grid-template-columns: 2.75rem 1.5rem minmax(0, 1fr);
+  align-items: baseline;
+  padding-inline-end: 16px;
+}
+
+.diff-lines .d-hunk {
+  display: block;
+  padding: 2px 16px 4px;
+  color: var(--comment);
+}
+
+.d-n {
+  padding-inline-end: 12px;
+  color: var(--comment);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.d-code {
+  overflow-wrap: anywhere;
+  text-decoration: none;
+}
+
+.d-sign {
+  align-self: start;
+  justify-self: center;
+  margin-top: 0.15rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 3px;
+  line-height: 1.15rem;
+  text-align: center;
+  font-weight: 600;
+}
+
+.d-del,
+.d-del del {
+  color: var(--ghost);
+}
+
+.d-del del {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.d-add {
+  background: var(--wash);
+  color: var(--paper);
+}
+
+.d-add ins {
+  text-decoration: none;
+}
+
+.d-add .d-sign {
+  background: var(--patch);
+  color: var(--night);
+}
+
+.diff mark,
+.pair mark {
+  padding: 0 0.15em;
+  border-radius: 3px;
+  background: var(--patch);
+  color: var(--night);
+}
+
+.diff bdi {
+  font-family: var(--font-body);
+}
+
+.diff-result {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--rule);
+  color: var(--exit-0);
+  font-weight: 600;
+}
+
+.diff-result-by {
+  color: var(--comment);
+  font-weight: 400;
+}
+
+.proof {
+  margin-top: 16px;
+}
+
+.proof img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+}
+
+/* The fixer's old/new pair, as the Send dialog lists it. */
+.pair {
+  display: grid;
+  gap: 2px;
+  margin-top: 12px;
+  padding: 12px 0;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  font-family: var(--font-code);
+  font-size: 0.9375rem;
+}
+
+.pair p {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: none;
+  padding: 3px 16px;
+}
+
+.pair .d-sign {
+  flex: none;
+  margin-top: 0;
+  align-self: center;
+}
+
+.pair .pair-key {
+  margin-bottom: 4px;
+  gap: 10px;
+}
+
+.pair-key code {
+  padding: 0;
+  background: none;
+}
+
 .step-art figcaption {
   margin-top: 10px;
   color: var(--comment);
@@ -680,6 +887,10 @@ html:not(.js) .story + .story {
     font-size: 0.8125rem;
     white-space: pre-wrap;
   }
+
+  .diff {
+    font-size: 0.8125rem;
+  }
 }
 
 .c-prompt,
@@ -729,21 +940,48 @@ html:not(.js) .story + .story {
 
 .works {
   display: grid;
-  gap: 16px;
+  gap: 24px;
   padding-block: 72px 88px;
   border-top: 1px solid var(--rule);
+}
+
+.works-list {
+  margin: 0;
+}
+
+.works-list div {
+  display: grid;
+  gap: 4px 24px;
+  padding-block: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.works-list div:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.works-list dt {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.works-list dd {
+  margin: 0;
+  color: var(--comment);
+}
+
+@media (min-width: 600px) {
+  .works-list div {
+    grid-template-columns: 12rem minmax(0, 1fr);
+    align-items: baseline;
+  }
 }
 
 .works h2,
 .start h2 {
   font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
   letter-spacing: -0.03em;
-}
-
-.works-line {
-  max-width: 40ch;
-  font-size: clamp(1.1875rem, 1rem + 0.6vw, 1.5rem);
-  line-height: 1.5;
 }
 
 @media (min-width: 900px) {
@@ -795,7 +1033,34 @@ html:not(.js) .story + .story {
 }
 
 .start-note {
+  max-width: 52ch;
   color: var(--comment);
+}
+
+.start-lede {
+  max-width: 46ch;
+  font-size: 1.125rem;
+}
+
+/* The fixer's close: the live demo is the one primary action, on a Patch fill. */
+.button-patch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 0 22px;
+  border-radius: 8px;
+  background: var(--patch);
+  color: var(--night);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+
+.button-patch:hover {
+  background: var(--patch-hover);
+  color: var(--night);
 }
 
 @media (min-width: 900px) {

@@ -1,10 +1,25 @@
-// The hero video: the poster is in the HTML (the LCP); the sources attach only after load, when
-// the video is on screen. It pauses offscreen and in a hidden tab, never starts by itself under
+// The hero video: the poster is a <picture> in the HTML (the LCP, a frame with the fix already
+// made); the sources attach as soon as this module runs (right after the HTML is parsed) and the
+// video is on screen, so it is playing within the first seconds. A phone gets the narrow 4:5 cut,
+// anything wider the 2:1 cut. It pauses offscreen and in a hidden tab, never starts by itself under
 // prefers-reduced-motion, and keeps its chapter chips in step with the frame on screen.
 
 export interface DemoSources {
   webm: string;
   mp4: string;
+}
+
+export interface DemoCuts {
+  wide: DemoSources;
+  narrow: DemoSources;
+}
+
+/** The viewport the narrow cut is for; it matches the CSS that frames it at 4:5. */
+export const NARROW_QUERY = '(max-width: 639px)';
+
+/** The cut for a viewport: the narrow one on a phone, the wide one anywhere else. */
+export function pickCut(cuts: DemoCuts, narrow: boolean): DemoSources {
+  return narrow ? cuts.narrow : cuts.wide;
 }
 
 export interface Chapter {
@@ -33,7 +48,7 @@ export function readChapters(starts: readonly number[], duration: number): Chapt
   return starts.map((start, i) => ({ start, end: starts[i + 1] ?? duration }));
 }
 
-export function startDemoVideo(root: HTMLElement, sources: DemoSources, duration: number): void {
+export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: number): void {
   const video = root.querySelector<HTMLVideoElement>('video');
   const toggle = root.querySelector<HTMLButtonElement>('[data-playback]');
   const label = toggle?.querySelector<HTMLElement>('.playback-label');
@@ -47,7 +62,6 @@ export function startDemoVideo(root: HTMLElement, sources: DemoSources, duration
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   let wanted = !reduced.matches; // what the visitor asked for: play, or stay still
   let attached = false;
-  let loaded = document.readyState === 'complete';
   let onScreen = false;
 
   video.muted = true; // the attribute alone is not always reflected as the property
@@ -55,6 +69,7 @@ export function startDemoVideo(root: HTMLElement, sources: DemoSources, duration
   const render = () => {
     const playing = !video.paused;
     root.dataset.state = playing ? 'playing' : 'paused';
+    if (playing) root.dataset.started = '';
     label.textContent = wanted ? 'Pause' : 'Play';
     toggle.dataset.action = wanted ? 'pause' : 'play';
     toggle.setAttribute('aria-label', wanted ? 'Pause the demo video' : 'Play the demo video');
@@ -63,6 +78,7 @@ export function startDemoVideo(root: HTMLElement, sources: DemoSources, duration
   const attach = () => {
     if (attached) return;
     attached = true;
+    const sources = pickCut(cuts, window.matchMedia(NARROW_QUERY).matches);
     for (const [src, type] of [
       [sources.webm, 'video/webm'],
       [sources.mp4, 'video/mp4'],
@@ -76,7 +92,7 @@ export function startDemoVideo(root: HTMLElement, sources: DemoSources, duration
   };
 
   const sync = () => {
-    if (wanted && onScreen && !document.hidden && loaded) {
+    if (wanted && onScreen && !document.hidden) {
       attach();
       video.play().catch(() => {
         // Data saver or low-power mode refused: leave the poster and offer Play.
@@ -147,13 +163,10 @@ export function startDemoVideo(root: HTMLElement, sources: DemoSources, duration
   });
   document.addEventListener('visibilitychange', sync);
 
-  const start = () => {
-    loaded = true;
-    if (typeof IntersectionObserver === 'undefined') {
-      onScreen = true;
-      sync();
-      return;
-    }
+  if (typeof IntersectionObserver === 'undefined') {
+    onScreen = true;
+    sync();
+  } else {
     new IntersectionObserver(
       (entries) => {
         onScreen = entries.some((e) => e.isIntersecting);
@@ -161,12 +174,6 @@ export function startDemoVideo(root: HTMLElement, sources: DemoSources, duration
       },
       { threshold: 0.25 }
     ).observe(video);
-  };
-  const idle = (fn: () => void) =>
-    'requestIdleCallback' in window
-      ? window.requestIdleCallback(fn, { timeout: 1500 })
-      : setTimeout(fn, 200);
-  if (loaded) idle(start);
-  else window.addEventListener('load', () => idle(start), { once: true });
+  }
   render();
 }
