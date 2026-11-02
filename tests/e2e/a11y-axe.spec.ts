@@ -120,6 +120,8 @@ for (const variant of VARIANTS) {
 
       await page.keyboard.press('Escape');
       await expect(page.getByTestId('studio-drawer-keys')).toBeHidden();
+      // At 1024px the key list lives in the keys drawer just closed, so the key is picked in the
+      // preview instead.
       await page
         .frameLocator('#app-preview-iframe')
         .locator('[data-i18n-key="home.welcome_msg"]')

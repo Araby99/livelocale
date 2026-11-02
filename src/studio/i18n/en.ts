@@ -3,6 +3,7 @@ import type { Message } from './catalogue.js';
 /** English Studio copy: the source catalogue. Every key's Arabic lives in `ar.ts`. */
 export const en = {
   'common.arrow': '→',
+  // The toggle's name starts with its visible autonym (WCAG 2.5.3, label in name).
   'language.switch_to_ar': 'العربية: show the Studio in Arabic',
   'language.switch_to_en': 'English: show the Studio in English',
   'tips.title': 'Welcome to LiveLocale',
