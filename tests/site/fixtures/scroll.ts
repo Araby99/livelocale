@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 
 /** Selectors that exist once an island has mounted (Tasks 9 and 14 append to this list). */
 export const ISLAND_READY: string[] = [];
+ISLAND_READY.push('[data-island] [role="slider"]');
 
 /**
  * Scrolls from the top to the bottom one viewport at a time, one animation frame per step, so

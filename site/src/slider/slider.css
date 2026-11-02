@@ -1,0 +1,101 @@
+/* The live slider island. The static split's look (sections.css) carries over; here the two
+   layers stack in one cell and the Arabic one is clipped at the divider. */
+.slider-track-live {
+  grid-template-columns: minmax(0, 1fr);
+  touch-action: pan-y;
+  cursor: ew-resize;
+  user-select: none;
+}
+
+.slider-layer {
+  grid-area: 1 / 1;
+  min-width: 0;
+  padding: 20px 16px 24px;
+  border-radius: 11px;
+  background: var(--paper);
+}
+
+.slider-layer-ar {
+  background: color-mix(in srgb, var(--coral) 6%, var(--paper));
+  transition: clip-path 160ms ease-out;
+}
+
+.sample-page > p {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+
+.sample-page .sample-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sample-cta {
+  display: inline-block;
+  max-width: 100%;
+  margin-top: 14px;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sample-cta.is-untranslated {
+  background: color-mix(in srgb, var(--coral) 16%, var(--paper));
+  color: var(--ink);
+}
+
+.slider-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--coral);
+  transform: translateX(-50%);
+  transition: left 160ms ease-out;
+  pointer-events: none;
+}
+
+/* The handle: a coral circle with an ink arrow, its hit area 44 px square. */
+.slider-track-live .slider-handle {
+  width: 44px;
+  height: 44px;
+  font-size: 1.125rem;
+  cursor: grab;
+  transition: left 160ms ease-out;
+}
+
+.slider-track-live.is-dragging .slider-handle {
+  cursor: grabbing;
+}
+
+/* While dragging the divider follows the pointer exactly. */
+.slider-track-live.is-dragging .slider-layer-ar,
+.slider-track-live.is-dragging .slider-divider,
+.slider-track-live.is-dragging .slider-handle {
+  transition: none;
+}
+
+@media (min-width: 720px) {
+  .slider-layer {
+    padding: 28px 28px 32px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slider-layer-ar,
+  .slider-divider,
+  .slider-track-live .slider-handle {
+    transition: none;
+    animation: none;
+  }
+}
