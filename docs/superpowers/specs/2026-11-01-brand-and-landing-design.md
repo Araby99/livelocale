@@ -1,4 +1,4 @@
-> **Status: approved by the owner on 2026-11-01; the brand is final.** Produced from a visual design conversation with the owner (mockups saved in `.superpowers/brainstorm/7924-1793549086/content/`). The owner's choices are marked as theirs; "Claude's call" items may be overridden.
+> **Status: approved by the owner on 2026-11-01; brand revised to "hunk" and approved on 2026-11-02 (master logo geometry unchanged).** Produced from a visual design conversation with the owner (mockups saved in `.superpowers/brainstorm/7924-1793549086/content/`). The owner's choices are marked as theirs; "Claude's call" items may be overridden.
 
 # LiveLocale brand and landing page
 
@@ -17,62 +17,110 @@ The word "PM" is never used in the pitch (owner: too narrow).
 
 ## 2. Brand
 
-### 2.1 Direction (owner's choice: "Friendly developer")
+### 2.1 Direction: "hunk" (owner's choice, 2026-11-02; replaces "Friendly developer")
 
-Approachable for the person fixing text, credible for the developer installing it. Warm cream paper, near-black ink, one coral accent, crisp type, code shown on the page.
+> The first brand (cream paper, coral, Bricolage Grotesque, approved 2026-11-01) was withdrawn by the owner on 2026-11-02 as generic "AI slop". The logo geometry stays; the colour, type and rules below replace it.
 
-### 2.2 Logo (owner's choice: "S1", the patch)
+**Your website, as a diff.** Teletypes fixed typos by overstriking: printing the right letters on top of the wrong ones, with the old ones still showing through. That is the logo. Developers already read one colour language without thinking, the diff, so the brand reuses that grammar instead of inventing colours: old text is a struck ghost, a fix is amber, a location is cyan, and CI decides red or green. Dark first (the terminal); light is "the printout of the same diff", cool white, never cream.
 
-Three lines of text, split into words; a coral fix is stuck, slightly tilted, over the middle line, and the old line still peeks out underneath. It tells the product in one glance: the old text, and the fix placed on top. No tile or container. The wordmark is `livelocale`, all lowercase, set in the heading face.
+### 2.2 Logo (owner's choice: "S1", the patch; master geometry unchanged)
 
-Master SVG (64×64 grid), the source of truth for every size:
+Three lines of text, split into words; a fix is stuck, slightly tilted, over the middle line, and the old line still peeks out underneath. No tile or container. The wordmark is `livelocale`, all lowercase, set in the display face (§2.4).
+
+Master SVG (64×64 grid), the source of truth for every size. The geometry is final and unchanged (owner, 2026-11-02); only the fills follow the palette. This is the light version:
 
 ```svg
 <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
-  <g fill="#1D1712">
+  <g fill="#15171B">
     <rect x="6" y="11" width="20" height="8" rx="4"/><rect x="29" y="11" width="29" height="8" rx="4"/>
     <rect x="6" y="28" width="14" height="8" rx="4"/>
     <rect x="25" y="31" width="29" height="2" rx="1" opacity=".5"/>
     <rect x="6" y="45" width="23" height="8" rx="4"/><rect x="32" y="45" width="12" height="8" rx="4"/>
   </g>
   <g transform="rotate(-7 39 32)">
-    <rect x="24.5" y="24.5" width="30" height="15" rx="4.5" fill="#C2472C"/>
-    <rect x="23" y="23" width="30" height="15" rx="4.5" fill="#FF6B4A"/>
+    <rect x="24.5" y="24.5" width="30" height="15" rx="4.5" fill="#8A5600"/>
+    <rect x="23" y="23" width="30" height="15" rx="4.5" fill="#FFB224"/>
   </g>
 </svg>
 ```
 
-- **On dark:** lines `#F6EEE6`, patch `#FF7A5C`, patch shadow `#9E3A24`.
-- **Small sizes (Claude's call):** at 16 px the hairline "old line" is dropped and the patch shadow is removed; the builder produces a 16 px and 32 px favicon tuned on the pixel grid, plus an SVG favicon.
-- **Deliverables:** `logo.svg`, `logo-dark.svg`, `mark.svg`, `mark-dark.svg`, `favicon.svg`, `favicon-16.png`, `favicon-32.png`, `apple-touch-icon.png` (180 px), `og-image.png` (1200×630), a GitHub/npm avatar (512 px, mark centred on cream), in a `brand/` folder of the repo. The README header uses the logo.
+- **On dark (primary):** lines `#E8E4D9`, patch `#FFB224`, patch shadow `#8A5600`.
+- **On light:** lines `#15171B`, patch `#FFB224`, patch shadow `#8A5600` (5.6:1 on Print).
+- **Small sizes (Claude's call):** at 16 px the hairline "old line" is dropped and the patch shadow is removed. The builder produces 16 px and 32 px favicons tuned on the pixel grid, plus an SVG favicon. The favicon is the dark version (lines `#E8E4D9` on Night `#0C0D0F`).
+- **Deliverables:** `logo.svg`, `logo-dark.svg`, `mark.svg`, `mark-dark.svg`, `favicon.svg`, `favicon-16.png`, `favicon-32.png`, `apple-touch-icon.png` (180 px), `og-image.png` (1200×630), and a GitHub/npm avatar (512 px, the dark mark centred on Night `#0C0D0F`), all in a `brand/` folder of the repo. The README header uses the logo, dark and light via `<picture>`.
 
-### 2.3 Colour
+### 2.3 Colour: every colour has one job
 
-| Name         | Hex       | Use                                                                 |
-| ------------ | --------- | ------------------------------------------------------------------- |
-| Paper        | `#FFF8F0` | light background                                                    |
-| Ink          | `#1D1712` | text, logo lines, dark buttons                                      |
-| Coral        | `#FF6B4A` | the one accent: the fix, the main call to action, text being edited |
-| Coral shadow | `#C2472C` | patch shadow, coral pressed state                                   |
-| Muted        | `#6B5B4D` | secondary text on paper                                             |
-| Line         | `#E9DCCD` | borders and dividers on paper                                       |
-| Espresso     | `#1C1714` | dark background                                                     |
-| Cream        | `#F6EEE6` | text on espresso                                                    |
-| Coral (dark) | `#FF7A5C` | accent on espresso                                                  |
+Each accent maps to a line type of a diff. Ratios are WCAG contrast against Night (dark) or Print (light), measured.
 
-Rules: coral is used sparingly, only for the moment that matters. All text meets WCAG AA (4.5:1) on its background; white text is never placed on coral at body size below 18 px bold (Claude's call: coral buttons use ink text if contrast requires it; the builder verifies).
+**Dark (primary)**
 
-### 2.4 Type
+| Token   | Hex       | Job                                                                                                          | Contrast                 |
+| ------- | --------- | ------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| Night   | `#0C0D0F` | page background (the terminal)                                                                               | base                     |
+| Surface | `#16181D` | panels, cards, code blocks (raised by tone, not shadow)                                                      | —                        |
+| Raised  | `#1E2127` | popovers, menus, the edit box                                                                                | —                        |
+| Rule    | `#2A2D33` | hairlines and dividers (decorative only)                                                                     | —                        |
+| Edge    | `#6B6F7A` | borders that carry meaning: inputs, checkboxes, outline buttons                                              | 3.5:1 on Surface         |
+| Paper   | `#E8E4D9` | context: body text, the page as it is                                                                        | 15.3:1                   |
+| Comment | `#8C887D` | secondary text, captions, `#` comments                                                                       | 5.5:1; 4.6:1 on Raised   |
+| Ghost   | `#6E6B64` | `−` the old text, always struck through; graphic and state only, never running text you must read            | 3.7:1                    |
+| Patch   | `#FFB224` | `+` the fix, meaning "a person changed this": the selection, the edited string, the primary button, the logo | 10.8:1; Night on it 10.8 |
+| Wash    | `#2E2412` | row background of an added or edited line                                                                    | Paper 12.0, Patch 8.5    |
+| Hunk    | `#4FC3DC` | `@@` where a string lives: keys, file paths, locale codes, links                                             | 9.4:1                    |
+| Exit 1  | `#FF5468` | "CI will fail": hardcoded text, the dashed outline around untranslated text, destructive actions, errors     | 6.2:1                    |
+| Exit 0  | `#6FD69A` | "done": pull request opened, CI passed, saved; always with ✓ and a word                                      | 10.9:1                   |
 
-| Role               | Latin                         | Arabic                             |
-| ------------------ | ----------------------------- | ---------------------------------- |
-| Headings, wordmark | Bricolage Grotesque (700–800) | **Readex Pro** (600–700)           |
-| Interface and body | Inter (400–600)               | **IBM Plex Sans Arabic** (400–600) |
-| Code               | JetBrains Mono (500)          | (code stays Latin)                 |
+**Light ("the printout")**
 
-- Bricolage Grotesque and Inter have no Arabic glyphs, so Arabic needs its own faces (owner asked for a good alternative). **Readex Pro** is a variable Latin+Arabic family with a friendly, open geometric character that sits well beside Bricolage's warmth; **IBM Plex Sans Arabic** is a clean, highly legible text face that matches Inter's neutral UI tone and has matching weights. Both are SIL OFL and available from Fontsource. (Claude's call on the exact pair; alternatives considered: Noto Sans Arabic (safe but plain), Alexandria (geometric, more display than text), Tajawal (light weights only feel thin in UI).)
-- Fonts are self-hosted (Fontsource packages as devDependencies, bundled into the site and the Studio); nothing loads from Google at runtime.
-- `font-family` stacks list the Latin face first and the Arabic face second, so mixed-script text renders each script in its own face; Arabic text gets a slightly larger size and line-height (about 1.08× size, line-height 1.7) for legibility (Claude's call).
+| Token     | Hex       | Job                                                        | Contrast                |
+| --------- | --------- | ---------------------------------------------------------- | ----------------------- |
+| Print     | `#F4F5F7` | page background, cool white (never cream)                  | base                    |
+| Sheet     | `#FFFFFF` | panels, cards, code blocks                                 | —                       |
+| Rule      | `#D5D7DC` | hairlines (decorative)                                     | —                       |
+| Edge      | `#868B96` | meaningful borders                                         | 3.1:1                   |
+| Ink       | `#15171B` | body text                                                  | 16.5:1                  |
+| Comment   | `#5E5B54` | secondary text                                             | 6.2:1                   |
+| Ghost     | `#8A877F` | `−` old text, struck (graphic and state only)              | 3.3:1                   |
+| Patch     | `#FFB224` | the fix as a **fill only**, always holding Ink text        | Ink on it 10.0:1        |
+| Patch ink | `#8F5B00` | amber as text or an icon: the edited string, the `+` glyph | 5.3:1; 5.7:1 on Sheet   |
+| Wash      | `#FFF1D6` | added or edited row                                        | Ink 16.1, Patch ink 5.1 |
+| Hunk      | `#00708A` | keys, paths, locale codes, links                           | 5.2:1                   |
+| Exit 1    | `#C8243A` | CI failure, the untranslated outline, errors               | 5.1:1                   |
+| Exit 0    | `#00785F` | pull request, CI pass, saved                               | 5.0:1                   |
+
+Rules (from the owner-approved board, 2026-11-02):
+
+- **Amber is always a filled shape**: the patch, the primary button, the selected or edited row. It is never a decorative border and never decoration. At most one tilted patch per view. (Focus rings are the one exception: they use Patch in dark and Patch ink in light, so the focus ring is the "where your hands are" colour.)
+- **Red is always a dashed outline or a word** (`exit 1`, an error message). It never fills a primary button. It means only "this fails CI" or "this failed".
+- **The ghost line is history, not error:** struck through, dim, still readable. Every before/after uses it.
+- **Warnings** (for example `untranslated` and `wrong-script`) borrow amber with a `!` glyph, because a warning means "a person should change this". Success and info always carry a glyph and a word, so colour is never the only signal (cyan and green differ mostly by hue).
+- **No glows, no gradients, no purple or violet.** Depth comes from tone (Night → Surface → Raised).
+- Contrast: all text meets WCAG AA (4.5:1) on its background; graphics that carry meaning meet 3:1.
+
+### 2.4 Type: one superfamily for both scripts
+
+| Role                                 | Latin                   | Arabic                         |
+| ------------------------------------ | ----------------------- | ------------------------------ |
+| Display: wordmark, headlines, labels | Martian Mono (500–700)  | IBM Plex Sans Arabic (600–700) |
+| Interface and body                   | IBM Plex Sans (400–600) | IBM Plex Sans Arabic (400–600) |
+| Code, keys, CLI                      | IBM Plex Mono (400–600) | (code stays Latin)             |
+
+- Martian Mono is a wide, square-shouldered monospace: a terminal voice that is not the default code font. The wordmark is set at 500 with letter-spacing −0.02em; headlines at 700. It is display only, never body text.
+- IBM Plex Sans and IBM Plex Sans Arabic were drawn as one family, with the same skeleton and weights, so the Arabic Studio looks like the same product, not a fallback.
+- All the fonts are SIL OFL, self-hosted from Fontsource as devDependencies and bundled into the site and the Studio; nothing loads from Google at runtime.
+- `font-family` stacks list the Latin face first and the Arabic face second. Arabic text gets about 1.08× the size and a line-height of 1.7.
+
+### 2.4a Motifs
+
+- **The diff gutter:** before/after content (the hero, feature lists, the social card) can be written as a diff pair: the old line in Ghost, struck, after `−`; the new line after an amber `+`.
+- **The patch:** the tilted amber shape from the logo, used as a highlight behind a fixed word (rotated about −3°, with a hard offset shadow in `#8A5600` and no blur).
+- **Locale chips:** `en` and `ar` in Hunk, set in mono, with a small hard offset "carbon copy" shadow (decorative).
+- **Untranslated text:** a 1.5 px dashed Exit 1 outline, never a filled red box.
+
+### 2.4b Proposed signature (not in 0.11.0 scope; the owner decides later)
+
+`npx livelocale theme`: the palette shipped as an installable editor and terminal theme (VS Code, Windows Terminal, iTerm2, Ghostty) plus git diff colours, so every `git diff` a developer runs is in livelocale colours. Recorded as an idea only; nothing in the 0.11.0 or site plans builds it.
 
 ### 2.5 Voice
 
@@ -88,10 +136,12 @@ Short, direct, a little blunt; written by a developer who has felt the pain. Pla
 
 ### 3.2 Page structure (owner's choice: scene 2 then scene 1, then scene 3 below)
 
+The page is dark first (Night), like the board the owner approved on 2026-11-02: the hero headline is written as a diff pair (the struck Ghost line "− Collect screenshots of every typo before launch." over "+ Stop collecting screenshots." with the amber patch on "Stop"), and the scenes use the one-job colours of §2.3.
+
 1. **The screenshot pile (opening).** A messy pile of realistic screenshot cards with red circles and notes ("where is this??", `final_FINAL_v3.png`, "arabic is wrong"), under the headline "This was your launch week." As the visitor scrolls, the cards fly together and collapse into one clean pull request card.
-2. **The page that is broken on purpose.** The pull request card opens onto the hero: "Stop collecting screenshots." with deliberate typos and one untranslated word on the page. A hint says to hold Alt and click the typo. Each fix shows the coral patch and adds a line to a pull request card in the corner ("1 of 3 fixed"). When all are fixed: "That's LiveLocale. Install it." with `npm i livelocale` and a link to the docs.
+2. **The page that is broken on purpose.** The pull request card opens onto the hero: "Stop collecting screenshots." with deliberate typos and one untranslated word on the page. A hint says to hold Alt and click the typo. Each fix shows the amber patch and adds a line to a pull request card in the corner ("1 of 3 fixed"). When all are fixed: "That's LiveLocale. Install it." with `npm i livelocale` and a link to the docs.
 3. **How it works:** Alt+Click the text → type the fix → Send → pull request, as three short looping clips (this is a real sequence, so numbered steps are appropriate).
-4. **Drag between languages.** A sample site split by a draggable divider; dragging turns it from English to Arabic, right to left. Strings that were never translated stay English and are outlined in coral, with the matching `check --hardcoded` output beneath.
+4. **Drag between languages.** A sample site split by a draggable divider; dragging turns it from English to Arabic, right to left. Strings that were never translated stay English and are outlined with the dashed Exit 1 (red) outline, with the matching `check --hardcoded` output beneath.
 5. **Works where you already are:** Next.js, Vite, React, any static host; GitHub one-click pull requests and `apply --pr` for other git hosts.
 6. **Start in two minutes:** `npx livelocale init --share`, links to the README and GitHub; "Free, MIT, no account, no server."
 
@@ -101,7 +151,7 @@ The footer carries the GitHub link, the npm link and the licence.
 
 - **Scene 1 (pile):** cards are HTML (not raster screenshots), animated by CSS scroll-driven animations where supported, with a small IntersectionObserver fallback. With `prefers-reduced-motion`, or without JavaScript, the page shows the end state (the pull request card) and the hero.
 - **Scene 2 (broken page):** the hero island is packed with LiveLocale's share mode (`livelocale pack`), so the Alt+Click editing is the real product. **Nothing is ever sent anywhere from the demo** (Claude's call after the builder check): Send shows the real change link in a dialog with "This is what your developer would receive", and "Create pull request" is replaced by a short explanation and a link to the docs; no GitHub issue, pull request or network request is made from the demo. The pull-request card is the page's own UI fed by the share Studio's drafts (Claude's call: if embedding the real Studio in the hero proves too heavy or confusing, the hero uses a faithful lightweight simulation and a "Try the full Studio" button opens the real share Studio of the sample site; the builder decides after a spike and records it).
-- **Scene 4 (slider):** two renderings of one sample page (English and Arabic) with a draggable divider (pointer and keyboard operable); the coral outlines come from running `check --hardcoded` on the sample at build time, so the demo never drifts from the real tool.
+- **Scene 4 (slider):** two renderings of one sample page (English and Arabic) with a draggable divider (pointer and keyboard operable); the dashed red outlines come from running `check --hardcoded` on the sample at build time, so the demo never drifts from the real tool.
 - **Clips (scene 3) and the og-image:** recorded from the real Studio with Playwright; looped, muted, under 1 MB each, with a static poster frame.
 
 ### 3.4 Quality floor
@@ -117,7 +167,7 @@ Responsive down to 360 px wide; keyboard reachable with visible focus; WCAG AA c
 
 ## 4. Studio (connects to the 0.11.0 launch-features design)
 
-The Studio's light and dark themes use this brand: Paper/Ink/Coral for light, Espresso/Cream/Coral (dark) for dark, the same type (with Readex Pro and IBM Plex Sans Arabic for the Arabic Studio), and the logo in the header. The 0.11.0 design is updated to drop its "dark must look as today" rule (the old look was a placeholder) and to point here for colours and type.
+The Studio's dark and light themes use this brand (§2.3: Night/Paper/Patch for dark, Print/Ink/Patch for light, every accent with its one job), the same type (§2.4, IBM Plex Sans Arabic for the Arabic Studio), and the logo in the header. The 0.11.0 design is updated to drop its "dark must look as today" rule (the old look was a placeholder) and to point here for colours and type.
 
 ## 5. Non-goals
 
@@ -134,6 +184,6 @@ The exact animation curves, card copy in the pile, the sample site's content, th
 
 ## 7. Decisions confirmed by the owner (2026-11-01, after the builder check)
 
-1. **Phones and tablets.** On touch devices, scene 2 switches to a tap-the-typo version that shows the same coral patch and pull-request card, with a note that on a computer you hold Alt and click to edit the real thing. LiveLocale itself does not gain tap-to-edit in this project.
+1. **Phones and tablets.** On touch devices, scene 2 switches to a tap-the-typo version that shows the same amber patch and pull-request card, with a note that on a computer you hold Alt and click to edit the real thing. LiveLocale itself does not gain tap-to-edit in this project.
 2. **Launch timing.** The site goes live together with 0.11.0, with all four layers done (static page, language slider, the broken page fixed live, and the screenshot pile). It is built in parallel with 0.11.0; the clips and og-image are recorded from the rebranded Studio once it exists.
-3. **Brand final.** The logo (S1), palette, type (including Readex Pro and IBM Plex Sans Arabic) and voice in §2 are final and may be rolled out to the Studio, the site, the README and the `brand/` assets.
+3. **Brand final.** The logo (S1), palette, type and voice in §2 are final and may be rolled out to the Studio, the site, the README and the `brand/` assets. (Revised 2026-11-02: the "hunk" palette and type replace the cream/coral ones; the logo geometry is unchanged.)
