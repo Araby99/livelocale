@@ -22,9 +22,9 @@ export const TEXT_ATTRIBUTES: ReadonlySet<string> = new Set(
   ).split(' ')
 );
 
-/** Elements whose contents are never reported (already translated, or code). */
+/** Elements whose contents are never reported (already translated, or code; `Script` is next/script). */
 export const SKIPPED_ELEMENTS: ReadonlySet<string> = new Set(
-  'Trans code pre kbd samp script style'.split(' ')
+  'Trans code pre kbd samp script style Script Style'.split(' ')
 );
 
 export interface ScanOptions {

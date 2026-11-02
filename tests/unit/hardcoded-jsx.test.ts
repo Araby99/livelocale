@@ -44,6 +44,36 @@ describe('findHardcodedText', () => {
       )
     ).toEqual([]));
 
+  it('ignores named symbol entities such as &times; and &copy;', () =>
+    expect(
+      scan(
+        [
+          'const A = () => <main>',
+          '  <button aria-label="&times;">&times;</button><a>&rarr;</a>',
+          '  <span>&hellip;</span><span>&mdash;</span><footer>&copy; 2024</footer>',
+          '</main>;',
+        ].join('\n')
+      )
+    ).toEqual([]));
+
+  it('still flags copy that sits next to a named entity', () =>
+    expect(scan('const A = () => <a>Next &rarr;</a>;').map((s) => s.split('@')[0])).toEqual([
+      'Next &rarr;',
+    ]));
+
+  it('ignores inline code in Next.js <Script> and <Style> children', () =>
+    expect(
+      scan(
+        [
+          'const A = () => <>',
+          '  <Script id="ga">{`window.dataLayer = window.dataLayer || []; function gtag(){}`}</Script>',
+          '  <Script>{\'console.log("hi there")\'}</Script>',
+          "  <Style>{'body { color: red }'}</Style>",
+          '</>;',
+        ].join('\n')
+      )
+    ).toEqual([]));
+
   it('reports multi-line text once, at its first letter', () =>
     expect(scan('const A = () => (\n  <p>\n    Welcome back,\n    friend\n  </p>\n);\n')).toEqual([
       'Welcome back, friend@3:5',
