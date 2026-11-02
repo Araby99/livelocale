@@ -15,6 +15,7 @@ import {
   FirstRunTips,
   StudioLayout,
   ThemeToggle,
+  LanguageToggle,
   useStudio,
   useTheme,
   useMediaQuery,
@@ -22,6 +23,7 @@ import {
   type StudioPanel,
 } from './features/dashboard/index.js';
 import { isAppPreviewBlocked, isShareStudio } from './runtime.js';
+import { useStudioText } from './i18n/StudioLanguage.js';
 
 export const App = () => {
   const {
@@ -119,6 +121,7 @@ export const App = () => {
     importError,
   } = useStudio();
   const theme = useTheme(isShareStudio());
+  const { lang, dir } = useStudioText();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
@@ -151,7 +154,12 @@ export const App = () => {
   );
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-app text-fg font-sans select-none overflow-hidden antialiased">
+    <div
+      data-testid="studio-root"
+      lang={lang}
+      dir={dir}
+      className="w-screen h-screen flex flex-col bg-app text-fg font-sans select-none overflow-hidden antialiased"
+    >
       <TokenModal isOpen={needsToken} onSubmit={submitToken} />
 
       <Header
@@ -170,7 +178,12 @@ export const App = () => {
         isReviewing={isReviewing}
         onCloseReview={closeReview}
         onImport={openImport}
-        settings={<ThemeToggle choice={theme.choice} onChange={theme.setChoice} />}
+        settings={
+          <>
+            <LanguageToggle />
+            <ThemeToggle choice={theme.choice} onChange={theme.setChoice} />
+          </>
+        }
       />
 
       <ChangesPanel

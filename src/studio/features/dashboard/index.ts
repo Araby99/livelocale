@@ -18,6 +18,7 @@ export {
 export { RepoPrompt } from './components/RepoPrompt.jsx';
 export { StudioLayout, type StudioPanel } from './components/StudioLayout.jsx';
 export { ThemeToggle, THEME_LABELS } from './components/ThemeToggle.jsx';
+export { LanguageToggle, LANGUAGE_AUTONYMS } from './components/LanguageToggle.jsx';
 export { useStudio } from './hooks/useStudio.js';
 export { useMediaQuery, WIDE_LAYOUT_QUERY } from './hooks/useMediaQuery.js';
 export { useTheme } from './hooks/useTheme.js';
