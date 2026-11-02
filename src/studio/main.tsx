@@ -17,9 +17,12 @@ import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';
 import './index.css';
 import App from './app.js';
 import { startStudio } from './bootstrap.js';
+import { initialThemeChoice, storedThemeChoice } from './preferences.js';
+import { isShareStudio } from './runtime.js';
+import { applyTheme, prefersDark, resolveTheme } from './theme.js';
 
-// The Studio stays dark until the theme toggle lands.
-document.documentElement.classList.add('dark');
+// The Studio kind is unknown until startStudio settles, so follow the system meanwhile.
+applyTheme(document.documentElement, resolveTheme(storedThemeChoice() ?? 'system', prefersDark()));
 
 // Decide between the HTTP API and a static share folder before the first render.
 startStudio({
@@ -32,6 +35,13 @@ startStudio({
 })
   .catch(console.error)
   .finally(() => {
+    applyTheme(
+      document.documentElement,
+      resolveTheme(
+        initialThemeChoice({ stored: storedThemeChoice(), isShareStudio: isShareStudio() }),
+        prefersDark()
+      )
+    );
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
         <App />

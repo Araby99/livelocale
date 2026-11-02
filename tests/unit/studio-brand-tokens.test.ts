@@ -104,9 +104,3 @@ it('computes WCAG ratios', () => {
   expect(contrastRatio('#FFF8F0', '#1D1712')).toBeCloseTo(16.85, 1);
   expect(() => contrastRatio('#1D171273', '#FFFFFF')).toThrow();
 });
-it('keeps the Studio dark until the theme toggle lands', () => {
-  const main = readFileSync('src/studio/main.tsx', 'utf8');
-  const at = main.indexOf("document.documentElement.classList.add('dark')");
-  expect(at).toBeGreaterThan(-1);
-  expect(at).toBeLessThan(main.indexOf('startStudio('));
-});

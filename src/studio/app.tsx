@@ -14,12 +14,14 @@ import {
   ReviewPanel,
   FirstRunTips,
   StudioLayout,
+  ThemeToggle,
   useStudio,
+  useTheme,
   useMediaQuery,
   WIDE_LAYOUT_QUERY,
   type StudioPanel,
 } from './features/dashboard/index.js';
-import { isAppPreviewBlocked } from './runtime.js';
+import { isAppPreviewBlocked, isShareStudio } from './runtime.js';
 
 export const App = () => {
   const {
@@ -116,6 +118,7 @@ export const App = () => {
     submitImport,
     importError,
   } = useStudio();
+  const theme = useTheme(isShareStudio());
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
@@ -167,6 +170,7 @@ export const App = () => {
         isReviewing={isReviewing}
         onCloseReview={closeReview}
         onImport={openImport}
+        settings={<ThemeToggle choice={theme.choice} onChange={theme.setChoice} />}
       />
 
       <ChangesPanel
