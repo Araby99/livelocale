@@ -11,10 +11,10 @@ export const DRAFT_STATUS_LABELS: Record<DraftDisplayState, string> = {
 };
 
 const STATE_STYLES: Record<DraftDisplayState, string> = {
-  unsent: 'text-amber-400 border-amber-500/30 bg-amber-500/10',
-  sent: 'text-sky-400 border-sky-500/30 bg-sky-500/10',
-  live: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10',
-  conflict: 'text-rose-400 border-rose-500/30 bg-rose-500/10',
+  unsent: 'text-warning-fg border-warning-line bg-warning-bg',
+  sent: 'text-info-fg border-info-line bg-info-bg',
+  live: 'text-success-fg border-success-line bg-success-bg',
+  conflict: 'text-danger-fg border-danger-line bg-danger-bg',
 };
 
 const REMOVE_TITLE = 'Removes it from this list. A link you already sent still carries it.';
@@ -45,34 +45,34 @@ const stateBadge = (state: DraftDisplayState) => (
 );
 
 const rowHeading = (d: Draft) => (
-  <span className="text-[11px] font-mono text-indigo-400 break-all">{`${d.key} · ${d.locale}`}</span>
+  <span className="text-[11px] font-mono text-fg break-all">{`${d.key} · ${d.locale}`}</span>
 );
 
 /** The draft's built text struck through, then its new text. */
 const DraftValues = ({ d }: { d: Draft }) => (
   <div className="text-[10px] leading-relaxed">
     {d.from ? (
-      <span dir="auto" className="text-rose-400/80 line-through break-all">
+      <span dir="auto" className="text-danger-fg line-through break-all">
         {d.from}
       </span>
     ) : (
-      <em className="text-rose-400/80 line-through">empty</em>
+      <em className="text-danger-fg line-through">empty</em>
     )}
-    <span className="text-slate-600"> → </span>
+    <span className="text-fg-muted"> → </span>
     {d.to ? (
-      <span dir="auto" className="text-emerald-300 break-all">
+      <span dir="auto" className="text-success-fg break-all">
         {d.to}
       </span>
     ) : (
-      <em className="text-emerald-300">empty</em>
+      <em className="text-success-fg">empty</em>
     )}
   </div>
 );
 
-const rowClass = 'px-3 py-2 rounded-xl bg-slate-950/40 border border-slate-800/80 space-y-1';
+const rowClass = 'px-3 py-2 rounded-xl bg-surface border border-line space-y-1';
 
 const footerButton =
-  'h-9 px-3 rounded-xl text-xs font-semibold text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition duration-150 cursor-pointer';
+  'h-9 px-3 rounded-xl text-xs font-semibold text-fg hover:text-fg bg-raised hover:bg-raised-hover border border-line-strong transition duration-150 cursor-pointer';
 
 /** The share link's drafts with before/after, state and Undo, plus backup and restore. */
 export const DraftList = ({
@@ -115,16 +115,16 @@ export const DraftList = ({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+        <h3 className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
           Your changes
         </h3>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-slate-950 text-indigo-400 border border-slate-800">
+        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
           {drafts.length}
         </span>
       </div>
 
       {drafts.length === 0 && liveNow.length === 0 ? (
-        <p className="text-xs text-slate-500">
+        <p className="text-xs text-fg-muted">
           No changes yet. Alt+Click any text in the app to fix it.
         </p>
       ) : (
@@ -141,7 +141,7 @@ export const DraftList = ({
                     <button
                       onClick={() => onUndo(d)}
                       disabled={isUndoing}
-                      className="text-[10px] font-semibold text-slate-400 hover:text-slate-100 px-2 py-0.5 rounded-md border border-slate-800 hover:border-slate-600 disabled:opacity-40 transition duration-150"
+                      className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
                       title={isSent ? REMOVE_TITLE : 'Go back to the published text'}
                     >
                       {isSent ? 'Remove' : 'Undo'}
@@ -166,7 +166,7 @@ export const DraftList = ({
       {liveNow.length > 0 && onDismissLiveNow && (
         <button
           onClick={onDismissLiveNow}
-          className="text-[10px] font-semibold text-slate-500 hover:text-slate-300 transition duration-150"
+          className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
         >
           Dismiss live changes
         </button>
@@ -196,7 +196,7 @@ export const DraftList = ({
         )}
       </div>
       {result && (
-        <p role="status" className="text-[11px] text-slate-400 break-words">
+        <p role="status" className="text-[11px] text-fg-muted break-words">
           {result}
         </p>
       )}

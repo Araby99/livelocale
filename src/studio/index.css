@@ -3,7 +3,12 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Reset the default palette: only white, black and the brand tokens generate colour utilities. */
 @theme {
+  --color-*: initial;
+  --color-white: #fff;
+  --color-black: #000;
+
   /* Radius scale */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

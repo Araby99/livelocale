@@ -12,18 +12,18 @@ export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmM
   if (!showConfirmModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-confirm-title"
-        className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
+        className="bg-raised border border-line rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
       >
-        <h3 id="studio-confirm-title" className="text-base font-bold text-slate-200 font-heading">
+        <h3 id="studio-confirm-title" className="text-base font-bold text-fg font-heading">
           Unsaved Changes
         </h3>
-        <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+        <p className="text-xs text-fg-muted mt-2 leading-relaxed">
           You have unsaved edits in your translation. Selecting another element will discard these
           modifications. Do you want to discard your edits?
         </p>
@@ -31,14 +31,14 @@ export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmM
           <button
             type="button"
             onClick={onCancel}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-800 hover:border-slate-700 rounded-xl transition duration-150"
+            className="px-4 py-2 text-xs font-semibold text-fg-muted hover:text-fg bg-raised hover:bg-raised-hover border border-line hover:border-line-strong rounded-xl transition duration-150"
           >
             Keep Editing
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-xl shadow-lg shadow-rose-600/10 active:bg-rose-700 transition duration-150"
+            className="px-4 py-2 text-xs font-semibold text-on-danger bg-danger-solid hover:bg-danger-solid/90 rounded-xl shadow-lg active:bg-danger-solid transition duration-150"
           >
             Discard Edits
           </button>

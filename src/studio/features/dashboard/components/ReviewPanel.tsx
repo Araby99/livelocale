@@ -63,9 +63,9 @@ const RUN_WORKFLOW_HINT =
 const changes = (n: number) => (n === 1 ? '1 change' : `${n} changes`);
 
 const RESULT_CLASS: Record<ApplyResult['state'], string> = {
-  applied: 'text-emerald-300',
-  skipped: 'text-slate-400',
-  failed: 'text-rose-300',
+  applied: 'text-success-fg',
+  skipped: 'text-fg-muted',
+  failed: 'text-danger-fg',
 };
 
 const resultText = (result: ApplyResult) =>
@@ -78,21 +78,21 @@ const resultText = (result: ApplyResult) =>
 const STATUS_ORDER: EditStatus[] = ['apply', 'already', 'conflict', 'needs-force', 'invalid'];
 
 const STATUS_CLASS: Record<EditStatus, string> = {
-  apply: 'text-emerald-300',
-  already: 'text-slate-400',
-  conflict: 'text-amber-300',
-  'needs-force': 'text-amber-300',
-  invalid: 'text-rose-300',
+  apply: 'text-success-fg',
+  already: 'text-fg-muted',
+  conflict: 'text-warning-fg',
+  'needs-force': 'text-warning-fg',
+  invalid: 'text-danger-fg',
 };
 
 const noop = () => {};
 
 const actionButton =
-  'h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border-slate-700';
+  'h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong';
 
 const Value = ({ value }: { value: string | null }) =>
   value === null || value === '' ? (
-    <em className="text-slate-500">empty</em>
+    <em className="text-fg-muted">empty</em>
   ) : (
     <span dir="auto" className="break-all whitespace-pre-wrap">
       {value}
@@ -166,14 +166,14 @@ export const ReviewPanel = ({
   return (
     <section
       data-testid="review-panel"
-      className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
     >
-      <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-heading text-slate-200">Review</h2>
+      <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
+        <h2 className="text-sm font-bold tracking-wide font-heading text-fg">Review</h2>
         <button
           type="button"
           onClick={onClose}
-          className="text-[11px] font-semibold text-slate-400 hover:text-slate-100 transition duration-150"
+          className="text-[11px] font-semibold text-fg-muted hover:text-fg transition duration-150"
         >
           Close review
         </button>
@@ -183,7 +183,7 @@ export const ReviewPanel = ({
         {error !== null && <SetupProblems title={ERROR_TITLE} problems={[error]} />}
 
         {isLoading && review === null && (
-          <p className="text-xs text-slate-400">Opening the change link…</p>
+          <p className="text-xs text-fg-muted">Opening the change link…</p>
         )}
 
         {review && counts && link && command && (
@@ -192,7 +192,7 @@ export const ReviewPanel = ({
               <p
                 data-testid="review-note"
                 dir="auto"
-                className="px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-300 whitespace-pre-wrap break-words"
+                className="px-3 py-2 rounded-xl bg-surface border border-line text-xs text-fg whitespace-pre-wrap break-words"
               >
                 {`From ${by || 'the translator'}${note === '' ? '' : `: ${note}`}`}
               </p>
@@ -202,7 +202,7 @@ export const ReviewPanel = ({
               {STATUS_ORDER.filter((s) => counts[s] > 0).map((s) => (
                 <li
                   key={s}
-                  className={`px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 ${STATUS_CLASS[s]}`}
+                  className={`px-2.5 py-1 rounded-full bg-surface border border-line ${STATUS_CLASS[s]}`}
                 >
                   {`${counts[s]} ${REVIEW_STATUS_LABELS[s]}`}
                 </li>
@@ -210,7 +210,7 @@ export const ReviewPanel = ({
             </ul>
 
             {review.target === 'github' && (
-              <div className="space-y-2 px-3 py-3 rounded-xl bg-slate-950/40 border border-slate-800">
+              <div className="space-y-2 px-3 py-3 rounded-xl bg-surface border border-line">
                 {repo === null || isChangingRepo ? (
                   // The repo inside a link is only a suggestion: the developer confirms it first.
                   <RepoPrompt
@@ -229,36 +229,36 @@ export const ReviewPanel = ({
                         by={review.set.by}
                         label="Create pull request"
                       />
-                      <span className="text-[11px] font-mono text-slate-400 break-all">{repo}</span>
+                      <span className="text-[11px] font-mono text-fg-muted break-all">{repo}</span>
                       {!repoFromManifest && (
                         <button
                           type="button"
                           onClick={() => setIsChangingRepo(true)}
-                          className="text-[11px] font-semibold text-slate-400 hover:text-slate-100 underline-offset-2 hover:underline"
+                          className="text-[11px] font-semibold text-fg-muted hover:text-fg underline-offset-2 hover:underline"
                         >
                           Change
                         </button>
                       )}
                     </div>
-                    <p className="text-[11px] text-slate-400">{GITHUB_HINT}</p>
+                    <p className="text-[11px] text-fg-muted">{GITHUB_HINT}</p>
                   </>
                 )}
               </div>
             )}
 
             {review.target === 'local' && onApplyLocal && (
-              <div className="space-y-2 px-3 py-3 rounded-xl bg-slate-950/40 border border-slate-800">
+              <div className="space-y-2 px-3 py-3 rounded-xl bg-surface border border-line">
                 <button
                   id="studio-apply-local"
                   type="button"
                   disabled={applyCount === 0 || isApplying}
                   onClick={() => onApplyLocal({ includeForced })}
-                  className="h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 bg-indigo-600 border-indigo-500 text-indigo-50 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 bg-accent border-accent-line text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {`Apply ${changes(applyCount)} to local files`}
                 </button>
                 {counts['needs-force'] > 0 && (
-                  <label className="flex items-center gap-2 text-[11px] text-slate-300">
+                  <label className="flex items-center gap-2 text-[11px] text-fg">
                     <input
                       type="checkbox"
                       checked={includeForced}
@@ -272,11 +272,11 @@ export const ReviewPanel = ({
 
             {actions}
 
-            <div className="space-y-2 px-3 py-3 rounded-xl bg-slate-950/40 border border-slate-800">
-              <h3 className="text-xs font-semibold text-slate-200">Apply with the command line</h3>
+            <div className="space-y-2 px-3 py-3 rounded-xl bg-surface border border-line">
+              <h3 className="text-xs font-semibold text-fg">Apply with the command line</h3>
               <code
                 data-testid="review-apply-command"
-                className="block px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 break-all"
+                className="block px-3 py-2 rounded-lg bg-surface border border-line text-[11px] font-mono text-fg break-all"
               >
                 {command}
               </code>
@@ -289,17 +289,17 @@ export const ReviewPanel = ({
                     Copy link
                   </button>
                 )}
-                {copied && <span className="text-[11px] text-slate-400">{copied}</span>}
+                {copied && <span className="text-[11px] text-fg-muted">{copied}</span>}
               </div>
-              <p className="text-[11px] text-slate-500">{APPLY_HINT}</p>
+              <p className="text-[11px] text-fg-muted">{APPLY_HINT}</p>
             </div>
 
             {review.target === 'github' && (
-              <p className="text-[11px] text-slate-500">{RUN_WORKFLOW_HINT}</p>
+              <p className="text-[11px] text-fg-muted">{RUN_WORKFLOW_HINT}</p>
             )}
 
             <table className="w-full text-[11px] text-left border-collapse">
-              <thead className="text-slate-500">
+              <thead className="text-fg-muted">
                 <tr>
                   <th className="py-1 pr-2 font-semibold">Language</th>
                   <th className="py-1 pr-2 font-semibold">Key</th>
@@ -308,7 +308,7 @@ export const ReviewPanel = ({
                   <th className="py-1 font-semibold">Check</th>
                 </tr>
               </thead>
-              <tbody className="text-slate-300 align-top">
+              <tbody className="text-fg align-top">
                 {review.rows.map((row) => {
                   const focused = row.id === focusedId;
                   return (
@@ -316,23 +316,23 @@ export const ReviewPanel = ({
                       key={row.id}
                       ref={focused ? focusedRef : undefined}
                       aria-current={focused ? 'true' : undefined}
-                      className={`border-t border-slate-800 ${focused ? 'bg-indigo-600/10' : ''}`}
+                      className={`border-t border-line ${focused ? 'bg-accent-soft' : ''}`}
                     >
                       <td className="py-2 pr-2">
                         <button
                           type="button"
                           onClick={() => onSelectLocale(row.locale)}
                           title={`Show the page in ${row.locale}`}
-                          className="font-mono text-indigo-300 hover:text-indigo-100 underline-offset-2 hover:underline"
+                          className="font-mono text-accent-fg hover:text-accent-fg underline-offset-2 hover:underline"
                         >
                           {row.locale}
                         </button>
                       </td>
-                      <td className="py-2 pr-2 font-mono text-indigo-400 break-all">{row.key}</td>
+                      <td className="py-2 pr-2 font-mono text-fg break-all">{row.key}</td>
                       <td className="py-2 pr-2">
                         <Value value={row.from} />
                         {row.status === 'conflict' && row.current !== undefined && (
-                          <p className="mt-1 text-amber-300">
+                          <p className="mt-1 text-warning-fg">
                             {'Now on the site: '}
                             <span dir="auto" className="break-all whitespace-pre-wrap">
                               {row.current}
@@ -350,7 +350,7 @@ export const ReviewPanel = ({
                         {applyResults[row.id] && (
                           <p
                             data-testid="apply-result"
-                            className={`mt-1 inline-block px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 ${RESULT_CLASS[applyResults[row.id]!.state]}`}
+                            className={`mt-1 inline-block px-2 py-0.5 rounded-full bg-surface border border-line ${RESULT_CLASS[applyResults[row.id]!.state]}`}
                           >
                             {resultText(applyResults[row.id]!)}
                           </p>
@@ -361,7 +361,7 @@ export const ReviewPanel = ({
                               <li
                                 key={check.message}
                                 className={
-                                  check.level === 'error' ? 'text-rose-300' : 'text-amber-300'
+                                  check.level === 'error' ? 'text-danger-fg' : 'text-warning-fg'
                                 }
                               >
                                 {check.message}

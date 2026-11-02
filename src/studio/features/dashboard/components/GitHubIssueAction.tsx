@@ -17,7 +17,7 @@ const OPEN_AND_PASTE = 'Open GitHub and paste';
 const COPY_FAILED = 'Copying did not work. Copy the block below, then open GitHub and paste it.';
 
 const actionButton =
-  'inline-flex items-center h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-slate-300 hover:text-slate-100 bg-slate-800 hover:bg-slate-700 border-slate-700';
+  'inline-flex items-center h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong';
 
 /**
  * Opens a pre-filled GitHub issue holding the change block. When the block
@@ -36,7 +36,7 @@ export function GitHubIssueAction({
   const request = buildIssueRequest(repo, token, count, by);
 
   if (request.tooLarge || request.url === null) {
-    return <p className="text-[11px] text-amber-300">{TOO_LARGE}</p>;
+    return <p className="text-[11px] text-warning-fg">{TOO_LARGE}</p>;
   }
 
   const link = (text: string) => (
@@ -66,14 +66,14 @@ export function GitHubIssueAction({
       </div>
       {copied === 'failed' && (
         <>
-          <p className="text-[11px] text-slate-400">{COPY_FAILED}</p>
+          <p className="text-[11px] text-fg-muted">{COPY_FAILED}</p>
           <textarea
             data-testid="manual-copy"
             readOnly
             value={block}
             rows={4}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono text-slate-300 resize-none"
+            className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg resize-none"
           />
         </>
       )}
