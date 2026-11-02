@@ -40,7 +40,11 @@ export const RepoPrompt = ({ initial = '', onSave }: RepoPromptProps) => {
           className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs font-mono text-fg"
         />
       </label>
-      {invalid && <p className="text-[11px] text-danger-fg">{t('repo.malformed')}</p>}
+      {invalid && (
+        <p role="alert" className="text-[11px] text-danger-fg">
+          {t('repo.malformed')}
+        </p>
+      )}
       <button
         type="submit"
         className="h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-on-accent bg-accent hover:bg-accent-hover border-accent-line"

@@ -194,6 +194,7 @@ export const ar: Partial<Record<StringKey, Message>> = {
   'editor.keep_editing': 'تابع التحرير',
   'editor.saving': 'جارٍ الحفظ...',
   'editor.saved': 'حُفظ!',
+  'editor.saved_status': 'حُفظ',
   'editor.save': 'احفظ التغييرات',
   'plural.on': 'على',
   'plural.offset': '· الإزاحة {offset}',

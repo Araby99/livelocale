@@ -83,8 +83,12 @@ export const LocaleManager = ({
 
       {/* Errors display */}
       {(localError || error) && (
-        <div className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 flex items-start gap-[0.625rem]">
+        <div
+          role="alert"
+          className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 flex items-start gap-[0.625rem]"
+        >
           <svg
+            aria-hidden="true"
             className="w-4 h-4 text-danger-fg shrink-0 mt-0.5"
             fill="none"
             stroke="currentColor"

@@ -267,7 +267,11 @@ export const SendDialog = ({
           </p>
         )}
 
-        {encodeError && <p className="text-xs text-danger-fg break-words">{encodeError}</p>}
+        {encodeError && (
+          <p role="alert" className="text-xs text-danger-fg break-words">
+            {encodeError}
+          </p>
+        )}
 
         {shownLink !== null && !tooLong && (
           <input
@@ -282,7 +286,11 @@ export const SendDialog = ({
             className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg"
           />
         )}
-        {tooLong && <p className="glyph-warn text-xs text-warning-fg">{t('send.too_long')}</p>}
+        {tooLong && (
+          <p role="status" className="glyph-warn text-xs text-warning-fg">
+            {t('send.too_long')}
+          </p>
+        )}
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -342,8 +350,10 @@ export const SendDialog = ({
           </p>
         )}
         {outcome === 'copy-failed' && (
-          <div role="status" className="space-y-2">
-            <p className="glyph-warn text-xs text-warning-fg">{t('send.copy_failed')}</p>
+          <div className="space-y-2">
+            <p role="alert" className="glyph-warn text-xs text-warning-fg">
+              {t('send.copy_failed')}
+            </p>
             <button
               type="button"
               onClick={() => markSent(included, 'copied')}
@@ -354,7 +364,9 @@ export const SendDialog = ({
           </div>
         )}
         {actionError && (
-          <p className="text-xs text-danger-fg break-words">{studioMessage(t, actionError)}</p>
+          <p role="alert" className="text-xs text-danger-fg break-words">
+            {studioMessage(t, actionError)}
+          </p>
         )}
       </div>
     </div>

@@ -167,6 +167,7 @@ export const en = {
   'editor.keep_editing': 'Keep editing',
   'editor.saving': 'Saving...',
   'editor.saved': 'Saved!',
+  'editor.saved_status': 'Saved',
   'editor.save': 'Save Changes',
   'plural.on': 'on',
   'plural.offset': '· offset {offset}',

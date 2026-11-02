@@ -196,6 +196,7 @@ export const TranslationEditor = ({
       {saveWarning && (
         <div
           data-testid="save-warning"
+          role="alert"
           className="bg-warning-bg border border-warning-line rounded-xl p-3 space-y-3"
         >
           <div className="glyph-warn text-xs text-warning-fg leading-relaxed">
@@ -223,8 +224,12 @@ export const TranslationEditor = ({
 
       {/* Feedback Messages */}
       {error && (
-        <div className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 flex items-start gap-[0.625rem]">
+        <div
+          role="alert"
+          className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 flex items-start gap-[0.625rem]"
+        >
           <svg
+            aria-hidden="true"
             className="w-4 h-4 text-danger-fg shrink-0 mt-0.5"
             fill="none"
             stroke="currentColor"
@@ -242,6 +247,10 @@ export const TranslationEditor = ({
           </div>
         </div>
       )}
+
+      <p role="status" className="sr-only" data-testid="save-status">
+        {isSuccess ? t('editor.saved_status') : ''}
+      </p>
 
       {/* Action buttons */}
       <div className="flex items-center gap-3 pt-4 shrink-0">
