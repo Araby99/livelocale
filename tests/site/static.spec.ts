@@ -42,7 +42,8 @@ test('has no horizontal scroll at 360 px', async ({ page }) => {
 
 test('reaches every link by keyboard with a visible ink ring', async ({ page }) => {
   await page.goto('./');
-  const links = await page.locator('a[href], button').count();
+  // Only what is shown: before the hero island mounts, html.js hides its completion link.
+  const links = await page.locator('a[href]:visible, button:visible').count();
   const seen = new Set<string>();
   for (let i = 0; i < links; i++) {
     await page.keyboard.press('Tab');
