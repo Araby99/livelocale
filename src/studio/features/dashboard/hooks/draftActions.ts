@@ -2,6 +2,7 @@ import { lookupKey } from '../../../../core/json-path.js';
 import type { Draft } from '../../../transport/drafts.js';
 import type { StaticTransport } from '../../../transport/static.js';
 import { createBackup, restoreBackup } from '../../../share/backup.js';
+import { englishText, type StudioText } from '../../../i18n/catalogue.js';
 
 export interface DraftActionDeps {
   /** The share-link transport, or null outside a share link. */
@@ -19,11 +20,13 @@ export interface DraftActionDeps {
   /** The remembered translator name, read when the backup is made. */
   translatorName(): string | null;
   download(fileName: string, text: string): void;
+  /** The Studio text for backup, restore and undo messages; English when left out. */
+  t?: StudioText;
 }
 
 /** Undo, backup and restore for share-link drafts, kept apart from `useStudio` so they can be tested. */
 export function createDraftActions(deps: DraftActionDeps) {
-  const { transport } = deps;
+  const { transport, t = englishText } = deps;
 
   // Undo drops the draft and shows the built value again (or the draft's `from`
   // when the build no longer has a text there).
@@ -40,7 +43,7 @@ export function createDraftActions(deps: DraftActionDeps) {
         deps.sendToIframe('COMMIT_PREVIEW', { key: d.key, value });
       }
     } catch (err: any) {
-      deps.setError(err?.message || 'Undo failed.');
+      deps.setError(err?.message || t('errors.undo_failed'));
     } finally {
       deps.setIsUndoing(false);
     }
@@ -53,13 +56,14 @@ export function createDraftActions(deps: DraftActionDeps) {
       manifest: transport.manifest,
       studioHref: deps.studioHref(),
       by: deps.translatorName() ?? undefined,
+      t,
     });
     deps.download(backup.fileName, backup.text);
   };
 
   const restoreBackupFile = async (file: File): Promise<string> => {
-    if (!transport) throw new Error('Backups work only on a share link.');
-    return restoreBackup(await file.text(), transport);
+    if (!transport) throw new Error(t('errors.backup_share_only'));
+    return restoreBackup(await file.text(), transport, t);
   };
 
   return { undoDraft, downloadBackup, restoreBackupFile };

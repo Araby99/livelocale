@@ -4,10 +4,14 @@ import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, renderHook } from '@testing-library/react';
 import { FirstRunTips } from '../../src/studio/features/dashboard/components/FirstRunTips.jsx';
 import {
-  FIRST_RUN_TIPS,
+  FIRST_RUN_TIP_KEYS,
   useFirstRun,
 } from '../../src/studio/features/dashboard/hooks/useFirstRun.js';
 import { readPref, writePref } from '../../src/studio/share/browser.js';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import { englishText, textFor } from '../../src/studio/i18n/catalogue.js';
+
+const FIRST_RUN_TIPS = FIRST_RUN_TIP_KEYS.map((k) => englishText(k));
 
 const Harness = ({ enabled = true }: { enabled?: boolean }) => {
   const run = useFirstRun(enabled);
@@ -64,5 +68,18 @@ describe('first-run tips', () => {
     render(<Harness />);
     fireEvent.click(screen.getByRole('button', { name: 'Start editing' }));
     expect(screen.queryByText(FIRST_RUN_TIPS[0])).toBeNull();
+  });
+
+  it('shows the tips in Arabic and switches to English from inside the dialog', () => {
+    render(
+      <StudioLanguageProvider initial="ar">
+        <Harness />
+      </StudioLanguageProvider>
+    );
+    expect(screen.getByRole('dialog').textContent).toContain('مرحبًا بك في LiveLocale');
+    for (const k of FIRST_RUN_TIP_KEYS) expect(screen.getByText(textFor('ar')(k))).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'English: عرض الاستوديو بالإنجليزية' }));
+    expect(screen.getByText('Hold Alt/Option and click any text.')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Start editing' })).toBeTruthy();
   });
 });

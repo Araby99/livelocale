@@ -29,6 +29,7 @@ import { useFirstRun } from './useFirstRun.js';
 import { useReview } from './useReview.js';
 import { findChangeToken } from '../../../../core/change-link.js';
 import { describeLinkError } from '../../../share/send.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
@@ -41,6 +42,7 @@ const runtimeProblems = (): string[] => {
  * cross-cutting UI feedback state (loading, errors).
  */
 export const useStudio = () => {
+  const { t } = useStudioText();
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [isChangesOpen, setIsChangesOpen] = useState<boolean>(false);
@@ -143,6 +145,7 @@ export const useStudio = () => {
       history.record(change);
       git.refresh();
     },
+    t,
   });
 
   const git = useGit({
@@ -220,7 +223,7 @@ export const useStudio = () => {
       window.location.hash = findChangeToken(text);
       return true;
     } catch (err) {
-      setImportError(describeLinkError(err));
+      setImportError(describeLinkError(err, t));
       return false;
     }
   };
@@ -292,7 +295,7 @@ export const useStudio = () => {
       .then((resolved) => {
         if (resolved) setQueuedSelection(el);
       })
-      .catch((err: any) => setError(err?.message || 'Could not tell which language to edit.'));
+      .catch((err: any) => setError(err?.message || t('errors.locale_unknown')));
   };
 
   // Share link: a key from the Keys list waits for the required language pick, like Alt+Click.
@@ -330,7 +333,7 @@ export const useStudio = () => {
       history.remove(entry.id);
       await git.refresh();
     } catch (err: any) {
-      setError(err.message || 'Undo failed.');
+      setError(err.message || t('errors.undo_failed'));
     } finally {
       setIsUndoing(false);
     }
@@ -348,6 +351,7 @@ export const useStudio = () => {
     studioHref: () => window.location.href,
     translatorName: () => readPref('translator-name'),
     download: downloadText,
+    t,
   });
 
   // During a review Alt+Click only points at the row; nothing is edited.
@@ -368,6 +372,7 @@ export const useStudio = () => {
     handleClearSelection,
     setLoading: setIsLoading,
     setError,
+    t,
   });
 
   const { searchTerm, setSearchTerm, filterPageOnly, setFilterPageOnly, filteredKeys } =

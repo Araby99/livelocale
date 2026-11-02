@@ -1,8 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type ReactNode } from 'react';
 import { ConnectionStatus } from '../types/index.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 /** How long the Studio waits for the app's bridge before suggesting causes. */
 export const SLOW_CONNECTION_MS = 8000;
+
+/**
+ * A catalogue sentence with code in it: each `{name}` placeholder of `template` becomes the
+ * matching node, so commands and origins keep their own left-to-right, monospace element.
+ */
+function withCode(template: string, code: Readonly<Record<string, ReactNode>>): ReactNode[] {
+  return template
+    .split(/\{(\w+)\}/)
+    .map((part, i) =>
+      i % 2 === 0 ? part : <React.Fragment key={part}>{code[part] ?? `{${part}}`}</React.Fragment>
+    );
+}
 
 interface IframeViewerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -19,6 +32,7 @@ export const IframeViewer = ({
   appUrl,
   connectionStatus,
 }: IframeViewerProps) => {
+  const { t } = useStudioText();
   // The browser never tells the parent page why a frame stayed blank (a CSP
   // frame-ancestors block only reaches the console), so after a while list the usual causes.
   const [isSlow, setIsSlow] = useState(false);
@@ -36,43 +50,50 @@ export const IframeViewer = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl relative">
+    <div className="flex-1 flex flex-col h-full bg-raised border border-line rounded-2xl overflow-hidden relative">
       {/* Top bar */}
-      <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 select-none shrink-0">
+      <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 select-none shrink-0">
         <div className="flex items-center gap-3 w-1/3">
           {/* Decorative Window Controls */}
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-rose-500/80"></span>
-            <span className="w-3 h-3 rounded-full bg-amber-500/80"></span>
-            <span className="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
+            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
+            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
           </div>
         </div>
 
         {/* Connection status and actions */}
         <div className="flex items-center gap-4 w-1/3 justify-end">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold tracking-wider text-slate-500 uppercase">
-              Status
+            <span className="text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
+              {t('viewer.status')}
             </span>
             <span
+              data-testid="connection-status"
+              data-status={connectionStatus}
               className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                 connectionStatus === 'connected'
-                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  ? 'glyph-done bg-success-bg text-success-fg border border-success-line'
                   : connectionStatus === 'connecting'
-                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20 animate-pulse'
-                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    ? 'glyph-warn bg-warning-bg text-warning-fg border border-warning-line animate-pulse'
+                    : 'bg-danger-bg text-danger-fg border border-dashed border-danger-line'
               }`}
             >
-              {connectionStatus === 'connected' ? 'ACTIVE' : 'CONNECTING'}
+              {connectionStatus === 'connected'
+                ? t('viewer.status_connected')
+                : t('viewer.status_connecting')}
             </span>
           </div>
 
           <button
+            type="button"
             onClick={reloadIframe}
-            className="p-1.5 hover:bg-slate-800 text-slate-400 hover:text-slate-200 rounded-lg transition duration-200 border border-transparent hover:border-slate-700"
-            title="Reload Frame"
+            className="p-1.5 hover:bg-raised-hover text-fg-muted hover:text-fg rounded-lg transition duration-200 border border-transparent hover:border-line-strong"
+            aria-label={t('viewer.reload')}
+            title={t('viewer.reload')}
           >
             <svg
+              aria-hidden="true"
               className="w-4 h-4"
               fill="none"
               stroke="currentColor"
@@ -89,7 +110,7 @@ export const IframeViewer = ({
       </div>
 
       {/* Frame Container */}
-      <div className="flex-1 bg-slate-900 relative">
+      <div className="flex-1 bg-raised relative">
         <iframe
           id="app-preview-iframe"
           ref={iframeRef}
@@ -99,47 +120,76 @@ export const IframeViewer = ({
         />
 
         {connectionStatus === 'connecting' && (
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4 transition duration-300">
+          <div className="absolute inset-0 bg-surface flex flex-col items-center justify-center gap-4 transition duration-300">
             <div className="relative w-12 h-12">
-              <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20"></div>
-              <div className="absolute inset-0 rounded-full border-2 border-t-indigo-500 animate-spin"></div>
+              <div className="absolute inset-0 rounded-full border-2 border-accent-line"></div>
+              <div className="absolute inset-0 rounded-full border-2 border-t-accent animate-spin"></div>
             </div>
             <div className="text-center">
-              <h3 className="text-slate-200 font-semibold tracking-wide font-outfit">
-                Connecting to Project
+              <h3 className="text-fg font-semibold tracking-wide font-heading">
+                {t('viewer.connecting_title')}
               </h3>
-              <p className="text-xs text-slate-500 mt-1 font-mono">
-                Waiting for client bridge initialization...
-              </p>
+              <p className="text-xs text-fg-muted mt-1 font-mono">{t('viewer.connecting_body')}</p>
             </div>
             {isSlow && (
               <div
                 role="status"
                 data-testid="slow-connection-help"
-                className="max-w-md mx-6 mt-2 rounded-xl border border-slate-800 bg-slate-900/90 p-4 text-left text-xs text-slate-300"
+                className="max-w-md mx-6 mt-2 rounded-xl border border-line bg-raised p-4 text-start text-xs text-fg"
               >
-                <p className="font-semibold text-slate-100">Still connecting? Usual causes:</p>
-                <ul className="mt-2 space-y-1.5 list-disc pl-4">
+                <p className="font-semibold text-fg">{t('viewer.slow_title')}</p>
+                <ul className="mt-2 space-y-1.5 list-disc ps-4">
                   <li>
-                    The app is not running at <span className="font-mono">{appOrigin}</span>.
+                    {withCode(t('viewer.cause_not_running'), {
+                      origin: (
+                        <code dir="ltr" className="font-mono">
+                          {appOrigin}
+                        </code>
+                      ),
+                    })}
                   </li>
                   <li>
-                    The app blocks framing: its <span className="font-mono">frame-ancestors</span>{' '}
-                    or <span className="font-mono">X-Frame-Options</span> header must allow{' '}
-                    <span className="font-mono">{window.location.origin}</span>.
+                    {withCode(t('viewer.cause_framing'), {
+                      csp: (
+                        <code dir="ltr" className="font-mono">
+                          frame-ancestors
+                        </code>
+                      ),
+                      xfo: (
+                        <code dir="ltr" className="font-mono">
+                          X-Frame-Options
+                        </code>
+                      ),
+                      studio: (
+                        <code dir="ltr" className="font-mono">
+                          {window.location.origin}
+                        </code>
+                      ),
+                    })}
                   </li>
                   <li>
-                    <span className="font-mono">LiveLocaleProvider</span> is not mounted, or
-                    LiveLocale is off in the app (preview builds need{' '}
-                    <span className="font-mono">NEXT_PUBLIC_LIVELOCALE=preview</span>).
+                    {withCode(t('viewer.cause_provider'), {
+                      provider: (
+                        <code dir="ltr" className="font-mono">
+                          LiveLocaleProvider
+                        </code>
+                      ),
+                      env: (
+                        <code dir="ltr" className="font-mono">
+                          NEXT_PUBLIC_LIVELOCALE=preview
+                        </code>
+                      ),
+                    })}
                   </li>
                 </ul>
-                <p className="mt-3 text-slate-400">
-                  Run{' '}
-                  <span className="font-mono text-slate-200 select-all">
-                    npx livelocale doctor --app {appOrigin}
-                  </span>{' '}
-                  to check.
+                <p className="mt-3 text-fg-muted">
+                  {withCode(t('viewer.run_doctor'), {
+                    command: (
+                      <code dir="ltr" className="font-mono text-fg select-all">
+                        npx livelocale doctor --app {appOrigin}
+                      </code>
+                    ),
+                  })}
                 </p>
               </div>
             )}

@@ -4,10 +4,12 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import {
   DraftList,
-  DRAFT_STATUS_LABELS,
+  DRAFT_STATUS_KEYS,
   draftDisplayState,
 } from '../../src/studio/features/dashboard/components/DraftList.jsx';
 import type { Draft } from '../../src/studio/transport/drafts.js';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import { englishText, textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 const d = (o: Partial<Draft> = {}): Draft => ({
   scope: 'path:/',
@@ -25,7 +27,10 @@ const d = (o: Partial<Draft> = {}): Draft => ({
   ...o,
 });
 
-const renderList = (overrides: Partial<React.ComponentProps<typeof DraftList>> = {}) => {
+const renderList = (
+  overrides: Partial<React.ComponentProps<typeof DraftList>> = {},
+  lang?: StudioLanguage
+) => {
   const props = {
     drafts: [] as Draft[],
     onUndo: vi.fn(async () => {}),
@@ -34,7 +39,8 @@ const renderList = (overrides: Partial<React.ComponentProps<typeof DraftList>> =
     onRestoreBackup: vi.fn(async () => ''),
     ...overrides,
   };
-  render(<DraftList {...props} />);
+  const list = <DraftList {...props} />;
+  render(lang ? <StudioLanguageProvider initial={lang}>{list}</StudioLanguageProvider> : list);
   return props;
 };
 
@@ -47,7 +53,10 @@ describe('DraftList', () => {
     expect(draftDisplayState(d())).toBe('unsent');
     expect(draftDisplayState(d({ status: 'sent' }))).toBe('sent');
     expect(draftDisplayState(d({ status: 'sent', conflict: true }))).toBe('conflict');
-    expect(DRAFT_STATUS_LABELS).toEqual({
+    const labels = Object.fromEntries(
+      Object.entries(DRAFT_STATUS_KEYS).map(([state, key]) => [state, englishText(key)])
+    );
+    expect(labels).toEqual({
       unsent: 'Not sent',
       sent: 'Sent',
       live: 'Live now',
@@ -65,15 +74,35 @@ describe('DraftList', () => {
     });
     const a = within(row('home.a · ar'));
     expect(a.getByText('Not sent')).toBeTruthy();
-    expect(a.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(a.getByRole('button', { name: /^Undo/ })).toBeTruthy();
     const b = within(row('home.b · ar'));
     expect(b.getByText('Sent')).toBeTruthy();
-    expect(b.getByRole('button', { name: 'Remove' }).getAttribute('title')).toBe(
+    expect(b.getByRole('button', { name: /^Remove/ }).getAttribute('title')).toBe(
       'Removes it from this list. A link you already sent still carries it.'
     );
     const c = within(row('home.c · ar'));
     expect(c.getByText('Changed by someone else, please check')).toBeTruthy();
-    expect(c.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(c.getByRole('button', { name: /^Undo/ })).toBeTruthy();
+  });
+
+  // Final review D6: a screen reader's button list read "Undo, Undo, Undo" with no way to tell rows apart.
+  it('names each row action after its key and language, starting with the visible word', () => {
+    renderList({
+      drafts: [
+        d({ key: 'home.a' }),
+        d({ key: 'home.a', locale: 'fr' }),
+        d({ key: 'home.b', status: 'sent', sentAt: 2 }),
+      ],
+    });
+    const names = screen
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'))
+      .filter((n): n is string => n !== null);
+    expect(names).toEqual([
+      'Undo: go back to the published text of home.a (ar)',
+      'Undo: go back to the published text of home.a (fr)',
+      'Remove: take home.b (ar) off this list',
+    ]);
   });
 
   it('shows from struck through and to as text', () => {
@@ -82,12 +111,18 @@ describe('DraftList', () => {
     expect(from.className).toContain('line-through');
     expect(from.getAttribute('dir')).toBe('auto');
     expect(screen.getByText('أهلا').getAttribute('dir')).toBe('auto');
+    expect(from.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['line-through', 'text-fg-muted', 'decoration-fg-faint'])
+    );
+    expect(from.className).not.toContain('text-danger-fg');
+    expect(screen.getByText('أهلا').className).toContain('text-accent-fg');
+    expect(screen.getByText(/· /).className).toContain('text-info-fg'); // rowHeading `key · locale`
   });
 
   it('passes the draft to onUndo', () => {
     const target = d();
     const props = renderList({ drafts: [d({ key: 'home.greet' }), target] });
-    fireEvent.click(within(row('home.title · ar')).getByRole('button', { name: 'Undo' }));
+    fireEvent.click(within(row('home.title · ar')).getByRole('button', { name: /^Undo/ }));
     expect(props.onUndo).toHaveBeenCalledTimes(1);
     expect(props.onUndo).toHaveBeenCalledWith(target);
   });
@@ -145,13 +180,31 @@ describe('DraftList', () => {
     expect(onReviewChange).toHaveBeenCalledTimes(1);
   });
 
+  it('points the change arrow to the left in Arabic', () => {
+    const ar = textFor('ar');
+    renderList({ drafts: [d(), d({ key: 'home.b', status: 'sent', sentAt: 2 })] }, 'ar');
+    expect(screen.getAllByText('←').length).toBeGreaterThan(0);
+    expect(screen.getByText(ar('draft_list.status_unsent'))).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: ar('draft_list.undo_aria', { key: 'home.title', locale: 'ar' }),
+      })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: ar('draft_list.remove_aria', { key: 'home.b', locale: 'ar' }),
+      })
+    ).toBeTruthy();
+    expect(screen.getByRole('button', { name: ar('draft_list.download') })).toBeTruthy();
+  });
+
   it('labels live entries "Live now" without an action button', () => {
     const onDismissLiveNow = vi.fn();
     renderList({ liveNow: [d({ key: 'home.live' })], onDismissLiveNow });
     const live = within(row('home.live · ar'));
     expect(live.getByText('Live now')).toBeTruthy();
-    expect(live.queryByRole('button', { name: 'Undo' })).toBeNull();
-    expect(live.queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(live.queryByRole('button', { name: /^Undo/ })).toBeNull();
+    expect(live.queryByRole('button', { name: /^Remove/ })).toBeNull();
     expect(live.queryAllByRole('button')).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss live changes' }));
     expect(onDismissLiveNow).toHaveBeenCalledTimes(1);

@@ -4,7 +4,7 @@ import { isSafeLocaleSegment } from '../core/validate.js';
 import { getDisabledReason } from '../core/env.js';
 import { parseGitignore, type GitignoreMatcher } from '../core/gitignore.js';
 
-const IGNORE_DIRS = new Set([
+export const IGNORE_DIRS = new Set([
   'node_modules',
   '.next',
   'dist',
@@ -22,7 +22,7 @@ const IGNORE_DIRS = new Set([
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
 
 /** Files above this size are almost certainly bundles or fixtures, not components. */
-const MAX_SOURCE_BYTES = 1_000_000;
+export const MAX_SOURCE_BYTES = 1_000_000;
 
 const PROP_RE = /\bt(?:\??\.[a-zA-Z0-9_]+)+/g;
 const IGNORE_PROPS = new Set([

@@ -4,6 +4,7 @@ import { decodeChangeLink, encodeChangeLink } from '../../src/core/change-link.j
 import { createBackup, restoreBackup } from '../../src/studio/share/backup.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
 import { MANIFEST, SHA_A, STUDIO_URL } from './helpers/share-fixtures.js';
+import { textFor } from '../../src/studio/i18n/catalogue.js';
 
 vi.mock('../../src/core/change-link.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/core/change-link.js')>();
@@ -88,6 +89,19 @@ describe('restoreBackup', () => {
   it('explains a damaged link', async () => {
     expect(await restoreBackup('lc1.AAAAAAAA', { restoreDrafts: vi.fn() })).toBe(
       'This change link is damaged or incomplete, which happens when an email or chat app breaks a long link. Ask the sender to send the file instead.'
+    );
+  });
+
+  it('reports a restore in Arabic with the dual form', async () => {
+    const { text: link } = await createBackup({
+      drafts: [d({ key: 'home.a' }), d({ key: 'home.b' })],
+      manifest: MANIFEST,
+      studioHref: STUDIO_URL,
+      now: NOW,
+    });
+    const transport = { restoreDrafts: vi.fn(async () => ({ added: 2, skipped: 0 })) };
+    expect(await restoreBackup(link, transport, textFor('ar'))).toBe(
+      textFor('ar')('backup.restored', { count: 2, skipped: 0 })
     );
   });
 });

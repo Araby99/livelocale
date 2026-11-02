@@ -200,7 +200,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
     await expect(panel.getByText('home.welcome_msg')).toBeVisible();
 
     // Undo restores the previous value on disk without touching git.
-    await panel.getByRole('button', { name: 'Undo' }).click();
+    await panel.locator('li', { hasText: 'home.welcome_msg' }).getByRole('button').click();
     await expect
       .poll(async () => JSON.parse(await fs.readFile(EN_LOCALE_FILE, 'utf-8')).home.welcome_msg)
       .toBe('Welcome Back to Production');

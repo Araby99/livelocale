@@ -1,4 +1,5 @@
 import { getAppOrigin } from './runtime.js';
+import { englishText } from './i18n/catalogue.js';
 
 /** The app's LiveLocale API, read from the runtime on every request. */
 const apiUrl = () => `${getAppOrigin()}/api/livelocale`;
@@ -55,7 +56,7 @@ export class ValidationError extends Error {
 
 export class UnauthorizedError extends Error {
   readonly code = 'UNAUTHORIZED';
-  constructor(message = 'Unauthorized') {
+  constructor(message = englishText('errors.unauthorized')) {
     super(message);
     this.name = 'UnauthorizedError';
   }
@@ -98,17 +99,19 @@ async function parse<T>(response: Response): Promise<T> {
   } catch {}
   if (response.status === 401) {
     if (typeof window !== 'undefined') window.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
-    throw new UnauthorizedError(body?.error || 'Unauthorized');
+    throw new UnauthorizedError(body?.error || englishText('errors.unauthorized'));
   }
   if (response.status === 422) {
     throw new ValidationError(
-      body?.error || 'The translation was rejected.',
+      body?.error || englishText('errors.translation_rejected'),
       body?.code || 'VALIDATION',
       body?.details
     );
   }
   if (!response.ok) {
-    throw new Error(body?.error || `Server responded with status ${response.status}`);
+    throw new Error(
+      body?.error || englishText('errors.server_status', { status: response.status })
+    );
   }
   return body as T;
 }

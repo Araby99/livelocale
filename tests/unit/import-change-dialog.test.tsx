@@ -4,15 +4,21 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import { ImportChangeDialog } from '../../src/studio/features/dashboard/components/ImportChangeDialog.js';
 import { Header } from '../../src/studio/features/dashboard/components/Header.js';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import { textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 const NO_LINK = 'No change link found. A change link contains "lc1.".';
 
-const renderDialog = (props: Partial<React.ComponentProps<typeof ImportChangeDialog>> = {}) => {
+const renderDialog = (
+  props: Partial<React.ComponentProps<typeof ImportChangeDialog>> = {},
+  lang?: StudioLanguage
+) => {
   const onClose = vi.fn();
   const onSubmit = vi.fn(async () => true);
-  render(
+  const dialog = (
     <ImportChangeDialog isOpen onClose={onClose} onSubmit={onSubmit} error={null} {...props} />
   );
+  render(lang ? <StudioLanguageProvider initial={lang}>{dialog}</StudioLanguageProvider> : dialog);
   return { onClose, onSubmit, ...props };
 };
 
@@ -46,6 +52,14 @@ describe('ImportChangeDialog', () => {
     expect(input.accept).toBe('.txt,text/plain');
     fireEvent.change(input, { target: { files: [file] } });
     await waitFor(() => expect(textBox().value).toContain('lc1.abc'));
+  });
+
+  it('titles the import dialog in Arabic', () => {
+    const ar = textFor('ar');
+    renderDialog({}, 'ar');
+    expect(screen.getByRole('dialog', { name: ar('import.title') })).toBeTruthy();
+    expect(screen.getByLabelText(ar('import.paste_label'))).toBeTruthy();
+    expect(screen.getByRole('button', { name: ar('import.submit') })).toBeTruthy();
   });
 
   it('stays open and shows the error when the link cannot be read', async () => {

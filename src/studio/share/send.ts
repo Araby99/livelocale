@@ -6,6 +6,7 @@ import {
 } from '../../core/change-link.js';
 import type { ShareManifest } from '../../core/share-manifest.js';
 import type { Draft } from '../transport/drafts.js';
+import { englishText, type StringKey, type StudioText } from '../i18n/catalogue.js';
 
 export const SEND_NAME_MAX_CHARS = 80;
 export const SEND_NOTE_MAX_CHARS = 500;
@@ -114,27 +115,21 @@ export function changeFileName(kind: 'changes' | 'backup', now: Date): string {
   return `livelocale-${kind}-${now.toISOString().slice(0, 10)}.txt`;
 }
 
-const DAMAGED =
-  'This change link is damaged or incomplete, which happens when an email or chat app breaks a long link. Ask the sender to send the file instead.';
-const TOO_BIG = 'This change link is larger than LiveLocale accepts (500 changes, 512 KB).';
-
-const LINK_ERROR_COPY: Record<ChangeLinkErrorCode, string> = {
-  NOT_FOUND: 'This is not a LiveLocale change link. A change link contains "lc1.".',
-  AMBIGUOUS: 'This text holds more than one change link. Paste one link at a time.',
-  CORRUPT: DAMAGED,
-  INVALID: DAMAGED,
-  TOO_LARGE: TOO_BIG,
-  TOO_MANY_EDITS: TOO_BIG,
-  UNSUPPORTED_VERSION:
-    'This change link was made by a newer LiveLocale. Update the site and try again.',
-  UNSUPPORTED_ENVIRONMENT:
-    'This browser cannot create or read change links. Use a current Chrome, Edge or Firefox, or Safari 16.4 or later.',
+const LINK_ERROR_COPY: Record<ChangeLinkErrorCode, StringKey> = {
+  NOT_FOUND: 'link_error.not_found',
+  AMBIGUOUS: 'link_error.ambiguous',
+  CORRUPT: 'link_error.damaged',
+  INVALID: 'link_error.damaged',
+  TOO_LARGE: 'link_error.too_big',
+  TOO_MANY_EDITS: 'link_error.too_big',
+  UNSUPPORTED_VERSION: 'link_error.unsupported_version',
+  UNSUPPORTED_ENVIRONMENT: 'link_error.unsupported_environment',
 };
 
-/** Plain-words copy for a change-link failure. */
-export function describeLinkError(err: unknown): string {
+/** Plain-words copy for a change-link failure; any other error keeps its own message. */
+export function describeLinkError(err: unknown, t: StudioText = englishText): string {
   if (err instanceof ChangeLinkError && Object.hasOwn(LINK_ERROR_COPY, err.code)) {
-    return LINK_ERROR_COPY[err.code];
+    return t(LINK_ERROR_COPY[err.code]);
   }
-  return (err instanceof Error && err.message) || 'Could not read the change link.';
+  return (err instanceof Error && err.message) || t('link_error.unreadable');
 }
