@@ -32,7 +32,7 @@ export const KeysDirectory = ({
   return (
     <div
       data-testid="keys-directory"
-      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full overflow-hidden`}
     >
       <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
         <h2 className="text-sm font-bold tracking-wide font-heading text-fg">{t('keys.title')}</h2>
@@ -75,7 +75,7 @@ export const KeysDirectory = ({
               onClick={() => setFilterPageOnly(false)}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 !filterPageOnly
-                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line shadow-sm'
+                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
                   : 'text-fg-muted hover:text-fg'
               }`}
             >
@@ -86,7 +86,7 @@ export const KeysDirectory = ({
               disabled={visibleKeys === null}
               className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition duration-150 ${
                 filterPageOnly
-                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line shadow-sm'
+                  ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
                   : 'text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed'
               }`}
               title={visibleKeys === null ? t('keys.page_waiting') : t('keys.page_title')}
@@ -108,29 +108,38 @@ export const KeysDirectory = ({
               <button
                 key={key}
                 onClick={() => selectKeyDirectly(key)}
+                aria-current={isActive ? 'true' : undefined}
                 className={`w-full text-start p-3 rounded-xl border transition duration-150 flex flex-col gap-1.5 ${
                   isActive
-                    ? 'bg-accent-soft border-accent-line text-fg shadow-sm'
+                    ? 'relative bg-accent-soft border-accent-line text-fg'
                     : 'bg-surface hover:bg-surface border-transparent text-fg hover:text-fg'
                 }`}
               >
+                {isActive && (
+                  <span
+                    aria-hidden="true"
+                    data-testid="key-row-bar"
+                    className="absolute inset-y-2 start-0 w-0.75 rounded-full bg-accent-fg"
+                  />
+                )}
                 <div className="w-full flex items-center justify-between gap-2">
                   <span
                     dir="ltr"
-                    className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-fg"
+                    className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-info-fg"
                   >
                     {key}
                   </span>
                   {isMissing && (
-                    <span className="px-1.5 py-0.5 rounded bg-danger-bg text-[8px] font-extrabold text-danger-fg border border-danger-line shrink-0 uppercase tracking-wider">
+                    <span className="px-1.5 py-0.5 rounded bg-transparent text-[8px] font-extrabold text-danger-fg border-[1.5px] border-dashed border-danger-line shrink-0 uppercase tracking-wider">
                       {t('keys.missing')}
                     </span>
                   )}
                 </div>
-                <span dir="auto" className="text-[10px] text-fg-muted break-all line-clamp-1">
-                  {valueText || (
-                    <span className="italic text-fg-muted">{t('keys.empty_value')}</span>
-                  )}
+                <span
+                  dir="auto"
+                  className={`text-[10px] break-all line-clamp-1 ${isActive ? 'text-fg' : 'text-fg-muted'}`}
+                >
+                  {valueText || <span className="italic">{t('keys.empty_value')}</span>}
                 </span>
               </button>
             );

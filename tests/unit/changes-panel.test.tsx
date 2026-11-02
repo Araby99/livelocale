@@ -83,11 +83,26 @@ describe('ChangesPanel', () => {
   });
 
   it('shows the diff on demand with added and removed lines', () => {
-    renderPanel();
+    renderPanel({
+      git: {
+        ...baseGit,
+        diff: baseGit.diff.replace(
+          '+++ b/locales/en.json\n',
+          '+++ b/locales/en.json\n@@ -1 +1 @@\n'
+        ),
+      },
+    });
     fireEvent.click(screen.getByText('Show diff'));
     // Testing Library collapses runs of whitespace before matching text.
-    expect(screen.getByText('+ "a": "y"')).toBeTruthy();
-    expect(screen.getByText('- "a": "x"')).toBeTruthy();
+    const addedLine = screen.getByText('+ "a": "y"');
+    const removedLine = screen.getByText('- "a": "x"');
+    const hunkHeader = screen.getByText('@@ -1 +1 @@');
+    expect(addedLine.className).toContain('bg-accent-soft');
+    expect(removedLine.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['line-through', 'text-fg-muted', 'decoration-fg-faint'])
+    );
+    expect(hunkHeader.className).toContain('text-info-fg');
+    expect(removedLine.className).not.toMatch(/danger/);
     cleanup();
   });
 

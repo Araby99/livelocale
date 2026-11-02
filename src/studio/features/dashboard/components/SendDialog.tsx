@@ -171,13 +171,13 @@ export const SendDialog = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-overlay flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-send-title"
-        className="bg-raised border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 shadow-2xl space-y-4"
+        className="bg-raised border border-line rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6 space-y-4"
       >
         <h3 id="studio-send-title" className="text-base font-bold text-fg font-heading">
           {t('send.title')}
@@ -229,26 +229,31 @@ export const SendDialog = ({
                 key={`${d.locale}/${d.key}`}
                 className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
               >
-                <span dir="ltr" className="block text-[11px] font-mono text-fg break-all">
+                <span dir="ltr" className="block text-[11px] font-mono text-info-fg break-all">
                   {`${d.key} · ${d.locale}`}
                 </span>
                 <div className="text-[10px] leading-relaxed">
                   {d.from ? (
-                    <span dir="auto" className="text-danger-fg line-through break-all">
+                    <span
+                      dir="auto"
+                      className="text-fg-muted line-through decoration-fg-faint break-all"
+                    >
                       {d.from}
                     </span>
                   ) : (
-                    <em className="text-danger-fg line-through">{t('send.empty')}</em>
+                    <em className="text-fg-muted line-through decoration-fg-faint">
+                      {t('send.empty')}
+                    </em>
                   )}
                   <span className="text-fg-muted" aria-hidden="true">
                     {` ${t('common.arrow')} `}
                   </span>
                   {d.to ? (
-                    <span dir="auto" className="text-success-fg break-all">
+                    <span dir="auto" className="text-accent-fg break-all">
                       {d.to}
                     </span>
                   ) : (
-                    <em className="text-success-fg">{t('send.empty')}</em>
+                    <em className="text-accent-fg">{t('send.empty')}</em>
                   )}
                 </div>
               </li>
@@ -257,7 +262,7 @@ export const SendDialog = ({
         )}
 
         {overflow > 0 && (
-          <p className="text-xs text-warning-fg">
+          <p className="glyph-warn text-xs text-warning-fg">
             {t('send.overflow', { count: included.length, total: included.length + overflow })}
           </p>
         )}
@@ -276,7 +281,7 @@ export const SendDialog = ({
             className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg"
           />
         )}
-        {tooLong && <p className="text-xs text-warning-fg">{t('send.too_long')}</p>}
+        {tooLong && <p className="glyph-warn text-xs text-warning-fg">{t('send.too_long')}</p>}
 
         <div className="flex flex-wrap items-center gap-2">
           <button
@@ -318,23 +323,23 @@ export const SendDialog = ({
         )}
 
         {outcome === 'copied' && (
-          <p role="status" className="text-xs text-success-fg">
+          <p role="status" className="glyph-done text-xs text-success-fg">
             {t('send.copied')}
           </p>
         )}
         {outcome === 'downloaded' && (
-          <p role="status" className="text-xs text-success-fg">
+          <p role="status" className="glyph-done text-xs text-success-fg">
             {t('send.downloaded')}
           </p>
         )}
         {outcome === 'opened' && (
-          <p role="status" className="text-xs text-success-fg">
+          <p role="status" className="glyph-done text-xs text-success-fg">
             {t('send.opened')}
           </p>
         )}
         {outcome === 'copy-failed' && (
           <div role="status" className="space-y-2">
-            <p className="text-xs text-warning-fg">{t('send.copy_failed')}</p>
+            <p className="glyph-warn text-xs text-warning-fg">{t('send.copy_failed')}</p>
             <button
               onClick={() => markSent(included, 'copied')}
               className={`${actionButton} text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong`}

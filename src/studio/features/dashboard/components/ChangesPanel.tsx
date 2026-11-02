@@ -34,10 +34,10 @@ const noop = async (): Promise<void> => {};
 const noRestore = async (): Promise<string> => '';
 
 const STATUS_STYLES: Record<string, string> = {
-  modified: 'text-warning-fg border-warning-line bg-warning-bg',
-  added: 'text-success-fg border-success-line bg-success-bg',
-  deleted: 'text-danger-fg border-danger-line bg-danger-bg',
-  renamed: 'text-info-fg border-info-line bg-info-bg',
+  modified: 'glyph-warn text-warning-fg border-warning-line bg-warning-bg',
+  added: 'text-accent-fg border-accent-line bg-accent-soft',
+  deleted: 'text-danger-fg border-dashed border-danger-line bg-danger-bg',
+  renamed: 'glyph-info text-info-fg border-info-line bg-info-bg',
 };
 
 const STATUS_KEYS: Readonly<Record<string, StringKey>> = {
@@ -49,10 +49,10 @@ const STATUS_KEYS: Readonly<Record<string, StringKey>> = {
 
 const diffLineClass = (line: string): string => {
   if (line.startsWith('+++') || line.startsWith('---')) return 'text-fg-muted';
-  if (line.startsWith('@@')) return 'text-fg';
+  if (line.startsWith('@@')) return 'text-info-fg';
   if (line.startsWith('diff ') || line.startsWith('new file')) return 'text-fg-muted';
-  if (line.startsWith('+')) return 'text-success-fg bg-success-bg';
-  if (line.startsWith('-')) return 'text-danger-fg bg-danger-bg';
+  if (line.startsWith('+')) return 'text-fg bg-accent-soft';
+  if (line.startsWith('-')) return 'text-fg-muted line-through decoration-fg-faint';
   return 'text-fg-muted';
 };
 
@@ -120,9 +120,9 @@ export const ChangesPanel = ({
   return (
     <div className="fixed inset-0 top-16 z-40 flex justify-end" data-testid="changes-panel">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-overlay backdrop-blur-[2px]" onClick={onClose} />
+      <div className="absolute inset-0 bg-overlay" onClick={onClose} />
 
-      <aside className="relative w-[520px] max-w-full h-full bg-raised border-s border-line shadow-2xl flex flex-col animate-in slide-in-from-end duration-200">
+      <aside className="relative w-[520px] max-w-full h-full bg-raised border-s border-line flex flex-col animate-in slide-in-from-end duration-200">
         {/* Header */}
         <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
           <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export const ChangesPanel = ({
                       key={c.path}
                       className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-surface border border-line"
                     >
-                      <span dir="ltr" className="text-[11px] font-mono text-fg break-all">
+                      <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
                         {c.path}
                       </span>
                       <span
@@ -269,7 +269,7 @@ export const ChangesPanel = ({
                     href={git.pullRequestUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="block text-[11px] text-accent-fg hover:text-accent-fg underline underline-offset-2"
+                    className="block text-[11px] text-info-fg hover:text-info-fg underline underline-offset-2"
                   >
                     {t('changes.view_pr')}
                   </a>
@@ -312,7 +312,7 @@ export const ChangesPanel = ({
                     <button
                       onClick={() => setConfirmDiscard(true)}
                       disabled={changes.length === 0 || isGitLoading}
-                      className="h-10 px-4 rounded-xl text-xs font-semibold text-danger-fg bg-danger-bg hover:bg-danger-bg border border-danger-line disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
+                      className="h-10 px-4 rounded-xl text-xs font-semibold text-danger-fg bg-danger-bg hover:bg-danger-bg border border-dashed border-danger-line disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
                     >
                       {t(isGitHub ? 'changes.reset_branch' : 'changes.discard')}
                     </button>
@@ -335,7 +335,7 @@ export const ChangesPanel = ({
                   )}
                 </div>
                 {lastCommit && !gitError && (
-                  <p className="text-[11px] text-success-fg font-mono break-all">
+                  <p className="glyph-done text-[11px] text-success-fg font-mono break-all">
                     {isGitHub ? (
                       <>
                         {t('changes.pull_request')}{' '}
@@ -355,7 +355,7 @@ export const ChangesPanel = ({
                   </p>
                 )}
                 {gitError && (
-                  <div className="bg-danger-bg border border-danger-line rounded-xl p-3 text-xs text-danger-fg font-mono break-all">
+                  <div className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 text-xs text-danger-fg font-mono break-all">
                     {studioMessage(t, gitError)}
                   </div>
                 )}
@@ -382,7 +382,7 @@ export const ChangesPanel = ({
                       className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span dir="ltr" className="text-[11px] font-mono text-fg break-all">
+                        <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
                           {entry.key}
                           <span className="text-fg-muted"> · {entry.locale}</span>
                         </span>
@@ -401,13 +401,16 @@ export const ChangesPanel = ({
                         </div>
                       </div>
                       <div className="text-[10px] leading-relaxed">
-                        <span dir="auto" className="text-danger-fg line-through break-all">
+                        <span
+                          dir="auto"
+                          className="text-fg-muted line-through decoration-fg-faint break-all"
+                        >
                           {entry.previousValue || <em>{t('changes.empty')}</em>}
                         </span>
                         <span className="text-fg-muted" aria-hidden="true">
                           {` ${t('common.arrow')} `}
                         </span>
-                        <span dir="auto" className="text-success-fg break-all">
+                        <span dir="auto" className="text-accent-fg break-all">
                           {entry.nextValue || <em>{t('changes.empty')}</em>}
                         </span>
                       </div>

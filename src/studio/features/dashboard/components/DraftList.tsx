@@ -14,10 +14,10 @@ export const DRAFT_STATUS_KEYS: Readonly<Record<DraftDisplayState, StringKey>> =
 };
 
 const STATE_STYLES: Record<DraftDisplayState, string> = {
-  unsent: 'text-warning-fg border-warning-line bg-warning-bg',
-  sent: 'text-info-fg border-info-line bg-info-bg',
-  live: 'text-success-fg border-success-line bg-success-bg',
-  conflict: 'text-danger-fg border-danger-line bg-danger-bg',
+  unsent: 'glyph-warn text-warning-fg border-warning-line bg-warning-bg',
+  sent: 'glyph-info text-info-fg border-info-line bg-info-bg',
+  live: 'glyph-done text-success-fg border-success-line bg-success-bg',
+  conflict: 'text-danger-fg border-dashed border-danger-line bg-danger-bg',
 };
 
 /** How a saved draft is shown: a conflict wins over its send status. */
@@ -49,7 +49,7 @@ const StateBadge = ({ state }: { state: DraftDisplayState }) => {
 };
 
 const rowHeading = (d: Draft) => (
-  <span dir="ltr" className="text-[11px] font-mono text-fg break-all">
+  <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
     {`${d.key} · ${d.locale}`}
   </span>
 );
@@ -60,21 +60,21 @@ const DraftValues = ({ d }: { d: Draft }) => {
   return (
     <div className="text-[10px] leading-relaxed">
       {d.from ? (
-        <span dir="auto" className="text-danger-fg line-through break-all">
+        <span dir="auto" className="text-fg-muted line-through decoration-fg-faint break-all">
           {d.from}
         </span>
       ) : (
-        <em className="text-danger-fg line-through">{t('draft_list.empty')}</em>
+        <em className="text-fg-muted line-through decoration-fg-faint">{t('draft_list.empty')}</em>
       )}
       <span className="text-fg-muted" aria-hidden="true">
         {` ${t('common.arrow')} `}
       </span>
       {d.to ? (
-        <span dir="auto" className="text-success-fg break-all">
+        <span dir="auto" className="text-accent-fg break-all">
           {d.to}
         </span>
       ) : (
-        <em className="text-success-fg">{t('draft_list.empty')}</em>
+        <em className="text-accent-fg">{t('draft_list.empty')}</em>
       )}
     </div>
   );

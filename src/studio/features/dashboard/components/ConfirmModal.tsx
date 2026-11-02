@@ -14,13 +14,13 @@ export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmM
   if (!showConfirmModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-overlay flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-confirm-title"
-        className="bg-raised border border-line rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
+        className="bg-raised border border-line rounded-2xl w-full max-w-md p-6 relative animate-in fade-in zoom-in-95 duration-200"
       >
         <h3 id="studio-confirm-title" className="text-base font-bold text-fg font-heading">
           {t('confirm.title')}
@@ -37,7 +37,7 @@ export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmM
           <button
             type="button"
             onClick={onConfirm}
-            className="px-4 py-2 text-xs font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg rounded-xl shadow-lg transition duration-150"
+            className="px-4 py-2 text-xs font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg rounded-xl transition duration-150"
           >
             {t('confirm.discard')}
           </button>

@@ -32,9 +32,10 @@ interface TranslationEditorProps {
 type ChipState = 'present' | 'missing' | 'extra';
 
 const CHIP_STYLES: Record<ChipState, string> = {
-  present: 'bg-raised border-line-strong text-fg',
-  missing: 'bg-danger-bg border-danger-line text-danger-fg line-through',
-  extra: 'bg-warning-bg border-warning-line text-warning-fg',
+  present: 'bg-raised border border-line-strong text-fg',
+  missing:
+    'bg-transparent border-[1.5px] border-dashed border-danger-line text-danger-fg line-through',
+  extra: 'glyph-warn bg-warning-bg border border-warning-line text-warning-fg',
 };
 
 const CHIP_TITLES: Record<ChipState, StringKey> = {
@@ -102,7 +103,7 @@ export const TranslationEditor = ({
         </div>
         <div
           dir="ltr"
-          className="bg-surface border border-line rounded-xl px-4 py-3 font-mono text-xs text-fg select-all break-all shadow-inner leading-relaxed"
+          className="bg-surface border border-line rounded-xl px-4 py-3 font-mono text-xs text-info-fg select-all break-all leading-relaxed"
         >
           {selected.key}
         </div>
@@ -137,7 +138,7 @@ export const TranslationEditor = ({
                 data-state={state}
                 dir="ltr"
                 title={t(CHIP_TITLES[state])}
-                className={`px-2 py-0.5 rounded-md border text-[10px] font-mono ${CHIP_STYLES[state]}`}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${CHIP_STYLES[state]}`}
               >
                 {token}
               </span>
@@ -183,7 +184,7 @@ export const TranslationEditor = ({
             onChange={(e) => onInputChange(e.target.value)}
             disabled={isLoading}
             placeholder={t('editor.input_placeholder')}
-            className="w-full min-h-32 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-muted font-sans resize-none transition duration-205 shadow-inner leading-relaxed"
+            className="w-full min-h-32 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-muted font-sans resize-none transition duration-205 leading-relaxed"
           />
         )}
       </div>
@@ -194,7 +195,9 @@ export const TranslationEditor = ({
           data-testid="save-warning"
           className="bg-warning-bg border border-warning-line rounded-xl p-3 space-y-3"
         >
-          <div className="text-xs text-warning-fg leading-relaxed">{saveWarning.message}</div>
+          <div className="glyph-warn text-xs text-warning-fg leading-relaxed">
+            {saveWarning.message}
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={onForceSave}
@@ -215,7 +218,7 @@ export const TranslationEditor = ({
 
       {/* Feedback Messages */}
       {error && (
-        <div className="bg-danger-bg border border-danger-line rounded-xl p-3 flex items-start gap-[0.625rem] shadow-xs">
+        <div className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 flex items-start gap-[0.625rem]">
           <svg
             className="w-4 h-4 text-danger-fg shrink-0 mt-0.5"
             fill="none"
@@ -241,7 +244,7 @@ export const TranslationEditor = ({
           id="studio-save-button"
           onClick={onSave}
           disabled={!canSave}
-          className={`flex-1 h-11 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 shadow-sm transition duration-205 ${
+          className={`flex-1 h-11 rounded-xl text-sm font-semibold tracking-wide flex items-center justify-center gap-2 transition duration-205 ${
             inputValue === selected.currentValue
               ? 'bg-raised text-fg-muted cursor-not-allowed shadow-none border border-line'
               : 'bg-accent hover:bg-accent-hover text-on-accent'
@@ -269,21 +272,8 @@ export const TranslationEditor = ({
           ) : isSuccess ? (
             <span
               data-testid="save-success"
-              className="flex items-center gap-1 text-success-fg font-bold"
+              className="glyph-done flex items-center gap-1 text-success-fg font-bold"
             >
-              <svg
-                className="w-4 h-4 text-success-fg"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
-              </svg>
               <span>{t('editor.saved')}</span>
             </span>
           ) : (

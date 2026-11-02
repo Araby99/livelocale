@@ -5,7 +5,7 @@ export const EmptySelection = () => {
   const { t } = useStudioText();
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
-      <div className="w-16 h-16 rounded-2xl bg-accent-soft border border-accent-line flex items-center justify-center text-fg shadow-xs mb-6">
+      <div className="w-16 h-16 rounded-2xl bg-accent-soft border border-accent-line flex items-center justify-center text-fg mb-6">
         <svg className="w-8 h-8 text-fg" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path
             strokeLinecap="round"

@@ -75,7 +75,7 @@ export const Header = ({
       : null;
 
   return (
-    <header className="h-16 bg-surface/90 backdrop-blur-md border-b border-line px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
+    <header className="h-16 bg-surface border-b border-line px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
       <div className="flex items-center gap-3 shrink-0">
         <BrandMark className="h-8 w-8 shrink-0" />
         <div>
@@ -113,13 +113,13 @@ export const Header = ({
                     locale: targetLocale.locale,
                   })}
                 </span>
-                <span className="hidden xl:inline text-fg-muted">
+                <span className="hidden xl:inline text-fg">
                   {t(SOURCE_HINTS[targetLocale.source])}
                 </span>
               </span>
             )}
             {mismatch && (
-              <span className="flex items-center gap-1.5 text-[10px] text-warning-fg whitespace-nowrap shrink-0">
+              <span className="glyph-warn flex items-center gap-1.5 text-[10px] text-warning-fg whitespace-nowrap shrink-0">
                 <span className="hidden xl:inline">
                   {t('header.mismatch', { locale: mismatch })}
                 </span>
@@ -147,11 +147,7 @@ export const Header = ({
           <div className="w-16 xl:w-28 h-1.5 bg-raised rounded-full overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-700 ease-out ${
-                coveragePercentage >= 80
-                  ? 'bg-success-fg'
-                  : coveragePercentage >= 40
-                    ? 'bg-warning-fg'
-                    : 'bg-danger-fg'
+                coveragePercentage >= 80 ? 'bg-success-fg' : 'bg-warning-fg'
               }`}
               style={{ width: `${coveragePercentage}%` }}
             />
@@ -163,7 +159,7 @@ export const Header = ({
 
         {mode === 'preview' && (
           <span
-            className="px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-extrabold tracking-wider text-warning-fg select-none"
+            className="glyph-warn px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-extrabold tracking-wider text-warning-fg select-none"
             title={t('header.preview_title')}
           >
             {t('header.preview')}
@@ -193,7 +189,7 @@ export const Header = ({
         {!isReviewing && unsentCount > 0 && (
           <span
             data-testid="unsent-counter"
-            className="shrink-0 px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-semibold text-warning-fg select-none whitespace-nowrap"
+            className="glyph-warn shrink-0 px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-semibold text-warning-fg select-none whitespace-nowrap"
             title={t('header.unsent_title')}
           >
             {unsentLabel(unsentCount, t)}
@@ -248,7 +244,7 @@ export const Header = ({
           </svg>
           {t('header.changes')}
           {changesCount > 0 && (
-            <span className="px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-[10px] font-mono font-bold text-warning-fg">
+            <span className="glyph-warn px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-[10px] font-mono font-bold text-warning-fg">
               {changesCount}
             </span>
           )}

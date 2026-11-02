@@ -58,13 +58,13 @@ export const ImportChangeDialog = ({
   const shownError = fileError ?? (submitted ? error : null);
 
   return (
-    <div className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-overlay flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-import-title"
-        className="bg-raised border border-line rounded-2xl w-full max-w-lg p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 select-text"
+        className="bg-raised border border-line rounded-2xl w-full max-w-lg p-6 relative animate-in fade-in zoom-in-95 duration-200 select-text"
       >
         <h3 id="studio-import-title" className="text-base font-bold text-fg font-heading">
           {t('import.title')}

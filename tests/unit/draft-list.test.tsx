@@ -91,6 +91,12 @@ describe('DraftList', () => {
     expect(from.className).toContain('line-through');
     expect(from.getAttribute('dir')).toBe('auto');
     expect(screen.getByText('أهلا').getAttribute('dir')).toBe('auto');
+    expect(from.className.split(/\s+/)).toEqual(
+      expect.arrayContaining(['line-through', 'text-fg-muted', 'decoration-fg-faint'])
+    );
+    expect(from.className).not.toContain('text-danger-fg');
+    expect(screen.getByText('أهلا').className).toContain('text-accent-fg');
+    expect(screen.getByText(/· /).className).toContain('text-info-fg'); // rowHeading `key · locale`
   });
 
   it('passes the draft to onUndo', () => {

@@ -57,7 +57,7 @@ interface ReviewPanelProps {
 const RUN_WORKFLOW_PATH = 'Actions → LiveLocale → Run workflow';
 
 const RESULT_CLASS: Record<ApplyResult['state'], string> = {
-  applied: 'text-success-fg',
+  applied: 'glyph-done text-success-fg',
   skipped: 'text-fg-muted',
   failed: 'text-danger-fg',
 };
@@ -72,10 +72,10 @@ const resultText = (result: ApplyResult, t: StudioText) =>
 const STATUS_ORDER: EditStatus[] = ['apply', 'already', 'conflict', 'needs-force', 'invalid'];
 
 const STATUS_CLASS: Record<EditStatus, string> = {
-  apply: 'text-success-fg',
+  apply: 'glyph-done text-success-fg',
   already: 'text-fg-muted',
-  conflict: 'text-warning-fg',
-  'needs-force': 'text-warning-fg',
+  conflict: 'glyph-warn text-warning-fg',
+  'needs-force': 'glyph-warn text-warning-fg',
   invalid: 'text-danger-fg',
 };
 
@@ -163,7 +163,7 @@ export const ReviewPanel = ({
   return (
     <section
       data-testid="review-panel"
-      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full overflow-hidden`}
     >
       <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
         <h2 className="text-sm font-bold tracking-wide font-heading text-fg">
@@ -335,18 +335,18 @@ export const ReviewPanel = ({
                           onClick={() => onSelectLocale(row.locale)}
                           title={t('review.show_locale', { locale: row.locale })}
                           dir="ltr"
-                          className="font-mono text-accent-fg hover:text-accent-fg underline-offset-2 hover:underline"
+                          className="font-mono text-info-fg hover:text-info-fg underline-offset-2 hover:underline"
                         >
                           {row.locale}
                         </button>
                       </td>
-                      <td dir="ltr" className="py-2 pe-2 font-mono text-fg break-all">
+                      <td dir="ltr" className="py-2 pe-2 font-mono text-info-fg break-all">
                         {row.key}
                       </td>
                       <td className="py-2 pe-2">
                         <Value value={row.from} />
                         {row.status === 'conflict' && row.current !== undefined && (
-                          <p className="mt-1 text-warning-fg">
+                          <p className="mt-1 glyph-warn text-warning-fg">
                             {`${t('review.now_on_site')} `}
                             <span dir="auto" className="break-all whitespace-pre-wrap">
                               {row.current}
@@ -375,7 +375,9 @@ export const ReviewPanel = ({
                               <li
                                 key={check.message}
                                 className={
-                                  check.level === 'error' ? 'text-danger-fg' : 'text-warning-fg'
+                                  check.level === 'error'
+                                    ? 'text-danger-fg'
+                                    : 'glyph-warn text-warning-fg'
                                 }
                               >
                                 {check.message}

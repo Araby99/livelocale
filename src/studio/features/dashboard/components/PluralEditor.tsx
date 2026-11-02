@@ -108,7 +108,7 @@ export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditor
                 {t(CATEGORY_HINTS[f.selector] ?? 'plural.desc_explicit')}
               </span>
               {f.required && f.text === '' && f.selector !== 'other' && (
-                <span className="text-warning-fg">{t('plural.needed', { locale })}</span>
+                <span className="glyph-warn text-warning-fg">{t('plural.needed', { locale })}</span>
               )}
             </span>
             <input

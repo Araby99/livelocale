@@ -23,13 +23,13 @@ export const FirstRunTips = ({ open, name, onNameChange, onDismiss }: FirstRunTi
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-overlay flex items-center justify-center p-4">
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-tips-title"
-        className="bg-raised border border-line rounded-2xl w-full max-w-md p-6 shadow-2xl"
+        className="bg-raised border border-line rounded-2xl w-full max-w-md p-6"
       >
         <div className="flex items-center justify-between gap-3">
           <h3 id="studio-tips-title" className="text-base font-bold text-fg font-heading">

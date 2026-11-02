@@ -19,7 +19,7 @@ export const SetupProblems = ({ problems, title }: SetupProblemsProps) => {
     <div
       role="alert"
       data-testid="setup-problems"
-      className="mx-6 mt-4 rounded-xl border border-danger-line bg-danger-bg px-4 py-3 text-xs text-danger-fg select-text"
+      className="mx-6 mt-4 rounded-xl border border-dashed border-danger-line bg-danger-bg px-4 py-3 text-xs text-danger-fg select-text"
     >
       <p className="font-semibold text-danger-fg">{title ?? t('setup.title')}</p>
       <ul className="mt-1.5 space-y-1 list-disc ps-4">

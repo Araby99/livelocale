@@ -50,15 +50,15 @@ export const IframeViewer = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-raised border border-line rounded-2xl overflow-hidden shadow-2xl relative">
+    <div className="flex-1 flex flex-col h-full bg-raised border border-line rounded-2xl overflow-hidden relative">
       {/* Top bar */}
       <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 select-none shrink-0">
         <div className="flex items-center gap-3 w-1/3">
           {/* Decorative Window Controls */}
           <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-danger-fg"></span>
-            <span className="w-3 h-3 rounded-full bg-warning-fg"></span>
-            <span className="w-3 h-3 rounded-full bg-success-fg"></span>
+            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
+            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
+            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
           </div>
         </div>
 
@@ -73,10 +73,10 @@ export const IframeViewer = ({
               data-status={connectionStatus}
               className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                 connectionStatus === 'connected'
-                  ? 'bg-success-bg text-success-fg border border-success-line'
+                  ? 'glyph-done bg-success-bg text-success-fg border border-success-line'
                   : connectionStatus === 'connecting'
-                    ? 'bg-warning-bg text-warning-fg border border-warning-line animate-pulse'
-                    : 'bg-danger-bg text-danger-fg border border-danger-line'
+                    ? 'glyph-warn bg-warning-bg text-warning-fg border border-warning-line animate-pulse'
+                    : 'bg-danger-bg text-danger-fg border border-dashed border-danger-line'
               }`}
             >
               {connectionStatus === 'connected'
@@ -117,7 +117,7 @@ export const IframeViewer = ({
         />
 
         {connectionStatus === 'connecting' && (
-          <div className="absolute inset-0 bg-surface backdrop-blur-sm flex flex-col items-center justify-center gap-4 transition duration-300">
+          <div className="absolute inset-0 bg-surface flex flex-col items-center justify-center gap-4 transition duration-300">
             <div className="relative w-12 h-12">
               <div className="absolute inset-0 rounded-full border-2 border-accent-line"></div>
               <div className="absolute inset-0 rounded-full border-2 border-t-accent animate-spin"></div>

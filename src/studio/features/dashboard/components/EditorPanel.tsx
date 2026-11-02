@@ -79,7 +79,7 @@ export const EditorPanel = ({
   return (
     <div
       data-testid="editor-panel"
-      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full overflow-hidden`}
     >
       {/* Panel Header */}
       <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">

@@ -3,6 +3,23 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Status glyphs (brand: success and info carry a glyph, warnings a `!`); empty alt text, so screen readers skip them. */
+@utility glyph-done {
+  &::before {
+    content: '✓\00a0' / '';
+  }
+}
+@utility glyph-warn {
+  &::before {
+    content: '!\00a0' / '';
+  }
+}
+@utility glyph-info {
+  &::before {
+    content: 'ⓘ\00a0' / '';
+  }
+}
+
 /* Reset the default palette: only white, black and the brand tokens generate colour utilities. */
 @theme {
   --color-*: initial;

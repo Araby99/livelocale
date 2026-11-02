@@ -28,14 +28,14 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-overlay backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-overlay flex items-center justify-center p-4">
       <form
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="studio-token-title"
         onSubmit={submit}
-        className="bg-raised border border-line rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 space-y-4"
+        className="bg-raised border border-line rounded-2xl w-full max-w-md p-6 animate-in fade-in zoom-in-95 duration-200 space-y-4"
       >
         <div>
           <h3 id="studio-token-title" className="text-base font-bold text-fg font-heading">

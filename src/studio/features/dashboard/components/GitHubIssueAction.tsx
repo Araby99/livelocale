@@ -34,7 +34,7 @@ export function GitHubIssueAction({
 
   if (request.tooLarge || request.url === null) {
     return (
-      <p className="text-[11px] text-warning-fg">
+      <p className="glyph-warn text-[11px] text-warning-fg">
         {t('issue.too_large', { command: 'npx livelocale apply' })}
       </p>
     );

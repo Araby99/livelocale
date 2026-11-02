@@ -108,3 +108,73 @@ it('resets the default palette before the brand colours are mapped', () => {
   );
   expect(css.indexOf('--color-*: initial')).toBeLessThan(css.indexOf('@theme inline'));
 });
+
+it('draws red only as a dashed outline', () => {
+  const solid = studioFiles('src/studio').flatMap((f) =>
+    [...readFileSync(f, 'utf8').matchAll(/["'`]([^"'`]*)["'`]/g)]
+      .filter(
+        (m) =>
+          /(?<![\w-])(?:[\w-]+:)*border-danger-line(?![\w-])/.test(m[1]!) &&
+          !/(?<![\w-])border-dashed(?![\w-])/.test(m[1]!)
+      )
+      .map((m) => `${f}: ${m[1]}`)
+  );
+  expect(solid).toEqual([]);
+});
+
+it('keeps amber off decoration', () =>
+  expect(
+    readFileSync('src/studio/features/dashboard/components/IframeViewer.tsx', 'utf8')
+  ).not.toMatch(/rounded-full bg-(?:danger|warning|success)-fg/));
+
+const literals = (f: string) =>
+  [...readFileSync(f, 'utf8').matchAll(/["'`]([^"'`]*)["'`]/g)].map((m) => m[1]!);
+const has = (s: string, cls: string) =>
+  new RegExp(`(?<![\\w-])(?:[\\w-]+:)*${cls.replace(/[[\]]/g, '\\$&')}(?![\\w-])`).test(s);
+
+it('never fills with red', () =>
+  expect(
+    studioFiles('src/studio').flatMap((f) =>
+      literals(f)
+        .filter((s) => has(s, 'bg-danger-fg') || has(s, 'bg-danger-line'))
+        .map((s) => `${f}: ${s}`)
+    )
+  ).toEqual([]));
+
+it('raises by tone, never by shadow or blur', () =>
+  expect(
+    studioFiles('src/studio').flatMap((f) =>
+      literals(f)
+        .filter((s) =>
+          /(?<![\w-])(?:[\w-]+:)*(?:shadow(?:-(?:2xs|xs|sm|md|lg|xl|2xl|inner))?|backdrop-blur(?:-[\w[\]]+)?)(?![\w-])/.test(
+            s
+          )
+        )
+        .map((s) => `${f}: ${s}`)
+    )
+  ).toEqual([]));
+
+// The LocaleRow confirm button is an icon with an aria-label, so it has no text to prefix.
+const GLYPH_EXEMPT = ['p-1 text-success-fg hover:text-success-fg transition duration-150'];
+it('gives every success, warning and info message its glyph', () => {
+  const missing = studioFiles('src/studio').flatMap((f) =>
+    literals(f)
+      .filter(
+        (s) =>
+          (has(s, 'text-success-fg') && !has(s, 'glyph-done') && !GLYPH_EXEMPT.includes(s)) ||
+          (has(s, 'text-warning-fg') && !has(s, 'glyph-warn')) ||
+          (has(s, 'text-info-fg') && has(s, 'bg-info-bg') && !has(s, 'glyph-info'))
+      )
+      .map((s) => `${f}: ${s}`)
+  );
+  expect(missing).toEqual([]);
+  const css = readFileSync('src/studio/index.css', 'utf8');
+  for (const [name, glyph] of [
+    ['done', '✓'],
+    ['warn', '!'],
+    ['info', 'ⓘ'],
+  ]) {
+    expect(css).toContain(`@utility glyph-${name}`);
+    expect(css).toContain(`content: '${glyph}\\00a0' / '';`);
+  }
+});
