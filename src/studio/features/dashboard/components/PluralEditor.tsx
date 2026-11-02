@@ -61,23 +61,23 @@ export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditor
   };
 
   const inputClass =
-    'w-full bg-slate-950 border border-slate-800 hover:border-slate-700 focus:border-indigo-500 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 transition duration-150 disabled:opacity-60';
+    'w-full bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-lg px-3 py-2 text-xs text-fg placeholder-fg-muted transition duration-150 disabled:opacity-60';
 
   return (
     <div className="space-y-3" data-testid="plural-editor">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-slate-500 font-mono">
-          {parsed.type} on <span className="text-indigo-400">{parsed.variable}</span>
+        <span className="text-[10px] text-fg-muted font-mono">
+          {parsed.type} on <span className="text-fg">{parsed.variable}</span>
           {parsed.offset ? ` · offset ${parsed.offset}` : ''}
         </span>
-        <span className="text-[10px] text-slate-600">
+        <span className="text-[10px] text-fg-muted">
           <code className="font-mono">#</code> = the number
         </span>
       </div>
 
       {parsed.prefix !== '' && (
         <label className="block space-y-1">
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+          <span className="text-[10px] font-semibold text-fg-muted uppercase tracking-wider">
             Before
           </span>
           <input
@@ -95,12 +95,10 @@ export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditor
         {fields.map((f) => (
           <label key={f.selector} className="block space-y-1">
             <span className="flex items-center gap-2 text-[10px] font-mono">
-              <span className="text-slate-300">{f.selector}</span>
-              <span className="text-slate-600">
-                {CATEGORY_HINTS[f.selector] ?? 'explicit case'}
-              </span>
+              <span className="text-fg">{f.selector}</span>
+              <span className="text-fg-muted">{CATEGORY_HINTS[f.selector] ?? 'explicit case'}</span>
               {f.required && f.text === '' && f.selector !== 'other' && (
-                <span className="text-amber-400">needed for {locale}</span>
+                <span className="text-warning-fg">needed for {locale}</span>
               )}
             </span>
             <input
@@ -117,7 +115,7 @@ export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditor
 
       {parsed.suffix !== '' && (
         <label className="block space-y-1">
-          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+          <span className="text-[10px] font-semibold text-fg-muted uppercase tracking-wider">
             After
           </span>
           <input

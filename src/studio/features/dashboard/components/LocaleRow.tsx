@@ -65,7 +65,7 @@ export const LocaleRow = ({
   };
 
   return (
-    <div className="bg-slate-950/40 border border-slate-800 hover:border-slate-800/80 rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition duration-200">
+    <div className="bg-surface border border-line hover:border-line rounded-xl px-4 py-3 flex items-center justify-between gap-4 transition duration-200">
       {editing ? (
         <div className="flex-1 flex items-center gap-2">
           <input
@@ -73,13 +73,13 @@ export const LocaleRow = ({
             value={renameValue}
             onChange={(e) => setRenameValue(e.target.value)}
             disabled={isLoading}
-            className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs font-mono text-slate-100 focus:outline-hidden focus:border-indigo-500"
+            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1 text-xs font-mono text-fg focus:outline-hidden focus:border-focus"
             autoFocus
           />
           <button
             onClick={handleRenameSave}
             disabled={isLoading}
-            className="p-1 text-emerald-400 hover:text-emerald-300 transition duration-150"
+            className="p-1 text-success-fg hover:text-success-fg transition duration-150"
             title="Save rename"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -94,7 +94,7 @@ export const LocaleRow = ({
           <button
             onClick={() => setEditing(false)}
             disabled={isLoading}
-            className="p-1 text-slate-500 hover:text-slate-400 transition duration-150"
+            className="p-1 text-fg-muted hover:text-fg-muted transition duration-150"
             title="Cancel"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -109,22 +109,22 @@ export const LocaleRow = ({
         </div>
       ) : deleting ? (
         <div className="flex-1 flex flex-col gap-2">
-          <span className="text-[10px] font-semibold text-rose-400">
+          <span className="text-[10px] font-semibold text-danger-fg">
             Confirm deletion? This deletes the translation file.
           </span>
-          {localError && <span className="text-[10px] text-rose-400 font-mono">{localError}</span>}
+          {localError && <span className="text-[10px] text-danger-fg font-mono">{localError}</span>}
           <div className="flex items-center gap-2 justify-end">
             <button
               onClick={() => setDeleting(false)}
               disabled={isLoading}
-              className="px-2.5 py-1 text-[10px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition"
+              className="px-2.5 py-1 text-[10px] font-semibold bg-raised hover:bg-raised-hover text-fg rounded-lg transition"
             >
               Cancel
             </button>
             <button
               onClick={handleDeleteConfirm}
               disabled={isLoading}
-              className="px-2.5 py-1 text-[10px] font-semibold bg-rose-600 hover:bg-rose-500 text-white rounded-lg transition shadow-sm shadow-rose-600/10"
+              className="px-2.5 py-1 text-[10px] font-semibold bg-danger-solid hover:bg-danger-solid/90 text-on-danger rounded-lg transition shadow-sm"
             >
               Delete
             </button>
@@ -133,14 +133,14 @@ export const LocaleRow = ({
       ) : (
         <>
           <div className="flex flex-col min-w-0">
-            <span className="text-xs font-semibold text-slate-200 truncate">{code}</span>
+            <span className="text-xs font-semibold text-fg truncate">{code}</span>
             {isActive && (
-              <span className="text-[9px] text-indigo-400 font-bold tracking-wide mt-0.5">
+              <span className="text-[9px] text-accent-fg font-bold tracking-wide mt-0.5">
                 ACTIVE WORKSPACE
               </span>
             )}
             {localError && (
-              <span className="text-[10px] text-rose-400 font-mono mt-0.5">{localError}</span>
+              <span className="text-[10px] text-danger-fg font-mono mt-0.5">{localError}</span>
             )}
           </div>
 
@@ -148,7 +148,7 @@ export const LocaleRow = ({
             <button
               onClick={handleStartRename}
               disabled={isLoading}
-              className="p-1.5 text-slate-500 hover:text-slate-300 transition duration-150"
+              className="p-1.5 text-fg-muted hover:text-fg transition duration-150"
               title="Rename locale code"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -166,7 +166,7 @@ export const LocaleRow = ({
                 setDeleting(true);
               }}
               disabled={isLoading}
-              className="p-1.5 text-slate-500 hover:text-rose-400 transition duration-150"
+              className="p-1.5 text-fg-muted hover:text-danger-fg transition duration-150"
               title="Delete locale"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

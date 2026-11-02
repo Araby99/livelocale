@@ -31,6 +31,12 @@ const MIGRATED_FILES = [
     'KeysDirectory',
     'EmptySelection',
     'SetupProblems',
+    'EditorPanel',
+    'TranslationEditor',
+    'PluralEditor',
+    'LocaleManager',
+    'LocaleRow',
+    'LocalePicker',
   ].map((c) => `src/studio/features/dashboard/components/${c}.tsx`),
 ];
 

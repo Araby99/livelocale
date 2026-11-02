@@ -76,11 +76,11 @@ export const EditorPanel = ({
   return (
     <div
       data-testid="editor-panel"
-      className={`${className} bg-slate-900 border border-slate-800 rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
+      className={`${className} bg-raised border border-line rounded-2xl flex flex-col h-full shadow-2xl overflow-hidden`}
     >
       {/* Panel Header */}
-      <div className="h-14 bg-slate-950 border-b border-slate-800 flex items-center justify-between px-6 shrink-0 select-none">
-        <h2 className="text-sm font-bold tracking-wide font-heading text-slate-200">
+      <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
+        <h2 className="text-sm font-bold tracking-wide font-heading text-fg">
           {isManageOpen ? 'Manage Languages' : 'Translation Studio'}
         </h2>
 
@@ -88,13 +88,13 @@ export const EditorPanel = ({
         <div className="flex items-center gap-2">
           {!isManageOpen && (
             <>
-              <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">
+              <label className="text-[10px] font-semibold text-fg-muted uppercase tracking-wider">
                 Locale
               </label>
               <select
                 value={locale}
                 onChange={(e) => onLocaleChange(e.target.value)}
-                className="bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-indigo-500/50 cursor-pointer font-mono"
+                className="bg-raised border border-line hover:border-line-strong text-fg text-xs rounded-lg px-2.5 py-1.5 focus:outline-hidden focus:ring-1 focus:ring-focus cursor-pointer font-mono"
               >
                 {locales.map((l) => (
                   <option key={l} value={l}>
@@ -109,8 +109,8 @@ export const EditorPanel = ({
             onClick={() => setIsManageOpen(!isManageOpen)}
             className={`p-1.5 rounded-lg border transition duration-200 ${
               isManageOpen
-                ? 'bg-indigo-600/20 border-indigo-500 text-indigo-400'
-                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                ? 'bg-accent-soft border-accent-line text-accent-fg'
+                : 'bg-raised border-line text-fg-muted hover:text-fg hover:border-line-strong'
             }`}
             title={isManageOpen ? 'Back to Editor' : 'Manage Languages'}
           >
