@@ -107,9 +107,26 @@ Knobs: `HERO_NO_ENCODE=1` acts the take and prints the beat times only; `HERO_SL
 `HERO_Q` (screencast JPEG quality) trade capture fps against sharpness; `HERO_KEEP_MASTER=<file>`
 keeps the near-lossless master for frame-by-frame review.
 
-After a new take, `node site/scripts/hero-frames.mjs` cuts the page's stills from `hero.mp4` with
-ffmpeg-static: the WebP poster (frame 0) and one frame per story step in `site/media/hero/frames/`.
-Each still's provenance (the second of the take it comes from) sits beside it in a `.json` sidecar.
+`hero.mp4` is the master; the page ships two cuts of it. After a new take, run
+`node site/scripts/hero-cuts.mjs` (pass `wide` or `narrow` to cut one), then
+`node site/scripts/hero-frames.mjs`:
+
+- `hero-cuts.mjs` writes `hero-wide.{webm,mp4}` (2:1, desktop) and `hero-narrow.{webm,mp4}` (4:5,
+  phones) with ffmpeg-static. Each is a run of shots cut at the master's camera moves (`SHOTS`),
+  each shot with its own crop (`CUTS`), so the timing, and with it `chapters.json`, is unchanged. If
+  a new take moves the camera cuts or the Studio layout, update `SHOTS` and the crop boxes.
+- `hero-frames.mjs` cuts the stills: one WebP poster per cut (at 3.5 s, with the fix already on
+  screen, so the first paint shows it) and one frame per story step in `site/media/hero/frames/`.
+  It writes each still's provenance (the video and second it comes from) to a `.json` sidecar.
+
+The page picks the cut by viewport (`(max-width: 639px)` is the narrow one) and attaches it as soon
+as the page is parsed, so the video is playing within the first seconds.
+
+## The live demo
+
+"Try the live demo" opens Tidewell, the same stage site the video is filmed on, with its typo and
+its missing Arabic button. `site:build` builds `site/stage/` under `<base>demo/`, packs it with the
+share Studio (no `--expose-repo`) and copies it to `site/dist/demo/`.
 
 ## The CI excerpt
 
