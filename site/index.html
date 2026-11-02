@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preload" as="image" href="/media/hero/poster.webp" fetchpriority="high" />
     <title>LiveLocale: fix text on your site, get a pull request</title>
     <meta
       name="description"
@@ -26,13 +27,39 @@
     <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <script>
+      // Before first paint: mark JavaScript on and pick the door from the hash, so a linked
+      // #fixer opens on the fixer's story with no flash of the other one.
       document.documentElement.classList.add('js');
+      document.documentElement.dataset.door = location.hash === '#fixer' ? 'fixer' : 'developer';
     </script>
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>
+    <!--
+    THESIS: The real product, filmed on a real site, opens the page; one switch under it picks whose story you read next. Refuses the category default of a headline next to a mockup and a grid of feature cards.
+    OWN-WORLD: livelocale "hunk": Night #0C0D0F ground, Surface #16181D, Paper #E8E4D9 text, Comment #8C887D, Ghost #6E6B64 struck old text, Patch #FFB224 only as fills (the fix, the primary action, the selected door), Hunk #4FC3DC for keys/paths/locales/links, Exit 1 #FF5468 dashed outlines only, Exit 0 #6FD69A with a check glyph; Martian Mono display, IBM Plex Sans UI, IBM Plex Mono code, IBM Plex Sans Arabic. Depth by tone, no glows, no gradients, no purple.
+    STORY: A developer sees livelocale fix text on a real site, flip it to Arabic, and end in a real pull request; believes it is real, free, no account; copies the install command or opens the live demo. The fixer sees they need no git.
+    FIRST VIEWPORT: Top bar (logo lockup, GitHub, Docs). Headline "Stop collecting screenshots." in Martian Mono ~56-72px with one sentence beneath and two actions (copy npx livelocale init; try the live demo). Below, filling ~75% width, the framed hero video with three chapter chips synced to it and a visible pause button; the two-door switch directly under the video.
+    FORM: Two doors, candidate 7 of 7 on the ordered list, seed key c4e74c7c.
+    FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+    -->
+    <svg class="icon-sprite" aria-hidden="true" focusable="false">
+      <symbol id="i-copy" viewBox="0 0 20 20">
+        <rect x="7" y="7" width="10" height="10" rx="2" />
+        <path d="M13 4.5V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h.5" />
+      </symbol>
+      <symbol id="i-check" viewBox="0 0 20 20"><path d="m4 10.5 4 4 8-9" /></symbol>
+      <symbol id="i-pause" viewBox="0 0 20 20">
+        <path d="M7 4.5v11M13 4.5v11" />
+      </symbol>
+      <symbol id="i-play" viewBox="0 0 20 20"><path d="M6.5 4.2v11.6L15.8 10z" /></symbol>
+      <symbol id="i-arrow" viewBox="0 0 20 20">
+        <path d="M4 10h11.5M11 5.5 15.5 10 11 14.5" />
+      </symbol>
+    </svg>
+
     <header class="site-header">
-      <div class="wrap">
+      <div class="col">
         <a class="brand" href="./" aria-label="livelocale home">
           <svg
             viewBox="0 0 64 64"
@@ -57,234 +84,325 @@
         </a>
         <nav class="site-nav" aria-label="Main">
           <ul>
-            <li><a href="#how">How it works</a></li>
-            <li><a href="#languages">Languages</a></li>
-            <li><a href="#start">Get started</a></li>
             <li><a href="https://github.com/Araby99/livelocale">GitHub</a></li>
+            <li><a href="https://github.com/Araby99/livelocale#readme">Docs</a></li>
           </ul>
         </nav>
       </div>
     </header>
 
     <main>
-      <section id="pile" class="pile-track">
-        <div class="wrap pile-sticky" data-island="pile">
-          <p class="pile-title">This was your launch week.</p>
-          <div class="pile-stage">
-            <div class="pile-card" aria-hidden="true">
-              <span class="pile-file">IMG_2041.png</span>
-              <span class="pile-note">change <span class="ring">Get startd</span></span>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="col hero-head">
+          <h1 id="hero-title"><span class="patch">Stop</span> collecting screenshots.</h1>
+          <div class="hero-aside">
+            <p class="hero-lede">
+              Anyone on your team fixes text on your real site, in every language, and you get a
+              pull request.
+            </p>
+            <div class="actions">
+              <button type="button" class="cmd" data-copy="npx livelocale init">
+                <span class="cmd-text"
+                  ><span class="cmd-prompt" aria-hidden="true">$</span> npx livelocale init</span
+                >
+                <span class="cmd-state">
+                  <svg class="icon is-idle" aria-hidden="true"><use href="#i-copy" /></svg
+                  ><svg class="icon is-done" aria-hidden="true"><use href="#i-check" /></svg
+                  ><span class="cmd-label">Copy</span>
+                </span>
+              </button>
+              <a class="button-outline" href="demo/livelocale/index.html">
+                Try the live demo <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
+              </a>
             </div>
-            <div class="pile-card" aria-hidden="true">
-              <span class="pile-file">Screenshot 14:02</span>
-              <span class="pile-note">arabic is wrong <span class="ring">Submit</span></span>
+          </div>
+        </div>
+
+        <figure class="col demo" data-demo data-state="paused">
+          <div class="window">
+            <div class="window-bar">
+              <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="window-address" aria-label="Address"
+                ><span class="addr-host">tidewell.example</span
+                ><span class="addr-path">/pricing</span></span
+              >
+              <span class="window-label">Demo site: Tidewell (fictional)</span>
             </div>
-            <div class="pile-card" aria-hidden="true">
-              <span class="pile-file">final_FINAL_v3.png</span>
-              <span class="pile-note">where is this?? <span class="ring">Free trial</span></span>
-            </div>
-            <div class="pile-card" aria-hidden="true">
-              <span class="pile-file">WhatsApp image</span>
-              <span class="pile-note"><span class="ring">Pricing</span> → Plans</span>
-            </div>
-            <div class="pile-pr">
-              <p class="pile-pr-title">Fix copy on pricing and signup</p>
-              <p class="pile-pr-meta">4 changes · from Sara</p>
-            </div>
+            <video
+              class="demo-video"
+              muted
+              loop
+              playsinline
+              preload="none"
+              poster="/media/hero/poster.webp"
+              width="1600"
+              height="1000"
+              aria-label="livelocale on the Tidewell pricing page: Alt+Click the headline, fix it, fix the Arabic, and get a pull request"
+              aria-describedby="transcript-summary"
+            ></video>
+          </div>
+          <div class="demo-controls">
+            <ol class="chapters" aria-label="Chapters">
+              <li>
+                <button type="button" class="chapter" data-start="0.8">
+                  <span class="chapter-n">1</span>
+                  <span class="chapter-title">Alt+Click the text</span>
+                  <span class="chapter-bar" aria-hidden="true"></span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="chapter" data-start="5.21">
+                  <span class="chapter-n">2</span>
+                  <span class="chapter-title">Fix it in every language</span>
+                  <span class="chapter-bar" aria-hidden="true"></span>
+                </button>
+              </li>
+              <li>
+                <button type="button" class="chapter" data-start="10.63">
+                  <span class="chapter-n">3</span>
+                  <span class="chapter-title">Get a pull request</span>
+                  <span class="chapter-bar" aria-hidden="true"></span>
+                </button>
+              </li>
+            </ol>
+            <button type="button" class="playback" data-playback>
+              <svg class="icon icon-pause" aria-hidden="true"><use href="#i-pause" /></svg
+              ><svg class="icon icon-play" aria-hidden="true"><use href="#i-play" /></svg
+              ><span class="playback-label">Play</span>
+            </button>
+          </div>
+          <details class="transcript">
+            <summary id="transcript-summary">What the video shows</summary>
+            <ol>
+              <li>
+                The Tidewell pricing page is open in the livelocale share Studio. Its headline has a
+                typo: “Plans that grows with you”.
+              </li>
+              <li>
+                Holding Alt, the headline is clicked. The editor opens on the key
+                <code>hero.title</code>; “grows” is changed to “grow” and saved.
+              </li>
+              <li>
+                The Studio switches to Arabic and the page turns right to left. The “Start free
+                trial” button has no Arabic yet;
+                <span lang="ar" dir="rtl">ابدأ تجربتك المجانية</span>
+                is typed and saved.
+              </li>
+              <li>
+                Send to developer: the name Lina is entered, and the dialog lists both changes and
+                the change link.
+              </li>
+              <li>
+                The real pull request #2 on GitHub, opened by the livelocale workflow, applies both
+                changes; its files show the two JSON diffs.
+              </li>
+            </ol>
+          </details>
+        </figure>
+
+        <div class="col doors-row">
+          <p class="doors-label" id="doors-label">How it works when</p>
+          <div class="doors" role="radiogroup" aria-labelledby="doors-label">
+            <span class="doors-patch" aria-hidden="true"></span>
+            <label class="door">
+              <input type="radio" name="door" value="developer" checked />
+              <span>I ship the site</span>
+            </label>
+            <label class="door">
+              <input type="radio" name="door" value="fixer" />
+              <span>I fix the text</span>
+            </label>
           </div>
         </div>
       </section>
 
-      <section id="hero">
-        <div class="wrap" data-island="hero">
-          <p class="hero-bar">
-            <span class="bar-done">All fixed</span>
-            <span class="bar-start">3 mistakes left on this page</span>
-          </p>
-          <div class="hero-grid">
-            <div class="hero-copy">
-              <p class="diff-old"><del>Collect screenshots of every typo before launch.</del></p>
-              <h1>
-                <span class="lead-patch">Stop</span>
-                <span data-mistake="hero.title"
-                  ><span class="m-broken">colecting</span
-                  ><span class="m-fixed"
-                    ><span class="patch" data-ghost="colecting">collecting</span></span
-                  ></span
-                >
-                screenshots.
-              </h1>
-              <p class="hero-hint">↑ hold Alt and click the typo</p>
-              <p class="hero-lede">
-                Anyone on your team fixes text
-                <span data-mistake="hero.lede"
-                  ><span class="m-broken">rite</span
-                  ><span class="m-fixed"
-                    ><span class="patch" data-ghost="rite">right</span></span
-                  ></span
-                >
-                on the site.
-              </p>
-              <p class="hero-lede">
-                You get a pull request. CI catches what was never
-                <span data-mistake="hero.ci"
-                  ><span class="m-broken m-untranslated">traducido</span
-                  ><span class="m-fixed"
-                    ><span class="patch" data-ghost="traducido">translated</span></span
-                  ></span
-                >.
-              </p>
-            </div>
-            <aside class="pr-card is-done" data-testid="pr-card" aria-label="Your pull request">
-              <p class="pr-card-title">Your pull request</p>
-              <ul class="pr-pairs">
-                <li>
-                  <del>- "colecting"</del>
-                  <ins>+ "collecting"</ins>
-                </li>
-                <li>
-                  <del>- "rite"</del>
-                  <ins>+ "right"</ins>
-                </li>
-                <li>
-                  <del>- "traducido"</del>
-                  <ins>+ "translated"</ins>
-                </li>
-              </ul>
-              <p class="pr-progress">3 of 3 fixed</p>
-            </aside>
-          </div>
-          <div class="completion">
-            <h2 class="completion-title">That's LiveLocale. Install it.</h2>
-            <code class="chip">npm i livelocale</code>
-            <a class="button" href="https://github.com/Araby99/livelocale#readme">Read the docs</a>
-          </div>
-        </div>
-      </section>
-
-      <section id="how" aria-labelledby="how-title">
-        <div class="wrap">
-          <h2 id="how-title">How it works</h2>
+      <div class="stories col">
+        <section
+          class="story"
+          id="developer"
+          data-door="developer"
+          aria-labelledby="developer-title"
+        >
+          <h2 class="story-title" id="developer-title">When you ship the site</h2>
           <ol class="steps">
-            <li>
-              <figure>
-                <div class="clip-placeholder clip-click" aria-hidden="true">
-                  <span class="clip-line"></span><span class="clip-line clip-target"></span
-                  ><span class="clip-line"></span>
-                </div>
+            <li class="step">
+              <div class="step-text">
+                <span class="step-n" aria-hidden="true">1</span>
+                <h3>Install it and run init</h3>
+                <p>
+                  One dev dependency with no runtime dependencies. <code>init</code> sets up the
+                  Studio beside <code>next dev</code> or <code>vite</code>;
+                  <code>init --share</code> adds share links for any static host and, on GitHub, the
+                  workflow that turns them into pull requests.
+                </p>
+              </div>
+              <pre class="code step-art"><code><span class="c-prompt">$</span> npm i -D livelocale
+<span class="c-prompt">$</span> npx livelocale init
+
+<span class="c-comment"># share links on any static host, plus the GitHub workflow</span>
+<span class="c-prompt">$</span> npx livelocale init --share</code></pre>
+            </li>
+            <li class="step">
+              <div class="step-text">
+                <span class="step-n" aria-hidden="true">2</span>
+                <h3>Your team fixes the text. You review a pull request.</h3>
+                <p>
+                  Whoever spots the wrong text fixes it on the site and presses Send. You get a pull
+                  request in your own repository, with every change as a JSON diff. This one is
+                  real:
+                  <a href="https://github.com/Araby99/tidewell/pull/2">pull request #2</a> in
+                  <a href="https://github.com/Araby99/tidewell">Araby99/tidewell</a>.
+                </p>
+              </div>
+              <figure class="step-art shot">
+                <a href="https://github.com/Araby99/tidewell/pull/2" class="shot-link">
+                  <img
+                    src="/media/hero/frames/pull-request.webp"
+                    width="1200"
+                    height="750"
+                    loading="lazy"
+                    decoding="async"
+                    alt="Pull request #2 on GitHub, “i18n: LiveLocale changes”, opened by github-actions: two changes applied, translated by Lina."
+                  />
+                </a>
                 <figcaption>
-                  <h3>Alt+Click the text</h3>
-                  <p>Hold Alt and click any text on your running site.</p>
+                  Opened by the livelocale workflow from Lina’s change link. Frame from the video
+                  above.
                 </figcaption>
               </figure>
             </li>
-            <li>
-              <figure>
-                <div class="clip-placeholder clip-type" aria-hidden="true">
-                  <span class="clip-line"></span><span class="clip-line clip-target"></span
-                  ><span class="clip-line"></span>
-                </div>
-                <figcaption>
-                  <h3>Type the fix</h3>
-                  <p>The Studio opens on that string, in every language you ship.</p>
-                </figcaption>
-              </figure>
-            </li>
-            <li>
-              <figure>
-                <div class="clip-placeholder clip-send" aria-hidden="true">
-                  <span class="clip-line"></span><span class="clip-line clip-target"></span
-                  ><span class="clip-line"></span>
-                </div>
-                <figcaption>
-                  <h3>Send</h3>
-                  <p>You get a pull request. GitHub opens it in one click.</p>
-                </figcaption>
+            <li class="step">
+              <div class="step-text">
+                <span class="step-n" aria-hidden="true">3</span>
+                <h3>CI catches what was never translated</h3>
+                <p>
+                  <code>npx livelocale check --hardcoded</code> runs in GitHub Actions or any CI and
+                  fails the build on text that never went through translation.
+                </p>
+                <p class="step-note">
+                  Here it read a cut of the Tidewell pricing hero: the demo button was typed
+                  straight into the JSX and the Arabic note was left in English, so it exits 1
+                  before either ships.
+                </p>
+              </div>
+              <figure class="step-art">
+                <pre
+                  class="code check-output"
+                  data-testid="check-output"
+                ><code><!-- ci:check-output --></code></pre>
+                <figcaption>Real output, produced when this page was built.</figcaption>
               </figure>
             </li>
           </ol>
+        </section>
+
+        <section class="story" id="fixer" data-door="fixer" aria-labelledby="fixer-title">
+          <h2 class="story-title" id="fixer-title">When you fix the text</h2>
+          <ol class="steps">
+            <li class="step">
+              <div class="step-text">
+                <span class="step-n" aria-hidden="true">1</span>
+                <h3>Open the link your developer sent</h3>
+                <p>
+                  It opens the real site with the Studio around it. No account, no git, nothing to
+                  install.
+                </p>
+              </div>
+              <figure class="step-art shot">
+                <img
+                  src="/media/hero/frames/open-link.webp"
+                  width="1200"
+                  height="420"
+                  loading="lazy"
+                  decoding="async"
+                  alt="The livelocale share Studio around the Tidewell pricing page: the locale directory on the left, the page in the middle, the editor waiting on the right."
+                />
+              </figure>
+            </li>
+            <li class="step">
+              <div class="step-text">
+                <span class="step-n" aria-hidden="true">2</span>
+                <h3>Hold Alt and click the wrong text</h3>
+                <p>
+                  The editor opens on that exact string, showing the text it will replace. Nothing
+                  to search for, nothing to describe in a screenshot.
+                </p>
+              </div>
+              <figure class="step-art shot">
+                <img
+                  src="/media/hero/frames/alt-click.webp"
+                  width="1200"
+                  height="750"
+                  loading="lazy"
+                  decoding="async"
+                  alt="The headline “Plans that grows with you” outlined after an Alt+Click, with the editor open on it."
+                />
+              </figure>
+            </li>
+            <li class="step">
+              <div class="step-text">
+                <span class="step-n" aria-hidden="true">3</span>
+                <h3>Type the fix in any language, then press Send</h3>
+                <p>
+                  Switch to Arabic and the page turns right to left; type
+                  <span lang="ar" dir="rtl" class="ar-sample">ابدأ تجربتك المجانية</span> into the
+                  button that had no Arabic yet. Send hands your developer one link, and it becomes
+                  their pull request.
+                </p>
+              </div>
+              <figure class="step-art shot">
+                <img
+                  src="/media/hero/frames/arabic.webp"
+                  width="1200"
+                  height="750"
+                  loading="lazy"
+                  decoding="async"
+                  alt="The Tidewell page in Arabic, right to left, with the new Arabic button text typed into the editor."
+                />
+              </figure>
+            </li>
+          </ol>
+        </section>
+      </div>
+
+      <section class="col" aria-labelledby="works-title">
+        <div class="works">
+          <h2 id="works-title">Works where you already are</h2>
+          <p class="works-line">
+            Next.js, Vite, React and any static host. One-click pull requests on GitHub; on any
+            other git host, <code>npx livelocale apply &lt;link&gt; --pr</code>.
+          </p>
         </div>
       </section>
 
-      <section id="languages" aria-labelledby="languages-title">
-        <div class="wrap">
-          <h2 id="languages-title">Drag between languages.</h2>
-          <p class="section-lede">
-            Strings nobody translated stay English, outlined in red.
-            <code>check --hardcoded</code> finds the same ones in CI.
-          </p>
-          <div class="slider" data-island="slider">
-            <div class="slider-track">
-              <div class="slider-half" data-lang="en" lang="en">
-                <p class="slider-label">English <code class="locale-chip">en</code></p>
-                <p class="sample-nav">
-                  <span data-key="nav.pricing">Pricing</span>
-                  <span data-key="nav.docs">Docs</span>
-                </p>
-                <p class="sample-title" data-key="plans.title">Plans that grow with your team.</p>
-                <p class="sample-sub">
-                  <span data-key="plans.start">Start free.</span>
-                  <span data-key="plans.upgrade">Upgrade anytime.</span>
-                </p>
-                <span class="sample-button">Start free trial</span>
-              </div>
-              <div class="slider-half" data-lang="ar" lang="ar" dir="rtl">
-                <p class="slider-label">العربية <code class="locale-chip">ar</code></p>
-                <p class="sample-nav">
-                  <span data-key="nav.pricing">الأسعار</span>
-                  <span data-key="nav.docs">التوثيق</span>
-                </p>
-                <p class="sample-title" data-key="plans.title">خطط تنمو مع فريقك.</p>
-                <p class="sample-sub">
-                  <span data-key="plans.start">ابدأ مجانًا.</span>
-                  <span data-key="plans.upgrade">Upgrade anytime.</span>
-                </p>
-                <span class="sample-button">Start free trial</span>
-              </div>
-              <span class="slider-handle" aria-hidden="true">⇆</span>
-            </div>
-            <div class="check-output" data-testid="check-output">
-              <!-- slider:check-output -->
-            </div>
+      <section class="start" aria-labelledby="start-title">
+        <div class="col start-inner">
+          <h2 id="start-title">Start in two minutes</h2>
+          <div class="start-body">
+            <button type="button" class="cmd cmd-large" data-copy="npx livelocale init">
+              <span class="cmd-text"
+                ><span class="cmd-prompt" aria-hidden="true">$</span> npx livelocale init</span
+              >
+              <span class="cmd-state">
+                <svg class="icon is-idle" aria-hidden="true"><use href="#i-copy" /></svg
+                ><svg class="icon is-done" aria-hidden="true"><use href="#i-check" /></svg
+                ><span class="cmd-label">Copy</span>
+              </span>
+            </button>
+            <p class="start-links">
+              <a href="https://github.com/Araby99/livelocale#readme">Read the README</a>
+              <a href="https://github.com/Araby99/livelocale">Source on GitHub</a>
+            </p>
+            <p class="start-note">Free, MIT, no account, no server.</p>
           </div>
         </div>
       </section>
-
-      <section id="works" aria-labelledby="works-title">
-        <div class="wrap">
-          <h2 id="works-title">Works where you already are</h2>
-          <ul class="frameworks">
-            <li>Next.js</li>
-            <li>Vite</li>
-            <li>React</li>
-            <li>Any static host</li>
-          </ul>
-          <ul class="hosts">
-            <li>GitHub: one-click pull requests</li>
-            <li>Other git hosts: <code>npx livelocale apply &lt;link&gt; --pr</code></li>
-          </ul>
-        </div>
-      </section>
-
-      <section id="start" aria-labelledby="start-title">
-        <div class="wrap">
-          <h2 id="start-title">Start in two minutes</h2>
-          <code class="chip">npx livelocale init --share</code>
-          <p class="start-links">
-            <a class="button" href="https://github.com/Araby99/livelocale#readme"
-              >Read the README</a
-            >
-            <a class="button button-quiet" href="https://github.com/Araby99/livelocale"
-              >Star on GitHub</a
-            >
-          </p>
-          <p class="start-note">Free, MIT, no account, no server.</p>
-        </div>
-      </section>
+      <p class="sr-only" role="status" aria-live="polite" data-announcer></p>
     </main>
 
     <footer class="site-footer">
-      <div class="wrap">
+      <div class="col footer-inner">
+        <span class="footer-name">livelocale</span>
         <ul class="footer-links">
           <li><a href="https://github.com/Araby99/livelocale">GitHub</a></li>
           <li><a href="https://www.npmjs.com/package/livelocale">npm</a></li>

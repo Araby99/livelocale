@@ -1,11 +1,8 @@
 {
-  "nav": {
-    "pricing": "Pricing",
-    "docs": "Docs"
-  },
-  "plans": {
-    "title": "Plans that grow with your team.",
-    "start": "Start free.",
-    "upgrade": "Upgrade anytime."
+  "hero": {
+    "title": "Plans that grow with you",
+    "lede": "Send polished invoices and see what every project really earned.",
+    "cta": "Start free trial",
+    "note": "14 days free. No card required."
   }
 }

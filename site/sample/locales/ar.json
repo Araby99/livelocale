@@ -1,11 +1,8 @@
 {
-  "nav": {
-    "pricing": "الأسعار",
-    "docs": "التوثيق"
-  },
-  "plans": {
-    "title": "خطط تنمو مع فريقك.",
-    "start": "ابدأ مجانًا.",
-    "upgrade": "Upgrade anytime."
+  "hero": {
+    "title": "خطط تنمو معك",
+    "lede": "أرسل فواتير أنيقة، واعرف ما ربحه كل مشروع فعلًا.",
+    "cta": "ابدأ تجربتك المجانية",
+    "note": "14 days free. No card required."
   }
 }

@@ -23,6 +23,16 @@
   --font-display: 'Martian Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;
   --font-body: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, sans-serif;
   --font-code: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Layout and motion: the page's side gutter and its one easing (exponential ease-out). */
+  --gutter: 16px;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 600px) {
+  :root {
+    --gutter: 32px;
+  }
 }
 
 /* Arabic reads small and tight beside Latin at the same size. */

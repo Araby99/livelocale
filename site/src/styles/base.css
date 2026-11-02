@@ -1,4 +1,5 @@
-/* Page base: reset, type, focus ring, header and footer frame. Section layout lives in
+/* Page base: reset, type, the browser's own surfaces (selection, caret, scrollbars, focus,
+   underlines) in the palette, the column, the header and the footer. Sections live in
    sections.css. */
 *,
 *::before,
@@ -9,6 +10,8 @@
 html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
+  scrollbar-color: var(--edge) var(--night);
+  scroll-padding-top: 24px;
 }
 
 body {
@@ -18,9 +21,34 @@ body {
   background: var(--night);
   color: var(--paper);
   font-family: var(--font-body);
-  font-size: 1rem;
+  font-size: 1.0625rem;
   font-weight: 400;
-  line-height: 1.55;
+  line-height: 1.6;
+  caret-color: var(--patch);
+}
+
+::selection {
+  background: var(--patch);
+  color: var(--night);
+}
+
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--night);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--rule);
+  border: 3px solid var(--night);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--edge);
 }
 
 h1,
@@ -30,6 +58,12 @@ h3 {
   font-family: var(--font-display);
   font-weight: 700;
   line-height: 1.1;
+  text-wrap: balance;
+}
+
+p {
+  margin: 0;
+  text-wrap: pretty;
 }
 
 code,
@@ -37,6 +71,16 @@ pre,
 kbd {
   font-family: var(--font-code);
   font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inline code reads as a location in the diff: Hunk on Surface. */
+:not(pre) > code {
+  padding: 0.08em 0.36em;
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--hunk);
+  font-size: 0.88em;
 }
 
 img,
@@ -47,6 +91,20 @@ video {
 }
 
 a {
+  color: var(--hunk);
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--hunk) 45%, transparent);
+  text-underline-offset: 0.22em;
+}
+
+a:hover {
+  text-decoration-color: var(--hunk);
+  text-decoration-thickness: 2px;
+}
+
+button {
+  font: inherit;
   color: inherit;
 }
 
@@ -54,41 +112,74 @@ a {
    line (spec §2.3). */
 :focus-visible {
   outline: 2px solid var(--patch);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
-.wrap {
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.icon {
+  width: 1.15em;
+  height: 1.15em;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* The one column: the video fills about three quarters of a desktop screen and everything else
+   aligns to its edges. */
+.col {
   width: 100%;
-  max-width: 1120px;
+  max-width: calc(1080px + 2 * var(--gutter));
   margin-inline: auto;
-  padding-inline: 20px;
+  padding-inline: var(--gutter);
 }
 
-.site-header .wrap {
+.site-header .col {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 12px 24px;
-  padding-block: 16px;
+  gap: 16px;
+  padding-block: 20px;
 }
 
 .brand {
   display: inline-flex;
   align-items: center;
   gap: 10px;
+  color: var(--paper);
   text-decoration: none;
 }
 
 .brand svg {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   flex: none;
 }
 
 .brand-name {
   font-family: var(--font-display);
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -96,8 +187,7 @@ a {
 
 .site-nav ul {
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px 20px;
+  gap: 4px 24px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -105,17 +195,56 @@ a {
 
 .site-nav a {
   display: inline-block;
-  padding-block: 6px;
+  padding-block: 8px;
+  color: var(--paper);
   font-weight: 500;
+  font-size: 0.9375rem;
   text-decoration: none;
 }
 
 .site-nav a:hover {
+  color: var(--paper);
   text-decoration: underline;
-  text-underline-offset: 4px;
+  text-decoration-color: var(--edge);
 }
 
 .site-footer {
   border-top: 1px solid var(--rule);
   color: var(--comment);
+  font-size: 0.9375rem;
+}
+
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 24px;
+  padding-block: 28px 36px;
+}
+
+.footer-name {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--paper);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer-links a {
+  display: inline-block;
+  padding-block: 4px;
+  color: var(--comment);
+}
+
+.footer-links a:hover {
+  color: var(--paper);
 }

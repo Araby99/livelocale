@@ -1,13 +1,13 @@
-/* Self-hosted from Fontsource: nothing is fetched from Google at runtime. Only the weights the
-   brand uses (spec §2.4); each file carries unicode-range subsets, so a face is fetched only for
-   the characters on the page. IBM Plex Sans Arabic 700 is the Arabic display weight. */
-@import '@fontsource/martian-mono/500.css';
-@import '@fontsource/martian-mono/700.css';
-@import '@fontsource/ibm-plex-sans/400.css';
-@import '@fontsource/ibm-plex-sans/500.css';
-@import '@fontsource/ibm-plex-sans/600.css';
-@import '@fontsource/ibm-plex-mono/500.css';
-@import '@fontsource/ibm-plex-sans-arabic/400.css';
-@import '@fontsource/ibm-plex-sans-arabic/500.css';
-@import '@fontsource/ibm-plex-sans-arabic/600.css';
-@import '@fontsource/ibm-plex-sans-arabic/700.css';
+/* Self-hosted from Fontsource: nothing is fetched from Google at runtime. Only the weights and
+   subsets the page sets (spec §2.4): Latin for Martian Mono and IBM Plex, Arabic for IBM Plex Sans
+   Arabic. Each file carries its unicode-range, so a face is fetched only for characters on the
+   page, and the render-blocking stylesheet stays small. */
+@import '@fontsource/martian-mono/latin-500.css';
+@import '@fontsource/martian-mono/latin-700.css';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-400.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-500.css';
+@import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';

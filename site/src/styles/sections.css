@@ -1,712 +1,816 @@
-/* Section layout and the static end state of every scene. Without JavaScript the page shows the
-   fixed hero and the collapsed pile; the islands' tasks add the `html.js` start states. Only
-   brand tokens are used; depth comes from tone (Night, Surface, Raised), never a blurred shadow.
-   Single column below 720 px. */
+/* The page, top to bottom: the hero (headline, the filmed demo, the two-door switch), the two
+   stories, where it works, and the close. One authored motion moment: the door switch (the patch
+   slides to the chosen door and that story's steps are patched in). */
 
-main > section {
-  padding-block: 56px;
-  border-top: 1px solid var(--rule);
+/* ---------- Hero ---------- */
+
+.hero {
+  padding-block: 32px 0;
 }
 
-main > section:first-child {
-  border-top: 0;
+.hero-head {
+  display: grid;
+  gap: 20px;
 }
 
-main h2 {
-  font-size: clamp(1.75rem, 1.2rem + 2.4vw, 2.75rem);
-  letter-spacing: -0.02em;
+.hero h1 {
+  font-size: clamp(2.125rem, 1.1rem + 3.6vw, 4.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.035em;
+  max-width: 17ch;
 }
 
-main h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-main p {
-  margin: 0;
-}
-
-.section-lede {
-  max-width: 60ch;
-  margin-top: 12px;
-  color: var(--comment);
-  font-size: 1.125rem;
-}
-
-/* Inline code and command chips wrap instead of scrolling, so a 360 px phone never scrolls
-   sideways. */
-main code {
-  overflow-wrap: anywhere;
-}
-
-/* Inline links are Hunk, the colour of locations; the nav and the buttons keep their own. */
-main p a {
-  color: var(--hunk);
-}
-
-.chip {
+/* The patch from the logo, behind the fixed word: the one tilted patch in this view. */
+.patch {
   display: inline-block;
-  max-width: 100%;
-  padding: 10px 14px;
-  border-radius: 8px;
-  background: var(--surface);
+  padding: 0.02em 0.16em 0.06em;
+  margin-inline-end: 0.04em;
+  border-radius: 0.12em;
+  background: var(--patch);
+  color: var(--night);
+  transform: rotate(-3deg);
+  box-shadow: 3px 4px 0 var(--patch-shadow);
+}
+
+.hero-aside {
+  display: grid;
+  gap: 24px;
+}
+
+.hero-lede {
+  max-width: 44ch;
+  font-size: 1.1875rem;
+  line-height: 1.5;
   color: var(--paper);
-  font-size: 0.9375rem;
-  overflow-wrap: anywhere;
 }
 
-.button {
-  display: inline-block;
-  padding: 10px 18px;
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@media (min-width: 900px) {
+  .hero {
+    padding-top: 56px;
+  }
+
+  .hero-head {
+    gap: 28px;
+  }
+
+  .hero-aside {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 32px;
+  }
+}
+
+/* The primary action: the install command on a Patch fill, copied with one click. */
+.cmd {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 48px;
+  padding: 0 8px 0 18px;
+  border: 0;
   border-radius: 8px;
   background: var(--patch);
   color: var(--night);
-  font-weight: 600;
-  text-decoration: none;
+  font-family: var(--font-code);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 160ms ease;
 }
 
-.button:hover {
+.cmd:hover {
   background: var(--patch-hover);
 }
 
-/* The quiet button: no fill, an Edge outline and Paper text. */
-.button-quiet {
+.cmd-prompt {
+  color: var(--patch-shadow);
+}
+
+.cmd-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--night) 10%, transparent);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.cmd .is-done,
+.cmd[data-state='copied'] .is-idle {
+  display: none;
+}
+
+.cmd[data-state='copied'] .is-done {
+  display: block;
+}
+
+html:not(.js) .cmd-state {
+  display: none;
+}
+
+html:not(.js) .cmd {
+  padding-right: 18px;
+  cursor: text;
+  user-select: all;
+}
+
+.button-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 18px;
   border: 1px solid var(--edge);
-  background: transparent;
+  border-radius: 8px;
+  color: var(--paper);
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 160ms ease;
+}
+
+.button-outline:hover {
+  background: var(--surface);
   color: var(--paper);
 }
 
-.button-quiet:hover {
-  background: var(--raised);
+/* ---------- The filmed demo ---------- */
+
+.demo {
+  margin-block: 40px 0;
 }
 
-/* The card used by the pile and the pull-request card: a Surface tone, no shadow. */
-.pile-card,
-.pile-pr,
-.pr-card {
+.window {
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.window-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.window-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.window-dots i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rule);
+}
+
+.window-address {
+  flex: 1 1 200px;
+  max-width: 440px;
+  margin-inline: auto;
+  padding: 4px 12px;
+  border-radius: 6px;
+  background: var(--night);
+  color: var(--comment);
+  font-family: var(--font-code);
+  font-size: 0.8125rem;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.addr-path {
+  color: var(--hunk);
+}
+
+.window-label {
+  color: var(--comment);
+  font-size: 0.8125rem;
+  white-space: nowrap;
+}
+
+.demo-video {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 8 / 5;
+  background: var(--night);
+  object-fit: cover;
+}
+
+@media (max-width: 639px) {
+  .window-dots {
+    display: none;
+  }
+
+  .window-address {
+    flex-basis: 100%;
+    max-width: none;
+  }
+
+  .window-label {
+    flex-basis: 100%;
+    text-align: center;
+    font-size: 0.75rem;
+  }
+}
+
+.demo-controls {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+html:not(.js) .demo-controls {
+  display: none;
+}
+
+.chapters {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 8px;
+  margin: 0;
+  padding: 3px;
+  list-style: none;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+
+.chapters li {
+  flex: none;
+  scroll-snap-align: start;
+}
+
+.chapter {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  height: 100%;
+  padding: 10px 14px 13px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--comment);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 200ms ease,
+    background-color 200ms ease,
+    border-color 200ms ease;
+}
+
+.chapter:hover {
+  color: var(--paper);
+  border-color: var(--edge);
+}
+
+.chapter-n {
+  font-family: var(--font-display);
+  font-size: 0.75rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+.chapter[aria-current='step'] {
+  border-color: var(--edge);
+  background: var(--surface);
+  color: var(--paper);
+}
+
+.chapter-bar {
+  position: absolute;
+  inset: auto 14px 5px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--rule);
+  opacity: 0;
+}
+
+.chapter-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--comment);
+  transform: scaleX(var(--progress, 0));
+  transform-origin: left center;
+}
+
+.chapter[aria-current='step'] .chapter-bar {
+  opacity: 1;
+}
+
+.playback {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  margin: 3px;
+  padding: 0 16px;
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.playback:hover {
+  background: var(--surface);
+}
+
+.playback .icon-play,
+.playback[data-action='pause'] .icon-pause {
+  display: block;
+}
+
+.playback .icon-pause,
+.playback[data-action='pause'] .icon-play {
+  display: none;
+}
+
+.playback .icon-play {
+  fill: currentColor;
+}
+
+/* On a phone the three chips share one row and their titles wrap; Play/Pause sits under them. */
+@media (max-width: 639px) {
+  .demo-controls {
+    flex-wrap: wrap;
+  }
+
+  .chapters {
+    display: grid;
+    flex-basis: 100%;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+  }
+
+  .chapter {
+    width: 100%;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px 10px 13px;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+    text-align: left;
+    white-space: normal;
+  }
+
+  .chapter-bar {
+    inset-inline: 10px;
+  }
+
+  .playback {
+    min-height: 44px;
+  }
+}
+
+.transcript {
+  margin-top: 12px;
+  color: var(--comment);
+  font-size: 0.9375rem;
+}
+
+.transcript summary {
+  display: inline-block;
+  padding: 4px 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 0.22em;
+}
+
+.transcript summary:hover {
+  color: var(--paper);
+}
+
+.transcript ol {
+  max-width: 70ch;
+  margin: 12px 0 0;
+  padding-left: 1.25em;
+}
+
+.transcript li + li {
+  margin-top: 6px;
+}
+
+/* ---------- The two doors ---------- */
+
+.doors-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px 20px;
+  margin-top: 56px;
+}
+
+html:not(.js) .doors-row {
+  display: none;
+}
+
+.doors-label {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--comment);
+}
+
+.doors {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.doors-patch {
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  width: calc(50% - 4px);
+  border-radius: 8px;
+  background: var(--patch);
+  transition: transform 520ms var(--ease-out);
+}
+
+.doors:has(input[value='fixer']:checked) .doors-patch {
+  transform: translateX(100%);
+}
+
+.door {
+  position: relative;
+  padding: 12px 22px;
+  border-radius: 8px;
+  color: var(--paper);
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  text-align: center;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 260ms var(--ease-out);
+}
+
+.door:has(input:checked) {
+  color: var(--night);
+}
+
+.door:has(input:focus-visible) {
+  outline: 2px solid var(--patch);
+  outline-offset: 4px;
+}
+
+.door input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+@media (max-width: 420px) {
+  .door {
+    padding-inline: 12px;
+    font-size: 0.8125rem;
+  }
+}
+
+/* ---------- The stories ---------- */
+
+.js[data-door='developer'] #fixer,
+.js[data-door='fixer'] #developer {
+  display: none;
+}
+
+.story {
+  padding-block: 40px 16px;
+}
+
+html:not(.js) .story + .story {
+  border-top: 1px solid var(--rule);
+}
+
+.story-title {
+  margin-bottom: 8px;
+  font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+/* With JavaScript the switch names the story, so its heading is for screen readers only. */
+.js .story-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.step {
+  display: grid;
+  gap: 20px;
+  padding-block: 36px;
+}
+
+.step + .step {
+  border-top: 1px solid var(--rule);
+}
+
+.step-text {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  align-content: start;
+  row-gap: 12px;
+}
+
+.step-text > :not(.step-n) {
+  grid-column: 2;
+}
+
+.step-n {
+  grid-row: 1;
+  padding-top: 0.2em;
+  color: var(--comment);
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.step h3 {
+  grid-row: 1;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.step p {
+  max-width: 46ch;
+}
+
+.step .step-note {
+  color: var(--comment);
+  font-size: 0.9375rem;
+}
+
+.ar-sample {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.step-art {
+  min-width: 0;
+  margin: 0;
+}
+
+.shot img {
+  width: 100%;
+  height: auto;
   border: 1px solid var(--rule);
   border-radius: 10px;
   background: var(--surface);
 }
 
-/* Scene 1: the screenshot pile. Static state: the cards stacked behind the pull request. */
-#pile {
-  padding-block: 48px 40px;
+.shot-link {
+  display: block;
+  border-radius: 10px;
 }
 
-.pile-title {
-  font-family: var(--font-display);
-  font-size: clamp(2rem, 1.3rem + 3vw, 3.25rem);
-  font-weight: 700;
-  letter-spacing: -0.03em;
-  line-height: 1.05;
+.shot-link:hover img {
+  border-color: var(--edge);
+}
+
+.step-art figcaption {
+  margin-top: 10px;
+  color: var(--comment);
+  font-size: 0.875rem;
+}
+
+@media (min-width: 900px) {
+  .step {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 56px;
+    padding-block: 56px;
+  }
+}
+
+/* The patch-in: on a switch, each step's artefact is wiped in from the left and its words follow,
+   one step after another. Content stays in the layout the whole time. */
+.story.is-entering .step-text {
+  animation: step-words 560ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms);
+}
+
+.story.is-entering .step-art {
+  animation: step-art 720ms var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 80ms + 60ms);
+}
+
+.step:nth-child(2) {
+  --i: 1;
+}
+
+.step:nth-child(3) {
+  --i: 2;
+}
+
+@keyframes step-words {
+  from {
+    opacity: 0.25;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes step-art {
+  from {
+    clip-path: inset(0 100% 0 0 round 10px);
+  }
+  to {
+    clip-path: inset(0 0 0 0 round 10px);
+  }
+}
+
+/* ---------- Code ---------- */
+
+.code {
+  margin: 0;
+  padding: 20px 22px;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--paper);
+  font-size: 0.875rem;
+  line-height: 1.75;
+  tab-size: 2;
+}
+
+@media (max-width: 599px) {
+  .code {
+    padding: 16px;
+    font-size: 0.8125rem;
+    white-space: pre-wrap;
+  }
+}
+
+.c-prompt,
+.c-comment,
+.c-loc {
+  color: var(--comment);
+}
+
+.c-fail {
+  color: var(--exit-1);
+}
+
+.c-pass {
+  color: var(--exit-0);
+}
+
+.c-warn {
+  color: var(--paper);
+}
+
+.c-warn-glyph {
+  display: inline-block;
+  min-width: 1.4em;
+  border-radius: 3px;
+  background: var(--patch);
+  color: var(--night);
+  font-weight: 600;
+  line-height: 1.35;
   text-align: center;
 }
 
-.pile-stage {
-  display: grid;
-  place-items: center;
-  margin-top: 32px;
-  padding-block: 24px;
-}
-
-.pile-stage > * {
-  grid-area: 1 / 1;
-}
-
-.pile-card {
-  display: grid;
-  gap: 4px;
-  width: min(100%, 220px);
-  padding: 10px 12px;
-  color: var(--comment);
-  font-size: 0.8125rem;
-}
-
-.pile-card:nth-child(1) {
-  transform: translate(-18px, -14px) rotate(-8deg);
-}
-
-.pile-card:nth-child(2) {
-  transform: translate(16px, -10px) rotate(5deg);
-}
-
-.pile-card:nth-child(3) {
-  transform: translate(-10px, 12px) rotate(3deg);
-}
-
-.pile-card:nth-child(4) {
-  transform: translate(14px, 14px) rotate(-6deg);
-}
-
-.pile-file {
-  font-family: var(--font-code);
-  font-weight: 500;
-}
-
-.pile-note {
-  color: var(--paper);
-}
-
-/* The red circle on a screenshot: red is only a dashed outline or a word, here Exit 1 (5.68:1 on
-   Surface) around Paper text. */
-.ring {
-  display: inline-block;
-  padding: 1px 8px;
-  border: 2px dashed var(--exit-1);
-  border-radius: 50%;
-  color: var(--paper);
-}
-
-.pile-pr {
-  position: relative;
-  z-index: 1;
-  width: min(100%, 300px);
-  padding: 16px 18px;
-  background: var(--raised);
-}
-
-.pile-pr-title {
-  font-weight: 600;
-}
-
-.pile-pr-meta {
-  margin-top: 4px;
-  color: var(--comment);
-  font-size: 0.875rem;
-}
-
-/* Scene 2: the page that is broken on purpose, shown fixed. */
-.hero-bar {
-  display: flex;
-  justify-content: flex-end;
-  color: var(--comment);
-  font-family: var(--font-display);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* Done is Exit 0, always with a check and a word. */
-.bar-done {
-  color: var(--exit-0);
-}
-
-.bar-done::before {
-  content: '✓ ' / '';
-}
-
-.bar-start,
-.m-broken {
-  display: none;
-}
-
-.hero-grid {
-  display: grid;
-  gap: 32px;
-  margin-top: 24px;
-}
-
-/* The headline as a diff pair: the old line struck through in Ghost, set at 24 px or more so the
-   3:1 large-text rule applies (Ghost is 3.66:1 on Night), then the h1 as the added line. The
-   markers are generated content with empty alt text, so they never join the text. */
-.diff-old {
-  color: var(--ghost);
-  font-family: var(--font-display);
-  font-size: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.3;
-}
-
-.diff-old::before {
-  content: '−' / '';
-  margin-inline-end: 0.5em;
-}
-
-.diff-old del {
-  text-decoration: line-through;
-}
-
-#hero h1 {
-  /* Room above each line for the struck-through ghost of the old word. */
-  padding-top: 0.45em;
-  font-size: clamp(2.25rem, 1.2rem + 4.6vw, 4.5rem);
-  letter-spacing: -0.035em;
-  /* Tall enough that a ghost word clears the tilted "Stop" patch and its shadow on the line
-     above when the h1 wraps: the patch (1.15em), the tilt and shadow, and the ghost, whose
-     13 px floor needs a fixed share on small screens. */
-  line-height: calc(1.5em + 12px);
-}
-
-/* Floated, so the markup's whitespace after it stays at the start of the line and never joins
-   the h1's text. */
-#hero h1::before {
-  content: '+' / '';
-  float: inline-start;
-  margin-inline-end: 0.3em;
-  color: var(--patch);
-}
-
-/* The one tilted patch in the view (spec §2.3): Night on Patch (10.78:1) with a hard shadow,
-   no blur. */
-.lead-patch {
-  display: inline-block;
-  padding: 0 0.2em;
-  border-radius: 6px;
-  background: var(--patch);
-  box-shadow: 3px 4px 0 var(--patch-shadow);
-  color: var(--night);
-  line-height: 1.15;
-  transform: rotate(-3deg);
-}
-
-.hero-hint {
-  margin-top: 8px;
-  color: var(--comment);
-  font-size: 0.9375rem;
-}
-
-.hero-lede {
-  max-width: 40ch;
-  margin-top: 16px;
-  font-size: 1.25rem;
-  line-height: 2.2;
-}
-
-/* A fixed word: a flat amber fill, the edited string as a filled shape. Night text on Patch
-   (10.78:1), no tilt and no shadow, since "Stop" is the one tilted patch. */
-.patch {
-  position: relative;
-  display: inline-block;
-  padding: 0 0.2em;
-  border-radius: 6px;
-  background: var(--patch);
-  color: var(--night);
-  line-height: 1.15;
-  transform: none;
-}
-
-/* The old word, struck through above the patch. Generated content, so it never joins the
-   heading's text. */
-.patch::before {
-  content: attr(data-ghost);
-  position: absolute;
-  bottom: 100%;
-  left: 0.1em;
-  color: var(--ghost);
-  font-family: var(--font-body);
-  font-size: max(0.4em, 0.8125rem);
-  font-weight: 500;
-  letter-spacing: 0;
-  line-height: 1.4;
-  text-decoration: line-through;
-  white-space: nowrap;
-}
-
-/* In the h1 the ghost sits tight on its patch: a smaller face and no extra leading, so it fits
-   in the gap between lines without reaching the patch above. */
-#hero h1 .patch::before {
-  font-size: max(0.3em, 0.8125rem);
-  line-height: 1;
-}
-
-.hero-lede .patch::before {
-  font-size: 0.7em;
-}
-
-.pr-card {
-  align-self: start;
-  max-width: 320px;
-  padding: 16px 18px;
-}
-
-.pr-card-title {
-  font-weight: 600;
-}
-
-.pr-pairs {
-  display: grid;
-  gap: 8px;
-  margin: 12px 0 0;
-  padding: 0;
-  list-style: none;
-  font-family: var(--font-code);
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-.pr-pairs li {
-  display: grid;
-  overflow-wrap: anywhere;
-}
-
-/* The card in diff grammar: the added line on a Wash row in Patch (8.46:1), the removed line
-   struck in Comment (small struck text someone must read is never Ghost). */
-.pr-pairs ins {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--wash);
-  color: var(--patch);
-  text-decoration: none;
-}
-
-.pr-pairs del {
-  padding-inline: 6px;
-  color: var(--comment);
-  text-decoration: line-through;
-}
-
-.pr-progress {
-  margin-top: 12px;
-  color: var(--comment);
-  font-size: 0.875rem;
-}
-
-.pr-card.is-done .pr-progress {
-  color: var(--exit-0);
-}
-
-.pr-card.is-done .pr-progress::before {
-  content: '✓ ' / '';
-}
-
-.completion {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-  margin-top: 40px;
-  padding-top: 24px;
-  border-top: 1px dashed var(--rule);
-}
-
-.completion-title {
-  flex-basis: 100%;
-}
-
-/* The card's Send button (the live island only). Its size is fixed so the start state below can
-   hold its place before the island mounts. */
-.pr-send {
-  display: block;
-  height: 2.75rem;
-  margin-top: 12px;
-  padding-block: 0;
-}
-
-/* The hero's start state while its island loads: the shell's own markup (direct children of the
-   container; the island renders inside .hero-live) shows the broken page, "0 of 3 fixed" and room
-   for Send, exactly as the island first renders it. Only JavaScript off shows the end state. */
-html.js [data-island='hero'] > .hero-bar .bar-start,
-html.js [data-island='hero'] > .hero-grid .m-broken {
-  display: inline;
-}
-
-html.js [data-island='hero'] > .hero-bar .bar-done,
-html.js [data-island='hero'] > .hero-grid .m-fixed,
-html.js [data-island='hero'] > .hero-grid .pr-pairs,
-html.js [data-island='hero'] > .completion {
-  display: none;
-}
-
-html.js [data-island='hero'] > .hero-grid .pr-progress {
-  color: var(--comment);
-  font-size: 0;
-}
-
-html.js [data-island='hero'] > .hero-grid .pr-progress::before {
-  content: none;
-}
-
-html.js [data-island='hero'] > .hero-grid .pr-progress::after {
-  content: '0 of 3 fixed';
-  font-size: 0.875rem;
-}
-
-html.js [data-island='hero'] > .hero-grid .pr-card::after {
-  content: '';
-  display: block;
-  height: 2.75rem;
-  margin-top: 12px;
-}
-
-/* Scene 3: three numbered steps, each with an illustration until the clips land. */
-.steps {
-  display: grid;
-  gap: 32px;
-  margin: 32px 0 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-}
-
-.steps li {
-  counter-increment: step;
-}
-
-.steps figure {
-  margin: 0;
-}
-
-.steps figcaption {
-  margin-top: 16px;
-}
-
-.steps h3::before {
-  content: counter(step) '. ';
-}
-
-.steps figcaption p {
-  margin-top: 6px;
-  color: var(--comment);
-}
-
-.clip-placeholder {
-  display: grid;
-  align-content: center;
-  gap: 12px;
-  aspect-ratio: 16 / 10;
-  padding: 24px;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  background: var(--surface);
-}
-
-.clip-line {
-  height: 10px;
-  width: 70%;
-  border-radius: 5px;
-  background: var(--rule);
-}
-
-.clip-line:nth-child(3) {
-  width: 45%;
-}
-
-/* Alt+hover: where this string lives, in Hunk. */
-.clip-click .clip-target {
-  outline: 2px solid var(--hunk);
-  outline-offset: 3px;
-}
-
-/* The edited string and the Send button: flat Patch fills, no tilt and no shadow. */
-.clip-type .clip-target,
-.clip-send .clip-target {
-  height: 18px;
-  width: 55%;
-  background: var(--patch);
-}
-
-.clip-send .clip-line:nth-child(3) {
-  height: 24px;
-  width: 35%;
-  justify-self: end;
-  border-radius: 6px;
-  background: var(--patch);
-}
-
-/* Scene 4: the static English | Arabic split at 50 %. */
-.slider {
-  margin-top: 32px;
-}
-
-.slider-track {
-  position: relative;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--rule);
-  border-radius: 12px;
-  background: var(--surface);
-}
-
-.slider-half {
-  min-width: 0;
-  padding: 20px 16px 24px;
-}
-
-.slider-label {
-  color: var(--comment);
-  font-family: var(--font-display);
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-/* The locale code in Hunk, the colour of locations, with a decorative "carbon copy" offset. */
-.locale-chip {
-  display: inline-block;
-  margin-inline-start: 6px;
-  padding: 1px 6px;
-  border-radius: 4px;
-  background: var(--surface);
-  box-shadow: 2px 2px 0 var(--rule);
+.c-locale,
+.c-key,
+.c-file {
   color: var(--hunk);
-  font-family: var(--font-code);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.4;
 }
 
-.sample-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 14px;
-  margin-top: 10px;
-  font-size: 0.875rem;
-  font-weight: 500;
-}
-
-/* Somebody else's website, so its title is in the body face, not the display face. */
-.sample-title {
-  margin-top: 12px;
-  font-family: var(--font-body);
-  font-size: clamp(1.125rem, 0.9rem + 1.2vw, 1.625rem);
-  font-weight: 600;
-  line-height: 1.15;
-}
-
-.sample-sub {
-  margin-top: 10px;
-  color: var(--comment);
-  font-size: 0.9375rem;
-}
-
-.sample-button {
-  display: inline-block;
-  max-width: 100%;
-  margin-top: 14px;
-  padding: 6px 10px;
-  border: 1px solid var(--edge);
-  border-radius: 6px;
-  background: var(--raised);
-  color: var(--paper);
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
-/* Text nobody translated, in the slider and the hero: red is only an outline or a word, so the
-   dashed Exit 1 outline (5.68:1 on Surface) carries the meaning alone, on no fill and no tint. */
-.is-untranslated,
-.m-untranslated {
-  border-radius: 4px;
+/* Untranslated text: the dashed Exit 1 outline, never a red fill (spec §2.4a). */
+.c-hardcoded {
+  padding: 0 3px;
+  border-radius: 3px;
   outline: 1.5px dashed var(--exit-1);
-  outline-offset: 2px;
-  background: none;
+  outline-offset: 1px;
 }
 
-.is-untranslated {
-  color: var(--paper);
-}
+/* ---------- Where it works ---------- */
 
-.slider-handle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
+.works {
   display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  border: 2px solid var(--edge);
-  border-radius: 50%;
-  background: var(--raised);
-  color: var(--paper);
-  font-size: 0.9375rem;
-  transform: translate(-50%, -50%);
+  gap: 16px;
+  padding-block: 72px 88px;
+  border-top: 1px solid var(--rule);
 }
 
-.check-output {
-  margin-top: 16px;
-  padding: 14px 16px;
-  border-radius: 8px;
+.works h2,
+.start h2 {
+  font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.works-line {
+  max-width: 40ch;
+  font-size: clamp(1.1875rem, 1rem + 0.6vw, 1.5rem);
+  line-height: 1.5;
+}
+
+@media (min-width: 900px) {
+  .works {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 56px;
+    padding-block: 104px 112px;
+  }
+}
+
+/* ---------- Close ---------- */
+
+.start {
   background: var(--surface);
-  color: var(--paper);
-  font-family: var(--font-code);
-  font-size: 0.8125rem;
-  font-weight: 500;
+  border-top: 1px solid var(--rule);
 }
 
-.check-output pre {
-  margin: 10px 0 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-/* Scene 5 and 6: where it works, and how to start. */
-.frameworks,
-.hosts {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.frameworks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 24px;
-}
-
-.frameworks li {
-  padding: 8px 14px;
-  border: 1px solid var(--rule);
-  border-radius: 999px;
-  font-family: var(--font-display);
-  font-weight: 500;
-}
-
-.hosts {
+.start-inner {
   display: grid;
-  gap: 8px;
-  margin-top: 20px;
-  color: var(--comment);
+  gap: 24px;
+  padding-block: 72px 80px;
 }
 
-.hosts code {
-  color: var(--paper);
+.start h2 {
+  font-size: clamp(2rem, 1.3rem + 2.2vw, 3.25rem);
 }
 
-#start .chip {
-  margin-top: 24px;
+.start-body {
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+}
+
+.cmd-large {
+  min-height: 56px;
+  font-size: 1.0625rem;
 }
 
 .start-links {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 20px;
+  gap: 8px 28px;
+}
+
+.start-links a {
+  display: inline-block;
+  padding-block: 4px;
+  font-weight: 500;
 }
 
 .start-note {
-  margin-top: 16px;
   color: var(--comment);
 }
 
-.footer-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  margin: 0;
-  padding: 24px 0;
-  list-style: none;
+@media (min-width: 900px) {
+  .start-inner {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 56px;
+    padding-block: 112px 120px;
+  }
 }
 
-.footer-links a {
-  color: var(--hunk);
-}
-
-@media (min-width: 720px) {
-  main > section {
-    padding-block: 88px;
-  }
-
-  .hero-grid {
-    grid-template-columns: minmax(0, 1fr) 300px;
-    align-items: end;
-  }
-
-  .steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .slider-half {
-    padding: 28px 28px 32px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
   }
 }

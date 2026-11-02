@@ -1,19 +1,17 @@
-// The page shell's entry: brand styles first, then the section layout, then the island loaders.
-// The pile opens the page, so it starts at once; every other island's code is fetched only when
-// its container nears the viewport.
+// The page's entry: brand styles, then the three small behaviours. Nothing else loads; the video
+// files are fetched only once the page has loaded and the video is on screen.
 import './styles/tokens.css';
 import './styles/fonts.css';
 import './styles/base.css';
 import './styles/sections.css';
-import './pile/pile.css';
-import { loadWhenNear } from './lib/islands';
-import { startPile } from './pile/pile';
+import webm from '../media/hero/hero.webm?url';
+import mp4 from '../media/hero/hero.mp4?url';
+import chapters from '../media/hero/chapters.json';
+import { startDemoVideo } from './demo-video';
+import { startDoors } from './doors';
+import { startCopyButtons } from './copy';
 
-const slider = document.querySelector<HTMLElement>('[data-island="slider"]');
-if (slider) loadWhenNear(slider, () => import('./slider/mount').then((m) => m.mountSlider(slider)));
-
-const hero = document.querySelector<HTMLElement>('[data-island="hero"]');
-if (hero) loadWhenNear(hero, () => import('./hero/mount').then((m) => m.mountHero(hero)));
-
-const pile = document.getElementById('pile');
-if (pile) startPile(pile, window);
+const demo = document.querySelector<HTMLElement>('[data-demo]');
+if (demo) startDemoVideo(demo, { webm, mp4 }, chapters.duration);
+startDoors();
+startCopyButtons();
