@@ -108,14 +108,23 @@ it('uses only defined tokens in every site stylesheet', () => {
   const declared = (text: string) =>
     new Set([...text.matchAll(/(--[\w-]+)\s*:/g)].map((m) => m[1]));
   const tokens = declared(css);
+  // Task 16's pile.css computes its card motion from its own locals. These are the only custom
+  // properties a stylesheet other than tokens.css may declare, and only that file may use them.
+  const fileLocals: Record<string, string[]> = {
+    'site/src/pile/pile.css': ['--u', '--p', '--dx', '--dy', '--r'],
+  };
   expect(files).toContain('site/src/styles/tokens.css');
   for (const file of files) {
     const text = fs.readFileSync(file, 'utf8');
-    // A file may also use the custom properties it declares itself (the pile's --u, --p, --dx).
-    const local = declared(text);
+    const allowed = new Set(fileLocals[file] ?? []);
+    if (!file.endsWith('/tokens.css'))
+      expect(
+        [...declared(text)].filter((name) => !allowed.has(name)),
+        file
+      ).toEqual([]);
     const undefinedVars = [...text.matchAll(/var\((--[\w-]+)/g)]
       .map((m) => m[1])
-      .filter((name) => !tokens.has(name) && !local.has(name) && name !== '--pile-progress');
+      .filter((name) => !tokens.has(name) && !allowed.has(name) && name !== '--pile-progress');
     expect(undefinedVars, file).toEqual([]);
     if (!file.endsWith('/tokens.css'))
       expect(text, file).not.toMatch(/:\s*[^;{}]*#[0-9a-fA-F]{3,8}\b/);
