@@ -232,7 +232,10 @@ main p a {
   padding-top: 0.45em;
   font-size: clamp(2.25rem, 1.2rem + 4.6vw, 4.5rem);
   letter-spacing: -0.035em;
-  line-height: 1.35;
+  /* Tall enough that a ghost word clears the tilted "Stop" patch and its shadow on the line
+     above when the h1 wraps: the patch (1.15em), the tilt and shadow, and the ghost, whose
+     13 px floor needs a fixed share on small screens. */
+  line-height: calc(1.5em + 12px);
 }
 
 /* Floated, so the markup's whitespace after it stays at the start of the line and never joins
@@ -298,6 +301,13 @@ main p a {
   line-height: 1.4;
   text-decoration: line-through;
   white-space: nowrap;
+}
+
+/* In the h1 the ghost sits tight on its patch: a smaller face and no extra leading, so it fits
+   in the gap between lines without reaching the patch above. */
+#hero h1 .patch::before {
+  font-size: max(0.3em, 0.8125rem);
+  line-height: 1;
 }
 
 .hero-lede .patch::before {
