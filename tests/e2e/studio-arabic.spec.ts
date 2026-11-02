@@ -122,7 +122,7 @@ test.describe('share Studio, Arabic browser', () => {
     await expect(page.getByTestId('studio-root')).toHaveAttribute('dir', 'rtl');
     await expect(page.locator('#studio-tips-title')).toHaveText('مرحبًا بك في LiveLocale');
     await page.evaluate(() => document.fonts.ready.then(() => undefined));
-    expect(await arabicFaces(page)).toEqual(['IBM Plex Sans Arabic', 'Readex Pro']);
+    expect(await arabicFaces(page)).toEqual(['IBM Plex Sans Arabic']);
     await expectNoEnglish(page, 'tips');
 
     await page.locator('#studio-tips-start').click();

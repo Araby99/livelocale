@@ -80,7 +80,11 @@ export const Header = ({
         <BrandMark className="h-8 w-8 shrink-0" />
         <div>
           {/* The wordmark is the brand: the same in every Studio language. */}
-          <h1 lang="en" dir="ltr" className="text-base font-extrabold font-heading text-fg">
+          <h1
+            lang="en"
+            dir="ltr"
+            className="text-base font-heading font-medium tracking-[-0.02em] text-fg"
+          >
             livelocale
           </h1>
           <p className="hidden xl:block text-[10px] text-fg-muted font-medium tracking-wider uppercase mt-0.5">

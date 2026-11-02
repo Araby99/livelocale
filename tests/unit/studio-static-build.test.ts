@@ -14,14 +14,16 @@ describe('Studio static build', () => {
 
   it('imports the brand font files', () => {
     const main = fs.readFileSync('src/studio/main.tsx', 'utf-8');
-    for (const w of [300, 400, 500, 600, 700])
-      expect(main).toContain(`import '@fontsource/inter/latin-${w}.css';`);
-    for (const w of [700, 800])
-      expect(main).toContain(`import '@fontsource/bricolage-grotesque/latin-${w}.css';`);
-    expect(main).toContain(`import '@fontsource/jetbrains-mono/latin-500.css';`);
-    for (const w of [600, 700])
-      expect(main).toContain(`import '@fontsource/readex-pro/arabic-${w}.css';`);
+    for (const w of [500, 700])
+      expect(main).toContain(`import '@fontsource/martian-mono/latin-${w}.css';`);
+    for (const w of [400, 500, 600]) {
+      expect(main).toContain(`import '@fontsource/ibm-plex-sans/latin-${w}.css';`);
+      expect(main).toContain(`import '@fontsource/ibm-plex-mono/latin-${w}.css';`);
+    }
     for (const w of [400, 500, 600, 700])
       expect(main).toContain(`import '@fontsource/ibm-plex-sans-arabic/arabic-${w}.css';`);
+    expect(main).not.toMatch(
+      /@fontsource\/(?:inter|bricolage-grotesque|jetbrains-mono|readex-pro)\//
+    );
   });
 });

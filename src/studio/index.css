@@ -16,9 +16,10 @@
   --radius-xl: calc(var(--radius) + 4px);
 
   /* Brand type: each Latin face first, then its Arabic face */
-  --font-heading: 'Bricolage Grotesque', 'Readex Pro', system-ui, sans-serif;
-  --font-sans: 'Inter', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: 'Martian Mono', 'IBM Plex Sans Arabic', ui-monospace, monospace;
+  --font-sans: 'IBM Plex Sans', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+  --font-mono:
+    'IBM Plex Mono', 'IBM Plex Sans Arabic', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @theme inline {

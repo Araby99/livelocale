@@ -15,9 +15,9 @@ describe('Studio brand type', () => {
   afterEach(cleanup);
 
   it('stacks each Latin face before its Arabic face', () => {
-    expect(fontVar('heading')).toMatch(/^'Bricolage Grotesque', 'Readex Pro',/);
-    expect(fontVar('sans')).toMatch(/^'Inter', 'IBM Plex Sans Arabic',/);
-    expect(fontVar('mono')).toMatch(/^'JetBrains Mono',/);
+    expect(fontVar('heading')).toMatch(/^'Martian Mono', 'IBM Plex Sans Arabic',/);
+    expect(fontVar('sans')).toMatch(/^'IBM Plex Sans', 'IBM Plex Sans Arabic',/);
+    expect(fontVar('mono')).toMatch(/^'IBM Plex Mono', 'IBM Plex Sans Arabic',/);
     expect(css).toMatch(/body\s*\{[^}]*font-family:\s*var\(--font-sans\);/);
   });
 
@@ -28,16 +28,18 @@ describe('Studio brand type', () => {
 
   it('bundles the brand faces from Fontsource and nothing from Google', () => {
     for (const f of [
-      '@fontsource/bricolage-grotesque/latin-800.css',
-      '@fontsource/jetbrains-mono/latin-500.css',
-      '@fontsource/readex-pro/arabic-700.css',
+      '@fontsource/martian-mono/latin-500.css',
+      '@fontsource/martian-mono/latin-700.css',
+      '@fontsource/ibm-plex-sans/latin-400.css',
+      '@fontsource/ibm-plex-mono/latin-400.css',
       '@fontsource/ibm-plex-sans-arabic/arabic-400.css',
-      '@fontsource/inter/latin-400.css',
     ])
       expect(main).toContain(`import '${f}';`);
-    expect(main).not.toContain('@fontsource/outfit');
-    expect(pkg.devDependencies['@fontsource/outfit']).toBeUndefined();
-    for (const p of ['bricolage-grotesque', 'jetbrains-mono', 'readex-pro', 'ibm-plex-sans-arabic'])
+    for (const p of ['inter', 'bricolage-grotesque', 'jetbrains-mono', 'readex-pro', 'outfit']) {
+      expect(main).not.toContain(`@fontsource/${p}`);
+      expect(pkg.devDependencies[`@fontsource/${p}`], p).toBeUndefined();
+    }
+    for (const p of ['martian-mono', 'ibm-plex-sans', 'ibm-plex-mono', 'ibm-plex-sans-arabic'])
       expect(pkg.devDependencies[`@fontsource/${p}`], p).toBeDefined();
     expect(pkg.dependencies).toBeUndefined();
     const google = studioFiles('src/studio', /\.(tsx?|css|html)$/).filter((f) =>

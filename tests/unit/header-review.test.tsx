@@ -77,7 +77,13 @@ describe('Header in Review mode', () => {
 
   it('shows the patch mark and the lower-case wordmark', () => {
     renderHeader({});
-    expect(screen.getByRole('heading', { level: 1 }).textContent).toBe('livelocale');
+    const heading = screen.getByRole('heading', { level: 1 });
+    expect(heading.textContent).toBe('livelocale');
+    const classes = heading.className.split(' ');
+    expect(classes).toEqual(
+      expect.arrayContaining(['font-heading', 'font-medium', 'tracking-[-0.02em]'])
+    );
+    expect(classes).not.toContain('font-extrabold');
     expect(screen.getByTestId('brand-mark')).toBeTruthy();
   });
 
