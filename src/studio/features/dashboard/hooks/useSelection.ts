@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { saveTranslation, ValidationError } from '../../../api.js';
+import { englishText, type StudioText } from '../../../i18n/catalogue.js';
 
 export interface SaveWarning {
   code: string;
@@ -27,6 +28,8 @@ export interface UseSelectionParams {
     previousValue: string;
     nextValue: string;
   }) => void;
+  /** The Studio text for the fallback error message; English when left out. */
+  t?: StudioText;
 }
 
 /**
@@ -44,6 +47,7 @@ export const useSelection = ({
   setLoading,
   setError,
   onSaved,
+  t = englishText,
 }: UseSelectionParams) => {
   const [selected, setSelected] = useState<SelectedElement | null>(null);
   const [inputValue, setInputValue] = useState<string>('');
@@ -221,7 +225,7 @@ export const useSelection = ({
           extra: err.details.extra,
         });
       } else {
-        setError(err.message || 'Failed to save translation.');
+        setError(err.message || t('errors.save_failed'));
       }
     } finally {
       setLoading(false);

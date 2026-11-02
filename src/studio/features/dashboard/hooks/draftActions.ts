@@ -20,7 +20,7 @@ export interface DraftActionDeps {
   /** The remembered translator name, read when the backup is made. */
   translatorName(): string | null;
   download(fileName: string, text: string): void;
-  /** The Studio text for backup and restore messages; English when left out. */
+  /** The Studio text for backup, restore and undo messages; English when left out. */
   t?: StudioText;
 }
 
@@ -43,7 +43,7 @@ export function createDraftActions(deps: DraftActionDeps) {
         deps.sendToIframe('COMMIT_PREVIEW', { key: d.key, value });
       }
     } catch (err: any) {
-      deps.setError(err?.message || 'Undo failed.');
+      deps.setError(err?.message || t('errors.undo_failed'));
     } finally {
       deps.setIsUndoing(false);
     }
@@ -62,7 +62,7 @@ export function createDraftActions(deps: DraftActionDeps) {
   };
 
   const restoreBackupFile = async (file: File): Promise<string> => {
-    if (!transport) throw new Error('Backups work only on a share link.');
+    if (!transport) throw new Error(t('errors.backup_share_only'));
     return restoreBackup(await file.text(), transport, t);
   };
 

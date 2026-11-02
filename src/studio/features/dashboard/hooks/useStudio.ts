@@ -145,6 +145,7 @@ export const useStudio = () => {
       history.record(change);
       git.refresh();
     },
+    t,
   });
 
   const git = useGit({
@@ -294,7 +295,7 @@ export const useStudio = () => {
       .then((resolved) => {
         if (resolved) setQueuedSelection(el);
       })
-      .catch((err: any) => setError(err?.message || 'Could not tell which language to edit.'));
+      .catch((err: any) => setError(err?.message || t('errors.locale_unknown')));
   };
 
   // Share link: a key from the Keys list waits for the required language pick, like Alt+Click.
@@ -332,7 +333,7 @@ export const useStudio = () => {
       history.remove(entry.id);
       await git.refresh();
     } catch (err: any) {
-      setError(err.message || 'Undo failed.');
+      setError(err.message || t('errors.undo_failed'));
     } finally {
       setIsUndoing(false);
     }
@@ -371,6 +372,7 @@ export const useStudio = () => {
     handleClearSelection,
     setLoading: setIsLoading,
     setError,
+    t,
   });
 
   const { searchTerm, setSearchTerm, filterPageOnly, setFilterPageOnly, filteredKeys } =

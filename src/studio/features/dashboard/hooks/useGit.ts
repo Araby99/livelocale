@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { fetchGitState, commitLocales, discardLocales, type GitState } from '../../../api.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 export interface UseGitParams {
   connectionStatus: string;
@@ -13,6 +14,10 @@ export interface UseGitParams {
  * normal state, not an error.
  */
 export const useGit = ({ connectionStatus, onAfterDiscard }: UseGitParams) => {
+  // Read through a ref, so switching the language does not refetch the status.
+  const { t } = useStudioText();
+  const textRef = useRef(t);
+  textRef.current = t;
   const [git, setGit] = useState<GitState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +28,7 @@ export const useGit = ({ connectionStatus, onAfterDiscard }: UseGitParams) => {
       const state = await fetchGitState();
       setGit(state);
     } catch (err: any) {
-      setError(err.message || 'Failed to read git status.');
+      setError(err.message || textRef.current('errors.git_status_failed'));
     }
   }, []);
 
@@ -43,7 +48,7 @@ export const useGit = ({ connectionStatus, onAfterDiscard }: UseGitParams) => {
         await refresh();
         return result.hash;
       } catch (err: any) {
-        setError(err.message || 'Commit failed.');
+        setError(err.message || textRef.current('errors.commit_failed'));
         return undefined;
       } finally {
         setIsLoading(false);
@@ -61,7 +66,7 @@ export const useGit = ({ connectionStatus, onAfterDiscard }: UseGitParams) => {
       await refresh();
       return true;
     } catch (err: any) {
-      setError(err.message || 'Discard failed.');
+      setError(err.message || textRef.current('errors.discard_failed'));
       return false;
     } finally {
       setIsLoading(false);

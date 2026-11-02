@@ -3,6 +3,8 @@ import { SelectedElement } from '../types/index.js';
 import { extractPlaceholders } from '../../../../core/placeholders.js';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
 import { PluralEditor } from './PluralEditor.jsx';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import type { StringKey } from '../../../i18n/catalogue.js';
 
 export interface SaveWarning {
   code: string;
@@ -35,10 +37,10 @@ const CHIP_STYLES: Record<ChipState, string> = {
   extra: 'bg-warning-bg border-warning-line text-warning-fg',
 };
 
-const CHIP_TITLES: Record<ChipState, string> = {
-  present: 'Placeholder from the reference, present in your translation',
-  missing: 'Placeholder from the reference is missing from your translation',
-  extra: 'Placeholder not present in the reference',
+const CHIP_TITLES: Record<ChipState, StringKey> = {
+  present: 'editor.chip_present',
+  missing: 'editor.chip_missing',
+  extra: 'editor.chip_extra',
 };
 
 export const TranslationEditor = ({
@@ -55,6 +57,7 @@ export const TranslationEditor = ({
   onDismissWarning,
   onClear,
 }: TranslationEditorProps) => {
+  const { t } = useStudioText();
   // Plural messages get a structured editor unless the user switches to raw text.
   const [showRaw, setShowRaw] = useState(false);
   const isPlural = useMemo(() => parsePluralMessage(inputValue) !== null, [inputValue]);
@@ -88,13 +91,13 @@ export const TranslationEditor = ({
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-            Translation Key
+            {t('editor.key')}
           </label>
           <button
             onClick={onClear}
             className="text-[10px] font-medium text-fg-muted hover:text-fg transition duration-200"
           >
-            Clear Selection
+            {t('editor.clear')}
           </button>
         </div>
         <div
@@ -108,13 +111,15 @@ export const TranslationEditor = ({
       {/* Fallback Reference */}
       <div className="space-y-2">
         <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-          Reference (Fallback Value)
+          {t('editor.reference')}
         </label>
         <div
           dir="auto"
           className="bg-surface border border-line rounded-xl px-4 py-3 text-sm text-fg-muted select-all leading-relaxed whitespace-pre-wrap"
         >
-          {selected.fallbackValue || <span className="italic text-fg-muted">None</span>}
+          {selected.fallbackValue || (
+            <span className="italic text-fg-muted">{t('editor.reference_none')}</span>
+          )}
         </div>
       </div>
 
@@ -122,7 +127,7 @@ export const TranslationEditor = ({
       {chips.length > 0 && (
         <div className="space-y-2">
           <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-            Placeholders
+            {t('editor.placeholders')}
           </label>
           <div className="flex flex-wrap gap-1.5">
             {chips.map(({ token, state }) => (
@@ -130,7 +135,8 @@ export const TranslationEditor = ({
                 key={token}
                 data-testid={`placeholder-${token}`}
                 data-state={state}
-                title={CHIP_TITLES[state]}
+                dir="ltr"
+                title={t(CHIP_TITLES[state])}
                 className={`px-2 py-0.5 rounded-md border text-[10px] font-mono ${CHIP_STYLES[state]}`}
               >
                 {token}
@@ -144,7 +150,7 @@ export const TranslationEditor = ({
       <div className="space-y-2 flex-1 flex flex-col min-h-[180px]" onKeyDown={handleEditKeyDown}>
         <div className="flex items-center justify-between">
           <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-            {usePluralEditor ? 'Plural forms' : 'Translation Output'}
+            {usePluralEditor ? t('editor.plural_forms') : t('editor.output')}
           </label>
           <div className="flex items-center gap-3">
             {isPlural && (
@@ -154,10 +160,12 @@ export const TranslationEditor = ({
                 onClick={() => setShowRaw((v) => !v)}
                 className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
               >
-                {showRaw ? 'Edit forms' : 'Edit raw'}
+                {showRaw ? t('editor.edit_forms') : t('editor.edit_raw')}
               </button>
             )}
-            <span className="text-[10px] text-fg-muted font-mono">{inputValue.length}/10000</span>
+            <span dir="ltr" className="text-[10px] text-fg-muted font-mono">
+              {inputValue.length}/10000
+            </span>
           </div>
         </div>
         {usePluralEditor ? (
@@ -174,7 +182,7 @@ export const TranslationEditor = ({
             value={inputValue}
             onChange={(e) => onInputChange(e.target.value)}
             disabled={isLoading}
-            placeholder="Type your translation here..."
+            placeholder={t('editor.input_placeholder')}
             className="w-full min-h-32 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-muted font-sans resize-none transition duration-205 shadow-inner leading-relaxed"
           />
         )}
@@ -193,13 +201,13 @@ export const TranslationEditor = ({
               disabled={isLoading}
               className="h-8 px-3 rounded-lg text-[11px] font-semibold text-on-warning bg-warning-solid hover:bg-warning-solid/90 transition duration-150"
             >
-              Save anyway
+              {t('editor.save_anyway')}
             </button>
             <button
               onClick={onDismissWarning}
               className="h-8 px-3 rounded-lg text-[11px] font-semibold text-fg bg-raised border border-line-strong hover:border-line-strong transition duration-150"
             >
-              Keep editing
+              {t('editor.keep_editing')}
             </button>
           </div>
         </div>
@@ -254,7 +262,7 @@ export const TranslationEditor = ({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span>Saving...</span>
+              <span>{t('editor.saving')}</span>
             </>
           ) : isSuccess ? (
             <span
@@ -274,10 +282,10 @@ export const TranslationEditor = ({
                   d="M5 13l4 4L19 7"
                 />
               </svg>
-              <span>Saved!</span>
+              <span>{t('editor.saved')}</span>
             </span>
           ) : (
-            <span>Save Changes</span>
+            <span>{t('editor.save')}</span>
           )}
         </button>
       </div>

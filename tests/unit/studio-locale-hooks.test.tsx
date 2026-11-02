@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useLocaleData } from '../../src/studio/features/dashboard/hooks/useLocaleData.js';
 import { useLocaleActions } from '../../src/studio/features/dashboard/hooks/useLocaleActions.js';
+import { textFor } from '../../src/studio/i18n/catalogue.js';
 
 const API = 'http://localhost:3000/api/livelocale';
 
@@ -268,5 +269,17 @@ describe('useLocaleActions', () => {
     });
     expect(params.setError).toHaveBeenLastCalledWith('Locale "de" already exists.');
     expect(params.handleLocaleChange).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed add-locale in Arabic when the server gives no message', async () => {
+    // A 500 body without `error` still has a message ("Server responded with status 500").
+    vi.mocked(fetch).mockRejectedValue(new Error(''));
+    const params = makeParams({ t: textFor('ar') });
+    const { result } = renderHook(() => useLocaleActions(params));
+
+    await act(async () => {
+      await result.current.handleAddLocale('de');
+    });
+    expect(params.setError).toHaveBeenLastCalledWith(textFor('ar')('errors.add_locale_failed'));
   });
 });

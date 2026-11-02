@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDialog } from '../hooks/useDialog.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface TokenModalProps {
   isOpen: boolean;
@@ -11,11 +12,15 @@ interface TokenModalProps {
  * bearer token (preview mode). The token is kept in sessionStorage only.
  */
 export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
+  const { t } = useStudioText();
   const [value, setValue] = useState('');
   // No Escape: the Studio cannot edit anything until a token is given.
   const dialogRef = useDialog<HTMLFormElement>(isOpen);
 
   if (!isOpen) return null;
+
+  // The variable name keeps its own left-to-right code element inside the sentence.
+  const [beforeEnv, afterEnv] = t('token.body').split('{env}');
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,12 +39,14 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
       >
         <div>
           <h3 id="studio-token-title" className="text-base font-bold text-fg font-heading">
-            Access token required
+            {t('token.title')}
           </h3>
           <p className="text-xs text-fg-muted mt-2 leading-relaxed">
-            This app runs LiveLocale in preview mode. Paste the access token configured on the
-            server (<code className="font-mono text-fg">LIVELOCALE_TOKEN</code>) to edit
-            translations. It is kept in this browser tab only.
+            {beforeEnv}
+            <code dir="ltr" className="font-mono text-fg">
+              LIVELOCALE_TOKEN
+            </code>
+            {afterEnv}
           </p>
         </div>
         <div className="space-y-1.5">
@@ -47,7 +54,7 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
             htmlFor="studio-access-token"
             className="text-[11px] font-bold text-fg-muted uppercase tracking-wider"
           >
-            Access token
+            {t('token.label')}
           </label>
           <input
             id="studio-access-token"
@@ -64,7 +71,7 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
             disabled={!value.trim()}
             className="px-4 py-2 text-xs font-semibold text-fg bg-raised hover:bg-raised-hover active:bg-raised-hover border border-line disabled:bg-raised disabled:text-fg-faint disabled:cursor-not-allowed rounded-xl transition duration-150"
           >
-            Connect
+            {t('token.connect')}
           </button>
         </div>
       </form>

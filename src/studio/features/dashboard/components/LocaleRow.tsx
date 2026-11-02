@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { isValidLocaleFormat } from '../../../../core/validate.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface LocaleRowProps {
   code: string;
@@ -18,6 +19,7 @@ export const LocaleRow = ({
   onRename,
   onDelete,
 }: LocaleRowProps) => {
+  const { t } = useStudioText();
   const [editing, setEditing] = useState(false);
   const [renameValue, setRenameValue] = useState(code);
   const [deleting, setDeleting] = useState(false);
@@ -38,11 +40,11 @@ export const LocaleRow = ({
       return;
     }
     if (!isValidLocaleFormat(newCode)) {
-      setLocalError('Invalid locale format.');
+      setLocalError(t('locales.invalid'));
       return;
     }
     if (allLocales.includes(newCode) && newCode !== code) {
-      setLocalError('Target locale already exists.');
+      setLocalError(t('locales.target_exists'));
       return;
     }
 
@@ -50,7 +52,7 @@ export const LocaleRow = ({
       await onRename(code, newCode);
       setEditing(false);
     } catch (err: any) {
-      setLocalError(err.message || 'Failed to rename.');
+      setLocalError(err.message || t('locales.rename_failed'));
     }
   };
 
@@ -60,7 +62,7 @@ export const LocaleRow = ({
       await onDelete(code);
       setDeleting(false);
     } catch (err: any) {
-      setLocalError(err.message || 'Failed to delete.');
+      setLocalError(err.message || t('locales.delete_failed'));
     }
   };
 
@@ -81,7 +83,7 @@ export const LocaleRow = ({
             onClick={handleRenameSave}
             disabled={isLoading}
             className="p-1 text-success-fg hover:text-success-fg transition duration-150"
-            title="Save rename"
+            title={t('locales.save_rename')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -96,7 +98,7 @@ export const LocaleRow = ({
             onClick={() => setEditing(false)}
             disabled={isLoading}
             className="p-1 text-fg-muted hover:text-fg-muted transition duration-150"
-            title="Cancel"
+            title={t('locales.cancel')}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -111,7 +113,7 @@ export const LocaleRow = ({
       ) : deleting ? (
         <div className="flex-1 flex flex-col gap-2">
           <span className="text-[10px] font-semibold text-danger-fg">
-            Confirm deletion? This deletes the translation file.
+            {t('locales.confirm_delete')}
           </span>
           {localError && <span className="text-[10px] text-danger-fg font-mono">{localError}</span>}
           <div className="flex items-center gap-2 justify-end">
@@ -120,14 +122,14 @@ export const LocaleRow = ({
               disabled={isLoading}
               className="px-2.5 py-1 text-[10px] font-semibold bg-raised hover:bg-raised-hover text-fg rounded-lg transition"
             >
-              Cancel
+              {t('locales.cancel')}
             </button>
             <button
               onClick={handleDeleteConfirm}
               disabled={isLoading}
               className="px-2.5 py-1 text-[10px] font-semibold bg-danger-solid hover:bg-danger-solid/90 text-on-danger rounded-lg transition shadow-sm"
             >
-              Delete
+              {t('locales.delete')}
             </button>
           </div>
         </div>
@@ -139,7 +141,7 @@ export const LocaleRow = ({
             </span>
             {isActive && (
               <span className="text-[9px] text-accent-fg font-bold tracking-wide mt-0.5">
-                ACTIVE WORKSPACE
+                {t('locales.active')}
               </span>
             )}
             {localError && (
@@ -152,7 +154,7 @@ export const LocaleRow = ({
               onClick={handleStartRename}
               disabled={isLoading}
               className="p-1.5 text-fg-muted hover:text-fg transition duration-150"
-              title="Rename locale code"
+              title={t('locales.rename_title')}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -170,7 +172,7 @@ export const LocaleRow = ({
               }}
               disabled={isLoading}
               className="p-1.5 text-fg-muted hover:text-danger-fg transition duration-150"
-              title="Delete locale"
+              title={t('locales.delete_title')}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDialog } from '../hooks/useDialog.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface ConfirmModalProps {
   showConfirmModal: boolean;
@@ -8,6 +9,7 @@ interface ConfirmModalProps {
 }
 
 export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmModalProps) => {
+  const { t } = useStudioText();
   const dialogRef = useDialog<HTMLDivElement>(showConfirmModal, onCancel);
   if (!showConfirmModal) return null;
 
@@ -21,26 +23,23 @@ export const ConfirmModal = ({ showConfirmModal, onConfirm, onCancel }: ConfirmM
         className="bg-raised border border-line rounded-2xl w-full max-w-md p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200"
       >
         <h3 id="studio-confirm-title" className="text-base font-bold text-fg font-heading">
-          Unsaved Changes
+          {t('confirm.title')}
         </h3>
-        <p className="text-xs text-fg-muted mt-2 leading-relaxed">
-          You have unsaved edits in your translation. Selecting another element will discard these
-          modifications. Do you want to discard your edits?
-        </p>
+        <p className="text-xs text-fg-muted mt-2 leading-relaxed">{t('confirm.body')}</p>
         <div className="flex items-center justify-end gap-3 mt-6">
           <button
             type="button"
             onClick={onCancel}
             className="px-4 py-2 text-xs font-semibold text-fg-muted hover:text-fg bg-raised hover:bg-raised-hover border border-line hover:border-line-strong rounded-xl transition duration-150"
           >
-            Keep Editing
+            {t('confirm.keep')}
           </button>
           <button
             type="button"
             onClick={onConfirm}
             className="px-4 py-2 text-xs font-semibold text-on-danger bg-danger-solid hover:bg-danger-solid/90 rounded-xl shadow-lg active:bg-danger-solid transition duration-150"
           >
-            Discard Edits
+            {t('confirm.discard')}
           </button>
         </div>
       </div>

@@ -2,8 +2,13 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { TranslationEditor } from '../../src/studio/features/dashboard/components/TranslationEditor.jsx';
+import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import { textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
-const renderEditor = (overrides: Partial<React.ComponentProps<typeof TranslationEditor>> = {}) => {
+const renderEditor = (
+  overrides: Partial<React.ComponentProps<typeof TranslationEditor>> = {},
+  lang: StudioLanguage = 'en'
+) => {
   const props = {
     selected: {
       key: 'home.greeting',
@@ -22,9 +27,21 @@ const renderEditor = (overrides: Partial<React.ComponentProps<typeof Translation
     onClear: vi.fn(),
     ...overrides,
   };
-  render(<TranslationEditor {...props} />);
+  render(
+    <StudioLanguageProvider initial={lang}>
+      <TranslationEditor {...props} />
+    </StudioLanguageProvider>
+  );
   return props;
 };
+
+describe('TranslationEditor in Arabic', () => {
+  it('labels the editor in Arabic', () => {
+    renderEditor({}, 'ar');
+    expect(screen.getByRole('button', { name: textFor('ar')('editor.save') })).toBeTruthy();
+    cleanup();
+  });
+});
 
 describe('TranslationEditor placeholders', () => {
   it('lists the reference placeholders and marks the ones missing from the input', () => {

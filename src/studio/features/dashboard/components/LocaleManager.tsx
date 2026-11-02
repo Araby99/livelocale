@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { isValidLocaleFormat } from '../../../../core/validate.js';
 import { LocaleRow } from './LocaleRow.jsx';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface LocaleManagerProps {
   locale: string;
@@ -21,6 +22,7 @@ export const LocaleManager = ({
   onRenameLocale,
   onDeleteLocale,
 }: LocaleManagerProps) => {
+  const { t } = useStudioText();
   const [newLocaleCode, setNewLocaleCode] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -31,13 +33,11 @@ export const LocaleManager = ({
 
     if (!code) return;
     if (!isValidLocaleFormat(code)) {
-      setLocalError(
-        'Locale format must be 2-3 letters, optionally followed by a region (e.g., fr or es-MX).'
-      );
+      setLocalError(t('locales.format_hint'));
       return;
     }
     if (locales.includes(code)) {
-      setLocalError('Locale already exists.');
+      setLocalError(t('locales.exists'));
       return;
     }
 
@@ -45,7 +45,7 @@ export const LocaleManager = ({
       await onAddLocale(code);
       setNewLocaleCode('');
     } catch (err: any) {
-      setLocalError(err.message || 'Failed to add locale.');
+      setLocalError(err.message || t('errors.add_locale_failed'));
     }
   };
 
@@ -54,7 +54,7 @@ export const LocaleManager = ({
       {/* Add language form */}
       <form onSubmit={handleAdd} className="space-y-2.5">
         <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
-          Add New Locale
+          {t('locales.add_label')}
         </label>
         <div className="flex items-center gap-2">
           <input
@@ -62,7 +62,7 @@ export const LocaleManager = ({
             value={newLocaleCode}
             dir="ltr"
             onChange={(e) => setNewLocaleCode(e.target.value)}
-            placeholder="e.g. fr, es-MX"
+            placeholder={t('locales.add_placeholder')}
             disabled={isLoading}
             className="flex-1 min-w-0 bg-surface border border-line hover:border-line-strong focus:border-focus focus:outline-hidden focus:ring-1 focus:ring-focus rounded-xl px-4 py-2.5 text-xs text-fg placeholder-fg-muted font-mono transition duration-155"
           />
@@ -71,7 +71,7 @@ export const LocaleManager = ({
             disabled={isLoading || !newLocaleCode.trim()}
             className="h-10 px-4 bg-raised hover:bg-raised-hover disabled:bg-raised disabled:text-fg-faint text-fg border border-line text-xs font-semibold rounded-xl transition duration-155 flex items-center justify-center gap-1.5 shrink-0"
           >
-            Add
+            {t('locales.add')}
           </button>
         </div>
       </form>
@@ -101,7 +101,7 @@ export const LocaleManager = ({
       {/* Languages list */}
       <div className="flex-1 flex flex-col space-y-2">
         <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider mb-1">
-          Active Locales
+          {t('locales.list')}
         </label>
         <div className="flex-1 overflow-y-auto space-y-2 pe-1 select-none">
           {locales.map((l) => (
