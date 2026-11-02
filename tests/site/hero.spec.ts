@@ -99,8 +99,8 @@ test.describe('reduced motion', () => {
     expect(
       await patch.evaluate((el) => {
         const s = getComputedStyle(el);
-        return [s.transitionDuration, s.animationName];
+        return [s.transform, s.transitionDuration, s.animationName];
       })
-    ).toEqual(['0s', 'none']);
+    ).toEqual(['none', '0s', 'none']);
   });
 });

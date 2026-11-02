@@ -99,6 +99,15 @@
   }
 }
 
+/* Under reduced motion the patch lands flat and still: no tilt, no transition, no animation. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-live .patch {
+    transform: none;
+    transition: none;
+    animation: none;
+  }
+}
+
 @keyframes patch-stick {
   from {
     transform: scale(1.25) rotate(-10deg);
