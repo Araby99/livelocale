@@ -79,7 +79,9 @@ it('names only commands and flags the CLI prints in its help', () => {
       for (const [, command, rest] of code.matchAll(/\blivelocale ([a-z][\w-]*|--help)([^;|]*)/g)) {
         seen++;
         if (command === '--help') continue;
-        const flags = cli[command!];
+        // `build [--preview] [--out <dir>] [pack options]`: build also takes every pack flag
+        const flags =
+          command === 'build' && cli.build ? [...cli.build, ...(cli.pack ?? [])] : cli[command!];
         if (!flags) {
           wrong.push(`${file}: livelocale ${command}`);
           continue;
