@@ -108,12 +108,18 @@ export interface Faq {
   answer: string;
 }
 
-/** The landing page's FAQ as it reads on the page: each <summary> and the paragraph under it. */
+/**
+ * The landing page's FAQ as it reads on the page: each <summary> and the paragraph under it, without
+ * the paragraph's closing "read more" link, whose label would run on from the answer's last sentence.
+ */
 export function faqFromHtml(html: string): Faq[] {
   const section = /<section[^>]*\bid="faq"[^>]*>([\s\S]*?)<\/section>/.exec(html);
   if (!section) throw new Error('index.html has no FAQ section (id="faq")');
   const faq = [...section[1]!.matchAll(/<summary>([\s\S]*?)<\/summary>\s*<p>([\s\S]*?)<\/p>/g)].map(
-    (m) => ({ question: htmlText(m[1]!), answer: htmlText(m[2]!) })
+    (m) => ({
+      question: htmlText(m[1]!),
+      answer: htmlText(m[2]!.replace(/<a\b[^>]*>[\s\S]*?<\/a>\s*$/, '')),
+    })
   );
   if (faq.length === 0) throw new Error('the FAQ section has no <summary> and <p> pairs');
   return faq;

@@ -26,7 +26,7 @@ livelocale lets anyone on a team fix a website's text on the website itself, in 
 
 ## Operating Context
 
-- Developer: `npm i -D livelocale`, `npx livelocale init` (or `init --share` for share links on any static host), the dev Studio beside `next dev`/`vite`, `npx livelocale check --hardcoded` in GitHub Actions or any CI.
+- Developer: `npm install livelocale` (a regular dependency), `npx livelocale init` (or `init --share` for share links on any static host), the dev Studio beside `next dev`/`vite`, `npx livelocale check --hardcoded` in GitHub Actions or any CI.
 - Share mode: `livelocale pack` builds a static share Studio; the fixer opens the link, edits, and sends a change link. On GitHub the generated workflow turns it into a pull request in one click; on other git hosts `npx livelocale apply "<link>" --pr`.
 - The Studio wraps the site in a preview panel with a keys directory and an editor side panel; it has light and dark themes and English/Arabic UI.
 

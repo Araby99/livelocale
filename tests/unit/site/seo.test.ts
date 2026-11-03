@@ -82,6 +82,9 @@ it('reads the FAQ off the landing page as it reads on screen', () => {
     'npx livelocale apply "<link>" --pr'
   );
   for (const f of faq) expect(f.answer).not.toMatch(/<\/|<code|<a |&[a-z]+;/);
+  // the "read more" link under each answer is not part of it
+  for (const f of faq) expect(f.answer, f.question).toMatch(/\.$/);
+  expect(faq[0]!.answer).not.toContain('Read about the safety switches');
   expect(htmlText('a <code>b</code>&amp;\n c')).toBe('a b& c');
 });
 

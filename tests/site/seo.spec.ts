@@ -132,12 +132,17 @@ test('describes the landing page as the software, its website, its author and it
   });
   expect(nodes.some((n) => n['@type'] === 'Organization')).toBe(false);
 
-  // The FAQPage holds exactly the questions and answers the page shows.
+  // The FAQPage holds exactly the questions and answers the page shows, without the "read more"
+  // link that closes each answer.
   const onPage = await page.locator('#faq details').evaluateAll((items) =>
-    items.map((d) => ({
-      question: d.querySelector('summary')!.textContent!.replace(/\s+/g, ' ').trim(),
-      answer: d.querySelector('p')!.textContent!.replace(/\s+/g, ' ').trim(),
-    }))
+    items.map((d) => {
+      const p = d.querySelector('p')!.cloneNode(true) as HTMLElement;
+      if (p.lastElementChild?.tagName === 'A') p.lastElementChild.remove();
+      return {
+        question: d.querySelector('summary')!.textContent!.replace(/\s+/g, ' ').trim(),
+        answer: p.textContent!.replace(/\s+/g, ' ').trim(),
+      };
+    })
   );
   const faq = ofType(nodes, 'FAQPage')!.mainEntity as {
     name: string;
