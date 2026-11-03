@@ -1,7 +1,13 @@
 'use client';
 
 import { DOMInterceptor } from './dom-interceptor.js';
-import { IframeBridge, readSameOriginParent, resolveStudioOrigin } from './iframe-bridge.js';
+import {
+  IframeBridge,
+  followNavigation,
+  navigationHref,
+  readSameOriginParent,
+  resolveStudioOrigin,
+} from './iframe-bridge.js';
 import { decodeKey } from './watermark.js';
 import { watchLocation } from './location-watch.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
@@ -147,6 +153,9 @@ if (
       restorePreviews();
       interceptor.destroy();
       interceptor.init();
+    } else if (type === 'NAVIGATE') {
+      const href = navigationHref(payload, window.location.origin);
+      if (href !== null) followNavigation(window.location, href);
     }
   });
 

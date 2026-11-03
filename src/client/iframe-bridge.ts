@@ -6,7 +6,7 @@ export type ClientMessageType =
   | 'VISIBLE_TEXTS_CHANGED'
   | 'LOCATION_CHANGED'
   | 'LEAVING';
-export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION';
+export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION' | 'NAVIGATE';
 
 /** Where `livelocale studio` runs unless the Studio says otherwise. */
 export const DEFAULT_STUDIO_ORIGIN = 'http://localhost:3010';
@@ -112,6 +112,39 @@ export function toLocationUrl(payload: unknown): string | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * The href a NAVIGATE payload asks for when it is safe to follow: the payload
+ * is an object whose own `url` is a string of at most MAX_LOCATION_LENGTH that
+ * parses on its own (relative and protocol-relative input is refused) as an
+ * http(s) URL on `ownOrigin` without credentials; else `null`. Never throws.
+ */
+export function navigationHref(payload: unknown, ownOrigin: string): string | null {
+  try {
+    if (!payload || typeof payload !== 'object') return null;
+    if (!Object.prototype.hasOwnProperty.call(payload, 'url')) return null;
+    const url = (payload as { url?: unknown }).url;
+    if (typeof url !== 'string' || url.length > MAX_LOCATION_LENGTH) return null;
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    if (parsed.origin !== ownOrigin || parsed.username || parsed.password) return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Opens `href`, reloading when it is the current URL: assigning the current
+ * URL with a hash is a fragment navigation that reloads nothing.
+ */
+export function followNavigation(
+  loc: Pick<Location, 'href' | 'assign' | 'reload'>,
+  href: string
+): void {
+  if (href === loc.href) loc.reload();
+  else loc.assign(href);
 }
 
 export interface TranslationPayload {
