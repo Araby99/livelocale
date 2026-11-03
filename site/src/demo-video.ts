@@ -101,7 +101,10 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: numb
   const sync = () => {
     if (wanted && onScreen && !document.hidden && (!held || attached)) {
       attach();
-      video.play().catch(() => {
+      video.play().catch((error: unknown) => {
+        // A pause() that interrupts a slow load (scrolled away, tab hidden) rejects with
+        // AbortError: keep wanting playback, so the video resumes back on screen.
+        if ((error as { name?: unknown } | null)?.name === 'AbortError') return;
         // Data saver or low-power mode refused: leave the poster and offer Play.
         wanted = false;
         render();

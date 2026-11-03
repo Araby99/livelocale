@@ -155,6 +155,23 @@ test('pauses when the video scrolls off screen', async ({ page }) => {
   await expect.poll(() => playing(page)).toBe(false);
 });
 
+// On a slow connection play() is still pending when the hero scrolls away; pause() then rejects it
+// with an AbortError, which is not the browser refusing autoplay, so coming back resumes the video.
+test('resumes when a slow-loading video scrolls away and back', async ({ page }) => {
+  await page.route(/\.(mp4|webm)(\?|$)/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    await route.continue();
+  });
+  await page.goto('./');
+  await expect(video(page).locator('source')).toHaveCount(2, afterHold);
+  await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await expect.poll(() => playing(page)).toBe(false);
+  await page.waitForTimeout(500);
+  await page.evaluate(() => scrollTo(0, 0));
+  await expect.poll(() => playing(page), { timeout: 10_000 }).toBe(true);
+  await expect(page.locator('[data-playback]')).toHaveText('Pause');
+});
+
 test.describe('with reduced motion', () => {
   test('never autoplays: poster and a Play button until asked @cross', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
