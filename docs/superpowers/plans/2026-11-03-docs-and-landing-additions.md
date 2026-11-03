@@ -18,7 +18,12 @@
 - Dark only (`appearance: 'force-dark'`), one theme. Martian Mono headings, IBM Plex Sans body, IBM Plex Mono code, IBM Plex Sans Arabic second in every stack. Colours only from `DESIGN.md`: Night `#0C0D0F`, Surface `#16181D`, Rule `#2A2D33`, Edge `#6B6F7A`, Paper `#E8E4D9`, Comment `#8C887D`, Ghost `#6E6B64` (strike line only), Patch `#FFB224` (fills and the focus ring only), Patch Lit `#FFC150`, Patch Underside `#8A5600`, Wash `#2E2412`, Hunk `#4FC3DC`, Exit 1 `#FF5468` (word or dashed outline only), Exit 0 `#6FD69A` (with a check glyph). No glows, blurs, gradients or purple. Focus ring: 2px solid Patch, 3px offset, 4px radius.
 - Code blocks by the one-job rules: keys and paths in Hunk, `+` lines on Wash with the `+` as a Patch fill, failures in Exit 1, success in Exit 0 (spec §3.1).
 - Local search only (`search: { provider: 'local' }`). No third-party request at runtime, no analytics (PRODUCT.md). English only.
-- External links allowed in the docs and on the landing page: `https://github.com/Araby99/livelocale` (and paths under it), `https://www.npmjs.com/package/livelocale`, `https://github.com/Araby99/tidewell` (and paths under it), `https://js.org/`, `https://livelocale.js.org/` (spec §3.4). Any other URL may appear as text in code, never as a link.
+- External links allowed in the docs and on the landing page: `https://github.com/Araby99/livelocale` (and paths under it), `https://www.npmjs.com/package/livelocale`, `https://github.com/Araby99/tidewell` (and paths under it), `https://js.org/`, `https://livelocale.js.org/` (spec §3.4). Any other URL appears only inside inline code or a fence, never as a link or bare text (markdown-it's linkify would turn bare text into a link).
+- One competitor list, used by every "no competitor names" test (docs pages in Task 1, landing in Task 14): `/\b(Tolgee|Locize|Lokalise|Crowdin|Transifex|POEditor|Weblate|SimpleLocalize|Phrase (Strings|TMS))\b/` (bare "Phrase" is excluded: the CLI help says "Word or phrase").
+- Header (DESIGN.md "Header"): the mark and wordmark on the left, GitHub and Docs as Paper text links on the right; "No background bar, no sticky header". The docs nav follows it: transparent over Night, no bottom border, scrolls away with the page.
+- Node: the main CI runs unit tests on Node 20 and 24; the Site workflow uses Node 24. Lighthouse 13 needs Node ≥ 22.19, so no module a unit test imports may import `lighthouse` or `chrome-launcher` at its top level.
+- Code facts the tasks rely on (checked at 0.11.0): the Vite plugin is `src/server/vite-plugin.ts` (`VitePluginConfig`, `liveLocaleVite`, built to `livelocale/vite`; there is no `src/vite/`); the platform guard is `detectDeployedPlatform()` in `src/core/env.ts`, which reads variables through `readEnv('NAME')`; plain `init` sets up Next.js only (the `init` help line and `runInit` in `src/codemod/index.ts`), and a Vite app adds `liveLocaleVite(...)` by hand; app code imports `livelocale/react` and `livelocale/server` (`playground/app/layout.tsx`, `page.tsx`, `api/livelocale/route.ts`).
+- Install command (plan decision from those facts): the docs and the landing page say `npm install livelocale` (a dependency, as the README's Quick Setup does), because app code imports it at runtime. Task 12 changes the landing page's `npm i -D livelocale` and "One dev dependency" to match.
 - "Every factual statement in the docs and the landing FAQ must be true of 0.11.0's code or README; the builder verifies, and anything unverifiable is left out, not guessed" (spec §3.4). Content tasks list each claim with its source (README section, code path, or command run) in their task report.
 - "Terminal output in the docs comes from running the real CLI at build or capture time, never typed by hand" (§3.3). Every raster carries a provenance sidecar `<file>.json` (`{ prompt, createdAt }`, prompt starting `SOURCED, not generated.`), like the hero media.
 - Clips: muted, `playsinline`, poster frame, a visible pause control, no autoplay under `prefers-reduced-motion: reduce`, lazy loading (§3.3).
@@ -50,6 +55,7 @@
 - **Changelog page** renders `CHANGELOG.md` from its first `## [` heading, so the preamble's keepachangelog.com and semver.org links (outside the allowlist) are not linked.
 - **Go-live README** is prepared now as `site/launch/README.md` and copied over `README.md` on go-live day (§3.5), so `README.md` never links to docs that are not public.
 - **0.11.1 stays README-only**, as the spec says: `package.json` `homepage` (still the GitHub README) is not changed by this plan; the owner may fold it into that release.
+- **The landing step text is corrected (Task 12)**: "One dev dependency with no runtime dependencies" becomes "One dependency, with no dependencies of its own", `npm i -D livelocale` becomes `npm i livelocale`, and "`init` sets up the Studio beside `next dev` or `vite`" becomes "`init` sets up a Next.js app; on Vite you add the plugin", so the page claims only what 0.11.0 does.
 - **VitePress 1.6.4, not 2.0 alpha**: the stable line, kept off the landing build's Vite 8 by listing `vite` in `site/package.json` (VitePress 1 resolves its own nested Vite 5).
 
 ---
@@ -58,8 +64,8 @@
 
 **Files:**
 
-- Create: `site/docs/.vitepress/config.ts`, `site/docs/.vitepress/theme/index.ts`, `site/docs/.vitepress/theme/SiteBrand.vue`, `site/docs/.vitepress/theme/docs.css`, `site/docs/.vitepress/hunk-shiki.json`, `site/src/lib/docs-config.ts`, `site/docs/index.md` (front door stub: title, one paragraph, the three stack links as plain text until Task 5)
-- Modify: `site/package.json` (devDependencies `vitepress` `1.6.4`, `vite` `^8.0.14`; script `"docs:dev": "vitepress dev docs"`; Task 3 prefixes it with the snippet run), `site/package-lock.json`, `site/scripts/build.mjs` (after the demo copy: `vitepress build docs`), `site/tsconfig.json` (include `docs/.vitepress/**/*.ts`), `.gitignore` (`/site/docs/.vitepress/cache/`, `/site/.cache/`), `site/README.md` (a "Docs" section: dev, build, where pages live)
+- Create: `site/docs/.vitepress/config.ts`, `site/docs/.vitepress/theme/index.ts`, `site/docs/.vitepress/theme/SiteBrand.vue`, `site/docs/.vitepress/theme/docs.css`, `site/docs/.vitepress/hunk-shiki.json`, `site/docs/.vitepress/shims-vue.d.ts` (`declare module '*.vue'`, so `site:typecheck` accepts the theme's `.vue` imports), `site/src/lib/docs-config.ts`, `site/docs/index.md` (front door stub: title, one paragraph, the three stack links as plain text, and one `::: details Didn't work?` block so the palette test sees a custom block; Task 10 replaces the stub)
+- Modify: `site/package.json` (devDependencies `vitepress` `1.6.4`, `vite` `^8.0.14`; script `"docs:dev": "vitepress dev docs"`; Task 3 prefixes it with the snippet run), `site/package-lock.json`, `site/scripts/build.mjs` (after the demo copy: `runNode([VITEPRESS_BIN, 'build', 'docs'], env)`, so `SITE_URL` reaches `config.ts`), `site/tsconfig.json` (include `docs/.vitepress/**/*.ts`), `.gitignore` (`/site/docs/.vitepress/cache/`, `/site/.cache/`), `site/README.md` (a "Docs" section: dev, build, where pages live)
 - Test: `tests/unit/site/docs-config.test.ts`, `tests/unit/site/docs-pages.test.ts`, `tests/unit/site/header-mark.test.ts` (add one case), `tests/site/docs.spec.ts`
 
 **Interfaces:**
@@ -107,7 +113,7 @@ it('gives every docs page its own title and description', () => {
 });
 it('keeps the voice: no "PM", no hype words, no competitor names', () => {
   // for every page body: not /\bPM\b/, not /seamless|empower|revolutioni[sz]e|blazing|supercharge/i,
-  // not /Tolgee|Locize|Lokalise|Crowdin/
+  // not the Global Constraints competitor regex
 });
 
 // tests/unit/site/header-mark.test.ts (new case)
@@ -127,8 +133,18 @@ test('wears the landing page: Night, Paper, the same brand and nav', async ({ pa
   // the brand link's href resolves to http://localhost:4173/livelocale/
 });
 test('colours code only from the palette', () => {
-  // every color:#xxxxxx in site/dist/docs/**/*.html code blocks is one of
-  // #E8E4D9 #8C887D #4FC3DC #6FD69A #FF5468 (case-insensitive)
+  // every #xxxxxx inside <pre class="shiki…">…</pre> in site/dist/docs/**/*.html (inline `color:` and
+  // `--shiki-*:` values alike) is one of #E8E4D9 #8C887D #4FC3DC #6FD69A #FF5468 (case-insensitive)
+});
+test('paints the docs only in the palette, search open', async ({ page }) => {
+  // docs/, open the search box and type "livelocale"; for every visible element, each non-transparent
+  // color, background-color and border-*-color, compared on its RGB channels only (alpha mixes such as
+  // the 45% link underline are allowed), is one of Night, Surface, Rule, Edge, Paper, Comment, Ghost,
+  // Patch, Patch Lit, Patch Underside, Wash, Hunk, Exit 1, Exit 0; failures listed as `<selector> <prop> <rgb>`
+});
+test('keeps the docs header off a bar and unstuck', async ({ page }) => {
+  // docs/ at 1440×900: .VPNav background-color is rgba(0, 0, 0, 0) or Night and it has no bottom border;
+  // after scrolling 600px the brand link's bounding box top is < 0 (it scrolled away)
 });
 test('finds the check reference with the offline search', async ({ page }) => {
   // Task 17 tags it @cross. Until Task 5 exists it searches "livelocale" and expects a result linking
@@ -155,7 +171,7 @@ Expected: FAIL with "Failed to load url ../../../site/src/lib/docs-config" (vite
 
 - [ ] **Step 3: Install VitePress and Vite in `site/`, write `docs-config.ts`, `config.ts`, the theme and the stub front door; add the docs build to `build.mjs` after the demo copy, resolving the binary from `vitepress/package.json` like `VITE_BIN`.**
 
-`docs.css` maps VitePress variables onto the hunk tokens (`--vp-c-bg` Night, `--vp-c-bg-soft`/`--vp-c-bg-alt` Surface, `--vp-c-divider` Rule, `--vp-c-text-1` Paper, `--vp-c-text-2` Comment, `--vp-c-brand-1` Hunk for links, `--vp-font-family-base`/`--vp-font-family-mono` from tokens), sets headings in Martian Mono, the active sidebar item as Surface fill with Paper text and an Edge border (the current-chapter-chip treatment, never an amber line), and the shared focus ring on every interactive element. `hunk-shiki.json` is a single dark Shiki theme whose token colours are only Paper, Comment, Hunk (keys, property names, paths), Exit 1 (`invalid`, deleted) and Exit 0; diff `+` lines get Wash rows and a Patch `+` square through `docs.css`.
+`docs.css` maps VitePress variables onto the hunk tokens (`--vp-c-bg` Night, `--vp-c-bg-soft`/`--vp-c-bg-alt`/`--vp-c-bg-elv` Surface, `--vp-c-divider`/`--vp-c-border`/`--vp-c-gutter` Rule, `--vp-c-text-1` Paper, `--vp-c-text-2`/`--vp-c-text-3` Comment, `--vp-c-brand-1..3` and `--vp-c-brand-soft` Hunk for links, `--vp-font-family-base`/`--vp-font-family-mono` from tokens), and remaps every default-theme colour family the pages can show (`--vp-c-default-*`, `--vp-c-tip-*`, `--vp-c-warning-*`, `--vp-c-danger-*`, `--vp-c-note-*`, `--vp-custom-block-*`, `--vp-local-search-*`) to Surface, Rule, Paper and Comment (the default indigo and purple must not survive), makes `.VPNav` transparent, borderless and `position: absolute` (DESIGN.md header), sets headings in Martian Mono (h1 700, the face Task 16 preloads), the active sidebar item as Surface fill with Paper text and an Edge border (the current-chapter-chip treatment, never an amber line), and the shared focus ring on every interactive element. `hunk-shiki.json` is a single dark Shiki theme whose token colours are only Paper, Comment, Hunk (keys, property names, paths), Exit 1 (`invalid`, deleted) and Exit 0; diff `+` lines get Wash rows and a Patch `+` square through `docs.css`.
 
 - [ ] **Step 4: Run the tests**
 
@@ -189,7 +205,7 @@ git commit -m "feat(docs): scaffold the VitePress docs on the hunk theme with th
   - `export function provenance(name: string, what: string): { prompt: string; createdAt: string }` — prompt starts `SOURCED, not generated.` and names `site/scripts/record-docs.mjs` and the app it filmed.
 - `webp-size.mjs`: `export function webpSize(buf: Uint8Array): { width: number; height: number }` (VP8, VP8L and VP8X headers; throws `Not a WebP` otherwise).
 - `clip.ts`: `export function shouldPlay(ratio: number, reduced: boolean, pausedByUser: boolean): boolean`; `export function startClip(figure: HTMLElement, win: Window): () => void` — the video is `muted loop playsinline preload="none"` with `poster` and no `autoplay`; sources attach when the figure first nears the viewport (IntersectionObserver, `rootMargin: '200px'`); plays when ≥ 50 % visible; a `<button type="button" class="clip-toggle">` (≥ 44×44 px) is labelled "Pause clip" / "Play clip"; under reduced motion it never plays by itself and the button reads "Play clip"; a clip the reader paused stays paused; returns a disposer. Used by `DocClip.vue` and by the landing page (Task 13).
-- `DocShot.vue`: props `name: ShotName`, `alt: string` (required, non-empty), `caption?: string`; renders `<figure class="doc-shot"><img src width height alt loading="lazy" decoding="async"></figure>` with a 1px Rule border at 10px radius; an unknown name throws at build.
+- `DocShot.vue`: props `name: ShotName`, `alt: string` (required, non-empty), `caption?: string`; renders `<figure class="doc-shot"><img src width height alt loading="lazy" decoding="async"></figure>` with a 1px Rule border at 10px radius; an unknown name throws at build. Both components read `site/media/docs/manifest.json` for sizes and resolve files through one `import.meta.glob('../../../media/docs/*.{webp,webm,mp4}', { eager: true, query: '?url', import: 'default' })`, so every file is hashed under `<base>docs/assets/`.
 - `DocClip.vue`: props `name: ClipName`, `label: string`, `caption?: string`; renders the figure markup `startClip` expects (`<source>` webm then mp4 as `data-src` until attached).
 - `record-docs.mjs [names…]`: checks prerequisites (built CLI, playground installs) and exits 1 with the missing command; snapshots `playground/locales/**` and `playground-vite/locales/**` with `snapshotFiles` and restores them in `finally`; Chromium 1440×900, DPR 2, `colorScheme: 'dark'` unless the entry says `light`, `locale: 'en-US'` or `'ar'`, `reducedMotion: 'no-preference'`; shots → WebP q82 at 1200 px wide via ffmpeg-static; clips → `recordVideo` at 1280×720, then ffmpeg to `<name>.webm` (VP9) and `<name>.mp4` (H.264, `+faststart`, no audio) and `<name>.poster.webp` from the last frame; writes each raster's sidecar and `manifest.json`; saves the change link of `share-send-dialog` to `site/scripts/docs/fixtures/change-link.txt`. No cursor overlay; everything on screen is the product.
 
@@ -283,13 +299,14 @@ git commit -m "feat(docs): record docs shots and clips from the real Studio with
 
 - Consumes: `renderLine(line: string): string` from `site/scripts/check-excerpt.mjs`.
 - `cli-snippets.mjs`:
-  - `export interface SnippetSpec { fixture: string | null; files?: Record<string, string>; git?: { remote: string }; setup?: string[][]; args: string[]; expect: number }` — `fixture` is a folder under `site/scripts/docs/fixtures/`, `'site/sample'`, `'site/stage'`, or `null` (empty temp dir); `files` copies extra files into the copy (destination → repo path); `setup` runs first with its output discarded; `git.remote` runs `git init -b main` and `git remote add origin <remote>` in the copy.
+  - `export interface SnippetSpec { fixture: string | null; files?: Record<string, string>; git?: { remote: string }; setup?: string[][]; args: string[]; expect: number }` — `fixture` is a folder under `site/scripts/docs/fixtures/`, `'site/sample'`, `'site/stage'`, or `null` (an empty work dir); `files` copies extra files into the copy (destination → repo path); `setup` runs first with its output discarded; `git.remote` runs `git init -b main`, `git remote add origin <remote>` and `git symbolic-ref refs/remotes/origin/HEAD refs/remotes/origin/main` in the copy (the last one lets `init --share` read the default branch without `git ls-remote`, so no snippet touches the network).
+  - The copy lives under the gitignored `site/.cache/docs-cli/work/<name>-<random>/`, never in the OS temp dir: `check --hardcoded` loads `typescript` from the project's own resolution path (`src/codemod/hardcoded/load-typescript.ts`), which from inside the repo reaches the root `node_modules`. The copy is removed after the run.
   - `export const SNIPPETS: Record<string, SnippetSpec>` with exactly: `help` (`null`, `['--help']`, 0), `init-next` (`next-app`, `['init']`, 0), `doctor-next` (`next-app`, setup `[['init']]`, `['doctor']`, 0), `init-share-vite` (`vite-app`, git remote `https://github.com/Araby99/tidewell.git`, `['init', '--share']`, 0), `check-clean` (`vite-app`, `['check']`, 0), `check-missing` (`check-missing`, `['check']`, 1), `check-hardcoded` (`site/sample`, `['check', '--hardcoded']`, 1), `apply-dry-run` (`site/stage`, files `{ 'change-link.txt': 'site/scripts/docs/fixtures/change-link.txt' }` (written by Task 2), `['apply', 'change-link.txt', '--dry-run', '--locales', 'locales']`, 0).
-  - `export function runSnippet(name: string, spec: SnippetSpec, cli: string): { command: string; output: string; status: number }` — copies the fixture to a temp dir, runs `node <cli> …args` there, replaces the temp path with `my-app` and backslashes with `/`, throws `snippet <name> exited <n>, expected <m>` on a status mismatch; `command` is `npx livelocale ${args.join(' ')}`.
+  - `export function runSnippet(name: string, spec: SnippetSpec, cli: string): { command: string; output: string; status: number }` — copies the fixture to its work dir, runs `node <cli> …args` there, replaces the work dir (native and `/` forms) with `my-app`, then backslashes with `/`, throws `snippet <name> exited <n>, expected <m>` on a status mismatch; `command` is `npx livelocale ${args.join(' ')}`.
   - `export function writeCliSnippets(outDir?: string): void` — writes `<outDir>/<name>.json` (default `site/.cache/docs-cli/`).
 - `terminal.mjs`: `export function renderTerminal(s: { command: string; output: string; status: number }): string` — `$` prompt line in `c-prompt`, each output line through `renderLine` (help output unchanged in Comment), `# exit` then the status in `c-pass` (0) or `c-fail`.
 - `cli-fence.ts`: `export function cliFence(md: MarkdownIt, opts: { dir: string }): void` — a fence whose info is `cli <name>` renders `<pre class="code terminal"><code>…</code></pre>` from `<dir>/<name>.json`; an unknown name throws `no CLI snippet <name>: run node site/scripts/docs/cli-snippets.mjs`.
-- `cli-help.mjs`: `export function parseHelp(text: string): Record<string, string[]>` — command name (from the `Commands:` list) → its flags in help order (from `Options for <command>:`), every `--flag` token of the left column, excluding the global `-h, --help`.
+- `cli-help.mjs`: `export function parseHelp(text: string): Record<string, string[]>` — command name (from the `Commands:` list, in that order) → its flags in help order (from the `Options for <command>:` block): the first token of each block line matching `/^ {2}(--[a-z][\w-]*)/`, deduplicated. Synopsis lines (`  pack <outDir>`, `  build [--preview] [--out <dir>] …`, `  apply <link|file|->`) and indented continuation lines are skipped by that pattern; `Global Options` (`-h, --help`) is not a command.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -336,7 +353,7 @@ const CLI = 'dist/codemod/index.js';
 it.each(Object.keys(SNIPPETS))('runs %s with the real CLI and the expected exit code', (name) => {
   const out = runSnippet(name, SNIPPETS[name], CLI);
   expect(out.status).toBe(SNIPPETS[name].expect);
-  expect(out.output).not.toMatch(/[A-Z]:\\|\/tmp\/|AppData/); // no machine paths
+  expect(out.output).not.toMatch(/[A-Z]:[\\/]|\/tmp\/|AppData|\.cache\/docs-cli/); // no machine paths
 });
 it('fails the build when a snippet exits with another code', () => {
   expect(() =>
@@ -454,7 +471,7 @@ Each content task writes pages for learning (task order, one job per page, short
 
 **Order and links.** The content tasks run Reference, How it works, Guides, then Get started, so that every page links only to pages (and `##` anchors) that already exist; the link guard (Task 4) runs in every content task. A page written later may add a link into an earlier page in its own task. The Get started task replaces the front-door stub entirely, including the stub's test `DocShot`, `DocClip` and `cli` fence.
 
-Two facts to settle before writing, from code: whether `livelocale` installs as a dependency or a devDependency for each stack (the README's Quick Setup says `npm install livelocale`, the landing page says "One dev dependency"; `LiveLocaleProvider` is imported by app code), and what `init` prints in a fresh Next.js project (the `init-next` snippet). If the landing copy is wrong, Task 12 fixes it.
+Settled facts (Global Constraints): the install command is `npm install livelocale` on every stack page; plain `init` is Next.js only, so the Vite page has no `init` step and adds the plugin by hand. What `init` prints in a fresh Next.js project comes from the `init-next` snippet, never from the README.
 
 ---
 
@@ -469,7 +486,7 @@ Two facts to settle before writing, from code: whether `livelocale` installs as 
 **Interfaces:**
 
 - Consumes: `parseHelp` (Task 3).
-- Each command page: `# <command>`, a synopsis `bash` fence, then one `### \`--flag\``heading per flag in help order, each with its argument, default and one or two sentences, from README 203–509 and the command's code in`src/codemod/`. `init.md`documents`init`and`init --share`(with the stack table, which scrolls inside its box on phones).`apply.md`includes`--github-event` as the workflow uses it.
+- Each command page: `# <command>`, a synopsis `bash` fence (positional arguments as the help prints them: `pack <outDir>`, `build … -- <command...>`, `apply <link|file|->`), then one heading per flag in help order, written exactly `` ### `--flag` `` (the test matches that text), each with its argument, default and one or two sentences, from README 203–509 and the command's code in `src/codemod/` (`index.ts` for `init`, `studio`, `migrate`; `init-share.ts`, `doctor.ts`, `check-cli.ts`, `apply/`; `src/server/pack.ts`, `build-target.ts` for `pack` and `build`). `init.md` documents `init` (Next.js only) and `init --share` (with the stack table, which scrolls inside its box on phones). `apply.md` includes `--github-event` as the workflow uses it.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -526,9 +543,9 @@ git commit -m "docs(site): add a reference page for every CLI command and flag"
 
 **Files:**
 
-- Create: `site/docs/reference/configuration.md` (`createLiveLocaleHandler` options, `liveLocaleVite` options, `createTranslations`, `wrapTranslationEngine`, `LiveLocaleProvider`, `unwrap`, `sanitizeZeroWidth`, `livelocale.allow`; each option's name, type and default read from the exported types in `src/server/`, `src/vite/`, `src/client/`, `src/react/`), `site/docs/reference/environment.md`, `site/docs/reference/changelog.md`, `site/docs/.vitepress/changelog.ts`
-- Modify: `site/docs/.vitepress/config.ts` (register the changelog transform), `site/src/lib/docs-config.ts`
-- Test: `tests/unit/site/docs-reference.test.ts`
+- Create: `site/docs/reference/configuration.md` (`createLiveLocaleHandler` (`HandlerConfig`), `liveLocaleVite` (`VitePluginConfig` in `src/server/vite-plugin.ts`), `createTranslations` (`CreateTranslationsOptions`), `wrapTranslationEngine` and `wrapNextIntl` (`WrapOptions`), `LiveLocaleProvider`, `getLiveLocaleMode`, `unwrap`, `sanitizeZeroWidth`, `livelocale.allow`; each option's name, type and default read from those exported types in `src/server/`, `src/client/`, `src/react/` and `src/core/env.ts`), `site/docs/reference/environment.md`, `site/docs/reference/changelog.md`, `site/docs/.vitepress/changelog.ts`
+- Modify: `site/docs/.vitepress/config.ts` (register the changelog transform), `site/src/lib/docs-config.ts`, `.github/workflows/site.yml` (add `'CHANGELOG.md'` to both `paths` lists, so a release redeploys the changelog page), `tests/unit/site/site-workflow.test.ts` (add `"'CHANGELOG.md'"` to the first test's list)
+- Test: `tests/unit/site/docs-reference.test.ts`, `tests/unit/site/site-workflow.test.ts`
 
 **Interfaces:**
 
@@ -542,8 +559,9 @@ git commit -m "docs(site): add a reference page for every CLI command and flag"
 // @vitest-environment node
 import { changelogBody } from '../../../site/docs/.vitepress/changelog';
 it('documents every LIVELOCALE variable the code reads', () => {
-  // the set of /'(NEXT_PUBLIC_)?LIVELOCALE[A-Z_]*'/ string literals and env.LIVELOCALE* reads in src/
-  // is a subset of the `VAR` names in environment.md
+  // the names matched in src/**/*.{ts,tsx} by /env\.((?:NEXT_PUBLIC_)?LIVELOCALE\w*)/, /env\[['"]((?:NEXT_PUBLIC_)?LIVELOCALE\w*)/
+  // and /readEnv\(['"]((?:NEXT_PUBLIC_)?LIVELOCALE\w*)/ (today LIVELOCALE, NEXT_PUBLIC_LIVELOCALE, LIVELOCALE_TOKEN,
+  // LIVELOCALE_ALLOWED_ORIGINS) are a non-empty subset of the `VAR` names in environment.md
 });
 it('renders the changelog from the first release, without the preamble links', () => {
   const body = changelogBody(fs.readFileSync('CHANGELOG.md', 'utf8'));
@@ -551,14 +569,15 @@ it('renders the changelog from the first release, without the preamble links', (
   expect(body).not.toContain('keepachangelog.com');
 });
 it('documents every liveLocaleVite option', () => {
-  // the keys of the plugin's exported options interface in src/vite/ each appear as `key` in configuration.md
+  // the keys of `export interface VitePluginConfig` in src/server/vite-plugin.ts (localesPath, git, authToken,
+  // share, exposeRepo, sourceLocale, shareBase) each appear as `key` in configuration.md
 });
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `npx vitest run tests/unit/site/docs-reference.test.ts`
-Expected: FAIL with "Failed to load url ../../../site/docs/.vitepress/changelog".
+Run: `npx vitest run tests/unit/site/docs-reference.test.ts tests/unit/site/site-workflow.test.ts`
+Expected: FAIL with "Failed to load url ../../../site/docs/.vitepress/changelog" and `push 'CHANGELOG.md'`.
 
 - [ ] **Step 3: Verify every option and variable in code, then write the pages and the transform.**
 
@@ -570,7 +589,7 @@ Expected: all PASS.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add site/docs tests/unit/site/docs-reference.test.ts site/src/lib/docs-config.ts
+git add site/docs tests/unit/site/docs-reference.test.ts tests/unit/site/site-workflow.test.ts site/src/lib/docs-config.ts .github/workflows/site.yml
 git commit -m "docs(site): add the configuration, environment and changelog reference"
 ```
 
@@ -580,7 +599,7 @@ git commit -m "docs(site): add the configuration, environment and changelog refe
 
 **Files:**
 
-- Create: `site/docs/how-it-works/watermarking.md` (README 21–30; `src/core/` encoder and the client scanner), `safety-switches.md` (README 950–962; the platform guard's list as the code has it), `watermark-pitfalls.md` (README 963–979), `security.md` (README 823–837 plus the dev mutation API's origin and path checks from `src/server/`), `risks-and-limits.md` (README 838–857, 944–949)
+- Create: `site/docs/how-it-works/watermarking.md` (README 21–30; `src/core/` encoder and the client scanner), `safety-switches.md` (README 950–962; the platform guard's list as `detectDeployedPlatform()` in `src/core/env.ts` has it), `watermark-pitfalls.md` (README 963–979), `security.md` (README 823–837 plus the dev mutation API's origin and path checks from `src/server/`), `risks-and-limits.md` (README 838–857, 944–949)
 - Modify: `site/src/lib/docs-config.ts`
 - Test: `tests/unit/site/docs-how.test.ts`
 
@@ -594,8 +613,9 @@ git commit -m "docs(site): add the configuration, environment and changelog refe
 // tests/unit/site/docs-how.test.ts
 // @vitest-environment node
 it('lists the deployed platforms the guard detects, as the code does', () => {
-  // read the platform list from the server guard in src/ (the env names it checks) and expect
-  // safety-switches.md to name each platform; and LIVELOCALE=off, NEXT_PUBLIC_LIVELOCALE=off, LIVELOCALE=force
+  // read the platform names detectDeployedPlatform() returns in src/core/env.ts (Vercel, Netlify, Kubernetes,
+  // Render, Fly.io, Railway, Heroku: the `return '…'` / `return `…`` literals, up to the first space or
+  // parenthesis) and expect safety-switches.md to name each; and LIVELOCALE=off, NEXT_PUBLIC_LIVELOCALE=off, LIVELOCALE=force
 });
 it('names the three zero-width characters the watermark uses', () => {
   // watermarking.md contains U+200B, U+200C, U+200D
@@ -744,7 +764,7 @@ git commit -m "docs(site): add the Studio, preview mode, teams and migration gui
 
 - Consumes: `DocShot`, `DocClip` (Task 2), `cli` fences `init-next`, `doctor-next` (Task 3), `SIDEBAR` (Task 1).
 - Page shape the test enforces on every `start/*.md`: each step is an `## N. <verb phrase>` heading; under it the action (commands in `bash` fences, code edits in `tsx`/`ts` fences), then one expected result (a `DocShot`, a `DocClip` or a `cli` fence), then a `::: details Didn't work?` container that mentions `npx livelocale doctor` and the common fixes for that step; the page ends with `## What next` linking `../guides/share-links.html`, `../guides/ci-check.html` and `../guides/studio.html#arabic-and-right-to-left`.
-- Next.js steps, in order (README 55–200 and `src/codemod/index.ts` `init`): install; mount `LiveLocaleProvider`; `npx livelocale init`; wrap translations (`createTranslations` for Server Components, `wrapTranslationEngine` for react-i18next/next-intl hooks, and `npx livelocale migrate` for existing react-i18next calls); run `next dev` and `npx livelocale studio`; Alt+Click and fix (`next-alt-click`); see the file change (`next-saved-file`, then `git diff locales/` in prose).
+- Next.js steps, in order (README 55–200 and `src/codemod/index.ts` `init`): install (`npm install livelocale`); mount `LiveLocaleProvider`; `npx livelocale init`; wrap translations (`createTranslations` for Server Components, `wrapTranslationEngine` for react-i18next/next-intl hooks, and `npx livelocale migrate` for existing react-i18next calls); run `next dev` and `npx livelocale studio`; Alt+Click and fix (`next-alt-click`); see the file change (`next-saved-file`, then `git diff locales/` in prose).
 - Front door: one-sentence promise, `StackPicker`, the three "What next" links.
 
 - [ ] **Step 1: Write the failing tests**
@@ -802,7 +822,7 @@ git commit -m "docs(site): add the getting-started front door and the Next.js pa
 **Interfaces:**
 
 - Consumes: Task 10's page shape; shots `vite-*`, `share-*`; clip `alt-click-edit`; snippets `init-share-vite`, `check-clean`.
-- Vite steps (README 510–557, `src/vite/`): install; add `liveLocaleVite({ localesPath })` to `vite.config.ts`; mount `LiveLocaleProvider`; wrap translations; run `vite` and `npx livelocale studio --app http://localhost:5173`; Alt+Click and fix; see the file change.
+- Vite steps (README 510–557, `src/server/vite-plugin.ts`): install (`npm install livelocale`); add `liveLocaleVite({ localesPath })` to `vite.config.ts`; mount `LiveLocaleProvider`; wrap translations; run `vite` and `npx livelocale studio --app http://localhost:5173`; Alt+Click and fix; see the file change.
 - Static host steps (README 213–243, 616–720, 804–822): `npx livelocale init --share` (`init-share-vite`); commit and push the workflow; tick the one checkbox; deploy; open the share link (`share-open-link`); the person fixing text Alt+Clicks, fixes, Sends (`send-link` clip); the developer gets the pull request (`share-review-mode`). "Didn't work?" points to `npx livelocale doctor --app <url>` (README 255–278).
 
 - [ ] **Step 1: Add both files to the tests; run them to verify they fail**
@@ -830,7 +850,7 @@ git commit -m "docs(site): add the Vite and static-host getting-started paths"
 
 **Files:**
 
-- Modify: `site/index.html` (header "Docs" → `docs/`; developer close "Read the README" → "Read the docs" `docs/`; fixer close: `init --share` sentence links `docs/start/static-host.html`; footer gains "Docs" `docs/` before "MIT licence"; any copy the content tasks' install-command fact check found wrong), `tests/site/static.spec.ts`
+- Modify: `site/index.html` (header "Docs" → `docs/`; developer close "Read the README" → "Read the docs" `docs/`; fixer close: `init --share` sentence links `docs/start/static-host.html`; footer gains "Docs" `docs/` before "MIT licence"; the developer story's step 1 text and step art corrected as "Decisions made by this plan" words them), `tests/site/static.spec.ts`
 - Test: `tests/site/landing-docs.spec.ts`
 
 **Interfaces:**
@@ -855,14 +875,21 @@ test('sends every Docs link to the docs, not the README', async ({ page }) => {
   await page.locator('.site-nav').getByRole('link', { name: 'Docs' }).click();
   await expect(page).toHaveURL(/\/livelocale\/docs\/$/);
 });
+test('claims only what init and the install do in 0.11.0', async ({ page }) => {
+  await page.goto('./');
+  const story = page.locator('#developer');
+  await expect(story).toContainText('npm i livelocale');
+  await expect(story).not.toContainText(/npm i -D|dev dependency|beside next dev or vite/);
+  await expect(story).toContainText('on Vite you add the plugin');
+});
 ```
 
 - [ ] **Step 2: Run it to verify it fails**
 
 Run: `npm run test:site -- landing-docs.spec.ts`
-Expected: FAIL: `a[href*="#readme"]` count is 2, expected 0.
+Expected: FAIL: `a[href*="#readme"]` count is 2, expected 0; the story still says `npm i -D`.
 
-- [ ] **Step 3: Change the links.** The keyboard test in `static.spec.ts` counts links itself, so it needs no edit.
+- [ ] **Step 3: Change the links and the step 1 copy.** The keyboard test in `static.spec.ts` counts links itself, so it needs no edit.
 
 - [ ] **Step 4: Run the tests**
 
@@ -966,9 +993,7 @@ test('compares the mechanism without naming anyone', async ({ page }) => {
     'Cost',
     'Lock-in',
   ]);
-  await expect(page.locator('body')).not.toContainText(
-    /Tolgee|Locize|Lokalise|Crowdin|Phrase|Transifex/
-  );
+  await expect(page.locator('body')).not.toContainText(COMPETITORS); // the Global Constraints regex
 });
 test('answers the seven questions, each with its docs link', async ({ page }) => {
   await page.goto('./');
@@ -1011,16 +1036,17 @@ git commit -m "feat(site): add the hosted-platform comparison and the developer 
 **Files:**
 
 - Create: `site/scripts/lighthouse.mjs` (+ `.d.mts`)
-- Modify: `site/package.json` (devDependencies `lighthouse` `^13.6.0`, `chrome-launcher` (current major); script `"lighthouse": "node scripts/lighthouse.mjs"`), `site/package-lock.json`, `site/README.md` ("Performance gate" section)
+- Modify: `site/package.json` (devDependencies `lighthouse` `^13.6.0`, `chrome-launcher` `^1.2.0`; script `"lighthouse": "node scripts/lighthouse.mjs"`), `site/package-lock.json`, `site/README.md` ("Performance gate" section)
 - Test: `tests/unit/site/lighthouse.test.ts`
 
 **Interfaces:**
 
 - `export const LH_PATHS = ['', 'docs/', 'docs/start/nextjs.html']`
-- `export type Lhr = { categories: Record<string, { score: number | null }>; audits?: Record<string, { numericValue?: number }> }`
+- `export type Lhr = { categories: Record<string, { score: number | null }>; audits?: Record<string, { numericValue?: number; details?: unknown }> }`
 - `export function assertScores(lhr: Lhr, min: number): string[]` — failure lines like `performance 0.84 < 0.9`.
-- `export function medianLhr(runs: Lhr[]): Lhr` — per category the median score (`null` sorts lowest); carries the median run's `largest-contentful-paint` numericValue.
-- Running the file serves `site/dist` with `tests/site/fixtures/serve.mjs` on port 4174 under `/livelocale/`, runs Lighthouse 3 times per path (default mobile emulation and simulated throttling; categories performance, accessibility, best-practices, seo) through `chrome-launcher` with `chromePath` = Playwright's `chromium.executablePath()`, prints each run and the median per path (four scores and LCP in ms), and exits 1 if any path's median fails `assertScores(…, 0.9)` on `performance` or `accessibility`.
+- `export function medianLhr(runs: Lhr[]): Lhr` — per category the median score (`null` sorts lowest); carries the median-performance run's `largest-contentful-paint` and `largest-contentful-paint-element` audits.
+- `lighthouse` and `chrome-launcher` are loaded with `await import()` inside the main branch only (Global Constraints, Node), so the unit test runs on Node 20.
+- Running the file spawns `node tests/site/fixtures/serve.mjs site/dist 4174 /livelocale/` (that file is a CLI with no exports) and waits until `http://localhost:4174/livelocale/` answers, runs Lighthouse 3 times per path (default mobile emulation and simulated throttling; categories performance, accessibility, best-practices, seo) through `chrome-launcher` with `chromePath` = Playwright's `chromium.executablePath()` and `chromeFlags: ['--headless=new', '--no-sandbox']` (Ubuntu 24.04 runners block Chromium's sandbox, as Playwright itself avoids), prints each run and the median per path (four scores, LCP in ms and the LCP element's selector), stops the server, and exits 1 if any path's median fails `assertScores(…, 0.9)` on `performance` or `accessibility`.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1060,7 +1086,7 @@ Expected: FAIL with "Failed to load url ../../../site/scripts/lighthouse.mjs".
 - [ ] **Step 4: Run the test and record the baseline**
 
 Run: `npx vitest run tests/unit/site/lighthouse.test.ts && npm run site:build && npm run lighthouse --prefix site`
-Expected: 3 tests PASS; the gate prints three medians. It may exit 1 here (landing LCP is about 3.6–4.3 s today); put the three medians and LCPs in the task report for Task 16. Do not add the CI step yet.
+Expected: 3 tests PASS; the gate prints three medians with their LCP and LCP element. It may exit 1 here (landing LCP is about 3.6–4.3 s today); put the three medians, LCPs and LCP elements in the task report for Task 16. Do not add the CI step yet.
 
 - [ ] **Step 5: Commit**
 
@@ -1105,16 +1131,13 @@ test('fetches no video before the page has loaded, then plays within the first s
   page,
 }) => {
   const early: string[] = [];
+  let loaded = false;
+  page.on('load', () => (loaded = true));
   page.on('request', (r) => {
-    if (/\.(webm|mp4)/.test(r.url())) early.push(r.url());
+    if (!loaded && /\.(webm|mp4)/.test(r.url())) early.push(r.url());
   });
-  await page.goto('./', { waitUntil: 'domcontentloaded' });
-  const loaded = page.evaluate(
-    () =>
-      new Promise((r) => (document.readyState === 'complete' ? r(0) : addEventListener('load', r)))
-  );
+  await page.goto('./', { waitUntil: 'load' });
   expect(early).toEqual([]); // nothing requested before load fired
-  await loaded;
   await expect
     .poll(
       () =>
@@ -1124,6 +1147,8 @@ test('fetches no video before the page has loaded, then plays within the first s
       { timeout: 4000 }
     )
     .toBe(true);
+  // then the replaced test's own assertions, unchanged: [data-playback] reads "Pause", [data-demo] has
+  // data-started, and the poster img's opacity is 0
 });
 // tests/unit/site/site-workflow.test.ts (new case)
 it('runs the Lighthouse gate after the E2E suite', () => {
@@ -1147,7 +1172,7 @@ Expected: FAIL: 0 font preloads; a `.webm` request before load; no lighthouse st
 Run: `npx vitest run tests/unit/site && npm run test:site -- smoke.spec.ts video.spec.ts docs.spec.ts && npm run lighthouse --prefix site`
 Expected: tests PASS; the gate prints each path's median.
 
-- [ ] **Step 6: Only if any median performance is still under 0.90:** read that path's LCP breakdown in the report (`lcp-breakdown-insight`: TTFB, load delay, load duration, render delay) and apply, in this order, re-running the gate after each: (a) inline the landing CSS into `index.html` with an `inlineCss()` plugin (it is about 19 KB, 5 KB gzipped, and render-blocking), with a smoke test `has no render-blocking stylesheet on the landing page` (no `link[rel=stylesheet]` in `<head>`); (b) on the docs, confirm every `DocShot` keeps `loading="lazy"` and the first screen of the measured pages holds no image; (c) anything else the report names, recorded in the task report. Never lower the floor, the number of runs or the throttling.
+- [ ] **Step 6: Only if any median performance is still under 0.90:** start from the LCP element Task 15 recorded (on a 412 px mobile viewport it is expected to be the narrow poster `<img>`, already preloaded with `fetchpriority="high"`; if it is the `h1`, the font preload is the lever) and that path's LCP breakdown (`lcp-breakdown-insight`: TTFB, load delay, load duration, render delay), then apply, in this order, re-running the gate after each: (a) inline the landing CSS into `index.html` with an `inlineCss()` plugin (it is about 19 KB, 5 KB gzipped, and render-blocking), with a smoke test `has no render-blocking stylesheet on the landing page` (no `link[rel=stylesheet]` in `<head>`); (b) on the docs, confirm every `DocShot` keeps `loading="lazy"` and the first screen of the measured pages holds no image; (c) anything else the report names, recorded in the task report. Never lower the floor, the number of runs or the throttling.
 
 Expected: median performance ≥ 0.90 and accessibility ≥ 0.90 on all three paths, exit 0.
 
@@ -1363,7 +1388,7 @@ git commit -m "feat(site): redo the social card from the real hero frame and tag
 
 - `site/LAUNCH.md`: a checkbox list `- [ ] N. (agent|owner) …`, in this order:
   1. (agent) `feat/landing` merged to `main`; on `main` the Site workflow's tests (Chromium, WebKit, Firefox), the accessibility gate and the Lighthouse gate are green; `SITE_LIVE` unset, so nothing has deployed.
-  2. (owner) Run the Site workflow once by `workflow_dispatch`: the hidden preview at `https://araby99.github.io/livelocale/` and `https://araby99.github.io/livelocale/docs/`, linked from nowhere.
+  2. (owner) With Settings → Pages → Source set to GitHub Actions (`site/README.md`, Deploy), run the Site workflow once by `workflow_dispatch`: the hidden preview at `https://araby99.github.io/livelocale/` and `https://araby99.github.io/livelocale/docs/`, linked from nowhere.
   3. (owner) Check the preview on a real phone and a computer: the hero video plays muted with a working pause, the door switch, the Arabic clip, the FAQ, the docs search, the Next.js getting-started page, no sideways scroll.
   4. (owner) Open the js.org pull request (`site/README.md`, "Claiming livelocale.js.org") against the preview; wait for the merge.
   5. (owner) Domain switch: repository variable `SITE_URL` = `https://livelocale.js.org/`; Settings → Pages custom domain `livelocale.js.org` with Enforce HTTPS. No `CNAME` file.
