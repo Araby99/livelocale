@@ -41,3 +41,16 @@ it('runs the Lighthouse gate after the E2E suite', () => {
     wf.indexOf('npm run test:site')
   );
 });
+
+it('runs the Lighthouse gate in its own job, which deploy does not wait on', () => {
+  const lines = wf.replace(/\r\n/g, '\n');
+  const job = (name: string) => {
+    const m = new RegExp(`\\n  ${name}:\\n([\\s\\S]*?)(?=\\n  \\w[\\w-]*:\\n|$)`).exec(lines);
+    expect(m, `job ${name}`).not.toBeNull();
+    return m![1]!;
+  };
+  expect(job('lighthouse')).toContain('npm run lighthouse --prefix site');
+  expect(job('test')).not.toContain('npm run lighthouse --prefix site');
+  expect(job('deploy')).toMatch(/^ {4}needs: test$/m);
+  expect(job('deploy')).not.toContain('lighthouse');
+});

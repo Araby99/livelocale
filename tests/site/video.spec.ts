@@ -2,6 +2,8 @@ import { test, expect, type Page } from '@playwright/test';
 
 const video = (page: Page) => page.locator('[data-demo] video');
 const playing = (page: Page) => video(page).evaluate((v: HTMLVideoElement) => !v.paused);
+// Autoplay waits about 2 s after load and for an idle moment; this covers the hold on a slow host.
+const afterHold = { timeout: 8000 };
 
 test('marks the video up to stay light, with a preloaded poster per cut', async ({ page }) => {
   await page.goto('./');
@@ -29,25 +31,46 @@ test('marks the video up to stay light, with a preloaded poster per cut', async 
   await expect(page.getByText('Tidewell is a fictional demo site')).toBeAttached();
 });
 
-test('fetches no video before the page has loaded, then plays within the first seconds', async ({
+test('fetches no video until about 2 s after the page has loaded, then plays by itself', async ({
   page,
 }) => {
-  const early: string[] = [];
-  let loaded = false;
-  page.on('load', () => (loaded = true));
+  const requests: { url: string; at: number }[] = [];
+  let loadedAt = Infinity;
+  page.on('load', () => (loadedAt = Date.now()));
   page.on('request', (r) => {
-    if (!loaded && /\.(webm|mp4)/.test(r.url())) early.push(r.url());
+    if (/\.(webm|mp4)/.test(r.url())) requests.push({ url: r.url(), at: Date.now() });
   });
   await page.goto('./', { waitUntil: 'load' });
-  expect(early).toEqual([]); // nothing requested before load fired
+  // The hold: the poster stays the only hero image through load and for about 2 s after it.
+  await page.waitForTimeout(1500);
+  expect(requests).toEqual([]);
   await expect
-    .poll(() => video(page).evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.5), {
-      timeout: 4000,
-    })
+    .poll(
+      () => video(page).evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.5),
+      afterHold
+    )
     .toBe(true);
+  expect(requests[0]!.at - loadedAt).toBeGreaterThanOrEqual(1900);
   await expect(page.locator('[data-playback]')).toHaveText('Pause');
   await expect(page.locator('[data-demo]')).toHaveAttribute('data-started', '');
   await expect(page.locator('[data-demo] .poster img')).toHaveCSS('opacity', '0');
+});
+
+test('starts at once from a chapter chip or Play during the hold', async ({ page }) => {
+  await page.goto('./', { waitUntil: 'load' });
+  await page.getByRole('button', { name: /Get a pull request/ }).click();
+  await expect(video(page).locator('source')).toHaveCount(2, { timeout: 500 });
+  await expect.poll(() => playing(page), { timeout: 1500 }).toBe(true);
+
+  await page.goto('./', { waitUntil: 'load' });
+  const button = page.locator('[data-playback]');
+  await button.click(); // Pause before the hold ends: it stays still
+  await page.waitForTimeout(2500);
+  await expect(video(page).locator('source')).toHaveCount(0);
+  await expect(button).toHaveText('Play');
+  await button.click();
+  await expect(video(page).locator('source')).toHaveCount(2, { timeout: 500 });
+  await expect.poll(() => playing(page), { timeout: 1500 }).toBe(true);
 });
 
 test('fits the playing video, its chips and the pause button in a 1440 x 900 screen', async ({
@@ -66,14 +89,14 @@ test('plays the narrow 4:5 cut on a phone and the wide 2:1 cut on a desktop', as
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./');
   await expect
-    .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc))
+    .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc), afterHold)
     .toMatch(/hero-narrow-[\w-]+\.webm$/);
   const phone = (await page.locator('[data-demo] .screen').boundingBox())!;
   expect(phone.width / phone.height).toBeCloseTo(0.8, 1);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('./');
   await expect
-    .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc))
+    .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc), afterHold)
     .toMatch(/hero-wide-[\w-]+\.webm$/);
   const desk = (await page.locator('[data-demo] .screen').boundingBox())!;
   expect(desk.width / desk.height).toBeCloseTo(2, 1);
@@ -81,7 +104,7 @@ test('plays the narrow 4:5 cut on a phone and the wide 2:1 cut on a desktop', as
 
 test('attaches webm then mp4, plays, and pauses from the visible button', async ({ page }) => {
   await page.goto('./');
-  await expect(video(page).locator('source')).toHaveCount(2);
+  await expect(video(page).locator('source')).toHaveCount(2, afterHold);
   expect(
     await video(page)
       .locator('source')
@@ -114,7 +137,7 @@ test('seeks from a chapter chip and marks it current', async ({ page }) => {
 
 test('pauses when the video scrolls off screen', async ({ page }) => {
   await page.goto('./');
-  await expect.poll(() => playing(page)).toBe(true);
+  await expect.poll(() => playing(page), afterHold).toBe(true);
   await page.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
   await expect.poll(() => playing(page)).toBe(false);
 });

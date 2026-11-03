@@ -192,10 +192,11 @@ keeps the near-lossless master for frame-by-frame review.
   screen, so the first paint shows it) and one frame per story step in `site/media/hero/frames/`.
   It writes each still's provenance (the video and second it comes from) to a `.json` sidecar.
 
-The page picks the cut by viewport (`(max-width: 639px)` is the narrow one) and attaches it once
-the window has loaded and the video is on screen, so the video's bytes never compete with the
-poster, the CSS and the headline font before the first paint, and it is still playing within the
-first seconds. A chapter or Play click attaches it at once.
+The page picks the cut by viewport (`(max-width: 639px)` is the narrow one). Autoplay is held
+until about 2 s after the window has loaded and the page is idle, and the cut attaches only then and
+while the video is on screen, so the video's bytes never compete with the poster, the CSS and the
+headline font, and the poster (with the fix already on it) stays the largest paint. A chapter or
+Play click attaches it and plays at once; under reduced motion it never starts by itself.
 
 ## The live demo
 

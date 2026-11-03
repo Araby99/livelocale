@@ -1,9 +1,10 @@
 // The hero video: the poster is a <picture> in the HTML (the LCP, a frame with the fix already
-// made); the sources attach once the window has loaded and the video is on screen, so the video's
-// bytes never compete with the poster, the CSS and the headline font before the first paint, and it
-// is still playing within the first seconds. A chapter or Play click attaches them at once. A
-// phone gets the narrow 4:5 cut, anything wider the 2:1 cut. It pauses offscreen and in a hidden tab, never starts by itself under
-// prefers-reduced-motion, and keeps its chapter chips in step with the frame on screen.
+// made). Autoplay is held until about 2 s after the window has loaded and the main thread is idle,
+// and the sources attach only then and while the video is on screen, so the video's bytes never
+// compete with the poster, the CSS and the headline font and the poster stays the page's largest
+// paint. A chapter or Play click attaches them and plays at once. A phone gets the narrow 4:5 cut,
+// anything wider the 2:1 cut. It pauses offscreen and in a hidden tab, never starts by itself
+// under prefers-reduced-motion, and keeps its chapter chips in step with the frame on screen.
 
 export interface DemoSources {
   webm: string;
@@ -14,6 +15,9 @@ export interface DemoCuts {
   wide: DemoSources;
   narrow: DemoSources;
 }
+
+/** How long after the window's load event autoplay waits (then for an idle moment). */
+const AUTOPLAY_HOLD_MS = 2000;
 
 /** The viewport the narrow cut is for; it matches the CSS that frames it at 4:5. */
 export const NARROW_QUERY = '(max-width: 639px)';
@@ -64,7 +68,7 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: numb
   let wanted = !reduced.matches; // what the visitor asked for: play, or stay still
   let attached = false;
   let onScreen = false;
-  let loaded = document.readyState === 'complete';
+  let held = true; // autoplay waits for the hold after load; a click does not
 
   video.muted = true; // the attribute alone is not always reflected as the property
 
@@ -94,7 +98,7 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: numb
   };
 
   const sync = () => {
-    if (wanted && onScreen && !document.hidden && (loaded || attached)) {
+    if (wanted && onScreen && !document.hidden && (!held || attached)) {
       attach();
       video.play().catch(() => {
         // Data saver or low-power mode refused: leave the poster and offer Play.
@@ -165,15 +169,18 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: numb
     sync();
   });
   document.addEventListener('visibilitychange', sync);
-  if (!loaded)
-    window.addEventListener(
-      'load',
-      () => {
-        loaded = true;
-        sync();
-      },
-      { once: true }
-    );
+  const release = () => {
+    held = false;
+    sync();
+  };
+  const hold = () =>
+    setTimeout(() => {
+      if (typeof requestIdleCallback === 'function')
+        requestIdleCallback(release, { timeout: 1000 });
+      else release();
+    }, AUTOPLAY_HOLD_MS);
+  if (document.readyState === 'complete') hold();
+  else window.addEventListener('load', hold, { once: true });
 
   if (typeof IntersectionObserver === 'undefined') {
     onScreen = true;

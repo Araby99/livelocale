@@ -43,6 +43,40 @@ jobs:
       - name: Run Site E2E Tests
         run: npm run test:site
 
+  # The mobile Lighthouse gate (median of 3 runs on the landing and getting-started pages). It runs
+  # on its own and deploy does not wait on it until the first CI medians are measured on the
+  # hidden-preview run; going live waits on this job being green there.
+  lighthouse:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Build Library & Studio
+        run: npm run build
+
+      - name: Install Site Dependencies
+        run: npm ci --prefix site
+
+      # The gate serves site/dist under /livelocale/, so it measures a build on that base.
+      - name: Build Site
+        run: npm run site:build
+        env:
+          SITE_URL: http://localhost:4174/livelocale/
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Run Lighthouse Gate
         run: npm run lighthouse --prefix site
 
