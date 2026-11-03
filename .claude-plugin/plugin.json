@@ -1,0 +1,11 @@
+{
+  "name": "livelocale",
+  "description": "Teaches your coding agent to add livelocale to a project, turn on share links, run check --hardcoded in CI and fix setup problems.",
+  "author": {
+    "name": "Araby99"
+  },
+  "homepage": "https://livelocale.js.org/docs/guides/ai-agents.html",
+  "repository": "https://github.com/Araby99/livelocale",
+  "license": "MIT",
+  "keywords": ["i18n", "translation", "nextjs", "vite", "react"]
+}

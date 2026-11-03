@@ -84,6 +84,15 @@ it.each([
     ],
   ],
   [
+    'guides/ai-agents.md',
+    [
+      'What the skill does',
+      'Install it in Claude Code',
+      'Use it with other agents',
+      'Docs for agents that read them',
+    ],
+  ],
+  [
     'guides/migrate.md',
     [
       'Install the new package',

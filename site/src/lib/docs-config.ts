@@ -37,6 +37,7 @@ export const SIDEBAR: SidebarGroup[] = [
       { text: 'The Studio', link: '/guides/studio' },
       { text: 'Preview mode', link: '/guides/preview-mode' },
       { text: 'Teams and enterprise setups', link: '/guides/teams' },
+      { text: 'AI coding agents', link: '/guides/ai-agents' },
       { text: 'Migrating from next-i18n-lens', link: '/guides/migrate' },
     ],
   },
