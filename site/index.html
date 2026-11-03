@@ -98,7 +98,7 @@
         <nav class="site-nav" aria-label="Main">
           <ul>
             <li><a href="https://github.com/Araby99/livelocale">GitHub</a></li>
-            <li><a href="https://github.com/Araby99/livelocale#readme">Docs</a></li>
+            <li><a href="docs/">Docs</a></li>
           </ul>
         </nav>
       </div>
@@ -261,13 +261,13 @@
                 <span class="step-n" aria-hidden="true">1</span>
                 <h3>Install it and run init</h3>
                 <p>
-                  One dev dependency with no runtime dependencies. <code>init</code> sets up the
-                  Studio beside <code>next dev</code> or <code>vite</code>;
-                  <code>init --share</code> adds share links for any static host and, on GitHub, the
-                  workflow that turns them into pull requests.
+                  One dependency, with no dependencies of its own. <code>init</code> sets up a
+                  Next.js app; on Vite you add the plugin. <code>init --share</code> adds share
+                  links for any static host and, on GitHub, the workflow that turns them into pull
+                  requests.
                 </p>
               </div>
-              <pre class="code step-art"><code><span class="c-prompt">$</span> npm i -D livelocale
+              <pre class="code step-art"><code><span class="c-prompt">$</span> npm i livelocale
 <span class="c-prompt">$</span> npx livelocale init
 
 <span class="c-comment"># share links on any static host, plus the GitHub workflow</span>
@@ -514,7 +514,7 @@
               </span>
             </button>
             <p class="start-links">
-              <a href="https://github.com/Araby99/livelocale#readme">Read the README</a>
+              <a href="docs/">Read the docs</a>
               <a href="https://github.com/Araby99/livelocale">Source on GitHub</a>
             </p>
             <p class="start-note">Free, MIT, no account, no server.</p>
@@ -535,7 +535,8 @@
             </p>
             <p class="start-note">
               No account, no git, nothing to install. For your own site, your developer runs
-              <code>npx livelocale init --share</code> once and sends you the link.
+              <a href="docs/start/static-host.html"><code>npx livelocale init --share</code></a>
+              once and sends you the link.
             </p>
           </div>
         </div>
@@ -549,6 +550,7 @@
         <ul class="footer-links">
           <li><a href="https://github.com/Araby99/livelocale">GitHub</a></li>
           <li><a href="https://www.npmjs.com/package/livelocale">npm</a></li>
+          <li><a href="docs/">Docs</a></li>
           <li>
             <a href="https://github.com/Araby99/livelocale/blob/main/LICENSE">MIT licence</a>
           </li>
