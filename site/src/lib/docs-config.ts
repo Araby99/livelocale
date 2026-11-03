@@ -21,7 +21,13 @@ export interface SidebarGroup {
 /** Every docs page, once, in reading order. Links are VitePress paths under the docs base. */
 export const SIDEBAR: SidebarGroup[] = [
   { text: 'Get started', items: [{ text: 'Pick your stack', link: '/' }] },
-  { text: 'Guides', items: [] },
+  {
+    text: 'Guides',
+    items: [
+      { text: 'Share links', link: '/guides/share-links' },
+      { text: 'Catch untranslated text in CI', link: '/guides/ci-check' },
+    ],
+  },
   {
     text: 'How it works',
     items: [
