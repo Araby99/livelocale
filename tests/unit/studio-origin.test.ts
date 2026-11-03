@@ -182,3 +182,41 @@ describe('followNavigation', () => {
     expect(loc.reload).not.toHaveBeenCalled();
   });
 });
+
+// The NAVIGATE branch in src/client/index.ts is exactly these two calls.
+describe('NAVIGATE handling (navigationHref then followNavigation)', () => {
+  const navigate = (
+    loc: { href: string; origin: string; assign: (u: string) => void; reload: () => void },
+    payload: unknown
+  ) => {
+    const href = navigationHref(payload, loc.origin);
+    if (href !== null) followNavigation(loc, href);
+  };
+  const make = () => ({
+    href: 'http://localhost:3020/?tab=3#faq',
+    origin: 'http://localhost:3020',
+    assign: vi.fn(),
+    reload: vi.fn(),
+  });
+
+  it('reloads when the Studio sends the current URL that has a hash', () => {
+    const loc = make();
+    navigate(loc, { url: 'http://localhost:3020/?tab=3#faq' });
+    expect(loc.reload).toHaveBeenCalledTimes(1);
+    expect(loc.assign).not.toHaveBeenCalled();
+  });
+
+  it('assigns another page on its own origin', () => {
+    const loc = make();
+    navigate(loc, { url: 'http://localhost:3020/about/' });
+    expect(loc.assign).toHaveBeenCalledWith('http://localhost:3020/about/');
+    expect(loc.reload).not.toHaveBeenCalled();
+  });
+
+  it('does nothing for a refused URL', () => {
+    const loc = make();
+    navigate(loc, { url: 'http://evil.example/' });
+    expect(loc.assign).not.toHaveBeenCalled();
+    expect(loc.reload).not.toHaveBeenCalled();
+  });
+});
