@@ -32,7 +32,7 @@ export const PNG_PROVENANCE = {
   'favicon-32.png': FROM_MARK,
   'apple-touch-icon.png': FROM_MARK,
   'avatar-512.png': `${RENDERED} brand/src/avatar.html: the dark livelocale mark centred on Night #0C0D0F, 512 px.`,
-  'og-image.png': `${RENDERED} brand/src/og.html: the hunk diff-pair headline card with the livelocale mark, the npx livelocale init command and livelocale.js.org, beside the landing page's product window showing site/media/hero/poster.png, frame 0 of the real hero recording made by site/scripts/record-hero.mjs (the real livelocale share Studio on the Tidewell stage site, not generated), 1200x630.`,
+  'og-image.png': `${RENDERED} brand/src/og.html: the hunk diff-pair headline card with the livelocale mark, the npm install livelocale command and livelocale.js.org, beside the landing page's product window showing site/media/hero/poster.png, frame 0 of the real hero recording made by site/scripts/record-hero.mjs (the real livelocale share Studio on the Tidewell stage site, not generated), 1200x630.`,
 };
 
 /**
