@@ -60,7 +60,8 @@ test('serves every docs request under the /livelocale/ base', async ({ page }) =
 test('wears the landing page: Night, Paper, the same brand and nav', async ({ page }) => {
   await page.goto('./');
   const landingMark = await page.locator('.site-header .brand svg').evaluate((el) => el.outerHTML);
-  await page.goto('docs/');
+  // A stack page: the front door holds no inline code and no link inside a paragraph.
+  await page.goto('docs/start/nextjs.html');
   await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(12, 13, 15)');
   await expect(page.locator('body')).toHaveCSS('color', 'rgb(232, 228, 217)');
   const font = (selector: string) =>
@@ -190,6 +191,16 @@ test('finds the check reference with the offline search', async ({ page }) => {
   expect(
     hrefs.some((href) => /\/livelocale\/docs\/reference\/cli\/check\.html(#|$)/.test(href))
   ).toBe(true);
+});
+
+test('picks a stack from the front door', async ({ page }) => {
+  await page.goto('docs/');
+  await page
+    .locator('.vp-doc')
+    .getByRole('link', { name: /Next\.js \(App Router\)/ })
+    .click();
+  await expect(page).toHaveURL(/\/livelocale\/docs\/start\/nextjs\.html$/);
+  await expect(page.locator('.vp-doc h1')).toBeVisible();
 });
 
 test('has no horizontal scroll at 360 px on the docs front door', async ({ page }) => {

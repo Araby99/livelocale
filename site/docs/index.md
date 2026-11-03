@@ -3,36 +3,36 @@ title: Get started
 description: Set up livelocale in your app, then fix text on the real site and get the change back as a file edit or a pull request.
 ---
 
+<script setup>
+const stacks = [
+  {
+    title: 'Next.js (App Router)',
+    text: 'Mount the provider, let init write the API route, and fix text in the Studio beside next dev.',
+    href: './start/nextjs.html',
+  },
+  {
+    title: 'Vite + React',
+    text: 'Add the Vite plugin, mount the provider, and fix text in the Studio beside vite.',
+    href: './start/vite.html',
+  },
+  {
+    title: 'Any static host (share links)',
+    text: 'Ship the Studio inside your build; anyone fixes text on the deployed site and you get a pull request.',
+    href: './start/static-host.html',
+  },
+];
+</script>
+
 # Get started
 
-livelocale lets anyone on your team fix your site's text on the site itself, in every language, and turns those fixes into a pull request. It is free and open source, on [GitHub](https://github.com/Araby99/livelocale).
-
-Install it in your app as a dependency, `npm install livelocale`:
-
-```sh
-npm install livelocale
-```
+livelocale lets anyone on your team fix your site's text on the site itself, in every language, and turns each fix into a file edit or a pull request.
 
 ## Pick your stack
 
-- Next.js (App Router)
-- Vite + React
-- Any static host (share links)
+<StackPicker :stacks="stacks" />
 
-<DocShot name="next-studio-open" alt="The livelocale Studio beside a running Next.js app: the Locale Directory lists the keys, the live preview shows the page, and the editor waits for a pick." caption="The Studio, open beside your running app." />
+## What next
 
-::: details Didn't work?
-Run `npx livelocale doctor` in your project. It checks the project for common integration problems: the route, the provider, middleware, CSP and locales.
-:::
-
-## See it work
-
-<DocClip name="alt-click-edit" label="Alt+Click the headline on the Tidewell demo site, fix the typo in the editor and save it." caption="Hold Alt and click any text to edit it." />
-
-## Check it in CI
-
-`npx livelocale check` checks your translations for missing keys, placeholder drift, broken ICU syntax and unused keys. With `--hardcoded` it also finds text never passed through translation. It exits 1 on a problem, so the CI job fails:
-
-```cli check-hardcoded
-
-```
+- [Share links](./guides/share-links.html): let someone fix text on the deployed site, with no account and no install.
+- [Catch untranslated text in CI](./guides/ci-check.html): fail the build on missing keys, placeholder drift and hardcoded text.
+- [Arabic and right to left](./guides/studio.html#arabic-and-right-to-left): edit an Arabic site in a Studio that reads right to left.
