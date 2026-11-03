@@ -178,6 +178,13 @@ describe('packOutput', () => {
     expect(r.htmlInjected).toContain('404.html');
   });
 
+  it('hides only the named not-found pages', async () => {
+    removeShareProjects();
+    setup({ 'out/_not-found/index.html': APP_HTML, 'out/404-help.html': APP_HTML });
+    const r = await pack();
+    expect(r.manifest.pages).toEqual(['/', '/404-help.html', '/_not-found/', '/docs/a.html']);
+  });
+
   it('lists non-ASCII pages as written', async () => {
     removeShareProjects();
     setup({ 'out/مدونة/index.html': APP_HTML });

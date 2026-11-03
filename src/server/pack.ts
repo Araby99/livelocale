@@ -289,7 +289,7 @@ export function pagePathOf(rel: string): string {
 
 /** Not-found pages, which nobody opens on purpose: `404.html`, `_not-found.html`, `404/*.html`. */
 function isNotFoundPage(rel: string): boolean {
-  return /^(?:404|_not-found)(?:\.html|\/)/.test(rel);
+  return /^(?:(?:404|_not-found)\.html$|404\/)/.test(rel);
 }
 
 export function pagesTruncatedWarning(total: number): string {
