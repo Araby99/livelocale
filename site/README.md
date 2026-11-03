@@ -81,6 +81,26 @@ In a page: `<DocShot name="next-alt-click" alt="…" caption="…" />` and
 `<DocClip name="send-link" label="…" caption="…" />`. An unknown name or an empty `alt` or `label`
 fails the build, and a unit test checks every page's tags against the manifest.
 
+## Performance gate
+
+`site/scripts/lighthouse.mjs` runs Lighthouse on the built site, as a phone sees it:
+
+```sh
+npm run build
+npm run site:build
+npm run lighthouse --prefix site
+```
+
+- It serves `site/dist` under `/livelocale/` on port 4174 (`tests/site/fixtures/serve.mjs`; a
+  server already answering there stops the run) and measures `LH_PATHS`: the landing page, the
+  docs front door `docs/` and `docs/start/nextjs.html`.
+- Each page is run 3 times with Lighthouse's default mobile emulation and simulated throttling, in
+  Playwright's Chromium (`--headless=new --no-sandbox`) launched by `chrome-launcher`. It prints
+  every run and the median: performance, accessibility, best practices and SEO, the LCP in ms and
+  the LCP element's selector.
+- It exits 1 when a page's median performance or accessibility is under 0.9.
+- Lighthouse 13 needs Node 22.19 or later.
+
 ## Test
 
 ```sh
