@@ -512,6 +512,137 @@
         </figure>
       </section>
 
+      <section class="col compare" id="compare" aria-labelledby="compare-title">
+        <div class="compare-text">
+          <h2 id="compare-title">Why not a hosted translation platform?</h2>
+          <p>
+            Both let someone fix text without opening your code. They differ in where the fix lives
+            and what you sign up for.
+          </p>
+        </div>
+        <div class="compare-scroll" role="region" aria-labelledby="compare-caption" tabindex="0">
+          <table class="compare-table">
+            <caption id="compare-caption">
+              How a fix travels, side by side.
+              <span class="compare-hint">Scroll the table sideways for the second column.</span>
+            </caption>
+            <thead>
+              <tr>
+                <td></td>
+                <th scope="col">livelocale</th>
+                <th scope="col">A hosted translation platform</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Where the edit goes</th>
+                <td>
+                  A pull request in your repository, or straight into your locale files in
+                  development.
+                </td>
+                <td>Into the platform’s dashboard, then synced back to your repository.</td>
+              </tr>
+              <tr>
+                <th scope="row">Account needed</th>
+                <td>No. There is no livelocale account, for you or for the person fixing text.</td>
+                <td>Yes, on the platform, usually one per person.</td>
+              </tr>
+              <tr>
+                <th scope="row">Server needed</th>
+                <td>
+                  No. The Studio runs beside your dev server, or ships inside your build as a share
+                  link.
+                </td>
+                <td>Yes. The platform’s servers hold your strings.</td>
+              </tr>
+              <tr>
+                <th scope="row">Cost</th>
+                <td>Free, MIT licence.</td>
+                <td>Usually a subscription, priced by seats or strings.</td>
+              </tr>
+              <tr>
+                <th scope="row">Lock-in</th>
+                <td>None. Your translations stay as JSON files in your git.</td>
+                <td>Your strings live on the platform; leaving takes an export.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="col faq" id="faq" aria-labelledby="faq-title">
+        <h2 id="faq-title">Questions developers ask</h2>
+        <div class="faq-list">
+          <details>
+            <summary>Does anything ship to production?</summary>
+            <p>
+              livelocale is on only when <code>NODE_ENV</code> is <code>development</code>, or when
+              you switch preview mode on with <code>LIVELOCALE=preview</code>. In a production build
+              there are no watermarks, the mutation API refuses every request and the in-page client
+              stays off.
+              <a href="docs/how-it-works/safety-switches.html">Read about the safety switches</a>
+            </p>
+          </details>
+          <details>
+            <summary>Is it secure?</summary>
+            <p>
+              In development the mutation API takes writes only from <code>localhost</code> and the
+              origins you allow, only as JSON, and only inside your locales folder. A share link
+              holds no credential: a leaked link only proposes text, and a person still merges the
+              pull request.
+              <a href="docs/how-it-works/security.html">Read how it is secured</a>
+            </p>
+          </details>
+          <details>
+            <summary>We don't use GitHub. Does it work?</summary>
+            <p>
+              Yes. In development the Studio writes to the locale files on your machine, so any git
+              host works. For a share link,
+              <code>npx livelocale apply "&lt;link&gt;" --pr</code> commits the fix on a new branch
+              with your own git login and pushes it, ready for a pull or merge request.
+              <a href="docs/guides/share-links.html#other-git-hosts">Share links on other git hosts</a>
+            </p>
+          </details>
+          <details>
+            <summary>Which i18n libraries does it work with?</summary>
+            <p>
+              Keep next-intl or react-i18next: wrap the <code>t</code> you already have with
+              <code>wrapTranslationEngine</code>. In Server Components,
+              <code>createTranslations</code> loads your JSON locale files directly.
+              <a href="docs/">Pick your stack in the docs</a>
+            </p>
+          </details>
+          <details>
+            <summary>Does it work with a static export?</summary>
+            <p>
+              Yes. For Next.js <code>output: 'export'</code>,
+              <code>livelocale build --preview -- next build</code> watermarks the pre-rendered pages
+              and packs the Studio into the build. Deploy that build to a staging location, not to
+              production.
+              <a href="docs/reference/cli/build.html">Read the build reference</a>
+            </p>
+          </details>
+          <details>
+            <summary>What does it cost?</summary>
+            <p>
+              Nothing. livelocale is free and open source under the MIT licence, with no account to
+              make and no server to run.
+              <a href="https://github.com/Araby99/livelocale/blob/main/LICENSE">Read the licence</a>
+            </p>
+          </details>
+          <details>
+            <summary>Is my content sent anywhere?</summary>
+            <p>
+              Not by livelocale: there is no livelocale server and no analytics. In development the
+              Studio talks only to your own dev server; on a share link, fixes stay in the person’s
+              browser until they send you a change link. The share link’s manifest is public,
+              though: it lists every string and key name.
+              <a href="docs/how-it-works/security.html#share-links">What a share link makes public</a>
+            </p>
+          </details>
+        </div>
+      </section>
+
       <section class="col" aria-labelledby="works-title">
         <div class="works">
           <h2 id="works-title">Works where you already are</h2>

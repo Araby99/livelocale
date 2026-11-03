@@ -18,10 +18,17 @@ test.describe('without JavaScript', () => {
       level: 2,
       name: 'Arabic, right to left, done properly',
     });
+    const compare = page.getByRole('heading', {
+      level: 2,
+      name: 'Why not a hosted translation platform?',
+    });
+    const faq = page.getByRole('heading', { level: 2, name: 'Questions developers ask' });
     const works = page.getByRole('heading', { level: 2, name: 'Works where you already are' });
     await expect(arabic).toBeVisible();
+    await expect(compare).toBeVisible();
+    await expect(faq).toBeVisible();
     const ys = await Promise.all(
-      [developer, fixer, arabic, works].map(async (h) => (await h.boundingBox())!.y)
+      [developer, fixer, arabic, compare, faq, works].map(async (h) => (await h.boundingBox())!.y)
     );
     expect([...ys].sort((a, b) => a - b)).toEqual(ys);
     for (const h of [
@@ -175,7 +182,9 @@ test('reaches every control by keyboard with a visible patch ring', async ({ pag
   await page.goto('./');
   // One Tab stop for the radio group (arrows move inside it), so count it once.
   const stops =
-    (await page.locator('a[href]:visible, button:visible, summary:visible').count()) + 1;
+    (await page
+      .locator('a[href]:visible, button:visible, summary:visible, [tabindex="0"]:visible')
+      .count()) + 1;
   const seen = new Set<string>();
   for (let i = 0; i < stops; i++) {
     await page.keyboard.press('Tab');
