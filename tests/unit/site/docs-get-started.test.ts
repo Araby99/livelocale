@@ -15,33 +15,40 @@ function steps(md: string): string[] {
     .map((step) => step.split(/^## /m)[0]!);
 }
 
-it.each(['start/nextjs.md'])('%s shows what "it worked" looks like after every step', (file) => {
-  const found = steps(page(file));
-  expect(found.length).toBeGreaterThan(0);
-  const problems: string[] = [];
-  for (const step of found) {
-    const title = step.split(/\r?\n/)[0];
-    if (!/<DocShot |<DocClip |^```cli /m.test(step)) problems.push(`${title}: no expected result`);
-    const details = /^::: details Didn't work\?\r?\n([\s\S]*?)^:::$/m.exec(step);
-    if (!details) problems.push(`${title}: no "Didn't work?" block`);
-    else if (!details[1]!.includes('npx livelocale doctor'))
-      problems.push(`${title}: "Didn't work?" does not mention npx livelocale doctor`);
+it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
+  '%s shows what "it worked" looks like after every step',
+  (file) => {
+    const found = steps(page(file));
+    expect(found.length).toBeGreaterThan(0);
+    const problems: string[] = [];
+    for (const step of found) {
+      const title = step.split(/\r?\n/)[0];
+      if (!/<DocShot |<DocClip |^```cli /m.test(step))
+        problems.push(`${title}: no expected result`);
+      const details = /^::: details Didn't work\?\r?\n([\s\S]*?)^:::\r?$/m.exec(step);
+      if (!details) problems.push(`${title}: no "Didn't work?" block`);
+      else if (!details[1]!.includes('npx livelocale doctor'))
+        problems.push(`${title}: "Didn't work?" does not mention npx livelocale doctor`);
+    }
+    expect(problems).toEqual([]);
   }
-  expect(problems).toEqual([]);
-});
+);
 
-it.each(['start/nextjs.md'])('%s ends with the three next steps', (file) => {
-  const md = page(file);
-  const next = md.split(/^## What next$/m);
-  expect(next).toHaveLength(2);
-  expect(next[1]).not.toMatch(/^## /m);
-  for (const href of [
-    '../guides/share-links.html',
-    '../guides/ci-check.html',
-    '../guides/studio.html#arabic-and-right-to-left',
-  ])
-    expect(next[1]).toContain(`(${href})`);
-});
+it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
+  '%s ends with the three next steps',
+  (file) => {
+    const md = page(file);
+    const next = md.split(/^## What next$/m);
+    expect(next).toHaveLength(2);
+    expect(next[1]).not.toMatch(/^## /m);
+    for (const href of [
+      '../guides/share-links.html',
+      '../guides/ci-check.html',
+      '../guides/studio.html#arabic-and-right-to-left',
+    ])
+      expect(next[1]).toContain(`(${href})`);
+  }
+);
 
 it('opens the docs on the stack picker, not an overview', () => {
   const md = page('index.md');

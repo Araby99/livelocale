@@ -25,6 +25,8 @@ export const SIDEBAR: SidebarGroup[] = [
     items: [
       { text: 'Pick your stack', link: '/' },
       { text: 'Next.js', link: '/start/nextjs' },
+      { text: 'Vite + React', link: '/start/vite' },
+      { text: 'Any static host', link: '/start/static-host' },
     ],
   },
   {
