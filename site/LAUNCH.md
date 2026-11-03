@@ -25,14 +25,18 @@ changes the repository settings; those steps are the owner's.
      the URL into the LinkedIn Post Inspector to confirm the og-image; view the page source and
      check `<meta name="robots" content="index, follow, …">` (the preview's `noindex` is gone).
 - [ ] 8. (agent, on the owner's go) The go-live README commit: copy `site/launch/README.md` over
-     `README.md`, set `package.json` `homepage` to `https://livelocale.js.org/`, check that
-     `npm test` passes (the publish workflow runs it before `npm publish`), and commit
+     `README.md`, copy `site/launch/marketplace.json` to `.claude-plugin/marketplace.json` (the
+     Claude Code marketplace goes live only now, because every link in the skill points at
+     `https://livelocale.js.org/`), set `package.json` `homepage` to `https://livelocale.js.org/`,
+     check that `npm test` passes (the publish workflow runs it before `npm publish`), and commit
      `docs: shrink the README to the pitch and links to the docs`.
 - [ ] 9. (owner) The README-only 0.11.1 release, created by the owner as for every release, so npm
      shows the short README and the new homepage. It carries the step 8 commit and no code
      changes.
 - [ ] 10. (owner) Set the GitHub repository's website to `https://livelocale.js.org/`; set
       `brand/avatar-512.png` as the GitHub avatar and as the Gravatar of the npm account's email.
+      Once step 8 is on `main`, check the plugin in a Claude Code session:
+      `/plugin marketplace add Araby99/livelocale`, then `/plugin install livelocale@livelocale`.
 
 ## Search engines and AI assistants
 

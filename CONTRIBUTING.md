@@ -63,5 +63,8 @@ Versions and the changelog are managed with [Changesets](https://github.com/chan
    ```bash
    npm run version
    ```
+   Set the same version in `plugins/livelocale/.claude-plugin/plugin.json`, so the Claude Code
+   plugin updates with the npm release and its skill describes that release; a unit test fails
+   until the two match.
 3. Commit the result, push, and create a GitHub release tagged `vX.Y.Z`. The publish workflow
    builds, tests, and publishes to npm with provenance.

@@ -23,13 +23,14 @@ It finds your stack and changes its build so the build also writes the Studio, t
 
 ```
 
-On Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. On CRA, webpack and Rsbuild it adds `livelocale pack build` after the bundler in the `build` script; on Next.js it adds a `build:preview` script that runs `livelocale build --preview -- next build`. The whole table, and setting the build up by hand, are in [Share links](../guides/share-links.md#set-up).
+On Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. On CRA it adds `livelocale pack build --locales <path> --source <locale>` after the bundler in the `build` script, and on webpack and Rsbuild the same command packing `dist`; on Next.js it adds a `build:preview` script that runs `livelocale build --preview --locales <path> --source <locale> -- next build`. The whole table, and setting the build up by hand, are in [Share links](../guides/share-links.md#set-up).
 
 ::: details Didn't work?
 
 - It stops with `Pass --locales <path>.`: your locale files are not in `locales`, `src/locales`, `public/locales`, `src/i18n/locales` or `messages`. Run `npx livelocale init --share --locales <path>`.
 - It prints "No supported build setup found": in custom CI, build with `LIVELOCALE=preview` (only for SSR and SSG), then run `npx livelocale pack <outDir>`.
 - On Vite it skips `vite.config.ts` with "no liveLocaleVite(...) call": add the plugin first, as in step 2 of [Vite + React](./vite.md).
+- On Next.js with `output: 'export'` it says to delete the route file `npx livelocale init` wrote (`app/api/livelocale/route.ts`): a static export rejects POST routes, and `livelocale build` stops while the file exists. Delete it; the share link does not need it. Without it the dev Studio cannot save to your locale files, so on that app fixes reach the files through change links and `npx livelocale apply`.
 - It writes no workflow and says one-click pull requests need GitHub: on another git host you turn a change link into a branch with `npx livelocale apply "<link>" --pr`; see [Other git hosts](../guides/share-links.md#other-git-hosts).
 - After you deploy (next step), `npx livelocale doctor --app <url> --share` checks the share build on the live site.
 
@@ -41,7 +42,7 @@ Commit and push what `init --share` wrote. The workflow must be on the default b
 
 On GitHub, tick the one setting the workflow needs: in the repository's **Settings → Actions → General → Workflow permissions**, tick **Allow GitHub Actions to create and approve pull requests**. Without it the workflow still commits the branch, but the issue comment carries a compare link and you open the pull request yourself.
 
-Deploy as usual, then check the deployment and print the share link. On Next.js, deploy with `npm run build:preview` (the script `init --share` added); a plain `next build` has no Studio.
+Deploy as usual, then check the deployment and print the share link. On Next.js, use `npm run build:preview` (the script `init --share` added) only as the build command of a staging or preview deployment, never production: it watermarks every page's text. A plain `next build` has no Studio, so production keeps it.
 
 ```bash
 npx livelocale doctor --app <url> --share

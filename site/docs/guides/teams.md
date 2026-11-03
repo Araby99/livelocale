@@ -25,7 +25,7 @@ It is read once, when the route handler or the Vite plugin is created, so restar
 
 ## A Content-Security-Policy blocks the iframe
 
-If your app sends `frame-ancestors 'none'` or `X-Frame-Options: DENY` in development, the Studio cannot embed it. Relax the header only when `NODE_ENV === 'development'`, for example by allowing `frame-ancestors 'self' http://localhost:3010`.
+If your app sends `X-Frame-Options` or `frame-ancestors 'none'` in development, the Studio cannot embed it. Any `X-Frame-Options` blocks it, `SAMEORIGIN` included: the Studio on port 3010 is another origin than your app, and the header cannot name an allowed origin (browsers ignore `ALLOW-FROM`). Only when `NODE_ENV === 'development'`, send no `X-Frame-Options` and allow the Studio with `Content-Security-Policy: frame-ancestors 'self' http://localhost:3010`.
 
 ## Auth middleware redirects the API
 

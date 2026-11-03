@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "livelocale",
-      "source": "./",
+      "source": "./plugins/livelocale",
       "description": "Teaches your coding agent to add livelocale to a project, turn on share links, run check --hardcoded in CI and fix setup problems."
     }
   ]

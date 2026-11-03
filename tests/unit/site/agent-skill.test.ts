@@ -1,13 +1,16 @@
 // @vitest-environment node
-// The Agent Skill in skills/livelocale/ and the Claude Code marketplace that installs it: the skill
-// must name only commands, flags, exports and docs pages that exist, so an agent that follows it
-// runs real commands.
+// The Agent Skill in plugins/livelocale/skills/livelocale/ and the Claude Code marketplace that
+// installs it: the skill must name only commands, flags, exports and docs pages that exist, so an
+// agent that follows it runs real commands. The marketplace waits in site/launch/ until go-live
+// (site/LAUNCH.md step 8), because the skill links to https://livelocale.js.org/.
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import { join } from 'node:path';
 import { parseHelp } from '../../../site/scripts/docs/cli-help.mjs';
 
-const SKILL_DIR = 'skills/livelocale';
+const PLUGIN_DIR = 'plugins/livelocale';
+const SKILL_DIR = `${PLUGIN_DIR}/skills/livelocale`;
+const MARKETPLACE = 'site/launch/marketplace.json';
 const DOCS = 'site/docs';
 const DOCS_URL = 'https://livelocale.js.org/docs/';
 
@@ -167,8 +170,8 @@ it('links only to docs pages and headings that exist', () => {
   expect(wrong).toEqual([]);
 });
 
-it('is installable from the Claude Code marketplace in this repository', () => {
-  const market = JSON.parse(fs.readFileSync('.claude-plugin/marketplace.json', 'utf8')) as {
+it('is installable from the Claude Code marketplace once it is copied to the repository root', () => {
+  const market = JSON.parse(fs.readFileSync(MARKETPLACE, 'utf8')) as {
     name: string;
     owner: { name: string };
     plugins: { name: string; source: string; description: string }[];
@@ -177,18 +180,90 @@ it('is installable from the Claude Code marketplace in this repository', () => {
   expect(market.owner.name).toBeTruthy();
   expect(market.plugins).toHaveLength(1);
   const [entry] = market.plugins;
-  expect(entry!.source).toMatch(/^\.\//);
-  expect(entry!.source).not.toContain('..');
-  const root = entry!.source;
+  // a plugin folder of its own, so installing copies the skill, not the whole repository
+  expect(entry!.source).toBe(`./${PLUGIN_DIR}`);
   const manifest = JSON.parse(
-    fs.readFileSync(join(root, '.claude-plugin/plugin.json'), 'utf8')
-  ) as {
-    name: string;
-  };
+    fs.readFileSync(join(PLUGIN_DIR, '.claude-plugin/plugin.json'), 'utf8')
+  ) as { name: string; version: string };
   expect(manifest.name).toBe(entry!.name);
-  expect(fs.existsSync(join(root, 'skills', 'livelocale', 'SKILL.md'))).toBe(true);
+  expect(fs.existsSync(join(PLUGIN_DIR, 'skills', 'livelocale', 'SKILL.md'))).toBe(true);
+  expect(fs.readdirSync(PLUGIN_DIR).sort()).toEqual(['.claude-plugin', 'skills']);
 
   const guide = fs.readFileSync(join(DOCS, 'guides/ai-agents.md'), 'utf8');
   expect(guide).toContain('/plugin marketplace add Araby99/livelocale');
   expect(guide).toContain(`/plugin install ${entry!.name}@${market.name}`);
+  expect(guide).toContain(`tree/main/${SKILL_DIR}`);
+  // the llms files follow the site base, so the preview build links to its own copies
+  expect(guide).toContain('](../../llms.txt)');
+  expect(guide).toContain('](../../llms-full.txt)');
+  expect(guide).not.toContain('https://livelocale.js.org/llms');
+});
+
+// Without a version, Claude Code versions the plugin by commit, so every push to main would update
+// the skill ahead of the npm release it describes.
+it('versions the plugin with the npm package', () => {
+  const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')) as { version: string };
+  const manifest = JSON.parse(
+    fs.readFileSync(join(PLUGIN_DIR, '.claude-plugin/plugin.json'), 'utf8')
+  ) as { version: string };
+  expect(manifest.version).toBe(pkg.version);
+  expect(fs.readFileSync('CONTRIBUTING.md', 'utf8')).toContain(
+    'plugins/livelocale/.claude-plugin/plugin.json'
+  );
+});
+
+// Every docs link in the skill is on https://livelocale.js.org/, so the marketplace that installs
+// it goes live with the domain, in the go-live commit, and not before.
+it('publishes the marketplace in the go-live commit, after the domain switch', () => {
+  expect(fs.existsSync('.claude-plugin/marketplace.json')).toBe(false);
+  const launch = fs.readFileSync('site/LAUNCH.md', 'utf8');
+  const step8 = /^- \[ \] 8\. [\s\S]*?(?=^- \[ \] 9\. )/m.exec(launch)![0];
+  expect(step8).toContain(
+    'copy `site/launch/marketplace.json` to `.claude-plugin/marketplace.json`'
+  );
+  expect(launch.indexOf('`SITE_URL` = `https://livelocale.js.org/`')).toBeLessThan(
+    launch.indexOf('site/launch/marketplace.json')
+  );
+});
+
+// Findings an agent would act on wrongly: each pins a fact of src/ the skill must keep.
+describe('the advice an agent acts on', () => {
+  const skill = () => fs.readFileSync(join(SKILL_DIR, 'SKILL.md'), 'utf8');
+
+  it('keeps the Next.js share build off production', () => {
+    expect(skill()).toContain(
+      'Use `npm run build:preview` only as the build command of a staging or preview deployment, never production'
+    );
+  });
+
+  // src/codemod/init-share.ts: on output: 'export' it says to delete the route, and build stops
+  it('says what a Next.js static export does to the route init wrote', () => {
+    expect(skill()).toMatch(/`output: 'export'`[^\n]*delete `app\/api\/livelocale\/route\.ts`/);
+  });
+
+  // src/codemod/doctor.ts treats any X-Frame-Options as a blocker; SAMEORIGIN blocks port 3010
+  it('never suggests allowing the Studio through X-Frame-Options', () => {
+    const pages = [
+      ...skillFiles().map(([, text]) => text),
+      fs.readFileSync(join(DOCS, 'guides/teams.md'), 'utf8'),
+    ];
+    for (const text of pages) {
+      expect(text).not.toMatch(
+        /`X-Frame-Options`, only while|in `frame-ancestors` \/ `X-Frame-Options`/
+      );
+      expect(text).toContain("frame-ancestors 'self' http://localhost:3010");
+    }
+    expect(skill()).toMatch(/send no `X-Frame-Options`/);
+  });
+
+  it('shows the provider inside a whole root layout, with no stray semicolon', () => {
+    expect(skill()).not.toMatch(/<LiveLocaleProvider \/>;/);
+    expect(skill()).toContain('export default function RootLayout({ children })');
+  });
+
+  it('routes CRA, webpack and Rsbuild projects and next-i18n-lens upgrades', () => {
+    expect(skill()).toMatch(/`react-scripts`, `webpack` or `@rsbuild\/core`/);
+    expect(frontmatter(skill()).description).toContain('migrating from next-i18n-lens');
+    expect(skill()).toContain('https://livelocale.js.org/docs/guides/migrate.html');
+  });
 });

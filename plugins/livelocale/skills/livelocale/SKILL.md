@@ -1,6 +1,6 @@
 ---
 name: livelocale
-description: Set up and use livelocale, the npm package that lets anyone fix a React site's text on the running site (Alt+Click in the Studio) and turns the fixes into locale-file edits or pull requests. Use when adding livelocale to a Next.js App Router, Vite + React or static-host project; when turning on share links (init --share, change links, the GitHub workflow); when adding npx livelocale check or check --hardcoded to CI; or when fixing a livelocale setup that does not work (blank preview, no clickable text, 404 from the API, doctor failures).
+description: Set up and use livelocale, the npm package that lets anyone fix a React site's text on the running site (Alt+Click in the Studio) and turns the fixes into locale-file edits or pull requests. Use when adding livelocale to a Next.js App Router, Vite + React or static-host project; when turning on share links (init --share, change links, the GitHub workflow); when adding npx livelocale check or check --hardcoded to CI; when fixing a livelocale setup that does not work (blank preview, no clickable text, 404 from the API, doctor failures); or when migrating from next-i18n-lens.
 ---
 
 # livelocale
@@ -13,14 +13,18 @@ The docs are the source of truth; each step below links its page. Every docs pag
 
 Look at the project before changing anything:
 
-| What you find                                                  | Path to follow                                    |
-| -------------------------------------------------------------- | ------------------------------------------------- |
-| `next` in `package.json`, an `app/` (or `src/app/`) folder     | Next.js (section 2)                               |
-| `vite` and `react` in `package.json`, a `vite.config.*`        | Vite + React (section 3)                          |
-| The user wants non-developers to fix text on the deployed site | First the dev setup above, then share links (4)   |
-| The user only wants CI to catch missing or untranslated text   | CI check only (section 5); nothing else is needed |
+| What you find                                                  | Path to follow                                     |
+| -------------------------------------------------------------- | -------------------------------------------------- |
+| `next` in `package.json`, an `app/` (or `src/app/`) folder     | Next.js (section 2)                                |
+| `vite` and `react` in `package.json`, a `vite.config.*`        | Vite + React (section 3)                           |
+| `react-scripts`, `webpack` or `@rsbuild/core`, no Vite or Next | Share links only (section 4, read its first lines) |
+| The user wants non-developers to fix text on the deployed site | First the dev setup above, then share links (4)    |
+| The user only wants CI to catch missing or untranslated text   | CI check only (section 5); nothing else is needed  |
+| `next-i18n-lens` in `package.json` (0.7.0 or earlier)          | Migrate first (below), then the path for the stack |
 
 Also find the locale folder: JSON files such as `locales/en.json` or `locales/en/common.json`. The CLI defaults to `locales`; when the files live elsewhere (`messages`, `src/locales`, `public/locales`), pass `--locales <path>` to `check` and `doctor`, and set the same folder as `localesPath` in code.
+
+livelocale was published as `next-i18n-lens` up to 0.7.0, and 0.8.0 renamed the package, the exports, the API route and the environment variables with no aliases. On such a project follow https://livelocale.js.org/docs/guides/migrate.html before anything else.
 
 livelocale reads JSON catalogues used by react-i18next, next-intl or the app's own `t` function. Keep the existing i18n library; livelocale wraps it, it does not replace it.
 
@@ -40,8 +44,17 @@ Docs: https://livelocale.js.org/docs/start/nextjs.html
    ```tsx
    // app/layout.tsx
    import { LiveLocaleProvider } from 'livelocale/react';
-   // inside <body>, before {children}:
-   <LiveLocaleProvider />;
+
+   export default function RootLayout({ children }) {
+     return (
+       <html lang="en">
+         <body>
+           <LiveLocaleProvider />
+           {children}
+         </body>
+       </html>
+     );
+   }
    ```
 
 3. Write the API route the Studio saves through:
@@ -91,12 +104,13 @@ Docs: https://livelocale.js.org/docs/start/vite.html
 
 Docs: https://livelocale.js.org/docs/start/static-host.html and https://livelocale.js.org/docs/guides/share-links.html
 
-Share links ship the Studio inside the production build at `<base>livelocale/`, so someone with no git account can fix text on the deployed site and send a change link. The text must already go through the wrapper (section 2 step 4 or section 3 step 4).
+Share links ship the Studio inside the built site at `<base>livelocale/`, so someone with no git account can fix text on the deployed site and send a change link. The text must already go through the wrapper (section 2 step 4 or section 3 step 4). On CRA, webpack or Rsbuild, livelocale has no dev save route or plugin, so share links are the way in: install livelocale, render `<LiveLocaleProvider />` (from `livelocale/react`) once at the root, wrap `t` with `wrapTranslationEngine` as in section 3 step 4, then run the steps below.
 
 1. `npx livelocale init --share`. It changes the build for the stack and, on a GitHub remote, writes `.github/workflows/livelocale.yml`. Options: `--locales <path>`, `--source <locale>`, `--branches <a,b>`, `--overwrite` (replace an existing workflow). What it changes:
    - Vite: adds `share: true` to `liveLocaleVite({ ... })` (the plugin must already be there).
    - CRA: appends `&& livelocale pack build --locales <path> --source <locale>` to the `build` script; webpack and Rsbuild: the same, packing `dist`.
-   - Next.js: adds a `build:preview` script, `livelocale build --preview --locales <path> --source <locale> -- next build`; deploy with `npm run build:preview`, because a plain `next build` has no Studio.
+   - Next.js: adds a `build:preview` script, `livelocale build --preview --locales <path> --source <locale> -- next build`. Use `npm run build:preview` only as the build command of a staging or preview deployment, never production: it watermarks the text of every page. Keep the plain `next build` (no Studio) for production.
+   - Next.js with `output: 'export'`: `init --share` also says to delete `app/api/livelocale/route.ts`, because a static export rejects POST routes and `livelocale build` stops while the file exists. Delete it. Without the route the dev Studio cannot save to the locale files on that app; fixes reach them through change links and `npx livelocale apply` (step 4).
    - Custom CI: build with `LIVELOCALE=preview` (only for SSR and SSG), then `npx livelocale pack <outDir>`.
 2. Commit and push. The workflow must be on the default branch. Tell the user to tick **Settings → Actions → General → Workflow permissions → Allow GitHub Actions to create and approve pull requests**; it is a repository setting only they can change.
 3. After the deploy: `npx livelocale doctor --app <url> --share`. It checks the Studio page, the manifest, `flag.js`, frame headers and service workers, and prints the share link (`<base>livelocale/index.html`).
@@ -138,9 +152,9 @@ Fix real findings by moving the text into the locale files and looking it up wit
 
 ## 6. Pitfalls
 
-- livelocale is on only in development (`next dev`, the `vite` dev server); `vite build`, `vite preview` and production builds have it off. `LIVELOCALE=off` (or `NEXT_PUBLIC_LIVELOCALE=off`) turns it off, and a detected hosting platform switches it off too. See https://livelocale.js.org/docs/how-it-works/safety-switches.html
+- livelocale is on only in development (`next dev`, the `vite` dev server); `vite build`, `vite preview` and production builds have it off, unless `share: true` (section 4) or `LIVELOCALE=preview` turns the share Studio on in that build. `LIVELOCALE=off` (or `NEXT_PUBLIC_LIVELOCALE=off`) turns it off, and a detected hosting platform switches it off too. See https://livelocale.js.org/docs/how-it-works/safety-switches.html
 - Text that does not go through the wrapper cannot be clicked in the Studio. `npx livelocale check --hardcoded` lists it.
-- A blank preview means the app sends `X-Frame-Options: DENY` or `frame-ancestors 'none'`. Allow `http://localhost:3010` only when `NODE_ENV` is `development`.
+- A blank preview means the app sends `X-Frame-Options` or `frame-ancestors 'none'`. Any `X-Frame-Options` blocks the Studio, `SAMEORIGIN` too (port 3010 is another origin), and it cannot name an allowed origin. Only when `NODE_ENV` is `development`: send no `X-Frame-Options`, and `Content-Security-Policy: frame-ancestors 'self' http://localhost:3010`.
 - An auth middleware that redirects the API: exclude it, `matcher: ['/((?!api/livelocale).*)']`.
 - Studio away from `localhost` (Codespaces, Gitpod): set `LIVELOCALE_ALLOWED_ORIGINS` to the Studio origin in the app's dev process, then restart the dev server. See https://livelocale.js.org/docs/guides/teams.html
 - App on another port: `npx livelocale studio --app http://localhost:3001`; Studio port taken: `--port <number>`.

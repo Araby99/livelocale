@@ -16,7 +16,7 @@ It needs no server, no account and no credential anywhere. The Studio ships insi
 1. Run `npx livelocale init --share` in your project. It sets up the build for your stack and, on a GitHub remote, writes `.github/workflows/livelocale.yml`. It prints every file it creates, updates, leaves unchanged or skips, then what is left for you to do.
 2. Commit and push the result. The workflow must be on the default branch, because GitHub runs issue and comment workflows only from there.
 3. On GitHub, tick [the one setting](#the-one-checkbox-setting) below.
-4. Deploy as usual, then check the deployment and print the share link. On Next.js, deploy with `npm run build:preview` (the script `init --share` added); a plain `next build` has no Studio.
+4. Deploy as usual, then check the deployment and print the share link. On Next.js, use `npm run build:preview` (the script `init --share` added) only as the build command of a staging or preview deployment, never production: it watermarks every page's text. A plain `next build` has no Studio, so production keeps it.
 
 On a Vite app with a GitHub remote, the first step looks like this:
 
@@ -26,13 +26,14 @@ On a Vite app with a GitHub remote, the first step looks like this:
 
 The build change depends on your stack:
 
-| Stack                      | Build change                                                                                                                            |
-| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Vite                       | `share: true` in `liveLocaleVite(...)`.                                                                                                 |
-| CRA, webpack and Rsbuild   | `"build": "<bundler> && livelocale pack build"`, for example `"build": "react-scripts build && livelocale pack build"`.                 |
-| Next.js `output: 'export'` | `livelocale build --preview -- next build`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked.   |
-| Next.js on Vercel/Node     | `livelocale build --preview -- next build` as the Preview environment's build command. It packs into a gitignored `public/livelocale/`. |
-| Custom CI                  | `LIVELOCALE=preview <build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                   |
+| Stack                      | Build change                                                                                                                                                                             |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vite                       | `share: true` in `liveLocaleVite(...)`.                                                                                                                                                  |
+| CRA                        | `"build": "<bundler> && livelocale pack build --locales <path> --source <locale>"`, for example `"build": "react-scripts build && livelocale pack build --locales locales --source en"`. |
+| webpack and Rsbuild        | The same, packing `dist`: `"build": "<bundler> && livelocale pack dist --locales <path> --source <locale>"`.                                                                             |
+| Next.js `output: 'export'` | `livelocale build --preview -- next build`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked.                                                    |
+| Next.js on Vercel/Node     | `livelocale build --preview -- next build` as the Preview environment's build command. It packs into a gitignored `public/livelocale/`.                                                  |
+| Custom CI                  | `LIVELOCALE=preview <build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                                                                    |
 
 For CRA, webpack and Rsbuild, use an explicit `&&`, not a `postbuild` script: Yarn Berry and some pnpm versions skip pre and post scripts, and hosts that call the bundler directly skip them too. Every flag of the command is on the [`init --share` reference](../reference/cli/init.md#share).
 
