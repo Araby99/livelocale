@@ -148,6 +148,84 @@ describe('usePageNavigation', () => {
     );
   });
 
+  it('keeps a NAVIGATE target that loads without a client as the current page', () => {
+    vi.useFakeTimers();
+    const { result, iframe, sendToIframe, rerender, props } = setup({
+      currentPath: '/a',
+      locationSeq: 1,
+    });
+    act(() => {
+      result.current.onNavigate('/missing.html');
+    });
+    expect(sendToIframe).toHaveBeenCalledWith('NAVIGATE', {
+      url: 'http://localhost:3000/missing.html',
+    });
+    // The client leaves and the target has none to report it.
+    rerender({ ...props, locationKnown: false });
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_TIMEOUT_MS);
+    });
+    expect(result.current.pendingPath).toBeNull();
+    expect(result.current.path).toBe('/missing.html');
+    expect(result.current.recent).toEqual([]);
+
+    sendToIframe.mockClear();
+    act(() => {
+      result.current.reload();
+    });
+    expect(sendToIframe).not.toHaveBeenCalled();
+    expect(iframe.src).toBe(
+      'http://localhost:3000/missing.html?livelocale-origin=' + encodeURIComponent(location.origin)
+    );
+  });
+
+  it('switches the language of a NAVIGATE target that has no client', () => {
+    vi.useFakeTimers();
+    const { result, iframe, rerender, props } = setup({ currentPath: '/?locale=ar', locale: 'ar' });
+    act(() => {
+      result.current.onNavigate('/pricing');
+    });
+    rerender({ ...props, locationKnown: false });
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_TIMEOUT_MS);
+    });
+    expect(result.current.path).toBe('/pricing');
+    act(() => {
+      result.current.showLocale('en');
+    });
+    expect(iframe.src).toBe(
+      'http://localhost:3000/pricing?locale=en&livelocale-origin=' +
+        encodeURIComponent(location.origin)
+    );
+  });
+
+  it('keeps the reported page when the NAVIGATE target has a client', () => {
+    vi.useFakeTimers();
+    const { result, rerender, props } = setup({ currentPath: '/a', locationSeq: 1 });
+    act(() => {
+      result.current.onNavigate('/pricing');
+    });
+    rerender({ ...props, locationKnown: false });
+    rerender({ ...props, currentPath: '/fr/pricing', locationKnown: true, locationSeq: 2 });
+    rerender({ ...props, currentPath: '/fr/pricing', locationKnown: false, locationSeq: 2 });
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_TIMEOUT_MS);
+    });
+    expect(result.current.path).toBe('/fr/pricing');
+  });
+
+  it('keeps the current page when a NAVIGATE times out with the client still there', () => {
+    vi.useFakeTimers();
+    const { result } = setup({ currentPath: '/a', locationSeq: 1 });
+    act(() => {
+      result.current.onNavigate('/pricing');
+    });
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_TIMEOUT_MS);
+    });
+    expect(result.current.path).toBe('/a');
+  });
+
   it('refuses another origin', () => {
     const { result, sendToIframe, iframe } = setup();
     const before = iframe.src;

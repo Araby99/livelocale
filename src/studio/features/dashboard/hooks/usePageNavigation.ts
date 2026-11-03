@@ -79,12 +79,21 @@ export function usePageNavigation({
     timerRef.current = null;
   };
 
+  // The app path last sent with NAVIGATE, until a location is reported. When the client has left
+  // and none reports the target by the timeout, the target is a page without a client.
+  const navigateTargetRef = useRef<string | null>(null);
+  const locationKnownRef = useRef(locationKnown);
+  locationKnownRef.current = locationKnown;
+
   const startPending = (displayPath: string) => {
     clearTimer();
     setPendingPath(displayPath);
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
       setPendingPath(null);
+      const target = navigateTargetRef.current;
+      navigateTargetRef.current = null;
+      if (target !== null && !locationKnownRef.current) setOpenedPath(target);
     }, NAVIGATION_TIMEOUT_MS);
   };
 
@@ -97,6 +106,7 @@ export function usePageNavigation({
     clearTimer();
     setPendingPath(null);
     setOpenedPath(null);
+    navigateTargetRef.current = null;
     if (locationKnown) {
       rememberPage(scope, path);
       setRecent(readRecentPages(scope));
@@ -108,9 +118,11 @@ export function usePageNavigation({
   // A NAVIGATE posted to a page without the client is lost, so only a known client gets one.
   const go = (appPath: string) => {
     if (locationKnown) {
+      navigateTargetRef.current = appPath;
       sendToIframe('NAVIGATE', { url: new URL(appPath, appOrigin).href });
       return;
     }
+    navigateTargetRef.current = null;
     const frame = iframeRef.current;
     if (!frame) return;
     frame.src = frameSrc(appPath, appOrigin, window.location.origin);
