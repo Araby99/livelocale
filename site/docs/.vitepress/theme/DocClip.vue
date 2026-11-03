@@ -4,9 +4,10 @@
 // poster under reduced motion and wires the pause button. An unknown name fails the build.
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 import { startClip } from '../../../src/lib/clip';
+import type { ClipName } from '../../../scripts/docs/media.mjs';
 import { MEDIA, mediaUrl } from './docs-media';
 
-const props = defineProps<{ name: string; label: string; caption?: string }>();
+const props = defineProps<{ name: ClipName; label: string; caption?: string }>();
 
 const clip = MEDIA.clips[props.name];
 if (!clip)

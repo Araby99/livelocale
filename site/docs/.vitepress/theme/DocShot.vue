@@ -1,9 +1,10 @@
 <script setup lang="ts">
 // A docs screenshot from site/media/docs/ (made by site/scripts/record-docs.mjs from the real
 // Studio). An unknown name or an empty alt fails the build.
+import type { ShotName } from '../../../scripts/docs/media.mjs';
 import { MEDIA, mediaUrl } from './docs-media';
 
-const props = defineProps<{ name: string; alt: string; caption?: string }>();
+const props = defineProps<{ name: ShotName; alt: string; caption?: string }>();
 
 const shot = MEDIA.shots[props.name];
 if (!shot)
