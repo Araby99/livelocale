@@ -15,6 +15,8 @@ export const SHARE_MANIFEST_FILE = 'manifest.json';
 export const SHARE_FLAG_FILE = 'flag.js';
 export const SHARE_LOCALES_DIR = 'locales';
 export const SHARE_MANIFEST_FORMAT = 1;
+/** The most site pages a manifest lists; `pack` truncates longer lists with a warning. */
+export const MAX_MANIFEST_PAGES = 2000;
 
 /** `flat`: one `<code>.json` per locale; `namespaced`: one folder per locale, one file per namespace. */
 export type LocalesLayout = 'flat' | 'namespaced';
@@ -39,6 +41,11 @@ export interface ShareManifest {
   basePath: string | null;
   /** Sorted keys found in the code by KeyScanner. */
   codeKeys: string[];
+  /**
+   * The site's HTML pages, sorted, relative to `basePath`, each starting with `/`. Absent when
+   * the build had no HTML document. Optional and never validated: read it with `manifestPages`.
+   */
+  pages?: string[];
 }
 
 const BASE_SHA_RE = /^[0-9a-f]{40}([0-9a-f]{24})?$/;
@@ -97,6 +104,23 @@ export function isShareManifest(value: unknown): value is ShareManifest {
     isNullOr(own(value, 'basePath'), (path) => path.startsWith('/') && path.endsWith('/')) &&
     isArrayOf(own(value, 'codeKeys'), isString)
   );
+}
+
+/**
+ * The manifest's site pages, read leniently: the own `pages` array's strings that start with
+ * `/` and not `//`, de-duplicated, at most `MAX_MANIFEST_PAGES`; `[]` when there is none.
+ */
+export function manifestPages(manifest: object): string[] {
+  const pages = own(manifest, 'pages');
+  if (!Array.isArray(pages)) return [];
+  const found = new Set<string>();
+  for (let i = 0; i < pages.length && found.size < MAX_MANIFEST_PAGES; i++) {
+    const page: unknown = pages[i];
+    if (typeof page === 'string' && page.startsWith('/') && !page.startsWith('//')) {
+      found.add(page);
+    }
+  }
+  return [...found];
 }
 
 /** The value itself when it is a share manifest, otherwise null (an HTML fallback page, say). */

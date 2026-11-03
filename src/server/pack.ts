@@ -2,8 +2,10 @@ import { spawn } from 'child_process';
 import { existsSync, readFileSync, statSync, promises as fs } from 'fs';
 import * as path from 'path';
 import { FLAG_SCRIPT } from '../core/flag-script.js';
+import { readablePath } from '../core/page-path.js';
 import { LOCALE_RE } from '../core/validate.js';
 import {
+  MAX_MANIFEST_PAGES,
   SHARE_DIR,
   SHARE_FLAG_FILE,
   SHARE_LOCALES_DIR,
@@ -273,6 +275,38 @@ async function findHtmlFiles(outDir: string, shareDir: string): Promise<string[]
 }
 
 /**
+ * The site path of an HTML file from its POSIX path under the output folder: `/` for
+ * `index.html`, `/<dir>/` for `<dir>/index.html`, else `/<rel>`. Characters a path cannot hold
+ * as written are escaped, and non-ASCII characters are shown decoded, the form the Studio
+ * shows for the same page.
+ */
+export function pagePathOf(rel: string): string {
+  const page =
+    rel === 'index.html' ? '/' : rel.endsWith('/index.html') ? `/${rel.slice(0, -10)}` : `/${rel}`;
+  const escaped = page.replace(/[%?#\\]/g, (ch) => encodeURIComponent(ch));
+  return readablePath(new URL(escaped, 'http://p').pathname);
+}
+
+/** Not-found pages, which nobody opens on purpose: `404.html`, `_not-found.html`, `404/*.html`. */
+function isNotFoundPage(rel: string): boolean {
+  return /^(?:404|_not-found)(?:\.html|\/)/.test(rel);
+}
+
+export function pagesTruncatedWarning(total: number): string {
+  return `The site has ${total} HTML pages; the manifest lists the first ${MAX_MANIFEST_PAGES} for the Studio's page suggestions.`;
+}
+
+/** The HTML files under `outDir` that are documents (page markup), not verification files. */
+async function findHtmlDocuments(outDir: string, shareDir: string): Promise<string[]> {
+  const documents: string[] = [];
+  for (const rel of await findHtmlFiles(outDir, shareDir)) {
+    const html = await fs.readFile(path.join(outDir, ...rel.split('/')), 'utf-8');
+    if (isHtmlDocument(html)) documents.push(rel);
+  }
+  return documents;
+}
+
+/**
  * Writes the share folder (`<outDir>/livelocale/`): the Studio, `manifest.json`, the locale
  * dictionaries and `flag.js`, then links `flag.js` from every app HTML file. Everything is
  * validated before the first write, and nothing outside the share folder is written except
@@ -320,16 +354,26 @@ export async function packOutput(options: PackOptions): Promise<PackResult> {
     );
   }
 
+  const documents = await findHtmlDocuments(outDir, shareDir);
+  const allPages = documents
+    .filter((rel) => !isNotFoundPage(rel))
+    .map(pagePathOf)
+    .sort();
+  const manifest: ShareManifest =
+    allPages.length > 0
+      ? { ...data.manifest, pages: allPages.slice(0, MAX_MANIFEST_PAGES) }
+      : data.manifest;
+
   await fs.rm(shareDir, { recursive: true, force: true });
   await fs.cp(studioDir, shareDir, { recursive: true });
   await fs.writeFile(
     path.join(shareDir, SHARE_MANIFEST_FILE),
-    JSON.stringify(data.manifest, null, 2) + '\n',
+    JSON.stringify(manifest, null, 2) + '\n',
     'utf-8'
   );
   const localesDir = path.join(shareDir, SHARE_LOCALES_DIR);
   await fs.mkdir(localesDir, { recursive: true });
-  for (const locale of data.manifest.locales) {
+  for (const locale of manifest.locales) {
     await fs.writeFile(
       path.join(localesDir, `${locale}.json`),
       JSON.stringify(data.dictionaries[locale]),
@@ -342,22 +386,21 @@ export async function packOutput(options: PackOptions): Promise<PackResult> {
     injectHtml === 'auto'
       ? target.kind !== 'next' && !existsSync(path.join(outDir, '_next'))
       : injectHtml;
-  const htmlInjected: string[] = [];
-  for (const rel of inject ? await findHtmlFiles(outDir, shareDir) : []) {
+  const htmlInjected = inject ? documents : [];
+  for (const rel of htmlInjected) {
     const file = path.join(outDir, ...rel.split('/'));
     const html = await fs.readFile(file, 'utf-8');
-    if (!isHtmlDocument(html)) continue;
-    htmlInjected.push(rel);
     const injected = injectFlagScript(html, flagSrcFor(base, rel));
     if (injected !== html) await fs.writeFile(file, injected, 'utf-8');
   }
 
   const warnings = [...data.warnings];
   if (base.kind === 'relative') warnings.push(RELATIVE_BASE_WARNING);
+  if (allPages.length > MAX_MANIFEST_PAGES) warnings.push(pagesTruncatedWarning(allPages.length));
 
   return {
     shareDir,
-    manifest: data.manifest,
+    manifest,
     htmlInjected,
     shareUrlPath: shareUrlPathFor(base),
     warnings,
