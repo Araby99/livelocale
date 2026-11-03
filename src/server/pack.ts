@@ -288,11 +288,12 @@ export function pagePathOf(rel: string): string {
 }
 
 /**
- * Not-found pages, which nobody opens on purpose: `404.html` and `_not-found.html`, and any
- * HTML file in a `404/` or `_not-found/` folder (Next writes those with `trailingSlash`).
+ * Not-found pages, which nobody opens on purpose, in any letter case: `404.html` and
+ * `_not-found.html`, and any HTML file in a `404/` or `_not-found/` folder (Next writes those
+ * with `trailingSlash`).
  */
 function isNotFoundPage(rel: string): boolean {
-  return /^(?:404|_not-found)(?:\.html$|\/)/.test(rel);
+  return /^(?:404|_not-found)(?:\.html$|\/)/i.test(rel);
 }
 
 export function pagesTruncatedWarning(total: number): string {

@@ -178,6 +178,19 @@ describe('packOutput', () => {
     expect(r.htmlInjected).toContain('404.html');
   });
 
+  it('leaves not-found pages out of the list whatever their letter case', async () => {
+    removeShareProjects();
+    setup({
+      'out/404.HTML': APP_HTML,
+      'out/_NOT-FOUND.Html': APP_HTML,
+      'out/_Not-Found/index.html': APP_HTML,
+    });
+    const r = await pack();
+    expect(r.manifest.pages).toEqual(['/', '/docs/a.html']);
+    expect(r.htmlInjected).toContain('404.HTML');
+    expect(r.htmlInjected).toContain('_Not-Found/index.html');
+  });
+
   it('hides only the named not-found pages', async () => {
     removeShareProjects();
     setup({ 'out/_not-found/index.html': APP_HTML, 'out/404-help.html': APP_HTML });
