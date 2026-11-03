@@ -20,7 +20,7 @@
 - Local search only (`search: { provider: 'local' }`). No third-party request at runtime, no analytics (PRODUCT.md). English only.
 - External links allowed in the docs and on the landing page: `https://github.com/Araby99/livelocale` (and paths under it), `https://www.npmjs.com/package/livelocale`, `https://github.com/Araby99/tidewell` (and paths under it), `https://js.org/`, `https://livelocale.js.org/` (spec §3.4). Any other URL appears only inside inline code or a fence, never as a link or bare text (markdown-it's linkify would turn bare text into a link).
 - One competitor list, used by every "no competitor names" test (docs pages in Task 1, landing in Task 14): `/\b(Tolgee|Locize|Lokalise|Crowdin|Transifex|POEditor|Weblate|SimpleLocalize|Phrase (Strings|TMS))\b/` (bare "Phrase" is excluded: the CLI help says "Word or phrase").
-- Header (DESIGN.md "Header"): the mark and wordmark on the left, GitHub and Docs as Paper text links on the right; "No background bar, no sticky header". The docs nav follows it: transparent over Night, no bottom border, scrolls away with the page.
+- Header (DESIGN.md "Header"): the mark and wordmark on the left, GitHub and Docs as Paper text links on the right; "No background bar, no sticky header" on the landing page. The docs nav differs on purpose (controller ruling 2026-11-03: docs are a Read surface; long reference pages need search and navigation in reach): it stays sticky, on a Night background with a 1px Rule bottom border and no blur, no border, scrolls away with the page.
 - Node: the main CI runs unit tests on Node 20 and 24; the Site workflow uses Node 24. Lighthouse 13 needs Node ≥ 22.19, so no module a unit test imports may import `lighthouse` or `chrome-launcher` at its top level.
 - Code facts the tasks rely on (checked at 0.11.0): the Vite plugin is `src/server/vite-plugin.ts` (`VitePluginConfig`, `liveLocaleVite`, built to `livelocale/vite`; there is no `src/vite/`); the platform guard is `detectDeployedPlatform()` in `src/core/env.ts`, which reads variables through `readEnv('NAME')`; plain `init` sets up Next.js only (the `init` help line and `runInit` in `src/codemod/index.ts`), and a Vite app adds `liveLocaleVite(...)` by hand; app code imports `livelocale/react` and `livelocale/server` (`playground/app/layout.tsx`, `page.tsx`, `api/livelocale/route.ts`).
 - Install command (plan decision from those facts): the docs and the landing page say `npm install livelocale` (a dependency, as the README's Quick Setup does), because app code imports it at runtime. Task 12 changes the landing page's `npm i -D livelocale` and "One dev dependency" to match.
@@ -54,7 +54,7 @@
 - **Header**: VitePress's `VPNavBarTitle` is replaced by `SiteBrand.vue`, which carries the landing header's mark SVG byte for byte (a unit test compares them) and links to the landing page; the nav holds the same two links, GitHub and Docs.
 - **Changelog page** renders `CHANGELOG.md` from its first `## [` heading, so the preamble's keepachangelog.com and semver.org links (outside the allowlist) are not linked.
 - **Go-live README** is prepared now as `site/launch/README.md` and copied over `README.md` on go-live day (§3.5), so `README.md` never links to docs that are not public.
-- **0.11.1 stays README-only**, as the spec says: `package.json` `homepage` (still the GitHub README) is not changed by this plan; the owner may fold it into that release.
+- **0.11.1 carries the README shrink and the homepage** (controller ruling 2026-11-03): `site/launch/README.md` becomes the README and `package.json` `homepage` becomes `https://livelocale.js.org/` in the go-live commit (Task 20 lists both in `site/LAUNCH.md`); no code changes.
 - **The landing step text is corrected (Task 12)**: "One dev dependency with no runtime dependencies" becomes "One dependency, with no dependencies of its own", `npm i -D livelocale` becomes `npm i livelocale`, and "`init` sets up the Studio beside `next dev` or `vite`" becomes "`init` sets up a Next.js app; on Vite you add the plugin", so the page claims only what 0.11.0 does.
 - **VitePress 1.6.4, not 2.0 alpha**: the stable line, kept off the landing build's Vite 8 by listing `vite` in `site/package.json` (VitePress 1 resolves its own nested Vite 5).
 
@@ -142,9 +142,9 @@ test('paints the docs only in the palette, search open', async ({ page }) => {
   // the 45% link underline are allowed), is one of Night, Surface, Rule, Edge, Paper, Comment, Ghost,
   // Patch, Patch Lit, Patch Underside, Wash, Hunk, Exit 1, Exit 0; failures listed as `<selector> <prop> <rgb>`
 });
-test('keeps the docs header off a bar and unstuck', async ({ page }) => {
-  // docs/ at 1440×900: .VPNav background-color is rgba(0, 0, 0, 0) or Night and it has no bottom border;
-  // after scrolling 600px the brand link's bounding box top is < 0 (it scrolled away)
+test('keeps the docs header in reach, on Night, without blur', async ({ page }) => {
+  // docs/ at 1440×900: .VPNav background-color is Night (rgb(12, 13, 15)), its bottom border is 1px Rule,
+  // backdrop-filter is 'none'; after scrolling 600px the brand link's bounding box top is still >= 0 (sticky)
 });
 test('finds the check reference with the offline search', async ({ page }) => {
   // Task 17 tags it @cross. Until Task 5 exists it searches "livelocale" and expects a result linking
