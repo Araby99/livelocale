@@ -91,6 +91,63 @@ describe('usePageNavigation', () => {
     );
   });
 
+  it('keeps a page opened through the iframe src as the current page', () => {
+    vi.useFakeTimers();
+    const { result, iframe, rerender, props } = setup({
+      currentPath: '/a',
+      locationKnown: false,
+      locationSeq: 1,
+    });
+    act(() => {
+      expect(result.current.onNavigate('/missing.html')).toBe('ok');
+    });
+    const opened =
+      'http://localhost:3000/missing.html?livelocale-origin=' + encodeURIComponent(location.origin);
+    expect(iframe.src).toBe(opened);
+    // No client reports the page, so the pending navigation runs out.
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_TIMEOUT_MS);
+    });
+    expect(result.current.pendingPath).toBeNull();
+    expect(result.current.path).toBe('/missing.html');
+    expect(result.current.recent).toEqual([]);
+
+    iframe.src = 'http://localhost:3000/elsewhere';
+    act(() => {
+      result.current.reload();
+    });
+    expect(iframe.src).toBe(opened);
+
+    // A page the client reports takes over again.
+    rerender({ ...props, currentPath: '/b', locationKnown: true, locationSeq: 2 });
+    expect(result.current.path).toBe('/b');
+  });
+
+  it('keeps the language of a page opened through the iframe src', () => {
+    const { result, iframe } = setup({
+      currentPath: '/?locale=ar',
+      locale: 'ar',
+      locationKnown: false,
+    });
+    act(() => {
+      result.current.onNavigate('/missing.html');
+    });
+    act(() => {
+      result.current.onNavigate('/pricing');
+    });
+    expect(iframe.src).toBe(
+      'http://localhost:3000/pricing?locale=ar&livelocale-origin=' +
+        encodeURIComponent(location.origin)
+    );
+    act(() => {
+      result.current.showLocale('en');
+    });
+    expect(iframe.src).toBe(
+      'http://localhost:3000/pricing?locale=en&livelocale-origin=' +
+        encodeURIComponent(location.origin)
+    );
+  });
+
   it('refuses another origin', () => {
     const { result, sendToIframe, iframe } = setup();
     const before = iframe.src;

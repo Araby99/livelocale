@@ -56,7 +56,11 @@ export function usePageNavigation({
     hideLocale: runtime.kind === 'server' ? locale : null,
     shareDir: runtime.kind === 'static' ? appBasePath() + SHARE_DIR + '/' : null,
   };
-  const path = toDisplayPath(currentPath, ctx);
+  // A page opened through the iframe src has no client to report it, so the hook keeps the
+  // path it opened as the current one until the next reported location.
+  const [openedPath, setOpenedPath] = useState<string | null>(null);
+  const pagePath = openedPath ?? currentPath;
+  const path = toDisplayPath(pagePath, ctx);
 
   const scope = recentPagesScope(
     runtime.kind === 'static'
@@ -92,6 +96,7 @@ export function usePageNavigation({
     seenSeq.current = locationSeq;
     clearTimer();
     setPendingPath(null);
+    setOpenedPath(null);
     if (locationKnown) {
       rememberPage(scope, path);
       setRecent(readRecentPages(scope));
@@ -107,22 +112,24 @@ export function usePageNavigation({
       return;
     }
     const frame = iframeRef.current;
-    if (frame) frame.src = frameSrc(appPath, appOrigin, window.location.origin);
+    if (!frame) return;
+    frame.src = frameSrc(appPath, appOrigin, window.location.origin);
+    setOpenedPath(appPath);
   };
 
   const onNavigate = (input: string): NavigateResult => {
     const resolved = resolveAddress(input, ctx);
     if (resolved === null) return 'refused';
-    const target = withPageLocale(resolved, currentPath, locale, urlLocaleOptions());
+    const target = withPageLocale(resolved, pagePath, locale, urlLocaleOptions());
     startPending(toDisplayPath(target, ctx));
     go(target);
     return 'ok';
   };
 
   const reload = () => {
-    if (locationKnown) {
+    if (locationKnown || openedPath !== null) {
       startPending(path);
-      go(currentPath);
+      go(pagePath);
       return;
     }
     const frame = iframeRef.current;
@@ -130,7 +137,7 @@ export function usePageNavigation({
   };
 
   const showLocale = (nextLocale: string) => {
-    const next = urlWithLocale(currentPath, nextLocale, urlLocaleOptions());
+    const next = urlWithLocale(pagePath, nextLocale, urlLocaleOptions());
     if (next === null) return;
     // Shown as it will be once the Studio's locale is the new one.
     const shown = runtime.kind === 'server' ? { ...ctx, hideLocale: nextLocale } : ctx;
