@@ -140,10 +140,45 @@ test('keeps the docs header in reach, on Night, without blur', async ({ page }) 
   await expect(nav).toHaveCSS('border-bottom-style', 'solid');
   await expect(nav).toHaveCSS('border-bottom-color', 'rgb(42, 45, 51)');
   await expect(nav).toHaveCSS('backdrop-filter', 'none');
+  // The stub front door is shorter than the viewport: pad it so the page really scrolls.
+  await page.evaluate(() => {
+    const pad = document.createElement('div');
+    pad.style.height = '3000px';
+    document.querySelector('.vp-doc')!.append(pad);
+  });
   await page.evaluate(() => scrollTo(0, 600));
   await page.evaluate(() => new Promise(requestAnimationFrame));
+  expect(await page.evaluate(() => scrollY)).toBe(600);
   const box = await page.locator('.VPNav a.brand').boundingBox();
   expect(box!.y).toBeGreaterThanOrEqual(0);
+});
+
+test('keeps the docs header and the local nav in reach on a phone', async ({ page }) => {
+  // Below 960px VitePress lets the nav scroll away; docs.css makes it sticky and moves the
+  // local nav (the menu and "On this page" bar) down by the nav's height plus its 1px border.
+  await page.setViewportSize({ width: 375, height: 800 });
+  await page.goto('docs/');
+  // The stub front door is shorter than the viewport: pad it so the page really scrolls.
+  await page.evaluate(() => {
+    const pad = document.createElement('div');
+    pad.style.height = '3000px';
+    document.querySelector('.vp-doc')!.append(pad);
+  });
+  await page.evaluate(() => scrollTo(0, 600));
+  await page.evaluate(() => new Promise(requestAnimationFrame));
+  expect(await page.evaluate(() => scrollY)).toBe(600);
+  const { navTop, navBottom, localTop, expected } = await page.evaluate(() => {
+    const nav = document.querySelector('.Layout > .VPNav')!.getBoundingClientRect();
+    const local = document.querySelector('.Layout > .VPLocalNav')!.getBoundingClientRect();
+    const navHeight = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue('--vp-nav-height')
+    );
+    return { navTop: nav.top, navBottom: nav.bottom, localTop: local.top, expected: navHeight + 1 };
+  });
+  expect(navTop).toBe(0);
+  expect(localTop).toBe(expected);
+  expect(localTop).toBeGreaterThanOrEqual(navBottom);
+  await expect(page.locator('.VPNav a.brand')).toBeInViewport();
 });
 
 test('finds the check reference with the offline search', async ({ page }) => {
