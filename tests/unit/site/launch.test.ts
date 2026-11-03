@@ -57,3 +57,24 @@ it('prepares a short README whose docs links all exist', () => {
       true
     );
 });
+// Step 8 swaps in the short README, so a unit test that pins README.md must hold for the go-live
+// README too; one that pins the long README's content turns main red and stops the 0.11.1 release,
+// whose publish workflow runs the tests first.
+it('leaves no unit test that pins the long README alone', () => {
+  const tests = fs
+    .readdirSync('tests', { recursive: true, encoding: 'utf8' })
+    .map((file) => `tests/${file.replaceAll('\\', '/')}`)
+    .filter((file) => /\.test\.tsx?$/.test(file));
+  const pinned = tests.filter((file) => {
+    const text = fs.readFileSync(file, 'utf8');
+    return (
+      /readFileSync\(\s*['"](?:\.\/)?README\.md['"]/.test(text) &&
+      !text.includes('site/launch/README.md')
+    );
+  });
+  expect(tests.length).toBeGreaterThan(0);
+  expect(pinned).toEqual([]);
+});
+it('runs the tests before the go-live README commit', () => {
+  expect(step(8)).toContain('`npm test` passes');
+});

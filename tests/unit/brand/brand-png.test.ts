@@ -45,11 +45,14 @@ it('ships all ten deliverables and uses the logo in the README header', () => {
     'avatar-512.png',
   ])
     expect(fs.existsSync(`brand/${f}`), f).toBe(true);
-  const head = fs.readFileSync('README.md', 'utf8').slice(0, 800);
-  expect(head).toContain(
-    '<source media="(prefers-color-scheme: dark)" srcset="brand/logo-dark.svg">'
-  );
-  expect(head).toContain('<img src="brand/logo.svg" alt="livelocale" height="64">');
+  // The README today and the go-live README that replaces it (site/LAUNCH.md step 8).
+  for (const readme of ['README.md', 'site/launch/README.md']) {
+    const head = fs.readFileSync(readme, 'utf8').slice(0, 800);
+    expect(head, readme).toContain(
+      '<source media="(prefers-color-scheme: dark)" srcset="brand/logo-dark.svg">'
+    );
+    expect(head, readme).toContain('<img src="brand/logo.svg" alt="livelocale" height="64">');
+  }
 });
 
 it('renders the favicons and the touch icon from the dark mark on Night', () => {

@@ -24,7 +24,8 @@ changes the repository settings; those steps are the owner's.
 - [ ] 7. (owner) Check `https://livelocale.js.org/` and `/docs/` on a phone and a computer; paste
      the URL into the LinkedIn Post Inspector to confirm the og-image.
 - [ ] 8. (agent, on the owner's go) The go-live README commit: copy `site/launch/README.md` over
-     `README.md`, set `package.json` `homepage` to `https://livelocale.js.org/`, and commit
+     `README.md`, set `package.json` `homepage` to `https://livelocale.js.org/`, check that
+     `npm test` passes (the publish workflow runs it before `npm publish`), and commit
      `docs: shrink the README to the pitch and links to the docs`.
 - [ ] 9. (owner) The README-only 0.11.1 release, created by the owner as for every release, so npm
      shows the short README and the new homepage. It carries the step 8 commit and no code
