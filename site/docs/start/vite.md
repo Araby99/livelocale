@@ -90,7 +90,7 @@ Every option of the plugin is on the [configuration reference](../reference/conf
 
 ::: details Didn't work?
 
-- `check` lists each missing key and the locale it is missing from; add it to that file and run it again. Your files live elsewhere: `npx livelocale check --locales <path>`, and the same folder as `localesPath`.
+- `check` lists each missing key and the locale it is missing from; add it to that file and run it again. If your files live elsewhere, run `npx livelocale check --locales <path>` and set the same folder as `localesPath` in `vite.config.ts`.
 - `localesPath` is resolved from the folder you start `vite` in, so start it from the app's folder.
 - Text you never wrap carries no watermark, so the Studio cannot pick it. `npx livelocale check --hardcoded` lists the text in your components that never goes through translation; see [Catch untranslated text in CI](../guides/ci-check.md).
 - With a namespace, give the wrapper the same prefix (`keyPrefix: 'auth'`), so `t('login.title')` maps to `auth.login.title` in your file.
