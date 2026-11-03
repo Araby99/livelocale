@@ -29,10 +29,17 @@ test('marks the video up to stay light, with a preloaded poster per cut', async 
   await expect(page.getByText('Tidewell is a fictional demo site')).toBeAttached();
 });
 
-test('is playing within the first seconds, before the page has finished loading', async ({
+test('fetches no video before the page has loaded, then plays within the first seconds', async ({
   page,
 }) => {
-  await page.goto('./', { waitUntil: 'domcontentloaded' });
+  const early: string[] = [];
+  let loaded = false;
+  page.on('load', () => (loaded = true));
+  page.on('request', (r) => {
+    if (!loaded && /\.(webm|mp4)/.test(r.url())) early.push(r.url());
+  });
+  await page.goto('./', { waitUntil: 'load' });
+  expect(early).toEqual([]); // nothing requested before load fired
   await expect
     .poll(() => video(page).evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.5), {
       timeout: 4000,

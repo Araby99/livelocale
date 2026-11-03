@@ -35,3 +35,9 @@ it('documents the owner-only js.org claim', () => {
   expect(readme).toContain('"livelocale": "araby99.github.io/livelocale"');
   expect(readme).toMatch(/owner only/i);
 });
+
+it('runs the Lighthouse gate after the E2E suite', () => {
+  expect(wf.indexOf('npm run lighthouse --prefix site')).toBeGreaterThan(
+    wf.indexOf('npm run test:site')
+  );
+});

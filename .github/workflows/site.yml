@@ -43,6 +43,9 @@ jobs:
       - name: Run Site E2E Tests
         run: npm run test:site
 
+      - name: Run Lighthouse Gate
+        run: npm run lighthouse --prefix site
+
   deploy:
     needs: test
     if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && vars.SITE_LIVE == 'true')

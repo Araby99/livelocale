@@ -99,6 +99,7 @@ npm run lighthouse --prefix site
   every run and the median: performance, accessibility, best practices and SEO, the LCP in ms and
   the LCP element's selector.
 - It exits 1 when a page's median performance or accessibility is under 0.9.
+- The Site workflow runs it after the E2E suite, on the `site/dist` that suite built.
 - Lighthouse 13 needs Node 22.19 or later.
 
 ## Test
@@ -191,8 +192,10 @@ keeps the near-lossless master for frame-by-frame review.
   screen, so the first paint shows it) and one frame per story step in `site/media/hero/frames/`.
   It writes each still's provenance (the video and second it comes from) to a `.json` sidecar.
 
-The page picks the cut by viewport (`(max-width: 639px)` is the narrow one) and attaches it as soon
-as the page is parsed, so the video is playing within the first seconds.
+The page picks the cut by viewport (`(max-width: 639px)` is the narrow one) and attaches it once
+the window has loaded and the video is on screen, so the video's bytes never compete with the
+poster, the CSS and the headline font before the first paint, and it is still playing within the
+first seconds. A chapter or Play click attaches it at once.
 
 ## The live demo
 

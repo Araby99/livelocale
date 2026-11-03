@@ -9,6 +9,8 @@ import hunk from './hunk-shiki.json';
 
 const base = docsBase(process.env);
 const landing = landingHref(base);
+/** The h1's face (Martian Mono 700, Latin), preloaded on every page as the landing page does. */
+const HEADLINE_FONT = /^assets\/martian-mono-latin-700-normal[\w.-]*\.woff2$/;
 
 export default defineConfig({
   base,
@@ -22,6 +24,15 @@ export default defineConfig({
     ['link', { rel: 'icon', href: `${landing}favicon.svg`, type: 'image/svg+xml' }],
     ['meta', { name: 'theme-color', content: '#0C0D0F' }],
   ],
+  transformHead({ assets }) {
+    const font = assets.find(
+      (asset) => asset.startsWith(base) && HEADLINE_FONT.test(asset.slice(base.length))
+    );
+    if (!font) throw new Error('the headline font (martian-mono-latin-700-normal) is missing');
+    return [
+      ['link', { rel: 'preload', as: 'font', type: 'font/woff2', crossorigin: '', href: font }],
+    ];
+  },
   // JSON widens the theme's "type": "dark" to string, so the import needs the cast.
   markdown: {
     theme: hunk as NonNullable<MarkdownOptions['theme']>,

@@ -52,3 +52,22 @@ test('self-hosts the brand fonts', async ({ page }) => {
     await page.locator('.ar-sample').evaluate((el) => getComputedStyle(el).fontFamily)
   ).toMatch(/^"IBM Plex Sans", "IBM Plex Sans Arabic"/);
 });
+
+test('preloads the headline face, and only it', async ({ page }) => {
+  for (const path of ['./', 'docs/']) {
+    await page.goto(path);
+    const fonts = page.locator('link[rel="preload"][as="font"]');
+    await expect(fonts).toHaveCount(1);
+    await expect(fonts).toHaveAttribute(
+      'href',
+      /^\/livelocale\/(docs\/)?assets\/martian-mono-latin-700-normal[\w.-]*\.woff2$/
+    );
+    await expect(fonts).toHaveAttribute('crossorigin', '');
+  }
+});
+
+test('has no render-blocking stylesheet on the landing page', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.locator('head link[rel="stylesheet"]')).toHaveCount(0);
+  await expect(page.locator('body')).toHaveCSS('background-color', 'rgb(12, 13, 15)');
+});
