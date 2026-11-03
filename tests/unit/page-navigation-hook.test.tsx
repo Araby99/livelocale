@@ -151,6 +151,8 @@ describe('usePageNavigation', () => {
     expect(sendToIframe).toHaveBeenCalledWith('NAVIGATE', {
       url: 'http://localhost:3000/pricing?locale=ar',
     });
+    // The field never shows the ?locale= the Studio is switching to.
+    expect(result.current.pendingPath).toBe('/pricing');
   });
 
   it('switching the language keeps the current share page', () => {
