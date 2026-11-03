@@ -424,6 +424,42 @@ describe('useConnection', () => {
     }
   });
 
+  it('never takes a reported url that a URL parser reads as another host', () => {
+    const tricks = [
+      '/\t/evil.example/',
+      '/\n/evil.example/',
+      '/\r/evil.example/',
+      '/\\evil.example/',
+      '/\t\\evil.example/',
+      '/\u0000/evil.example/',
+      '/\u001f/evil.example/',
+      '/\u007f/evil.example/',
+      '/\u0085/evil.example/',
+      '/\u009f/evil.example/',
+      '/a\\..\\..\\/evil.example/',
+      '/ok\t',
+    ];
+    for (const url of tricks) {
+      const { result, unmount } = renderHook(() => useConnection(makeHandlers()));
+      post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a' } });
+      post({ source: 'livelocale-client', type: 'LOCATION_CHANGED', payload: { url } });
+      expect(result.current.currentPath, JSON.stringify(url)).toBe('/a');
+      expect(result.current.locationSeq).toBe(1);
+      expect(result.current.locationKnown).toBe(false);
+      expect(new URL(result.current.currentPath, 'http://localhost:3000').host).toBe(
+        'localhost:3000'
+      );
+      unmount();
+    }
+  });
+
+  it('keeps a reported url whose query or hash holds a backslash', () => {
+    const { result } = renderHook(() => useConnection(makeHandlers()));
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a?q=x\\y#h\\i' } });
+    expect(result.current.currentPath).toBe('/a?q=x\\y#h\\i');
+    expect(result.current.locationKnown).toBe(true);
+  });
+
   it('connects on a READY without a usable url', () => {
     const { result } = renderHook(() => useConnection(makeHandlers()));
     post({ source: 'livelocale-client', type: 'READY', payload: {} });

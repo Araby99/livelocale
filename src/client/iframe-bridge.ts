@@ -96,10 +96,19 @@ const KEY_PATTERN = /^[a-zA-Z0-9._-]+$/;
 /** Longest page location, in UTF-16 code units, READY and LOCATION_CHANGED carry. */
 export const MAX_LOCATION_LENGTH = 2048;
 
+/** C0 and C1 control characters and DEL, which a URL parser strips or reads specially. */
+const LOCATION_CONTROL_RE = /[\u0000-\u001f\u007f-\u009f]/;
+
+/** An origin a reported path is resolved against, to check that it stays on it. */
+const LOCATION_PROBE_ORIGIN = 'http://livelocale.invalid';
+
 /**
  * The `url` own string of an object payload when it is a same-origin path:
- * starts with `/`, not with `//` or `/\` (which a URL parser reads as a
- * host), and is at most MAX_LOCATION_LENGTH long; else `null`. Never throws.
+ * starts with `/`, not with `//`; holds no C0/C1 control character or DEL
+ * anywhere and no backslash before its query or hash (a URL parser drops tabs
+ * and newlines and reads `\` as `/`, so `/\t/host` or `/\host` would name a
+ * host); still resolves on the origin it is read against; and is at most
+ * MAX_LOCATION_LENGTH long. Else `null`. Never throws.
  */
 export function toLocationUrl(payload: unknown): string | null {
   try {
@@ -107,7 +116,10 @@ export function toLocationUrl(payload: unknown): string | null {
     if (!Object.prototype.hasOwnProperty.call(payload, 'url')) return null;
     const url = (payload as { url?: unknown }).url;
     if (typeof url !== 'string' || url.length > MAX_LOCATION_LENGTH) return null;
-    if (!url.startsWith('/') || url.startsWith('//') || url.startsWith('/\\')) return null;
+    if (!url.startsWith('/') || url.startsWith('//')) return null;
+    if (LOCATION_CONTROL_RE.test(url)) return null;
+    if (/^[^?#]*\\/.test(url)) return null;
+    if (new URL(url, LOCATION_PROBE_ORIGIN).origin !== LOCATION_PROBE_ORIGIN) return null;
     return url;
   } catch {
     return null;
