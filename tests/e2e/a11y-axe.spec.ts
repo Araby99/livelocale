@@ -87,6 +87,15 @@ const DEV_SCREENS: Record<string, DevScreen> = {
       await expect(page.locator('#studio-import-title')).toBeVisible();
     },
   },
+  address: {
+    width: 1440,
+    height: 900,
+    reach: async (page) => {
+      // The current page is already remembered, so the list opens with it.
+      await page.locator('#studio-address').focus();
+      await expect(page.locator('#studio-address-list')).toBeVisible();
+    },
+  },
 };
 
 for (const variant of VARIANTS) {
@@ -156,6 +165,17 @@ for (const variant of VARIANTS) {
       await editKey(page, 'home.title', 'Hola');
       await page.locator('#studio-send-button').click();
       await expect(page.locator('#studio-send-title')).toBeVisible();
+      await noSeriousViolations(page);
+    });
+
+    test(`${variant.name} address has no serious axe violations`, async ({ page }) => {
+      await page.goto(SHARE);
+      await connected(page);
+      await page.locator('#studio-tips-name').fill('Sara');
+      await page.locator('#studio-tips-start').click();
+      await expect(page.locator('#studio-tips-title')).toBeHidden();
+      await page.locator('#studio-address').focus();
+      await expect(page.locator('#studio-address-list')).toBeVisible();
       await noSeriousViolations(page);
     });
   });
