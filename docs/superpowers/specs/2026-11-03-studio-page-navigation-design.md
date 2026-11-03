@@ -63,4 +63,4 @@ The Studio shows the site in its preview panel but has no way to reach a page ex
 
 ## 6. Release
 
-0.12.0 (minor) with a changeset, a `next` prerelease smoke-checked on Translation-Test and on the Tidewell demo (address field, suggestions in share mode, navigation, Arabic), then `latest`. After it ships, the website's hero video and docs captures are re-recorded so they show the address field, the docs gain a short "Go to a page" section in the Studio guide, and only then does the site go live (owner, 2026-11-03: before the site goes live).
+0.12.0 (minor) with a changeset, a `next` prerelease smoke-checked on Translation-Test and on the Tidewell demo (address field, suggestions in share mode, navigation, Arabic), then `latest`. After it ships, the docs captures are regenerated with their one command so they show the address field (owner, 2026-11-03: the hero video is not re-recorded for this; it changes only three decorative dots), the docs gain a short "Go to a page" section in the Studio guide, and only then does the site go live (owner, 2026-11-03: before the site goes live).
