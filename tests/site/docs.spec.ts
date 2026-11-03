@@ -182,14 +182,14 @@ test('keeps the docs header and the local nav in reach on a phone', async ({ pag
 });
 
 test('finds the check reference with the offline search', async ({ page }) => {
-  // Until the check reference exists (Task 5), the front door stands in for it. The search index
-  // names it by its folder (docs/#heading), as the docs base serves docs/index.html.
   await page.goto('docs/');
-  await search(page, 'livelocale');
+  await search(page, 'hardcoded');
   const hrefs = await page
     .locator('.VPLocalSearchBox a.result')
     .evaluateAll((links) => links.map((a) => (a as HTMLAnchorElement).href));
-  expect(hrefs.some((href) => /^[^#]*\/livelocale\/docs\/(index\.html)?#/.test(href))).toBe(true);
+  expect(
+    hrefs.some((href) => /\/livelocale\/docs\/reference\/cli\/check\.html(#|$)/.test(href))
+  ).toBe(true);
 });
 
 test('has no horizontal scroll at 360 px on the docs front door', async ({ page }) => {

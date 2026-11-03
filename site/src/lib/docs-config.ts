@@ -23,7 +23,20 @@ export const SIDEBAR: SidebarGroup[] = [
   { text: 'Get started', items: [{ text: 'Pick your stack', link: '/' }] },
   { text: 'Guides', items: [] },
   { text: 'How it works', items: [] },
-  { text: 'Reference', items: [] },
+  {
+    text: 'Reference',
+    items: [
+      { text: 'CLI', link: '/reference/cli/' },
+      { text: 'init', link: '/reference/cli/init' },
+      { text: 'studio', link: '/reference/cli/studio' },
+      { text: 'doctor', link: '/reference/cli/doctor' },
+      { text: 'check', link: '/reference/cli/check' },
+      { text: 'pack', link: '/reference/cli/pack' },
+      { text: 'build', link: '/reference/cli/build' },
+      { text: 'apply', link: '/reference/cli/apply' },
+      { text: 'migrate', link: '/reference/cli/migrate' },
+    ],
+  },
 ];
 
 /** The landing header's two links. */
