@@ -431,3 +431,28 @@ body {
     animation-duration: 0s !important;
   }
 }
+
+/* `cli` blocks (cli-fence.ts): a real CLI run on the code panel; long lines scroll inside the box,
+   never the page. terminal.css colours the parts. */
+.vp-doc pre.terminal {
+  margin: 16px 0;
+  padding: 20px 24px;
+  overflow-x: auto;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--paper);
+  font-family: var(--font-code);
+  font-size: 0.875em;
+  line-height: 1.7;
+  tab-size: 2;
+}
+
+.vp-doc pre.terminal code {
+  padding: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: 500;
+}

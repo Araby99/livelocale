@@ -4,6 +4,7 @@ import './styles/tokens.css';
 import './styles/fonts.css';
 import './styles/base.css';
 import './styles/sections.css';
+import './styles/terminal.css';
 import wideWebm from '../media/hero/hero-wide.webm?url';
 import wideMp4 from '../media/hero/hero-wide.mp4?url';
 import narrowWebm from '../media/hero/hero-narrow.webm?url';

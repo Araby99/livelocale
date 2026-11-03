@@ -7,6 +7,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { syncBrand } from './sync-brand.mjs';
 import { writeSampleReport } from './hardcoded-report.mjs';
+import { writeCliSnippets } from './docs/cli-snippets.mjs';
 import { siteConfig } from '../src/lib/site-config.ts';
 
 const SITE_DIR = fileURLToPath(new URL('..', import.meta.url));
@@ -35,8 +36,9 @@ function runNode(args, env) {
  * The CI excerpt's `check --hardcoded` report runs first (it needs the built CLI in the root dist).
  * Next, the live demo is built: Tidewell, the same stage site the hero video is filmed on, with its
  * two planted mistakes, packed with the share Studio under <base>demo/ (no --expose-repo, so the
- * Studio offers no GitHub action) and copied to site/dist/demo/. Last, VitePress builds the docs
- * into site/dist/docs/ under <base>docs/ (its config reads SITE_URL from env).
+ * Studio offers no GitHub action) and copied to site/dist/demo/. Last, the docs' `cli` blocks are
+ * run on their fixtures (site/.cache/docs-cli/) and VitePress builds the docs into site/dist/docs/
+ * under <base>docs/ (its config reads SITE_URL from env).
  */
 export async function buildSite(env) {
   const { siteUrl, base } = siteConfig(env);
@@ -65,6 +67,7 @@ export async function buildSite(env) {
     env
   );
   await cp(join(SITE_DIR, 'stage', 'dist'), join(SITE_DIR, 'dist', 'demo'), { recursive: true });
+  writeCliSnippets();
   await runNode([VITEPRESS_BIN, 'build', 'docs'], env);
   console.log('site/dist complete');
 }

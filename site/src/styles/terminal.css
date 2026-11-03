@@ -1,0 +1,45 @@
+/* Terminal output, shared by the landing page's CI excerpt and the docs' `cli` blocks: each part
+   of a real CLI run in its one-job colour (site/scripts/check-excerpt.mjs renderLine). */
+
+.c-prompt,
+.c-comment,
+.c-loc {
+  color: var(--comment);
+}
+
+.c-fail {
+  color: var(--exit-1);
+}
+
+.c-pass {
+  color: var(--exit-0);
+}
+
+.c-warn {
+  color: var(--paper);
+}
+
+.c-warn-glyph {
+  display: inline-block;
+  min-width: 1.4em;
+  border-radius: 3px;
+  background: var(--patch);
+  color: var(--night);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.c-locale,
+.c-key,
+.c-file {
+  color: var(--hunk);
+}
+
+/* Untranslated text: the dashed Exit 1 outline, never a red fill (spec §2.4a). */
+.c-hardcoded {
+  padding: 0 3px;
+  border-radius: 3px;
+  outline: 1.5px dashed var(--exit-1);
+  outline-offset: 1px;
+}

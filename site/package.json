@@ -5,7 +5,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "dev": "node scripts/sync-brand.mjs && node scripts/hardcoded-report.mjs && vite",
-    "docs:dev": "vitepress dev docs",
+    "docs:dev": "node scripts/docs/cli-snippets.mjs && vitepress dev docs",
     "brand": "node scripts/brand/build-svgs.mjs && node scripts/brand/render-pngs.mjs"
   },
   "devDependencies": {

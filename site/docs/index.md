@@ -28,3 +28,11 @@ Run `npx livelocale doctor` in your project. It checks the project for common in
 ## See it work
 
 <DocClip name="alt-click-edit" label="Alt+Click the headline on the Tidewell demo site, fix the typo in the editor and save it." caption="Hold Alt and click any text to edit it." />
+
+## Check it in CI
+
+`npx livelocale check` checks your translations for missing keys, placeholder drift, broken ICU syntax and unused keys. With `--hardcoded` it also finds text never passed through translation. It exits 1 on a problem, so the CI job fails:
+
+```cli check-hardcoded
+
+```

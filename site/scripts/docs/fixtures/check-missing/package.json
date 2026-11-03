@@ -1,0 +1,9 @@
+{
+  "name": "my-app",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "livelocale": "^0.11.0",
+    "react": "^18.3.1"
+  }
+}
