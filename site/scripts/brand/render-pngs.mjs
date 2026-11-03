@@ -7,6 +7,8 @@ import { NIGHT, faviconSvg, markSvg, onNight } from './marks.mjs';
 
 const BRAND_DIR = fileURLToPath(new URL('../../../brand/', import.meta.url));
 const TEMPLATES = new URL('../../../brand/src/', import.meta.url);
+/** The real hero frame (record-hero.mjs's poster) that the og-image shows in its window. */
+export const HERO_POSTER = fileURLToPath(new URL('../../media/hero/poster.png', import.meta.url));
 
 export const PNG_TARGETS = [
   { file: 'favicon-16.png', width: 16, height: 16 },
@@ -42,7 +44,7 @@ export function pngSources(studioShot) {
   };
 }
 
-/** Renders every PNG_TARGETS file into `outDir`; `studioShot` puts a Studio screenshot in the og-image. */
+/** Renders every PNG_TARGETS file into `outDir`; `studioShot` puts that frame in the og-image's window. */
 export async function renderPngs(outDir, opts = {}) {
   const { chromium } = await import('@playwright/test');
   const browser = await chromium.launch();
@@ -68,5 +70,5 @@ export async function renderPngs(outDir, opts = {}) {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  await renderPngs(BRAND_DIR);
+  await renderPngs(BRAND_DIR, { studioShot: HERO_POSTER });
 }

@@ -15,6 +15,9 @@ it('writes the og-image as the diff pair on Night', () => {
     'martian-mono-latin-700-normal.woff2',
     'ibm-plex-sans-latin-500-normal.woff2',
     'ibm-plex-mono-latin-500-normal.woff2',
+    'npx livelocale init<',
+    'tidewell.example',
+    'livelocale.js.org',
   ]) {
     expect(og, text).toContain(text);
   }

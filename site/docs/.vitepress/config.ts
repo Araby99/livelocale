@@ -3,6 +3,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type MarkdownOptions } from 'vitepress';
 import { docsBase, landingHref, NAV, SIDEBAR, TITLE_TEMPLATE } from '../../src/lib/docs-config';
+import { siteConfig } from '../../src/lib/site-config';
 import { changelogPage } from './changelog';
 import { cliFence } from './cli-fence';
 import { searchA11y } from './search-a11y';
@@ -10,8 +11,14 @@ import hunk from './hunk-shiki.json';
 
 const base = docsBase(process.env);
 const landing = landingHref(base);
+const { siteUrl } = siteConfig(process.env);
 /** The h1's face (Martian Mono 700, Latin), preloaded on every page as the landing page does. */
 const HEADLINE_FONT = /^assets\/martian-mono-latin-700-normal[\w.-]*\.woff2$/;
+
+/** A page's absolute URL: `guides/studio.md` → `<site>docs/guides/studio.html`, an index → its folder. */
+function pageUrl(relativePath: string): string {
+  return `${siteUrl}docs/${relativePath.replace(/\.md$/, '.html').replace(/(^|\/)index\.html$/, '$1')}`;
+}
 
 export default defineConfig({
   base,
@@ -23,15 +30,25 @@ export default defineConfig({
   titleTemplate: TITLE_TEMPLATE,
   head: [
     ['link', { rel: 'icon', href: `${landing}favicon.svg`, type: 'image/svg+xml' }],
-    ['meta', { name: 'theme-color', content: '#0C0D0F' }],
   ],
-  transformHead({ assets }) {
+  // Each page's share tags: its own title, description and URL, the site's one share image.
+  transformHead({ assets, pageData, title, description }) {
     const font = assets.find(
       (asset) => asset.startsWith(base) && HEADLINE_FONT.test(asset.slice(base.length))
     );
     if (!font) throw new Error('the headline font (martian-mono-latin-700-normal) is missing');
     return [
       ['link', { rel: 'preload', as: 'font', type: 'font/woff2', crossorigin: '', href: font }],
+      ['meta', { name: 'theme-color', content: '#0C0D0F' }],
+      ['meta', { property: 'og:type', content: 'article' }],
+      ['meta', { property: 'og:title', content: title }],
+      ['meta', { property: 'og:description', content: description }],
+      ['meta', { property: 'og:url', content: pageUrl(pageData.relativePath) }],
+      ['meta', { property: 'og:image', content: `${siteUrl}og-image.png` }],
+      ['meta', { property: 'og:image:width', content: '1200' }],
+      ['meta', { property: 'og:image:height', content: '630' }],
+      ['meta', { property: 'og:image:alt', content: 'livelocale: Stop collecting screenshots.' }],
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ];
   },
   // JSON widens the theme's "type": "dark" to string, so the import needs the cast.

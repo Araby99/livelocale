@@ -1,7 +1,7 @@
 // @vitest-environment node
 import * as fs from 'node:fs';
 import { faviconSvg } from '../../../site/scripts/brand/marks.mjs';
-import { PNG_TARGETS, pngSources } from '../../../site/scripts/brand/render-pngs.mjs';
+import { HERO_POSTER, PNG_TARGETS, pngSources } from '../../../site/scripts/brand/render-pngs.mjs';
 import { pngSize, pngTopLeft } from '../../../site/scripts/brand/png-size.mjs';
 
 it('reads the size from the PNG header and rejects other files', () => {
@@ -56,6 +56,11 @@ it('paints the avatar, the touch icon and the og-image on Night', () => {
   for (const file of ['avatar-512.png', 'apple-touch-icon.png', 'og-image.png']) {
     expect(pngTopLeft(fs.readFileSync(`brand/${file}`)), file).toEqual([12, 13, 15]);
   }
+});
+
+it('puts the real hero frame in the share image', () => {
+  expect(fs.existsSync(HERO_POSTER)).toBe(true);
+  expect(pngSources(HERO_POSTER)['og-image.png'].url).toContain(encodeURIComponent('poster.png'));
 });
 
 it('reads the first pixel of a PNG', () => {
