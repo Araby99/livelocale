@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import {
+  appBasePath,
   getAppOrigin,
   getAppUrl,
   isShareStudio,
@@ -74,5 +75,29 @@ describe('studio runtime', () => {
       problems: [],
     });
     expect(isShareStudio()).toBe(false);
+  });
+
+  it('reports the app base path for each runtime', () => {
+    setStudioRuntime({
+      kind: 'server',
+      appOrigin: 'http://localhost:4000',
+      appUrl: 'http://localhost:4000',
+      problems: [],
+    });
+    expect(appBasePath()).toBe('/');
+    const staticRuntime = {
+      kind: 'static' as const,
+      appOrigin: 'https://www.acme.com',
+      appUrl: 'https://www.acme.com/site/',
+      manifestText: '',
+      transport: {} as StaticTransport,
+    };
+    setStudioRuntime({
+      ...staticRuntime,
+      manifest: { ...MANIFEST, basePath: '/livelocale-demo/' },
+    });
+    expect(appBasePath()).toBe('/livelocale-demo/');
+    setStudioRuntime({ ...staticRuntime, manifest: { ...MANIFEST, basePath: null } });
+    expect(appBasePath()).toBe('/site/');
   });
 });
