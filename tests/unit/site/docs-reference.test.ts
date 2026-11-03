@@ -31,8 +31,11 @@ it('documents every LIVELOCALE variable the code reads', () => {
 });
 
 it('renders the changelog from the first release, without the preamble links', () => {
-  const body = changelogBody(fs.readFileSync('CHANGELOG.md', 'utf8'));
-  expect(body.startsWith('## [0.11.0]')).toBe(true);
+  const source = fs.readFileSync('CHANGELOG.md', 'utf8');
+  const body = changelogBody(source);
+  const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as { version: string };
+  expect(body.startsWith(`## [${version}]`)).toBe(true);
+  expect(source).toContain(body.trimEnd().slice(0, 200));
   expect(body).not.toContain('keepachangelog.com');
   expect(fs.readFileSync(`${REFERENCE}/changelog.md`, 'utf8')).toContain('<!-- @changelog -->');
 });
