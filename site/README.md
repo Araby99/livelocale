@@ -4,6 +4,10 @@ The landing page for livelocale, built with Vite into `site/dist` and deployed t
 `.github/workflows/site.yml`. Until the js.org domain is claimed it is served at
 `https://araby99.github.io/livelocale/`.
 
+Going live is a checklist: [`LAUNCH.md`](LAUNCH.md), from the merge to `main` to the domain
+switch and the README-only 0.11.1 release. The short README that replaces the root `README.md` on
+go-live day is prepared in [`launch/README.md`](launch/README.md).
+
 ## Develop
 
 From the repository root:
