@@ -237,6 +237,23 @@ body {
   border-radius: 4px;
 }
 
+/* The search button is named by its text (search-a11y.ts). Below 768px VitePress shows the icon
+   only and drops the text with display: none, which would leave the button nameless: the text is
+   hidden visually instead, so it still names the button. */
+@media (max-width: 767px) {
+  .DocSearch-Button .DocSearch-Button-Placeholder {
+    display: inline-block;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 /* The header: the landing page's brand and links, kept in reach on long reference pages
    (controller ruling 2026-11-03): sticky on Night, a 1px Rule underneath, no blur. VitePress
    fixes the nav from 960px; below that it would scroll away, so it sticks. */

@@ -734,6 +734,11 @@ html:not(.js) .story + .story {
   color: var(--paper);
 }
 
+.d-add .d-n {
+  /* Comment on Wash is 4.3:1, under AA: an added line's number is in Paper. */
+  color: var(--paper);
+}
+
 .d-add ins {
   text-decoration: none;
 }

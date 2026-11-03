@@ -18,7 +18,8 @@ export function cliFence(md: MarkdownIt, opts: { dir: string }): void {
     } catch {
       throw new Error(`no CLI snippet ${name}: run node site/scripts/docs/cli-snippets.mjs`);
     }
-    // v-pre: Vue must not read the CLI's output as template syntax.
-    return `<pre class="code terminal" v-pre><code>${renderTerminal(JSON.parse(text))}</code></pre>\n`;
+    // v-pre: Vue must not read the CLI's output as template syntax. tabindex: a long line
+    // scrolls the box sideways, so a keyboard must be able to reach and scroll it (as Shiki's do).
+    return `<pre class="code terminal" tabindex="0" v-pre><code>${renderTerminal(JSON.parse(text))}</code></pre>\n`;
   };
 }

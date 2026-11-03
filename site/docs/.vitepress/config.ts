@@ -5,6 +5,7 @@ import { defineConfig, type MarkdownOptions } from 'vitepress';
 import { docsBase, landingHref, NAV, SIDEBAR, TITLE_TEMPLATE } from '../../src/lib/docs-config';
 import { changelogPage } from './changelog';
 import { cliFence } from './cli-fence';
+import { searchA11y } from './search-a11y';
 import hunk from './hunk-shiki.json';
 
 const base = docsBase(process.env);
@@ -52,6 +53,7 @@ export default defineConfig({
     outline: [2, 3],
   },
   vite: {
+    plugins: [searchA11y()],
     resolve: {
       alias: [
         {
