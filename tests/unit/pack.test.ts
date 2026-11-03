@@ -182,7 +182,8 @@ describe('packOutput', () => {
     removeShareProjects();
     setup({ 'out/_not-found/index.html': APP_HTML, 'out/404-help.html': APP_HTML });
     const r = await pack();
-    expect(r.manifest.pages).toEqual(['/', '/404-help.html', '/_not-found/', '/docs/a.html']);
+    expect(r.manifest.pages).toEqual(['/', '/404-help.html', '/docs/a.html']);
+    expect(r.htmlInjected).toContain('_not-found/index.html');
   });
 
   it('lists non-ASCII pages as written', async () => {
@@ -216,6 +217,7 @@ describe('packOutput', () => {
       fs.writeFileSync(file(`out/p${n}.html`), APP_HTML, 'utf-8');
       all.push(`/p${n}.html`);
     }
+    fs.writeFileSync(file('out/404.html'), APP_HTML, 'utf-8');
     const r = await pack({ injectHtml: false });
     expect(r.manifest.pages).toHaveLength(2000);
     expect(r.manifest.pages).toEqual(all.sort().slice(0, 2000));
