@@ -117,3 +117,19 @@ test('says to install first and where Vite goes next to the closing init command
   await expect(close).toContainText('npm install livelocale');
   await expect(close.locator('a[href="docs/start/vite.html"]')).toBeAttached();
 });
+
+// The hero's copy is the install itself; the setup that follows is one link away, and the live
+// demo stays the second action.
+test('copies npm install in the hero and links the next step to Get started', async ({ page }) => {
+  await page.goto('./');
+  const hero = page.locator('.hero');
+  const actions = hero.locator('.actions > *');
+  await expect(actions).toHaveCount(2);
+  await expect(actions.nth(0)).toHaveAttribute('data-copy', 'npm install livelocale');
+  await expect(actions.nth(0).locator('.cmd-text')).toHaveText('$ npm install livelocale');
+  await expect(actions.nth(1)).toHaveText('Try the live demo');
+  const next = hero.getByRole('link', { name: 'Next: set it up in 2 minutes' });
+  await expect(next).toHaveAttribute('href', 'docs/index.html');
+  await next.click();
+  await expect(page.getByRole('heading', { level: 1, name: 'Get started' })).toBeVisible();
+});

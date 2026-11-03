@@ -61,6 +61,6 @@ test('copies the install command with a real copied state', async ({ page, conte
   await copy.click();
   await expect(copy).toHaveAttribute('data-state', 'copied');
   await expect(copy.locator('.cmd-label')).toHaveText('Copied');
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('npx livelocale init');
-  await expect(page.locator('[data-announcer]')).toHaveText('Copied npx livelocale init');
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('npm install livelocale');
+  await expect(page.locator('[data-announcer]')).toHaveText('Copied npm install livelocale');
 });

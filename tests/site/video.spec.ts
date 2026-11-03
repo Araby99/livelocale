@@ -85,7 +85,13 @@ test('fits the playing video, its chips and the pause button in a 1440 x 900 scr
 }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('./');
-  for (const sel of ['[data-demo] .screen', '.chapters', '[data-playback]', '.hero-proof']) {
+  for (const sel of [
+    '[data-demo] .screen',
+    '.chapters',
+    '[data-playback]',
+    '.hero-proof',
+    '.hero-next',
+  ]) {
     const box = (await page.locator(sel).boundingBox())!;
     expect(box.y + box.height, sel).toBeLessThanOrEqual(900);
   }

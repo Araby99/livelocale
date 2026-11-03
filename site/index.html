@@ -52,7 +52,7 @@
     THESIS: The real product, filmed on a real site, opens the page; one switch under it picks whose story you read next. Refuses the category default of a headline next to a mockup and a grid of feature cards.
     OWN-WORLD: livelocale "hunk": Night #0C0D0F ground, Surface #16181D, Paper #E8E4D9 text, Comment #8C887D, Ghost #6E6B64 struck old text, Patch #FFB224 only as fills (the fix, the primary action, the selected door), Hunk #4FC3DC for keys/paths/locales/links, Exit 1 #FF5468 dashed outlines only, Exit 0 #6FD69A with a check glyph; Martian Mono display, IBM Plex Sans UI, IBM Plex Mono code, IBM Plex Sans Arabic. Depth by tone, no glows, no gradients, no purple.
     STORY: A developer sees livelocale fix text on a real site, flip it to Arabic, and end in a real pull request; believes it is real, free, no account; copies the install command or opens the live demo. The fixer sees they need no git.
-    FIRST VIEWPORT: Top bar (logo lockup, GitHub, Docs). One band: headline "Stop collecting screenshots." in Martian Mono ~56px on the left; on the right one sentence, two actions (copy npx livelocale init; try the live demo) and "Free, MIT, no account, no server." Below, the column-wide framed hero video already playing (a 2:1 cut; 4:5 on a phone), three chapter chips synced to it and a visible pause button, all inside 900 px at 1440 wide; the two-door switch peeks under them.
+    FIRST VIEWPORT: Top bar (logo lockup, GitHub, Docs). One band: headline "Stop collecting screenshots." in Martian Mono ~56px on the left; on the right one sentence, two actions (copy npm install livelocale; a link to Get started; try the live demo) and "Free, MIT, no account, no server." Below, the column-wide framed hero video already playing (a 2:1 cut; 4:5 on a phone), three chapter chips synced to it and a visible pause button, all inside 900 px at 1440 wide; the two-door switch peeks under them.
     FORM: Two doors, candidate 7 of 7 on the ordered list (the roll's lead), locked by the owner; seed key c4e74c7c.
     FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
     -->
@@ -114,9 +114,9 @@
               pull request.
             </p>
             <div class="actions">
-              <button type="button" class="cmd" data-copy="npx livelocale init">
+              <button type="button" class="cmd" data-copy="npm install livelocale">
                 <span class="cmd-text"
-                  ><span class="cmd-prompt" aria-hidden="true">$</span> npx livelocale init</span
+                  ><span class="cmd-prompt" aria-hidden="true">$</span> npm install livelocale</span
                 >
                 <span class="cmd-state">
                   <svg class="icon is-idle" aria-hidden="true"><use href="#i-copy" /></svg
@@ -128,6 +128,10 @@
                 Try the live demo <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg>
               </a>
             </div>
+            <a class="hero-next" href="docs/index.html"
+              >Next: set it up in 2 minutes
+              <svg class="icon" aria-hidden="true"><use href="#i-arrow" /></svg
+            ></a>
             <p class="hero-proof">Free, MIT, no account, no server.</p>
           </div>
         </div>
