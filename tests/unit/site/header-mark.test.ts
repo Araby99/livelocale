@@ -34,3 +34,10 @@ it('keeps the live demo (the Tidewell stage) off the withdrawn palette', () => {
   const stage = fs.readFileSync('site/stage/styles.css', 'utf8');
   expect(stage).not.toMatch(/#fff8f0|#1d1712|#ff6b4a|#c2472c/i);
 });
+
+it('carries the landing header mark byte for byte in the docs header', () => {
+  const header = /<header[\s\S]*?<\/header>/.exec(html)![0];
+  const landing = /<svg[\s\S]*?<\/svg>/.exec(header)![0];
+  const brand = fs.readFileSync('site/docs/.vitepress/theme/SiteBrand.vue', 'utf8');
+  expect(/<svg[\s\S]*?<\/svg>/.exec(brand)?.[0]).toBe(landing);
+});

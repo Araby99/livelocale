@@ -29,6 +29,25 @@ domain:
 SITE_URL=https://livelocale.js.org/ npm run site:build
 ```
 
+## Docs
+
+The docs are a VitePress site in `site/docs/`, built into `site/dist/docs/` and served at
+`<base>docs/` (`https://araby99.github.io/livelocale/docs/` until the domain switch).
+
+```sh
+npm run docs:dev --prefix site
+```
+
+- Pages are Markdown files under `site/docs/` (`start/nextjs.md` is served as
+  `docs/start/nextjs.html`). Each needs frontmatter `title` and `description` (50–160 characters,
+  unique) and a sidebar entry in `site/src/lib/docs-config.ts`; a unit test checks both.
+- The theme is `site/docs/.vitepress/theme/`: VitePress's default theme without its fonts, the
+  landing page's fonts and tokens, `docs.css` (VitePress's colour variables mapped onto the
+  palette) and `SiteBrand.vue` (the landing header's mark, in place of VitePress's title).
+- Code colours come from `site/docs/.vitepress/hunk-shiki.json`.
+- `npm run site:build` builds the docs last, after the landing page and the live demo; `SITE_URL`
+  sets their base too. Search is VitePress's local search, so nothing is fetched from elsewhere.
+
 ## Test
 
 ```sh

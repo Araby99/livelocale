@@ -1,0 +1,40 @@
+{
+  "name": "hunk",
+  "displayName": "livelocale hunk",
+  "type": "dark",
+  "colors": {
+    "editor.background": "#16181D",
+    "editor.foreground": "#E8E4D9"
+  },
+  "tokenColors": [
+    {
+      "settings": { "foreground": "#E8E4D9" }
+    },
+    {
+      "scope": ["comment", "punctuation.definition.comment", "punctuation", "meta.brace"],
+      "settings": { "foreground": "#8C887D" }
+    },
+    {
+      "scope": [
+        "support.type.property-name",
+        "meta.object-literal.key",
+        "entity.name.tag",
+        "entity.other.attribute-name",
+        "meta.mapping.key",
+        "meta.import string",
+        "meta.export string",
+        "string.other.link",
+        "markup.underline.link"
+      ],
+      "settings": { "foreground": "#4FC3DC" }
+    },
+    {
+      "scope": ["invalid", "markup.deleted", "punctuation.definition.deleted"],
+      "settings": { "foreground": "#FF5468" }
+    },
+    {
+      "scope": ["markup.inserted", "punctuation.definition.inserted"],
+      "settings": { "foreground": "#6FD69A" }
+    }
+  ]
+}

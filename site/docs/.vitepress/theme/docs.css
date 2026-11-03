@@ -1,0 +1,433 @@
+/* The docs on the hunk palette (DESIGN.md). VitePress's default theme draws everything from its
+   --vp-* variables; each one is mapped onto a hunk token, and every colour family the default
+   theme ships (indigo, purple, green, yellow, red) is folded onto Night, Surface, Rule, Paper and
+   Comment, so no default colour survives. Dark only: force-dark puts .dark on <html>, and
+   :root.dark outranks the theme's own .dark blocks. */
+:root,
+:root.dark {
+  --vp-c-white: var(--paper);
+  --vp-c-black: var(--night);
+  --vp-c-neutral: var(--paper);
+  --vp-c-neutral-inverse: var(--night);
+
+  --vp-c-gray-1: var(--edge);
+  --vp-c-gray-2: var(--rule);
+  --vp-c-gray-3: var(--rule);
+  --vp-c-gray-soft: var(--surface);
+  --vp-c-indigo-1: var(--hunk);
+  --vp-c-indigo-2: var(--hunk);
+  --vp-c-indigo-3: var(--hunk);
+  --vp-c-indigo-soft: var(--surface);
+  --vp-c-purple-1: var(--comment);
+  --vp-c-purple-2: var(--comment);
+  --vp-c-purple-3: var(--comment);
+  --vp-c-purple-soft: var(--surface);
+  --vp-c-green-1: var(--exit-0);
+  --vp-c-green-2: var(--exit-0);
+  --vp-c-green-3: var(--exit-0);
+  --vp-c-green-soft: var(--surface);
+  --vp-c-yellow-1: var(--comment);
+  --vp-c-yellow-2: var(--comment);
+  --vp-c-yellow-3: var(--comment);
+  --vp-c-yellow-soft: var(--surface);
+  --vp-c-red-1: var(--exit-1);
+  --vp-c-red-2: var(--exit-1);
+  --vp-c-red-3: var(--exit-1);
+  --vp-c-red-soft: var(--surface);
+  --vp-c-sponsor: var(--comment);
+
+  --vp-c-bg: var(--night);
+  --vp-c-bg-alt: var(--surface);
+  --vp-c-bg-elv: var(--surface);
+  --vp-c-bg-soft: var(--surface);
+  --vp-c-border: var(--rule);
+  --vp-c-divider: var(--rule);
+  --vp-c-gutter: var(--rule);
+  --vp-c-text-1: var(--paper);
+  --vp-c-text-2: var(--comment);
+  --vp-c-text-3: var(--comment);
+
+  --vp-c-default-1: var(--edge);
+  --vp-c-default-2: var(--rule);
+  --vp-c-default-3: var(--surface);
+  --vp-c-default-soft: var(--surface);
+  /* Hunk is where a string lives: links. */
+  --vp-c-brand-1: var(--hunk);
+  --vp-c-brand-2: var(--hunk);
+  --vp-c-brand-3: var(--hunk);
+  --vp-c-brand-soft: rgb(79 195 220 / 0.14); /* Hunk at 14% */
+  --vp-c-tip-1: var(--paper);
+  --vp-c-tip-2: var(--comment);
+  --vp-c-tip-3: var(--comment);
+  --vp-c-tip-soft: var(--surface);
+  --vp-c-note-1: var(--paper);
+  --vp-c-note-2: var(--comment);
+  --vp-c-note-3: var(--comment);
+  --vp-c-note-soft: var(--surface);
+  --vp-c-success-1: var(--paper);
+  --vp-c-success-2: var(--comment);
+  --vp-c-success-3: var(--comment);
+  --vp-c-success-soft: var(--surface);
+  --vp-c-important-1: var(--paper);
+  --vp-c-important-2: var(--comment);
+  --vp-c-important-3: var(--comment);
+  --vp-c-important-soft: var(--surface);
+  --vp-c-warning-1: var(--paper);
+  --vp-c-warning-2: var(--comment);
+  --vp-c-warning-3: var(--comment);
+  --vp-c-warning-soft: var(--surface);
+  --vp-c-danger-1: var(--paper);
+  --vp-c-danger-2: var(--comment);
+  --vp-c-danger-3: var(--comment);
+  --vp-c-danger-soft: var(--surface);
+  --vp-c-caution-1: var(--paper);
+  --vp-c-caution-2: var(--comment);
+  --vp-c-caution-3: var(--comment);
+  --vp-c-caution-soft: var(--surface);
+
+  --vp-font-family-base: var(--font-body);
+  --vp-font-family-mono: var(--font-code);
+
+  /* Depth is tone, never shadow (DESIGN.md "Elevation & Depth"). */
+  --vp-shadow-1: none;
+  --vp-shadow-2: none;
+  --vp-shadow-3: none;
+  --vp-shadow-4: none;
+  --vp-shadow-5: none;
+
+  --vp-code-font-size: 0.875em;
+  --vp-code-color: var(--hunk);
+  --vp-code-link-color: var(--hunk);
+  --vp-code-link-hover-color: var(--hunk);
+  --vp-code-bg: var(--surface);
+  --vp-code-block-color: var(--paper);
+  --vp-code-block-bg: var(--surface);
+  --vp-code-block-divider-color: var(--rule);
+  --vp-code-lang-color: var(--comment);
+  --vp-code-line-highlight-color: var(--rule);
+  --vp-code-line-number-color: var(--comment);
+  --vp-code-line-diff-add-color: var(--wash);
+  --vp-code-line-diff-add-symbol-color: var(--night);
+  --vp-code-line-diff-remove-color: transparent;
+  --vp-code-line-diff-remove-symbol-color: var(--comment);
+  --vp-code-line-warning-color: var(--surface);
+  --vp-code-line-error-color: var(--surface);
+  --vp-code-copy-code-border-color: var(--rule);
+  --vp-code-copy-code-bg: var(--surface);
+  --vp-code-copy-code-hover-border-color: var(--edge);
+  --vp-code-copy-code-hover-bg: var(--surface);
+  --vp-code-copy-code-active-text: var(--comment);
+  --vp-code-tab-divider: var(--rule);
+  --vp-code-tab-text-color: var(--comment);
+  --vp-code-tab-bg: var(--surface);
+  --vp-code-tab-hover-text-color: var(--paper);
+  --vp-code-tab-active-text-color: var(--paper);
+  --vp-code-tab-active-bar-color: var(--paper);
+
+  --vp-button-brand-border: transparent;
+  --vp-button-brand-text: var(--night);
+  --vp-button-brand-bg: var(--patch);
+  --vp-button-brand-hover-border: transparent;
+  --vp-button-brand-hover-text: var(--night);
+  --vp-button-brand-hover-bg: var(--patch-hover);
+  --vp-button-brand-active-border: transparent;
+  --vp-button-brand-active-text: var(--night);
+  --vp-button-brand-active-bg: var(--patch-hover);
+  --vp-button-alt-border: var(--edge);
+  --vp-button-alt-text: var(--paper);
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-hover-border: var(--edge);
+  --vp-button-alt-hover-text: var(--paper);
+  --vp-button-alt-hover-bg: var(--surface);
+  --vp-button-alt-active-border: var(--edge);
+  --vp-button-alt-active-text: var(--paper);
+  --vp-button-alt-active-bg: var(--surface);
+
+  --vp-custom-block-font-size: 15px;
+  --vp-custom-block-code-font-size: 13px;
+  --vp-custom-block-info-border: var(--rule);
+  --vp-custom-block-info-text: var(--paper);
+  --vp-custom-block-info-bg: var(--surface);
+  --vp-custom-block-info-code-bg: var(--night);
+  --vp-custom-block-note-border: var(--rule);
+  --vp-custom-block-note-text: var(--paper);
+  --vp-custom-block-note-bg: var(--surface);
+  --vp-custom-block-note-code-bg: var(--night);
+  --vp-custom-block-tip-border: var(--rule);
+  --vp-custom-block-tip-text: var(--paper);
+  --vp-custom-block-tip-bg: var(--surface);
+  --vp-custom-block-tip-code-bg: var(--night);
+  --vp-custom-block-important-border: var(--rule);
+  --vp-custom-block-important-text: var(--paper);
+  --vp-custom-block-important-bg: var(--surface);
+  --vp-custom-block-important-code-bg: var(--night);
+  --vp-custom-block-warning-border: var(--rule);
+  --vp-custom-block-warning-text: var(--paper);
+  --vp-custom-block-warning-bg: var(--surface);
+  --vp-custom-block-warning-code-bg: var(--night);
+  --vp-custom-block-danger-border: var(--rule);
+  --vp-custom-block-danger-text: var(--paper);
+  --vp-custom-block-danger-bg: var(--surface);
+  --vp-custom-block-danger-code-bg: var(--night);
+  --vp-custom-block-caution-border: var(--rule);
+  --vp-custom-block-caution-text: var(--paper);
+  --vp-custom-block-caution-bg: var(--surface);
+  --vp-custom-block-caution-code-bg: var(--night);
+  --vp-custom-block-details-border: var(--rule);
+  --vp-custom-block-details-text: var(--paper);
+  --vp-custom-block-details-bg: var(--surface);
+  --vp-custom-block-details-code-bg: var(--night);
+
+  --vp-input-border-color: var(--rule);
+  --vp-input-bg-color: var(--surface);
+  --vp-input-switch-bg-color: var(--surface);
+
+  --vp-nav-bg-color: var(--night);
+  --vp-nav-screen-bg-color: var(--night);
+  --vp-local-nav-bg-color: var(--night);
+  --vp-sidebar-bg-color: var(--night);
+  --vp-backdrop-bg-color: rgb(12 13 15 / 0.8); /* Night at 80% */
+
+  --vp-home-hero-name-color: var(--paper);
+
+  --vp-badge-info-border: var(--rule);
+  --vp-badge-info-text: var(--comment);
+  --vp-badge-info-bg: var(--surface);
+  --vp-badge-tip-border: var(--rule);
+  --vp-badge-tip-text: var(--paper);
+  --vp-badge-tip-bg: var(--surface);
+  --vp-badge-warning-border: var(--rule);
+  --vp-badge-warning-text: var(--paper);
+  --vp-badge-warning-bg: var(--surface);
+  --vp-badge-danger-border: var(--rule);
+  --vp-badge-danger-text: var(--paper);
+  --vp-badge-danger-bg: var(--surface);
+
+  --vp-local-search-bg: var(--surface);
+  --vp-local-search-result-bg: var(--night);
+  --vp-local-search-result-border: var(--rule);
+  --vp-local-search-result-selected-bg: var(--night);
+  /* The selected result is where the keyboard is: the focus ring's colour. */
+  --vp-local-search-result-selected-border: var(--patch);
+  --vp-local-search-highlight-bg: transparent;
+  --vp-local-search-highlight-text: var(--hunk);
+}
+
+html {
+  scrollbar-color: var(--edge) var(--night);
+}
+
+body {
+  background: var(--night);
+  color: var(--paper);
+  caret-color: var(--patch);
+}
+
+::selection {
+  background: var(--patch);
+  color: var(--night);
+}
+
+/* Every interactive element gets the landing page's ring: 2px Patch, 3px offset, 4px radius.
+   The theme sets its own button and search-button outlines, so this one is important. Elements
+   VitePress focuses by script (tabindex -1) keep their own outline: none. */
+:focus-visible:not([tabindex='-1']) {
+  outline: 2px solid var(--patch) !important;
+  outline-offset: 3px !important;
+  border-radius: 4px;
+}
+
+/* The header: the landing page's brand and links, kept in reach on long reference pages
+   (controller ruling 2026-11-03): sticky on Night, a 1px Rule underneath, no blur. VitePress
+   fixes the nav from 960px; below that it would scroll away, so it sticks. */
+.Layout > .VPNav {
+  border-bottom: 1px solid var(--rule);
+  background-color: var(--night);
+  backdrop-filter: none;
+}
+
+@media (max-width: 959px) {
+  .Layout > .VPNav {
+    position: sticky;
+    top: 0;
+  }
+
+  .Layout > .VPLocalNav {
+    top: calc(var(--vp-nav-height) + 1px);
+  }
+}
+
+.VPNavBar .divider {
+  display: none;
+}
+
+.VPNavBar .VPNavBarMenuLink {
+  color: var(--paper);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.VPNavBar .VPNavBarMenuLink:hover,
+.VPNavBar .VPNavBarMenuLink.active {
+  color: var(--paper);
+  text-decoration: underline;
+  text-decoration-color: var(--edge);
+  text-underline-offset: 0.22em;
+}
+
+/* The sidebar on Night, a Rule hairline beside the content; the current page is the landing
+   page's current chapter chip: Surface fill, Paper text, Edge border, never an amber line. */
+.VPSidebar {
+  --vp-c-brand-1: var(--paper);
+}
+
+@media (min-width: 960px) {
+  .VPSidebar {
+    border-right: 1px solid var(--rule);
+  }
+}
+
+.VPSidebar .indicator {
+  display: none;
+}
+
+.VPSidebarItem .item {
+  margin-inline: -11px;
+  padding-inline: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.VPSidebarItem.is-active > .item {
+  border-color: var(--edge);
+  background: var(--surface);
+}
+
+/* Type: Martian Mono speaks (headings), IBM Plex Sans explains, IBM Plex Mono shows code. */
+.vp-doc h1,
+.vp-doc h2,
+.vp-doc h3,
+.vp-doc h4,
+.vp-doc h5,
+.vp-doc h6 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+.vp-doc h1 {
+  letter-spacing: -0.03em;
+}
+
+.vp-doc h2,
+.vp-doc h3 {
+  letter-spacing: -0.02em;
+}
+
+.vp-doc h4,
+.vp-doc h5,
+.vp-doc h6 {
+  font-weight: 500;
+}
+
+.vp-doc {
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+
+.vp-doc a {
+  font-weight: 500;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-decoration-color: color-mix(in srgb, var(--hunk) 45%, transparent);
+  text-underline-offset: 0.22em;
+}
+
+.vp-doc a:hover {
+  color: var(--hunk);
+  text-decoration-color: var(--hunk);
+  text-decoration-thickness: 2px;
+}
+
+.vp-doc :not(pre) > code {
+  padding: 0.08em 0.36em;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+/* Code blocks: Surface panels with a Rule hairline at 10px (full bleed under 640px, as VitePress
+   lays them out, so only the top and bottom hairlines show); tokens take colour from
+   hunk-shiki.json only. */
+.vp-doc div[class*='language-'] {
+  border-block: 1px solid var(--rule);
+}
+
+@media (min-width: 640px) {
+  .vp-doc div[class*='language-'] {
+    border: 1px solid var(--rule);
+    border-radius: 10px;
+  }
+}
+
+.vp-doc [class*='language-'] code {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+/* An added line reads as changed: the row on Wash, the + as a filled Patch square. */
+.vp-doc [class*='language-'] code .diff.add::before {
+  content: '+';
+  top: auto;
+  width: 1.25em;
+  height: 1.25em;
+  margin-top: 0.2em;
+  border-radius: 3px;
+  background: var(--patch);
+  color: var(--night);
+  line-height: 1.25em;
+  text-align: center;
+}
+
+.vp-doc [class*='language-'] code .diff.remove {
+  opacity: 1;
+}
+
+/* No blur, no gradient anywhere (DESIGN.md). */
+.vp-doc [class*='language-'] .has-focused-lines .line:not(.has-focus) {
+  filter: none;
+}
+
+.VPDoc .aside-curtain {
+  background: var(--vp-c-bg);
+}
+
+/* The search field: the ring goes round the whole bar, not the bare input inside it. */
+.VPLocalSearchBox .shell .search-bar:focus-within {
+  border-color: var(--rule);
+  outline: 2px solid var(--patch);
+  outline-offset: 3px;
+}
+
+.VPLocalSearchBox .shell .search-input:focus-visible {
+  outline: none !important;
+}
+
+.VPLocalSearchBox .shell .search-keyboard-shortcuts kbd {
+  border-color: var(--rule);
+  background: var(--night);
+  box-shadow: none;
+}
+
+.VPLocalSearchBox .excerpt-gradient-top,
+.VPLocalSearchBox .excerpt-gradient-bottom {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}

@@ -15,6 +15,6 @@
     "noEmit": true,
     "types": ["node", "vite/client"]
   },
-  "include": ["src", "sample", "stage", "vite.config.ts"],
+  "include": ["src", "sample", "stage", "vite.config.ts", "docs/.vitepress/**/*.ts"],
   "exclude": ["node_modules", "dist", "stage/dist"]
 }

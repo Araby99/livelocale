@@ -12,6 +12,11 @@ import { siteConfig } from '../src/lib/site-config.ts';
 const SITE_DIR = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
 const VITE_BIN = join(dirname(require.resolve('vite/package.json')), 'bin', 'vite.js');
+const VITEPRESS_BIN = join(
+  dirname(require.resolve('vitepress/package.json')),
+  'bin',
+  'vitepress.js'
+);
 
 /** Runs `node <args>` in site/ with env, rejecting when it exits non-zero. */
 function runNode(args, env) {
@@ -28,9 +33,10 @@ function runNode(args, env) {
  * Builds the whole site into site/dist. SITE_URL in env sets the base (see site-config.ts); its
  * normalised form reaches index.html as %VITE_SITE_URL%, so the share tags carry absolute URLs.
  * The CI excerpt's `check --hardcoded` report runs first (it needs the built CLI in the root dist).
- * Last, the live demo is built: Tidewell, the same stage site the hero video is filmed on, with its
+ * Next, the live demo is built: Tidewell, the same stage site the hero video is filmed on, with its
  * two planted mistakes, packed with the share Studio under <base>demo/ (no --expose-repo, so the
- * Studio offers no GitHub action) and copied to site/dist/demo/.
+ * Studio offers no GitHub action) and copied to site/dist/demo/. Last, VitePress builds the docs
+ * into site/dist/docs/ under <base>docs/ (its config reads SITE_URL from env).
  */
 export async function buildSite(env) {
   const { siteUrl, base } = siteConfig(env);
@@ -59,6 +65,7 @@ export async function buildSite(env) {
     env
   );
   await cp(join(SITE_DIR, 'stage', 'dist'), join(SITE_DIR, 'dist', 'demo'), { recursive: true });
+  await runNode([VITEPRESS_BIN, 'build', 'docs'], env);
   console.log('site/dist complete');
 }
 
