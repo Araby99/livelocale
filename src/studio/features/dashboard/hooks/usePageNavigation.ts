@@ -85,6 +85,13 @@ export function usePageNavigation({
   const locationKnownRef = useRef(locationKnown);
   locationKnownRef.current = locationKnown;
 
+  // Removes the load listener of the last iframe src navigation, if any.
+  const loadWatchRef = useRef<(() => void) | null>(null);
+  const stopLoadWatch = () => {
+    loadWatchRef.current?.();
+    loadWatchRef.current = null;
+  };
+
   const startPending = (displayPath: string) => {
     clearTimer();
     setPendingPath(displayPath);
@@ -107,13 +114,20 @@ export function usePageNavigation({
     setPendingPath(null);
     setOpenedPath(null);
     navigateTargetRef.current = null;
+    stopLoadWatch();
     if (locationKnown) {
       rememberPage(scope, path);
       setRecent(readRecentPages(scope));
     }
   }, [locationSeq]);
 
-  useEffect(() => clearTimer, []);
+  useEffect(
+    () => () => {
+      clearTimer();
+      stopLoadWatch();
+    },
+    []
+  );
 
   // A NAVIGATE posted to a page without the client is lost, so only a known client gets one.
   const go = (appPath: string) => {
@@ -125,6 +139,15 @@ export function usePageNavigation({
     navigateTargetRef.current = null;
     const frame = iframeRef.current;
     if (!frame) return;
+    stopLoadWatch();
+    // The frame's load ends the navigation; the timeout stays for a load that never fires.
+    const onLoad = () => {
+      stopLoadWatch();
+      clearTimer();
+      setPendingPath(null);
+    };
+    frame.addEventListener('load', onLoad);
+    loadWatchRef.current = () => frame.removeEventListener('load', onLoad);
     frame.src = frameSrc(appPath, appOrigin, window.location.origin);
     setOpenedPath(appPath);
   };

@@ -531,7 +531,11 @@ describe('useStudio in Review mode', () => {
 
   it('shows the language chosen in the menu in the app preview on a share link', async () => {
     const { result } = setupStudio();
-    const frame = { src: 'https://www.acme.com/?livelocale-origin=o' };
+    const frame = {
+      src: 'https://www.acme.com/?livelocale-origin=o',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    };
     conn.iframeRef.current = frame;
     conn.state.currentPath = '/about?livelocale-origin=o';
     await waitFor(() => expect(result.current.locales).toEqual(['ar', 'en']));

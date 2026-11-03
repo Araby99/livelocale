@@ -226,6 +226,47 @@ describe('usePageNavigation', () => {
     expect(result.current.path).toBe('/a');
   });
 
+  it('ends a fallback navigation when the frame loads', () => {
+    vi.useFakeTimers();
+    const { result, iframe } = setup({ currentPath: '/a', locationKnown: false });
+    act(() => {
+      result.current.onNavigate('/missing.html');
+    });
+    expect(result.current.isNavigating).toBe(true);
+    act(() => {
+      iframe.dispatchEvent(new Event('load'));
+    });
+    expect(result.current.pendingPath).toBeNull();
+    expect(result.current.isNavigating).toBe(false);
+    expect(result.current.path).toBe('/missing.html');
+
+    // Reload goes the same way and ends on the next load.
+    act(() => {
+      result.current.reload();
+    });
+    expect(result.current.isNavigating).toBe(true);
+    act(() => {
+      iframe.dispatchEvent(new Event('load'));
+    });
+    expect(result.current.isNavigating).toBe(false);
+  });
+
+  it('ends a fallback navigation whose frame never loads at the timeout', () => {
+    vi.useFakeTimers();
+    const { result } = setup({ currentPath: '/a', locationKnown: false });
+    act(() => {
+      result.current.onNavigate('/slow');
+    });
+    act(() => {
+      vi.advanceTimersByTime(NAVIGATION_TIMEOUT_MS - 1);
+    });
+    expect(result.current.isNavigating).toBe(true);
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(result.current.isNavigating).toBe(false);
+  });
+
   it('refuses another origin', () => {
     const { result, sendToIframe, iframe } = setup();
     const before = iframe.src;
