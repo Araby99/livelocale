@@ -35,6 +35,9 @@ export const SIDEBAR: SidebarGroup[] = [
       { text: 'build', link: '/reference/cli/build' },
       { text: 'apply', link: '/reference/cli/apply' },
       { text: 'migrate', link: '/reference/cli/migrate' },
+      { text: 'Configuration', link: '/reference/configuration' },
+      { text: 'Environment variables', link: '/reference/environment' },
+      { text: 'Changelog', link: '/reference/changelog' },
     ],
   },
 ];

@@ -13,6 +13,7 @@ it('runs when the site, the brand or the product it packs changes', () => {
       "'src/**'",
       "'package.json'",
       "'package-lock.json'",
+      "'CHANGELOG.md'",
     ])
       expect(paths, `${event} ${p}`).toContain(p);
   }

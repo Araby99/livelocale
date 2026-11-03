@@ -3,6 +3,7 @@
 import { fileURLToPath } from 'node:url';
 import { defineConfig, type MarkdownOptions } from 'vitepress';
 import { docsBase, landingHref, NAV, SIDEBAR, TITLE_TEMPLATE } from '../../src/lib/docs-config';
+import { changelogPage } from './changelog';
 import { cliFence } from './cli-fence';
 import hunk from './hunk-shiki.json';
 
@@ -25,8 +26,11 @@ export default defineConfig({
   markdown: {
     theme: hunk as NonNullable<MarkdownOptions['theme']>,
     // ```cli <name> fences show a real CLI run that cli-snippets.mjs recorded before the build.
-    config: (md) =>
-      cliFence(md, { dir: fileURLToPath(new URL('../../.cache/docs-cli', import.meta.url)) }),
+    // reference/changelog.md's marker becomes CHANGELOG.md from its first release on.
+    config: (md) => {
+      cliFence(md, { dir: fileURLToPath(new URL('../../.cache/docs-cli', import.meta.url)) });
+      changelogPage(md, { file: fileURLToPath(new URL('../../../CHANGELOG.md', import.meta.url)) });
+    },
   },
   themeConfig: {
     // The brand in the header (SiteBrand.vue) links to the landing page, outside the docs base.

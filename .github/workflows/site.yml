@@ -1,16 +1,17 @@
 name: Site
 
 # Tests the landing site on every change to it, the brand or the product it packs (the demo's
-# packed Studio and the CI excerpt's `check --hardcoded` output are built from src/). Deploys to
+# packed Studio and the CI excerpt's `check --hardcoded` output are built from src/), and on every
+# release, since the docs' changelog page is CHANGELOG.md. Deploys to
 # GitHub Pages only when run by hand, or on pushes once the owner sets the SITE_LIVE variable.
 
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'brand/**', 'src/**', 'package.json', 'package-lock.json', '.github/workflows/site.yml']
+    paths: ['site/**', 'brand/**', 'src/**', 'package.json', 'package-lock.json', 'CHANGELOG.md', '.github/workflows/site.yml']
   pull_request:
     branches: [main]
-    paths: ['site/**', 'brand/**', 'src/**', 'package.json', 'package-lock.json', '.github/workflows/site.yml']
+    paths: ['site/**', 'brand/**', 'src/**', 'package.json', 'package-lock.json', 'CHANGELOG.md', '.github/workflows/site.yml']
   workflow_dispatch:
 
 jobs:
