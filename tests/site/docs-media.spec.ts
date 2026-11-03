@@ -1,8 +1,9 @@
 import { test, expect, type Page } from '@playwright/test';
 
-// The page that carries a DocShot and a DocClip below the fold.
-const PAGE = 'docs/index.html';
+// The Studio guide carries DocShots and the arabic-switch DocClip below the fold.
+const PAGE = 'docs/guides/studio.html';
 const CLIP = '.doc-clip';
+const POSTER = /arabic-switch\.poster\.[\w-]+\.webp$/;
 
 const isClipFile = (url: string) => /\.(webm|mp4)(\?|$)/.test(url);
 const paused = (page: Page) =>
@@ -21,10 +22,12 @@ test('loads no clip before it nears the screen', async ({ page }) => {
   expect(clipRequests).toEqual([]);
   const video = page.locator(`${CLIP} video`);
   await expect(video).toHaveAttribute('preload', 'none');
-  await expect(video).toHaveAttribute('poster', /\.poster\.[\w-]+\.webp$/);
+  await expect(video).toHaveAttribute('poster', POSTER);
   expect(await video.evaluate((v: HTMLVideoElement) => v.autoplay)).toBe(false);
   await expect(page.locator(`${CLIP} source[src]`)).toHaveCount(0);
-  await expect(page.locator('.doc-shot img')).toHaveAttribute('loading', 'lazy');
+  const shots = await page.locator('.doc-shot img').all();
+  expect(shots.length).toBeGreaterThan(0);
+  for (const shot of shots) await expect(shot).toHaveAttribute('loading', 'lazy');
 });
 
 test('plays a clip on screen and pauses it from the keyboard', async ({ page }) => {
@@ -59,7 +62,7 @@ test.describe('reduced motion', () => {
     );
     expect(await paused(page)).toBe(true);
     expect(await video.evaluate((v: HTMLVideoElement) => v.currentTime)).toBe(0);
-    await expect(video).toHaveAttribute('poster', /\.poster\.[\w-]+\.webp$/);
+    await expect(video).toHaveAttribute('poster', POSTER);
     await expect(page.getByRole('button', { name: 'Play clip' })).toBeVisible();
   });
 });

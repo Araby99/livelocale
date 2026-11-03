@@ -26,6 +26,10 @@ export const SIDEBAR: SidebarGroup[] = [
     items: [
       { text: 'Share links', link: '/guides/share-links' },
       { text: 'Catch untranslated text in CI', link: '/guides/ci-check' },
+      { text: 'The Studio', link: '/guides/studio' },
+      { text: 'Preview mode', link: '/guides/preview-mode' },
+      { text: 'Teams and enterprise setups', link: '/guides/teams' },
+      { text: 'Migrating from next-i18n-lens', link: '/guides/migrate' },
     ],
   },
   {

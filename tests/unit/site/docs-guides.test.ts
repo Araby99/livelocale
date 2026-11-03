@@ -47,6 +47,52 @@ it.each([
       'What it does not see',
     ],
   ],
+  [
+    'guides/studio.md',
+    [
+      'Edit',
+      'Review and commit',
+      'Plural forms',
+      'Placeholder safety',
+      'Light and dark',
+      'Arabic and right to left',
+      'Keyboard',
+    ],
+  ],
+  [
+    'guides/preview-mode.md',
+    [
+      'How it fits together',
+      'Set up the server',
+      'Set the environment',
+      'Open the Studio on the preview',
+      'Check the deployment',
+      'Behaviour worth knowing',
+      'What preview mode does not do',
+    ],
+  ],
+  [
+    'guides/teams.md',
+    [
+      'App on another port or hostname',
+      'Studio away from localhost',
+      'A Content-Security-Policy blocks the iframe',
+      'Auth middleware redirects the API',
+      'Namespaced hooks',
+      'Monorepos',
+      'Not sure which applies',
+    ],
+  ],
+  [
+    'guides/migrate.md',
+    [
+      'Install the new package',
+      'Rename the exports',
+      'Move the API route',
+      'Rename the environment variables',
+      'Use the new CLI',
+    ],
+  ],
 ])('%s covers its sections in order', (file, headings) => {
   expect(sections(page(file))).toEqual(headings);
 });
