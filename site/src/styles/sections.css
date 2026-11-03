@@ -896,6 +896,123 @@ html:not(.js) .story + .story {
   }
 }
 
+/* ---------- Arabic, right to left ---------- */
+
+.arabic {
+  display: grid;
+  gap: 32px;
+  padding-block: 72px 88px;
+  border-top: 1px solid var(--rule);
+}
+
+.arabic h2 {
+  margin-bottom: 16px;
+  font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.arabic-text {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.arabic-text p {
+  max-width: 46ch;
+}
+
+.arabic-sample {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+}
+
+.arabic-sample [lang='ar'] {
+  font-weight: 500;
+}
+
+.arabic-gloss {
+  color: var(--comment);
+  font-size: 0.9375rem;
+}
+
+.arabic-link a {
+  display: inline-block;
+  padding-block: 4px;
+  font-weight: 500;
+}
+
+.arabic-clip {
+  min-width: 0;
+  margin: 0;
+}
+
+.clip-frame {
+  position: relative;
+}
+
+.clip-frame video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+/* The visible pause control, over the clip's corner. */
+.clip-toggle {
+  position: absolute;
+  inset-block-end: 12px;
+  inset-inline-end: 12px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--night);
+  color: var(--paper);
+  cursor: pointer;
+}
+
+.clip-toggle:hover {
+  border-color: var(--edge);
+}
+
+.clip-toggle .icon-play {
+  fill: currentColor;
+}
+
+.clip-toggle .icon-pause,
+.clip-toggle[data-state='playing'] .icon-play {
+  display: none;
+}
+
+.clip-toggle[data-state='playing'] .icon-pause {
+  display: block;
+}
+
+/* Without JavaScript the clip stays on its poster, so there is nothing to play or pause. */
+html:not(.js) .clip-toggle {
+  display: none;
+}
+
+.arabic-clip figcaption {
+  margin-top: 10px;
+  color: var(--comment);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 900px) {
+  .arabic {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 56px;
+    padding-block: 104px 112px;
+  }
+}
+
 /* ---------- Where it works ---------- */
 
 .works {
