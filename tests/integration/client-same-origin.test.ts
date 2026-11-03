@@ -39,6 +39,7 @@ describe('client inside a same-origin Studio', () => {
     else delete (window as any).parent;
     vi.unstubAllEnvs();
     vi.useRealTimers();
+    History.prototype.replaceState.call(history, {}, '', '/');
   });
 
   it('activates from flag.js inside a same-origin Studio and greets it on its own origin', async () => {
@@ -126,6 +127,43 @@ describe('client inside a same-origin Studio', () => {
         type: 'VISIBLE_TEXTS_CHANGED',
         payload: [{ key: 'home.title', text: 'Hello' }],
       },
+      OWN
+    );
+  });
+  it('reports a client-side navigation', async () => {
+    const parent = studioParent();
+    setParent(parent);
+    runFlag();
+    await bootClient();
+    history.pushState({}, '', '/next?x=1');
+    await vi.waitFor(() =>
+      expect(parent.postMessage).toHaveBeenCalledWith(
+        { source: 'livelocale-client', type: 'LOCATION_CHANGED', payload: { url: '/next?x=1' } },
+        OWN
+      )
+    );
+  });
+
+  it('says when the page goes away and greets again from the back-forward cache', async () => {
+    const parent = studioParent();
+    setParent(parent);
+    runFlag();
+    await bootClient();
+    parent.postMessage.mockClear();
+
+    window.dispatchEvent(new Event('pagehide'));
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      { source: 'livelocale-client', type: 'LEAVING', payload: undefined },
+      OWN
+    );
+    parent.postMessage.mockClear();
+
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false }));
+    expect(parent.postMessage).not.toHaveBeenCalled();
+
+    window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      { source: 'livelocale-client', type: 'READY', payload: { url: '/' } },
       OWN
     );
   });

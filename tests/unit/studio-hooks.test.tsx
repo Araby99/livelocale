@@ -380,6 +380,69 @@ describe('useConnection', () => {
     expect(forwarded[0]).toEqual({ key: 'k0', text: 't0' });
   });
 
+  it('follows LOCATION_CHANGED from the app origin', () => {
+    const handlers = makeHandlers();
+    const { result } = renderHook(() => useConnection(handlers));
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/' } });
+    expect(result.current.locationSeq).toBe(1);
+    post({
+      source: 'livelocale-client',
+      type: 'LOCATION_CHANGED',
+      payload: { url: '/fr/pricing' },
+    });
+    expect(result.current.currentPath).toBe('/fr/pricing');
+    expect(result.current.locationSeq).toBe(2);
+    expect(result.current.locationKnown).toBe(true);
+    expect(handlers.onLocaleDetected).toHaveBeenCalledWith('fr');
+  });
+
+  it('ignores foreign LOCATION_CHANGED and forgets the location on a malformed one', () => {
+    const malformed = [
+      { url: '//evil.example/' },
+      { url: '/\\evil.example/' },
+      { url: 'https://x/' },
+      { url: 42 },
+      {},
+      { url: '/' + 'a'.repeat(2048) },
+    ];
+    for (const payload of malformed) {
+      const { result, unmount } = renderHook(() => useConnection(makeHandlers()));
+      post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a' } });
+      post(
+        { source: 'livelocale-client', type: 'LOCATION_CHANGED', payload: { url: '/b' } },
+        'https://evil.example.com'
+      );
+      expect(result.current.currentPath).toBe('/a');
+      expect(result.current.locationSeq).toBe(1);
+      expect(result.current.locationKnown).toBe(true);
+
+      post({ source: 'livelocale-client', type: 'LOCATION_CHANGED', payload });
+      expect(result.current.currentPath).toBe('/a');
+      expect(result.current.locationSeq).toBe(1);
+      expect(result.current.locationKnown).toBe(false);
+      unmount();
+    }
+  });
+
+  it('connects on a READY without a usable url', () => {
+    const { result } = renderHook(() => useConnection(makeHandlers()));
+    post({ source: 'livelocale-client', type: 'READY', payload: {} });
+    expect(result.current.connectionStatus).toBe('connected');
+    expect(result.current.locationKnown).toBe(false);
+    expect(result.current.currentPath).toBe('/');
+  });
+
+  it('forgets the location on LEAVING', () => {
+    const { result } = renderHook(() => useConnection(makeHandlers()));
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a' } });
+    expect(result.current.locationKnown).toBe(true);
+    post({ source: 'livelocale-client', type: 'LEAVING' });
+    expect(result.current.locationKnown).toBe(false);
+    expect(result.current.connectionStatus).toBe('connected');
+    expect(result.current.currentPath).toBe('/a');
+    expect(result.current.locationSeq).toBe(1);
+  });
+
   it('reads the URL locale against the static manifest', () => {
     setStudioRuntime({
       kind: 'static',

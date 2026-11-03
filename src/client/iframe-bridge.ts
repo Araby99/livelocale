@@ -3,7 +3,9 @@ export type ClientMessageType =
   | 'READY'
   | 'ERROR'
   | 'VISIBLE_KEYS_CHANGED'
-  | 'VISIBLE_TEXTS_CHANGED';
+  | 'VISIBLE_TEXTS_CHANGED'
+  | 'LOCATION_CHANGED'
+  | 'LEAVING';
 export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION';
 
 /** Where `livelocale studio` runs unless the Studio says otherwise. */
@@ -91,6 +93,27 @@ export const MAX_VISIBLE_TEXT_LENGTH = 200;
 
 const KEY_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
+/** Longest page location, in UTF-16 code units, READY and LOCATION_CHANGED carry. */
+export const MAX_LOCATION_LENGTH = 2048;
+
+/**
+ * The `url` own string of an object payload when it is a same-origin path:
+ * starts with `/`, not with `//` or `/\` (which a URL parser reads as a
+ * host), and is at most MAX_LOCATION_LENGTH long; else `null`. Never throws.
+ */
+export function toLocationUrl(payload: unknown): string | null {
+  try {
+    if (!payload || typeof payload !== 'object') return null;
+    if (!Object.prototype.hasOwnProperty.call(payload, 'url')) return null;
+    const url = (payload as { url?: unknown }).url;
+    if (typeof url !== 'string' || url.length > MAX_LOCATION_LENGTH) return null;
+    if (!url.startsWith('/') || url.startsWith('//') || url.startsWith('/\\')) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
 export interface TranslationPayload {
   key: string;
   fallbackValue: string;
@@ -151,6 +174,12 @@ export class IframeBridge {
         texts.push({ key, text: text.slice(0, MAX_VISIBLE_TEXT_LENGTH) });
       }
       payload = texts;
+    }
+
+    if (type === 'READY' || type === 'LOCATION_CHANGED') {
+      // Never dropped: the Studio must connect, and learn when the location is unknown.
+      const url = toLocationUrl(payload);
+      payload = url === null ? {} : { url };
     }
 
     const message = {
