@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-11-02
+
+### Minor Changes
+
+- **Added**
+  - `livelocale check --hardcoded` finds JSX text that never went through translation, translations identical to the source locale, and translations in the wrong script, and fails CI on hardcoded text. It uses your project's own `typescript`; without it the other checks still run and the command exits with code 2. Without the flag, `check` behaves as before.
+  - The Studio is available in Arabic with a right-to-left layout. Share links follow the browser language; the switch is in the header.
+- **Changed**
+  - The Studio has a new look with the LiveLocale brand (the "hunk" colours, Martian Mono and IBM Plex type, and the patch logo) in a light and a dark theme. Share links follow the system setting; the dev Studio starts dark until you choose System, Light or Dark in the header. The fonts ship inside the package with their OFL licences, so the Studio loads nothing from Google.
+  - The Studio shows a visible keyboard focus ring, names every control, works fully by keyboard, announces saves, sends and errors, and meets WCAG AA contrast.
+  - The Alt+hover outline on your site is now cyan instead of indigo.
+
 ## [0.10.1] - 2026-11-01
 
 ### Patch Changes

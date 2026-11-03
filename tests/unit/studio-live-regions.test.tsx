@@ -318,45 +318,85 @@ describe('Studio live regions', () => {
     );
   });
 
-  it('announces review check errors as alerts and warnings as status', () => {
-    renderReview([
-      reviewRow({
-        locale: 'ar',
-        key: 'home.cta',
-        from: 'A',
-        to: 'B',
-        status: 'conflict',
-        current: 'X',
-        checks: [{ level: 'warning', message: 'The text changed since it was copied.' }],
-      }),
-      reviewRow({
-        locale: 'fr',
-        key: 'home.greet',
-        from: 'Bonjour {name}',
-        to: 'Bonjour',
-        status: 'invalid',
-        message: 'Keep {name} in the text.',
-        checks: [{ level: 'error', message: 'Keep {name} in the text.' }],
-      }),
-    ]);
-    expect(screen.getByRole('alert').textContent).toBe('Keep {name} in the text.');
-    expect(screen.getByRole('status').textContent).toBe('The text changed since it was copied.');
+  // Final review D5: a live region per row floods a screen reader when the table mounts with many
+  // flagged rows, and again when apply results land. The panel keeps one region per politeness.
+  it('keeps review checks out of live regions, however many rows are flagged', () => {
+    renderReview(
+      Array.from({ length: 6 }, (_, i) =>
+        reviewRow({
+          locale: 'fr',
+          key: `home.k${i}`,
+          from: 'Bonjour {name}',
+          to: 'Bonjour',
+          status: 'invalid',
+          checks: [
+            { level: 'error', message: 'Keep {name} in the text.' },
+            { level: 'warning', message: 'The text changed since it was copied.' },
+          ],
+        })
+      )
+    );
+    expect(screen.getAllByText('Keep {name} in the text.')).toHaveLength(6);
+    expect(screen.getAllByRole('alert').every((el) => el.textContent === '')).toBe(true);
+    expect(screen.getAllByRole('status').every((el) => el.textContent === '')).toBe(true);
+    expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getAllByRole('status')).toHaveLength(1);
   });
 
-  it('announces a failed apply as an alert and the other apply results as status', () => {
+  it('announces one apply summary: an alert when a row failed, else status', () => {
     const rows = [
       reviewRow({ locale: 'en', key: 'home.a', from: 'A', to: 'A1' }),
       reviewRow({ locale: 'en', key: 'home.b', from: 'B', to: 'B1' }),
+      reviewRow({ locale: 'en', key: 'home.c', from: 'C', to: 'C1' }),
     ];
-    renderReview(rows, {
+    const { rerender } = renderReview(rows, { onApplyLocal: vi.fn() });
+    expect(screen.getByRole('alert').textContent).toBe('');
+    expect(screen.getByRole('status').textContent).toBe('');
+    const props = {
+      review: reviewOf(rows),
+      error: null,
+      isLoading: false,
+      focusKey: null,
+      onSelectLocale: () => {},
+      onClose: () => {},
+      studioHref: STUDIO_URL,
+      repo: null,
+      repoFromManifest: false,
+      onRepoChange: () => {},
       onApplyLocal: vi.fn(),
-      applyResults: {
-        [rows[0]!.id]: { state: 'applied' },
-        [rows[1]!.id]: { state: 'failed', message: 'Disk full.' },
-      },
-    });
-    expect(screen.getByRole('alert').textContent).toBe('Failed: Disk full.');
-    expect(screen.getByRole('status').textContent).toBe('Applied');
+    };
+    rerender(
+      <ReviewPanel
+        {...props}
+        applyResults={{
+          [rows[0]!.id]: { state: 'applied' },
+          [rows[1]!.id]: { state: 'failed', message: 'Disk full.' },
+          [rows[2]!.id]: { state: 'skipped', reason: 'unchanged' },
+        }}
+      />
+    );
+    expect(screen.getAllByTestId('apply-result').map((el) => el.textContent)).toEqual([
+      'Applied',
+      'Failed: Disk full.',
+      'Skipped: unchanged',
+    ]);
+    expect(screen.getByRole('alert').textContent).toBe(
+      'Apply finished: 1 applied, 1 skipped, 1 failed.'
+    );
+    expect(screen.getByRole('status').textContent).toBe('');
+    rerender(
+      <ReviewPanel
+        {...props}
+        applyResults={{
+          [rows[0]!.id]: { state: 'applied' },
+          [rows[1]!.id]: { state: 'applied' },
+        }}
+      />
+    );
+    expect(screen.getByRole('alert').textContent).toBe('');
+    expect(screen.getByRole('status').textContent).toBe(
+      'Apply finished: 2 applied, 0 skipped, 0 failed.'
+    );
   });
 
   it('announces the SendDialog overflow notice as status', async () => {

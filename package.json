@@ -1,6 +1,6 @@
 {
   "name": "livelocale",
-  "version": "0.10.1",
+  "version": "0.11.0",
   "description": "Click any text in your running React app to edit its translation. Edits stay as JSON in git, or arrive as a pull request from a deployed preview. Local-first, zero-dependency.",
   "license": "MIT",
   "author": "Araby99",
@@ -112,6 +112,7 @@
     }
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "@changesets/cli": "^2.31.1",
     "@fontsource/ibm-plex-mono": "^5.3.0",
     "@fontsource/ibm-plex-sans": "^5.3.0",
@@ -129,6 +130,7 @@
     "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^1.6.0",
     "autoprefixer": "^10.4.19",
+    "axe-core": "^4.10.2",
     "clsx": "^2.1.1",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",

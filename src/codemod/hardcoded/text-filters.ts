@@ -57,9 +57,12 @@ function isCommandLine(text: string): boolean {
   );
 }
 
+const UNDECODED_ENTITY = /&[A-Za-z][A-Za-z\d]*;/g;
+
 /** True when the text reads as copy a user sees, after allowed words are removed. */
 export function isUserText(text: string, allow: AllowList): boolean {
-  const rest = removeAllowed(text, allow).trim();
+  // Named entities left undecoded (`&times;`, `&rarr;`, `&copy;`) are symbols, not copy.
+  const rest = removeAllowed(text, allow).replace(UNDECODED_ENTITY, ' ').trim();
   if ([...rest].length < 2) return false;
   if (!/\p{L}/u.test(rest)) return false;
   if (!/\s/.test(rest) && CODE_LIKE.some((re) => re.test(rest))) return false;

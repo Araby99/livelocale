@@ -360,10 +360,7 @@ export const ChangesPanel = ({
                   )}
                 </div>
                 {lastCommit && !gitError && (
-                  <p
-                    role="status"
-                    className="glyph-done text-[11px] text-success-fg font-mono break-all"
-                  >
+                  <p role="status" className="glyph-done text-[11px] text-success-fg break-words">
                     {isGitHub ? (
                       <>
                         {t('changes.pull_request')}{' '}
@@ -385,7 +382,7 @@ export const ChangesPanel = ({
                 {gitError && (
                   <div
                     role="alert"
-                    className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 text-xs text-danger-fg font-mono break-all"
+                    className="bg-danger-bg border border-dashed border-danger-line rounded-xl p-3 text-xs text-danger-fg break-words"
                   >
                     {studioMessage(t, gitError)}
                   </div>

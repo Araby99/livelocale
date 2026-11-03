@@ -74,15 +74,35 @@ describe('DraftList', () => {
     });
     const a = within(row('home.a · ar'));
     expect(a.getByText('Not sent')).toBeTruthy();
-    expect(a.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(a.getByRole('button', { name: /^Undo/ })).toBeTruthy();
     const b = within(row('home.b · ar'));
     expect(b.getByText('Sent')).toBeTruthy();
-    expect(b.getByRole('button', { name: 'Remove' }).getAttribute('title')).toBe(
+    expect(b.getByRole('button', { name: /^Remove/ }).getAttribute('title')).toBe(
       'Removes it from this list. A link you already sent still carries it.'
     );
     const c = within(row('home.c · ar'));
     expect(c.getByText('Changed by someone else, please check')).toBeTruthy();
-    expect(c.getByRole('button', { name: 'Undo' })).toBeTruthy();
+    expect(c.getByRole('button', { name: /^Undo/ })).toBeTruthy();
+  });
+
+  // Final review D6: a screen reader's button list read "Undo, Undo, Undo" with no way to tell rows apart.
+  it('names each row action after its key and language, starting with the visible word', () => {
+    renderList({
+      drafts: [
+        d({ key: 'home.a' }),
+        d({ key: 'home.a', locale: 'fr' }),
+        d({ key: 'home.b', status: 'sent', sentAt: 2 }),
+      ],
+    });
+    const names = screen
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'))
+      .filter((n): n is string => n !== null);
+    expect(names).toEqual([
+      'Undo: go back to the published text of home.a (ar)',
+      'Undo: go back to the published text of home.a (fr)',
+      'Remove: take home.b (ar) off this list',
+    ]);
   });
 
   it('shows from struck through and to as text', () => {
@@ -102,7 +122,7 @@ describe('DraftList', () => {
   it('passes the draft to onUndo', () => {
     const target = d();
     const props = renderList({ drafts: [d({ key: 'home.greet' }), target] });
-    fireEvent.click(within(row('home.title · ar')).getByRole('button', { name: 'Undo' }));
+    fireEvent.click(within(row('home.title · ar')).getByRole('button', { name: /^Undo/ }));
     expect(props.onUndo).toHaveBeenCalledTimes(1);
     expect(props.onUndo).toHaveBeenCalledWith(target);
   });
@@ -165,8 +185,16 @@ describe('DraftList', () => {
     renderList({ drafts: [d(), d({ key: 'home.b', status: 'sent', sentAt: 2 })] }, 'ar');
     expect(screen.getAllByText('←').length).toBeGreaterThan(0);
     expect(screen.getByText(ar('draft_list.status_unsent'))).toBeTruthy();
-    expect(screen.getByRole('button', { name: ar('draft_list.undo') })).toBeTruthy();
-    expect(screen.getByRole('button', { name: ar('draft_list.remove') })).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: ar('draft_list.undo_aria', { key: 'home.title', locale: 'ar' }),
+      })
+    ).toBeTruthy();
+    expect(
+      screen.getByRole('button', {
+        name: ar('draft_list.remove_aria', { key: 'home.b', locale: 'ar' }),
+      })
+    ).toBeTruthy();
     expect(screen.getByRole('button', { name: ar('draft_list.download') })).toBeTruthy();
   });
 
@@ -175,8 +203,8 @@ describe('DraftList', () => {
     renderList({ liveNow: [d({ key: 'home.live' })], onDismissLiveNow });
     const live = within(row('home.live · ar'));
     expect(live.getByText('Live now')).toBeTruthy();
-    expect(live.queryByRole('button', { name: 'Undo' })).toBeNull();
-    expect(live.queryByRole('button', { name: 'Remove' })).toBeNull();
+    expect(live.queryByRole('button', { name: /^Undo/ })).toBeNull();
+    expect(live.queryByRole('button', { name: /^Remove/ })).toBeNull();
     expect(live.queryAllByRole('button')).toEqual([]);
     fireEvent.click(screen.getByRole('button', { name: 'Dismiss live changes' }));
     expect(onDismissLiveNow).toHaveBeenCalledTimes(1);

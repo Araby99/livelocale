@@ -78,7 +78,7 @@ describe('first-run tips', () => {
     );
     expect(screen.getByRole('dialog').textContent).toContain('مرحبًا بك في LiveLocale');
     for (const k of FIRST_RUN_TIP_KEYS) expect(screen.getByText(textFor('ar')(k))).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'عرض الاستوديو بالإنجليزية' }));
+    fireEvent.click(screen.getByRole('button', { name: 'English: عرض الاستوديو بالإنجليزية' }));
     expect(screen.getByText('Hold Alt/Option and click any text.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Start editing' })).toBeTruthy();
   });

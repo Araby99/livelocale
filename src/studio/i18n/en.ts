@@ -3,8 +3,9 @@ import type { Message } from './catalogue.js';
 /** English Studio copy: the source catalogue. Every key's Arabic lives in `ar.ts`. */
 export const en = {
   'common.arrow': '→',
-  'language.switch_to_ar': 'Show the Studio in Arabic',
-  'language.switch_to_en': 'Show the Studio in English',
+  // The toggle's name starts with its visible autonym (WCAG 2.5.3, label in name).
+  'language.switch_to_ar': 'العربية: show the Studio in Arabic',
+  'language.switch_to_en': 'English: show the Studio in English',
   'tips.title': 'Welcome to LiveLocale',
   'tips.step1': 'Hold Alt/Option and click any text.',
   'tips.step2':
@@ -287,6 +288,8 @@ export const en = {
   'draft_list.undo_title': 'Go back to the published text',
   'draft_list.remove': 'Remove',
   'draft_list.remove_title': 'Removes it from this list. A link you already sent still carries it.',
+  'draft_list.undo_aria': 'Undo: go back to the published text of {key} ({locale})',
+  'draft_list.remove_aria': 'Remove: take {key} ({locale}) off this list',
   'draft_list.empty': 'empty',
   'draft_list.dismiss_live': 'Dismiss live changes',
   'draft_list.download': 'Download backup',
@@ -341,6 +344,7 @@ export const en = {
   'review.now_on_site': 'Now on the site:',
   'review.result_applied': 'Applied',
   'review.result_failed': 'Failed: {message}',
+  'review.apply_summary': 'Apply finished: {applied} applied, {skipped} skipped, {failed} failed.',
   'review.result_skipped': 'Skipped: {reason}',
   'review.empty': 'empty',
   'repo.question': 'Which GitHub repository should get the pull request?',

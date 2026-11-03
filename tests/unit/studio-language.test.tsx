@@ -23,7 +23,7 @@ it('is English and left-to-right outside a provider', () => {
     result.current.lang,
     result.current.dir,
     result.current.t('language.switch_to_ar'),
-  ]).toEqual(['en', 'ltr', 'Show the Studio in Arabic']);
+  ]).toEqual(['en', 'ltr', 'العربية: show the Studio in Arabic']);
 });
 it('switches to Arabic, remembers it, and mirrors the document', () => {
   render(
@@ -31,15 +31,15 @@ it('switches to Arabic, remembers it, and mirrors the document', () => {
       <LanguageToggle />
     </StudioLanguageProvider>
   );
-  const button = screen.getByRole('button', { name: 'Show the Studio in Arabic' });
+  const button = screen.getByRole('button', { name: 'العربية: show the Studio in Arabic' });
   expect(button.textContent).toBe('العربية');
   expect(button.querySelector('[lang="ar"]')).not.toBeNull();
   fireEvent.click(button);
   expect(storedLanguage()).toBe('ar');
   expect([document.documentElement.lang, document.documentElement.dir]).toEqual(['ar', 'rtl']);
-  expect(screen.getByRole('button', { name: 'عرض الاستوديو بالإنجليزية' }).textContent).toBe(
-    'English'
-  );
+  expect(
+    screen.getByRole('button', { name: 'English: عرض الاستوديو بالإنجليزية' }).textContent
+  ).toBe('English');
 });
 it('still switches when localStorage throws', () => {
   vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
@@ -50,6 +50,6 @@ it('still switches when localStorage throws', () => {
       <LanguageToggle />
     </StudioLanguageProvider>
   );
-  fireEvent.click(screen.getByRole('button', { name: 'Show the Studio in Arabic' }));
+  fireEvent.click(screen.getByRole('button', { name: 'العربية: show the Studio in Arabic' }));
   expect(document.documentElement.dir).toBe('rtl');
 });

@@ -101,7 +101,7 @@ export const LocaleManager = ({
               d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <div className="text-xs text-danger-fg font-mono leading-normal break-all">
+          <div className="text-xs text-danger-fg leading-normal break-words">
             {studioMessage(t, (localError || error)!)}
           </div>
         </div>

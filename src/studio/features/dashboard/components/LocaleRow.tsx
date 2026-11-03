@@ -134,7 +134,7 @@ export const LocaleRow = ({
             {t('locales.confirm_delete')}
           </span>
           {localError && (
-            <span role="alert" className="text-[10px] text-danger-fg font-mono">
+            <span role="alert" className="text-[10px] text-danger-fg break-words">
               {studioMessage(t, localError)}
             </span>
           )}
@@ -169,7 +169,7 @@ export const LocaleRow = ({
               </span>
             )}
             {localError && (
-              <span role="alert" className="text-[10px] text-danger-fg font-mono mt-0.5">
+              <span role="alert" className="text-[10px] text-danger-fg break-words mt-0.5">
                 {studioMessage(t, localError)}
               </span>
             )}
