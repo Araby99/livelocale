@@ -88,6 +88,30 @@ describe('resolveAddress', () => {
     expect(resolveAddress('http://localhost:3020/livelocale-demo', share)).toBe('/livelocale-demo');
     expect(resolveAddress('/livelocale/index.html', dev)).toBe('/livelocale/index.html');
   });
+
+  it('refuses the share folder however it is spelled', () => {
+    for (const input of [
+      '/livelocale',
+      '/livelocale?x=1',
+      '/livelocale#top',
+      '/%6civelocale/',
+      '/%6C%69%76%65%6C%6F%63%61%6C%65/index.html',
+      '/livelocale%2Findex.html',
+      '/livelocale%5Cindex.html',
+      '/LiveLocale/',
+      '/LIVELOCALE',
+      '/LIVE%4cOCALE/index.html',
+      'http://localhost:3020/livelocale-demo/Livelocale',
+      '/./livelocale/',
+      '/x/../livelocale',
+    ]) {
+      expect(resolveAddress(input, share), input).toBeNull();
+    }
+    for (const input of ['/livelocale-docs/', '/livelocalex', '/about/livelocale/', '/%zz/']) {
+      expect(resolveAddress(input, share), input).not.toBeNull();
+    }
+    expect(resolveAddress('/livelocale/index.html', dev)).toBe('/livelocale/index.html');
+  });
 });
 
 describe('withPageLocale', () => {

@@ -84,8 +84,27 @@ export function resolveAddress(input: string, ctx: AddressContext): string | nul
   if (url.username !== '' || url.password !== '') return null;
   const { pathname } = url;
   if (!pathname.startsWith(ctx.base) && pathname !== ctx.base.slice(0, -1)) return null;
-  if (ctx.shareDir !== null && pathname.startsWith(ctx.shareDir)) return null;
+  if (ctx.shareDir !== null && inShareDir(pathname, ctx.base, ctx.shareDir)) return null;
   return pathname + url.search + url.hash;
+}
+
+/**
+ * Whether `pathname` (normalised, under `base`) opens the share folder: its first segment after
+ * `base`, percent-decoded and cut at a decoded `/` or `\`, equals the folder's name ignoring
+ * case, with or without a trailing slash. Static hosts decode paths and some fold case.
+ */
+function inShareDir(pathname: string, base: string, shareDir: string): boolean {
+  if (!shareDir.startsWith(base)) return pathname.startsWith(shareDir);
+  const folder = shareDir.slice(base.length).replace(/\/+$/, '');
+  const segment = pathname.slice(base.length).split('/', 1)[0] ?? '';
+  let decoded = segment;
+  try {
+    decoded = decodeURIComponent(segment);
+  } catch {
+    // A malformed escape stays as typed; the host cannot decode it to the folder either.
+  }
+  const name = decoded.split(/[/\\]/, 1)[0] ?? '';
+  return name.toLowerCase() === folder.toLowerCase();
 }
 
 /**
