@@ -5,7 +5,9 @@ const playing = (page: Page) => video(page).evaluate((v: HTMLVideoElement) => !v
 // Autoplay waits about 2 s after load and for an idle moment; this covers the hold on a slow host.
 const afterHold = { timeout: 8000 };
 
-test('marks the video up to stay light, with a preloaded poster per cut', async ({ page }) => {
+test('marks the video up to stay light, with a preloaded poster per cut @cross', async ({
+  page,
+}) => {
   await page.goto('./');
   const attrs = await video(page).evaluate((v: HTMLVideoElement) => ({
     muted: v.hasAttribute('muted'),
@@ -31,9 +33,14 @@ test('marks the video up to stay light, with a preloaded poster per cut', async 
   await expect(page.getByText('Tidewell is a fictional demo site')).toBeAttached();
 });
 
-test('fetches no video until about 2 s after the page has loaded, then plays by itself', async ({
+test('fetches no video until about 2 s after the page has loaded, then plays by itself @cross', async ({
   page,
+  browserName,
 }) => {
+  test.skip(
+    browserName === 'webkit',
+    'Playwright WebKit has no Safari media codecs; real Safari is checked on a phone in LAUNCH.md'
+  );
   const requests: { url: string; at: number }[] = [];
   let loadedAt = Infinity;
   page.on('load', () => (loadedAt = Date.now()));
@@ -90,26 +97,28 @@ test('plays the narrow 4:5 cut on a phone and the wide 2:1 cut on a desktop', as
   await page.goto('./');
   await expect
     .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc), afterHold)
-    .toMatch(/hero-narrow-[\w-]+\.webm$/);
+    .toMatch(/hero-narrow-[\w-]+\.mp4$/);
   const phone = (await page.locator('[data-demo] .screen').boundingBox())!;
   expect(phone.width / phone.height).toBeCloseTo(0.8, 1);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto('./');
   await expect
     .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc), afterHold)
-    .toMatch(/hero-wide-[\w-]+\.webm$/);
+    .toMatch(/hero-wide-[\w-]+\.mp4$/);
   const desk = (await page.locator('[data-demo] .screen').boundingBox())!;
   expect(desk.width / desk.height).toBeCloseTo(2, 1);
 });
 
-test('attaches webm then mp4, plays, and pauses from the visible button', async ({ page }) => {
+test('attaches mp4 then webm, plays, and pauses from the visible button @cross', async ({
+  page,
+}) => {
   await page.goto('./');
   await expect(video(page).locator('source')).toHaveCount(2, afterHold);
   expect(
     await video(page)
       .locator('source')
       .evaluateAll((s) => s.map((e) => (e as HTMLSourceElement).type))
-  ).toEqual(['video/webm', 'video/mp4']);
+  ).toEqual(['video/mp4', 'video/webm']);
   await expect.poll(() => playing(page)).toBe(true);
   const button = page.locator('[data-playback]');
   await expect(button).toBeVisible();
@@ -121,7 +130,11 @@ test('attaches webm then mp4, plays, and pauses from the visible button', async 
   await expect.poll(() => playing(page)).toBe(true);
 });
 
-test('seeks from a chapter chip and marks it current', async ({ page }) => {
+test('seeks from a chapter chip and marks it current @cross', async ({ page, browserName }) => {
+  test.skip(
+    browserName === 'webkit',
+    'Playwright WebKit has no Safari media codecs; real Safari is checked on a phone in LAUNCH.md'
+  );
   await page.goto('./');
   const chip = page.getByRole('button', { name: /Get a pull request/ });
   await chip.click();
@@ -143,7 +156,7 @@ test('pauses when the video scrolls off screen', async ({ page }) => {
 });
 
 test.describe('with reduced motion', () => {
-  test('never autoplays: poster and a Play button until asked', async ({ page }) => {
+  test('never autoplays: poster and a Play button until asked @cross', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('./');
     expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(

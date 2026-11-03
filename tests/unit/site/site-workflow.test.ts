@@ -54,3 +54,10 @@ it('runs the Lighthouse gate in its own job, which deploy does not wait on', () 
   expect(job('deploy')).toMatch(/^ {4}needs: test$/m);
   expect(job('deploy')).not.toContain('lighthouse');
 });
+
+it('installs and runs the three engines', () => {
+  expect(wf).toContain('npx playwright install --with-deps chromium webkit firefox');
+  const config = fs.readFileSync('playwright.site.config.ts', 'utf8');
+  for (const name of ["name: 'webkit'", "name: 'firefox'"]) expect(config).toContain(name);
+  expect(config.match(/grep: \/@cross\//g)).toHaveLength(2);
+});

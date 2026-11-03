@@ -182,7 +182,7 @@ test('keeps the docs header and the local nav in reach on a phone', async ({ pag
   await expect(page.locator('.VPNav a.brand')).toBeInViewport();
 });
 
-test('finds the check reference with the offline search', async ({ page }) => {
+test('finds the check reference with the offline search @cross', async ({ page }) => {
   await page.goto('docs/');
   await search(page, 'hardcoded');
   const hrefs = await page

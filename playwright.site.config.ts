@@ -23,6 +23,18 @@ export default defineConfig({
       use: { ...devices['Pixel 7'], hasTouch: true, isMobile: true },
       grep: /@touch/,
     },
+    // The tests a rendering engine can break (video decoding and playback, the door tabs, the
+    // offline search) run again in WebKit and Firefox.
+    {
+      name: 'webkit',
+      use: { ...devices['Desktop Safari'] },
+      grep: /@cross/,
+    },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      grep: /@cross/,
+    },
   ],
   webServer: {
     command: 'npm run site:build && node tests/site/fixtures/serve.mjs site/dist 4173 /livelocale/',

@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test';
 
-test('opens on the developer door and switches by click, keeping the hash', async ({ page }) => {
+test('opens on the developer door and switches by click, keeping the hash @cross', async ({
+  page,
+}) => {
   await page.goto('./');
   const developer = page.locator('#developer');
   const fixer = page.locator('#fixer');
@@ -17,7 +19,7 @@ test('opens on the developer door and switches by click, keeping the hash', asyn
   ).toBeVisible();
 });
 
-test('switches with the arrow keys', async ({ page }) => {
+test('switches with the arrow keys @cross', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('radio', { name: 'I ship the site' }).focus();
   await page.keyboard.press('ArrowRight');

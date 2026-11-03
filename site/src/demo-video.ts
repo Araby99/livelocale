@@ -85,9 +85,10 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: numb
     if (attached) return;
     attached = true;
     const sources = pickCut(cuts, window.matchMedia(NARROW_QUERY).matches);
+    // MP4 (H.264) first: every Safari and Chrome plays it, and it is the smaller cut here.
     for (const [src, type] of [
-      [sources.webm, 'video/webm'],
       [sources.mp4, 'video/mp4'],
+      [sources.webm, 'video/webm'],
     ] as const) {
       const source = document.createElement('source');
       source.src = src;
