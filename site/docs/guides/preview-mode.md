@@ -7,6 +7,8 @@ description: Edit text against a deployed preview of your app, with every save c
 
 The dev Studio needs a developer's machine. Preview mode lets a translator or reviewer edit text against a deployed preview of your app instead: each save goes to a git branch and a pull request, not to a local file. Nothing is written to the server's filesystem.
 
+<DocShot lead name="next-studio-open" alt="The Studio beside the running Next.js playground: the Locale Directory lists five keys, the preview shows the page with status Active, and the editor says Select an Element." caption="The Studio a reviewer opens. Shot on the dev Studio; in preview mode the same Studio points at your deployed preview." />
+
 ## How it fits together
 
 1. The app is deployed from a branch, say `i18n/preview-edits`, with preview mode on.

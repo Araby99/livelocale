@@ -71,7 +71,9 @@ and what it shows are `SHOTS` and `CLIPS` in `site/scripts/docs/media.mjs`.
 - The dev shots run `next dev -p 3100` in `playground/`, `vite --port 5180` in `playground-vite/`
   and `livelocale studio --port 3110`; the share shots and the clips pack the Tidewell stage
   (`site/stage`) as `record-hero.mjs` does and serve it on a port in 5170-5179, browsed as
-  `http://tidewell.example`. A server already answering on 3100, 3110 or 5180 stops the run.
+  `http://tidewell.example`. A server already answering on 3100, 3110 or 5180 stops the run;
+  `DOCS_NEXT_PORT`, `DOCS_VITE_PORT` and `DOCS_STUDIO_PORT` move those three servers, and the
+  provenance sidecars name the ports used.
 - Saves in the dev Studio write the playgrounds' locale files; the recorder snapshots
   `playground/locales/` and `playground-vite/locales/` and puts them back after every capture.
 - Shots are Chromium at 1440x900, DPR 2, saved as WebP q82 at 1200 px wide; clips are Playwright's

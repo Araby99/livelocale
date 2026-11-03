@@ -7,6 +7,8 @@ description: Ship the Studio inside your build, deploy it to any static host, an
 
 Four steps from one command to a pull request with a fix to your site's text. Each step shows what you should see when it worked. The Studio ships inside your build at `<base>livelocale/`, so any host that serves the site serves the Studio too: Apache, Nginx, S3, GitHub Pages, Netlify, Cloudflare Pages or Vercel. Nothing runs on a server and nobody needs an account.
 
+<DocClip name="alt-click-edit" label="Alt+Click the Tidewell headline in the share Studio, fix the typo in the editor and save it." caption="Step 3 on the deployed site: Alt+Click, fix, save." />
+
 You need an app built with Vite, CRA, webpack, Rsbuild or Next.js, its translations in JSON files, and its text going through livelocale's wrapper, as in step 2 of [Vite + React](./vite.md) or step 3 of [Next.js](./nextjs.md). The one-click pull requests need the code on GitHub.
 
 ## 1. Run `init --share`
@@ -64,9 +66,7 @@ Run `npx livelocale doctor --app <url> --share` against the deployed site and fi
 
 ## 3. Fix text and send it
 
-This step is for the person fixing your text. There is no sign-up, no password and nothing to install. They hold **Alt** (Option on a Mac) and click the wrong text, type the fix and press **Save**.
-
-<DocClip name="alt-click-edit" label="Alt+Click the Tidewell headline in the share Studio, fix the typo in the editor and save it." caption="Alt+Click, fix, save." />
+This step is for the person fixing your text. There is no sign-up, no password and nothing to install. They hold **Alt** (Option on a Mac) and click the wrong text, type the fix and press **Save**, as in the clip at the top of this page.
 
 Fixes stay in their browser, through reloads and closing the tab, until they send them. They click **Send to developer**, add an optional note, and choose **Copy link** to paste it in any chat or email, or **Download file** for a large batch.
 

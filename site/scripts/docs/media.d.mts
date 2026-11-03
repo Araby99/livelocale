@@ -13,7 +13,8 @@ export type ShotName =
   | 'studio-placeholder-warning'
   | 'studio-arabic'
   | 'studio-light'
-  | 'studio-keyboard';
+  | 'studio-keyboard'
+  | 'studio-missing';
 
 export type ClipName = 'alt-click-edit' | 'send-link' | 'arabic-switch';
 
@@ -32,4 +33,16 @@ export interface DocsMedia {
   >;
 }
 
-export function provenance(name: string, what: string): { prompt: string; createdAt: string };
+export interface DocsPorts {
+  next: number;
+  vite: number;
+  studio: number;
+}
+
+export const DEFAULT_PORTS: DocsPorts;
+
+export function provenance(
+  name: string,
+  what: string,
+  ports?: DocsPorts
+): { prompt: string; createdAt: string };

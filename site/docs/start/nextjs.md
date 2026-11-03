@@ -7,19 +7,23 @@ description: Add livelocale to a Next.js App Router app, open the Studio beside 
 
 Six steps from `npm install` to a fixed line of text in your locale file. Each step shows what you should see when it worked. You need a Next.js app with its translations in JSON files under `locales/`.
 
+<DocShot lead name="next-alt-click" alt="The welcome line Alt+Clicked in the Next.js preview: the editor is open on home.welcome_msg, with the reference Welcome Back to Production and the fix Welcome back to production typed, above Save Changes." caption="Where step 5 ends: the key under the cursor, open in the editor." />
+
 ## 1. Install livelocale
 
 ```bash
 npm install livelocale
 ```
 
-It is a dependency, not a dev dependency: your app imports `livelocale/react` and `livelocale/server` at run time. Then ask the CLI for its commands:
+It is a dependency, not a dev dependency: your app imports `livelocale/react` and `livelocale/server` at run time. Then check that the CLI answers:
 
 ```bash
 npx livelocale --help
 ```
 
-```cli help
+It worked when it prints its usage, starting with:
+
+```cli help-head
 
 ```
 
@@ -164,9 +168,7 @@ With the app running, run `npx livelocale doctor --app http://localhost:3000`. I
 
 ## 5. Alt+Click and fix
 
-Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save Changes**.
-
-<DocShot name="next-alt-click" alt="The welcome line Alt+Clicked in the Next.js preview: the editor is open on home.welcome_msg, with the reference Welcome Back to Production and the fix Welcome back to production typed, above Save Changes." caption="The key under the cursor, open in the editor." />
+Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save Changes**. It worked when the editor looks like the shot at the top of this page.
 
 ::: details Didn't work?
 

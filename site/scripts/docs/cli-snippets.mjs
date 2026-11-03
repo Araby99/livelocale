@@ -27,6 +27,8 @@ const WORK_DIR = join(CACHE_DIR, 'work');
 /** @type {Record<string, SnippetSpec>} */
 export const SNIPPETS = {
   help: { fixture: null, args: ['--help'], expect: 0 },
+  // the install guides' proof that the CLI runs: the first lines of the same real help
+  'help-head': { fixture: null, args: ['--help'], expect: 0, head: 4 },
   'init-next': { fixture: 'next-app', args: ['init'], expect: 0 },
   'doctor-next': { fixture: 'next-app', setup: [['init']], args: ['doctor'], expect: 0 },
   'init-share-vite': {
@@ -77,7 +79,8 @@ function cliEnv() {
 
 /**
  * Runs `node <cli> …args` on a fresh copy of the snippet's fixture and returns what it printed
- * (stdout and stderr in the order they were written), with the work folder shown as `my-app`.
+ * (stdout and stderr in the order they were written), with the work folder shown as `my-app`;
+ * `head` keeps only that many of its first lines.
  */
 export function runSnippet(name, spec, cli) {
   const cliPath = resolve(cli);
@@ -123,11 +126,12 @@ export function runSnippet(name, spec, cli) {
       .join('my-app')
       .replace(/\\/g, '/')
       .replace(/\s+$/, '');
+    const shown = spec.head ? output.split('\n').slice(0, spec.head).join('\n') : output;
     const status = run.status ?? 1;
     if (status !== spec.expect) {
       throw new Error(`snippet ${name} exited ${status}, expected ${spec.expect}`);
     }
-    return { command: `npx livelocale ${spec.args.join(' ')}`, output, status };
+    return { command: `npx livelocale ${spec.args.join(' ')}`, output: shown, status };
   } finally {
     rmSync(work, { recursive: true, force: true });
     rmSync(log, { force: true });

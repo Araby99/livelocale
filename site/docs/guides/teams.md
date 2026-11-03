@@ -7,6 +7,8 @@ description: Run the Studio with the app on another port or host, the Studio awa
 
 The defaults assume the app on `localhost:3000` and the Studio on `localhost:3010`. Anything else needs one of the settings below.
 
+<DocShot lead name="vite-studio-open" alt="The Studio opened with ?app= on the Vite playground on port 5180: the Locale Directory lists two keys, home.greet and home.title, the preview shows the page with status Active, and the editor says Select an Element." caption="The Studio opened with ?app= on an app that is not on port 3000: the Vite playground on 5180." />
+
 ## App on another port or hostname
 
 Start the Studio with `--app https://app.dev.local:3000`, or open the Studio with `?app=<origin>`. See the [`studio` reference](../reference/cli/studio.md#app).

@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
+import { SIDEBAR } from '../../site/src/lib/docs-config';
 
 // The Studio guide carries DocShots and the arabic-switch DocClip below the fold.
 const PAGE = 'docs/guides/studio.html';
@@ -25,10 +26,34 @@ test('loads no clip before it nears the screen', async ({ page }) => {
   await expect(video).toHaveAttribute('poster', POSTER);
   expect(await video.evaluate((v: HTMLVideoElement) => v.autoplay)).toBe(false);
   await expect(page.locator(`${CLIP} source[src]`)).toHaveCount(0);
-  const shots = await page.locator('.doc-shot img').all();
+  // the page's lead shot is in the first screen and loads at once; every other shot waits
+  await expect(page.locator('.doc-shot[data-lead] img')).toHaveAttribute('loading', 'eager');
+  const shots = await page.locator('.doc-shot:not([data-lead]) img').all();
   expect(shots.length).toBeGreaterThan(0);
   for (const shot of shots) await expect(shot).toHaveAttribute('loading', 'lazy');
 });
+
+// Every Get started and Guide page opens with the product: a real capture from the docs media,
+// whole inside the first 1440 x 900 screen.
+const OPENING = SIDEBAR.filter((g) => ['Get started', 'Guides'].includes(g.text)).flatMap((g) =>
+  g.items.map((i) => i.link)
+);
+
+for (const link of OPENING) {
+  test(`opens ${link} with a product capture in the first screen`, async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto(`docs${link.endsWith('/') ? link : link + '.html'}`);
+    const media = page.locator('.doc-shot img, .doc-clip video').first();
+    await expect(media).toBeVisible();
+    const src = await media.evaluate((el) =>
+      el instanceof HTMLVideoElement ? el.poster : (el as HTMLImageElement).src
+    );
+    expect(src).toMatch(/\/docs\/assets\/[\w.-]+\.webp$/);
+    const box = (await media.boundingBox())!;
+    expect(box.y, link).toBeGreaterThanOrEqual(0);
+    expect(box.y + box.height, link).toBeLessThanOrEqual(900);
+  });
+}
 
 test('plays a clip on screen and pauses it from the keyboard', async ({ page }) => {
   await page.goto(PAGE);

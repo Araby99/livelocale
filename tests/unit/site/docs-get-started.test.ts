@@ -18,12 +18,17 @@ function steps(md: string): string[] {
 it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
   '%s shows what "it worked" looks like after every step',
   (file) => {
-    const found = steps(page(file));
+    const md = page(file);
+    const found = steps(md);
     expect(found.length).toBeGreaterThan(0);
+    // The page opens with its most telling capture; the step it belongs to points up at it.
+    const opening = md.split(/^## /m)[0]!;
+    const hasLead = /<DocShot |<DocClip /.test(opening);
     const problems: string[] = [];
     for (const step of found) {
       const title = step.split(/\r?\n/)[0];
-      if (!/<DocShot |<DocClip |^```cli /m.test(step))
+      const pointsUp = hasLead && /the (shot|clip) at the top of this page/.test(step);
+      if (!/<DocShot |<DocClip |^```cli /m.test(step) && !pointsUp)
         problems.push(`${title}: no expected result`);
       const details = /^::: details Didn't work\?\r?\n([\s\S]*?)^:::\r?$/m.exec(step);
       if (!details) problems.push(`${title}: no "Didn't work?" block`);

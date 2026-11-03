@@ -26,7 +26,7 @@ import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { packStage, serveDir, snapshotFiles } from './capture-lib.mjs';
-import { CLIPS, SHOTS, provenance } from './docs/media.mjs';
+import { CLIPS, DEFAULT_PORTS, SHOTS, provenance } from './docs/media.mjs';
 import { webpSize } from './docs/webp-size.mjs';
 
 const SITE_DIR = fileURLToPath(new URL('..', import.meta.url));
@@ -41,9 +41,13 @@ const PLAYGROUND_VITE = join(ROOT_DIR, 'playground-vite');
 const SHOT_VIEW = { width: 1440, height: 900 };
 const SHOT_WIDTH = 1200;
 const CLIP_VIEW = { width: 1280, height: 720 };
-const NEXT_PORT = 3100;
-const VITE_PORT = 5180;
-const STUDIO_PORT = 3110;
+// DOCS_NEXT_PORT, DOCS_VITE_PORT and DOCS_STUDIO_PORT move the dev servers off their defaults
+// (for a machine where those ports are taken); the provenance names the ports actually used.
+const envPort = (name, fallback) => (process.env[name] ? Number(process.env[name]) : fallback);
+const NEXT_PORT = envPort('DOCS_NEXT_PORT', DEFAULT_PORTS.next);
+const VITE_PORT = envPort('DOCS_VITE_PORT', DEFAULT_PORTS.vite);
+const STUDIO_PORT = envPort('DOCS_STUDIO_PORT', DEFAULT_PORTS.studio);
+const PORTS = { next: NEXT_PORT, vite: VITE_PORT, studio: STUDIO_PORT };
 const STAGE_PORTS = [5170, 5171, 5172, 5173, 5174, 5175, 5176, 5177, 5178, 5179];
 // RFC 2606 reserves .example, so this host can never belong to a real company.
 const HOST = 'tidewell.example';
@@ -321,6 +325,14 @@ const SCENES = {
     await fixHeadline(page);
     await settle(page, 300);
   },
+  async 'studio-missing'(page) {
+    await openDev(page, 'next');
+    await page.locator('select').first().selectOption('ar');
+    await page.getByText('Missing', { exact: true }).first().waitFor();
+    await page.getByText('home.greeting', { exact: true }).click();
+    await field(page).waitFor();
+    await settle(page, 400);
+  },
   async 'studio-keyboard'(page) {
     await openShare(page);
     const search = page.getByPlaceholder('Search keys or values...');
@@ -397,7 +409,7 @@ function ffmpeg(args) {
 }
 
 async function writeSidecar(file, name, what) {
-  await writeFile(`${file}.json`, `${JSON.stringify(provenance(name, what), null, 2)}\n`);
+  await writeFile(`${file}.json`, `${JSON.stringify(provenance(name, what, PORTS), null, 2)}\n`);
 }
 
 async function shoot(browser, name, work) {

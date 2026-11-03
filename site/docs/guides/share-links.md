@@ -7,6 +7,8 @@ description: Ship the Studio inside your build so anyone can fix text on the dep
 
 A share link lets someone fix your site's text on the deployed site, with no account and no install, and every fix comes back to you as a pull request.
 
+<DocShot lead name="share-review-mode" alt="A change link opened in the Studio: review mode shows the fix on the Tidewell page and lists each change with its check, Create pull request and the apply command." caption="What you get back: every change on the real page, with its check and Create pull request." />
+
 It needs no server, no account and no credential anywhere. The Studio ships inside your build at `<base>livelocale/`, so any host that serves the site serves the Studio too: Apache, Nginx, S3, GitHub Pages, Netlify, Cloudflare Pages or Vercel. The fixes stay in that person's browser until they send you a change link. On GitHub you turn the link into a pull request with one click; on any other git host, with one command.
 
 ## Set up
@@ -99,9 +101,7 @@ Without it the workflow still commits the branch, but GitHub refuses to let it o
 
 ## What the developer gets
 
-Open the change link. The Studio opens in **Review mode**, with the proposed edits shown read-only on the real page and a before and after table with the check results. Then turn it into a pull request.
-
-<DocShot name="share-review-mode" alt="A change link opened in the Studio: review mode shows the fix on the Tidewell page and lists each change with its check, Create pull request and the apply command." caption="Review mode: every change on the real page, with its check." />
+Open the change link. The Studio opens in **Review mode**, with the proposed edits shown read-only on the real page and a before and after table with the check results. Then turn it into a pull request. The shot at the top of this page is a change link opened this way.
 
 **On GitHub, with the workflow:**
 

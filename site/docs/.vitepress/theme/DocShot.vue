@@ -1,10 +1,11 @@
 <script setup lang="ts">
 // A docs screenshot from site/media/docs/ (made by site/scripts/record-docs.mjs from the real
-// Studio). An unknown name or an empty alt fails the build.
+// Studio). An unknown name or an empty alt fails the build. `lead` marks the shot that opens a
+// page, in the first screen: it loads at once instead of lazily.
 import type { ShotName } from '../../../scripts/docs/media.mjs';
 import { MEDIA, mediaUrl } from './docs-media';
 
-const props = defineProps<{ name: ShotName; alt: string; caption?: string }>();
+const props = defineProps<{ name: ShotName; alt: string; caption?: string; lead?: boolean }>();
 
 const shot = MEDIA.shots[props.name];
 if (!shot)
@@ -14,13 +15,14 @@ const src = mediaUrl(shot.file);
 </script>
 
 <template>
-  <figure class="doc-shot">
+  <figure class="doc-shot" :data-lead="lead ? '' : undefined">
     <img
       :src="src"
       :width="shot.width"
       :height="shot.height"
       :alt="alt"
-      loading="lazy"
+      :loading="lead ? 'eager' : 'lazy'"
+      :fetchpriority="lead ? 'high' : undefined"
       decoding="async"
     />
     <figcaption v-if="caption">{{ caption }}</figcaption>

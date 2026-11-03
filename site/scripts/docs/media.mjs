@@ -2,13 +2,16 @@
 // the provenance line every raster carries. record-docs.mjs writes the files and
 // site/media/docs/manifest.json; DocShot.vue and DocClip.vue read the manifest.
 
-/** The app each capture films, as its provenance names it. */
-const APPS = {
-  next: 'the real dev Studio (`livelocale studio`, port 3110) editing the Next.js playground (playground/, `next dev -p 3100`)',
-  vite: 'the real dev Studio (`livelocale studio`, port 3110) editing the Vite + React playground (playground-vite/, `vite --port 5180` with `liveLocaleVite`)',
+/** The ports record-docs.mjs runs the dev apps and the Studio on, unless its environment moves them. */
+export const DEFAULT_PORTS = { next: 3100, vite: 5180, studio: 3110 };
+
+/** The app each capture films, as its provenance names it, on the ports it was filmed on. */
+const apps = (ports) => ({
+  next: `the real dev Studio (\`livelocale studio\`, port ${ports.studio}) editing the Next.js playground (playground/, \`next dev -p ${ports.next}\`)`,
+  vite: `the real dev Studio (\`livelocale studio\`, port ${ports.studio}) editing the Vite + React playground (playground-vite/, \`vite --port ${ports.vite}\` with \`liveLocaleVite\`)`,
   share:
     'the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example)',
-};
+});
 
 /**
  * The screenshots, by name: the app, the browser locale (`ar` opens the Studio in Arabic), the
@@ -73,6 +76,10 @@ export const SHOTS = {
     theme: 'light',
     use: 'the Studio in its light theme over the Tidewell site, the headline fix typed in the editor',
   },
+  'studio-missing': {
+    app: 'next',
+    use: 'the editor switched to Arabic: the Locale Directory marks the keys ar.json lacks as Missing, and the editor is open on home.greeting with no Arabic text yet',
+  },
   'studio-keyboard': {
     app: 'share',
     use: 'a key found and picked from the Locale Directory with the keyboard (type, Tab, Enter): the editor open on hero.cta, the focus in its field',
@@ -100,11 +107,11 @@ export const CLIPS = {
 
 /**
  * The provenance sidecar of one raster: `name` is the shot or clip it belongs to (its app is
- * named), `what` says what the file is and what it shows.
+ * named, with the `ports` it ran on), `what` says what the file is and what it shows.
  */
-export function provenance(name, what) {
+export function provenance(name, what, ports = DEFAULT_PORTS) {
   const entry = SHOTS[name] ?? CLIPS[name];
-  const app = entry ? APPS[entry.app] : 'the real livelocale Studio';
+  const app = entry ? apps(ports)[entry.app] : 'the real livelocale Studio';
   return {
     prompt: `SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from ${app}. Nothing is drawn, mocked or overlaid; everything on screen is the product. ${what}`,
     createdAt: new Date().toISOString(),

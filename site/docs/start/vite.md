@@ -7,19 +7,23 @@ description: Add livelocale to a Vite and React app with the Vite plugin, open t
 
 Five steps from `npm install` to a fixed line of text in your locale file. Each step shows what you should see when it worked. You need a Vite app with React and its translations in JSON files under `locales/`.
 
+<DocShot lead name="vite-alt-click" alt="The headline Alt+Clicked in the Vite preview: the editor is open on home.title, with the reference Welcome to the static playground and the fix Welcome to the Vite playground typed, above Save Changes." caption="Where step 4 ends: the key under the cursor, open in the editor." />
+
 ## 1. Install livelocale
 
 ```bash
 npm install livelocale
 ```
 
-It is a dependency, not a dev dependency: your app imports `livelocale/react` and `livelocale/client` at run time. Then ask the CLI for its commands:
+It is a dependency, not a dev dependency: your app imports `livelocale/react` and `livelocale/client` at run time. Then check that the CLI answers:
 
 ```bash
 npx livelocale --help
 ```
 
-```cli help
+It worked when it prints its usage, starting with:
+
+```cli help-head
 
 ```
 
@@ -127,9 +131,7 @@ With the app running, run `npx livelocale doctor --app http://localhost:5173`. O
 
 ## 4. Alt+Click and fix
 
-Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save Changes**.
-
-<DocShot name="vite-alt-click" alt="The headline Alt+Clicked in the Vite preview: the editor is open on home.title, with the reference Welcome to the static playground and the fix Welcome to the Vite playground typed, above Save Changes." caption="The key under the cursor, open in the editor." />
+Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save Changes**. It worked when the editor looks like the shot at the top of this page.
 
 ::: details Didn't work?
 

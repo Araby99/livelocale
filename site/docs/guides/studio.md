@@ -7,6 +7,8 @@ description: Edit your site's text in the Studio, review and commit the locale f
 
 The Studio is where text gets fixed: your running app in the middle, every translation key on one side, the editor on the other. You run the dev Studio beside your app's dev server; [share links](./share-links.md) put the Studio inside a deployed site instead. The first two sections are about the dev Studio; the rest applies to both, and the shots of the Tidewell demo site are taken on a share link.
 
+<DocShot lead name="share-alt-click" alt="The Studio over the Tidewell demo site: the Locale Directory on the left, the live page in the middle, and the editor on the right open on the Alt+Clicked headline hero.title with the typo fixed." caption="Keys on one side, the running site in the middle, the editor on the other." />
+
 ## Edit
 
 Start the Studio next to your app's dev server:

@@ -5,6 +5,8 @@ export interface SnippetSpec {
   setup?: string[][];
   args: string[];
   expect: number;
+  /** Keep only this many of the output's first lines. */
+  head?: number;
 }
 export interface Snippet {
   command: string;
