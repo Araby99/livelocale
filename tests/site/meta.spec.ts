@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('carries absolute share tags and the brand icons', async ({ page, request }) => {
   await page.goto('./');
-  await expect(page).toHaveTitle('LiveLocale: fix text on your site, get a pull request');
+  await expect(page).toHaveTitle('livelocale: fix text on your site, get a pull request');
   const meta = (p: string) =>
     page.locator(`meta[property="${p}"], meta[name="${p}"]`).getAttribute('content');
   expect(await meta('og:image')).toBe('http://localhost:4173/livelocale/og-image.png');

@@ -5,7 +5,7 @@ description: The livelocale apply command. Applies a change link to your locale 
 
 # apply
 
-`apply` applies a LiveLocale change link (the `lc1.` link someone sends from the share link) to your locale files. Every edit is checked again against your own files and source locale before anything is written.
+`apply` applies a livelocale change link (the `lc1.` link someone sends from the share link) to your locale files. Every edit is checked again against your own files and source locale before anything is written.
 
 ```bash
 npx livelocale apply <link|file|-> [--pr] [--dir <path>] [--locales <path>] [--source <locale>] [--force] [--dry-run]

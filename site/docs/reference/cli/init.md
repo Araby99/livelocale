@@ -5,7 +5,7 @@ description: The livelocale init command. Writes the Next.js API route, or with 
 
 # init
 
-`init` has two jobs. On its own it writes the LiveLocale API route into a Next.js project. With `--share` it sets up the share link for your stack instead, and on a GitHub remote writes the workflow that turns change links into pull requests.
+`init` has two jobs. On its own it writes the livelocale API route into a Next.js project. With `--share` it sets up the share link for your stack instead, and on a GitHub remote writes the workflow that turns change links into pull requests.
 
 ```bash
 npx livelocale init [--dir <path>]

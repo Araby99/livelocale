@@ -309,6 +309,7 @@ The hero video sits in one minimal browser frame: a Surface frame with a 12px ra
 - **Do** set headings, numerals and short labels in Martian Mono and everything else in IBM Plex Sans; keep IBM Plex Sans Arabic second in every stack.
 - **Do** show real artefacts (the filmed product, real diffs, real CI output) and give each screenshot a 1px Rule border at 10px radius.
 - **Do** turn off every animation and transition under `prefers-reduced-motion: reduce`, and give any looping video a visible pause control.
+- **Do** write the name as `livelocale`, lowercase like the wordmark and the npm package, in copy, page titles, share tags, structured data and llms.txt. `LiveLocale` appears only where the product's own output is quoted (the CLI banner, the generated workflow and pull request title) or in a code identifier such as `LiveLocaleProvider`.
 
 ### Don't:
 

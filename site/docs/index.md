@@ -25,7 +25,7 @@ const stacks = [
 
 # Get started
 
-livelocale lets anyone on your team fix your site's text on the site itself, in every language, and turns each fix into a file edit or a pull request.
+livelocale is a free, open-source npm package for React sites on Next.js, Vite or any static host. Anyone on your team holds Alt, clicks the wrong text on the running site and fixes it in any language, and you get each fix as an edit to your JSON locale files or as a pull request.
 
 <DocClip name="alt-click-edit" label="Alt+Click the Tidewell headline in the share Studio, fix the typo in the editor and save it." caption="The whole job: Alt+Click the wrong text on the real site, fix it, save." />
 
