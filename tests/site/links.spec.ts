@@ -68,3 +68,14 @@ test('links nowhere outside the allowed hosts', () => {
     .map(({ page, href }) => `${page} -> ${href}`);
   expect(failures).toEqual([]);
 });
+
+// VitePress compiles each page as a Vue template and gives v-pre only to fenced blocks, so an
+// inline `{{name}}` would render as an empty chip unless inline code carries v-pre too.
+test('renders the text of every inline code chip', () => {
+  const empty = pages().filter((page) =>
+    /<code(?:\s[^>]*)?><\/code>/.test(fs.readFileSync(posix.join(DIST, page), 'utf8'))
+  );
+  expect(empty).toEqual([]);
+  const studio = fs.readFileSync(posix.join(DIST, 'docs/guides/studio.html'), 'utf8');
+  expect(studio).toMatch(/<code[^>]*>\{\{name\}\}<\/code>/);
+});

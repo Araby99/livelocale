@@ -6,6 +6,7 @@ import { docsBase, landingHref, NAV, SIDEBAR, TITLE_TEMPLATE } from '../../src/l
 import { siteConfig } from '../../src/lib/site-config';
 import { changelogPage } from './changelog';
 import { cliFence } from './cli-fence';
+import { inlineCodeVPre } from './inline-code';
 import { searchA11y } from './search-a11y';
 import hunk from './hunk-shiki.json';
 
@@ -56,7 +57,9 @@ export default defineConfig({
     theme: hunk as NonNullable<MarkdownOptions['theme']>,
     // ```cli <name> fences show a real CLI run that cli-snippets.mjs recorded before the build.
     // reference/changelog.md's marker becomes CHANGELOG.md from its first release on.
+    // Inline code is v-pre, so `{{name}}` stays literal instead of becoming a Vue interpolation.
     config: (md) => {
+      inlineCodeVPre(md);
       cliFence(md, { dir: fileURLToPath(new URL('../../.cache/docs-cli', import.meta.url)) });
       changelogPage(md, { file: fileURLToPath(new URL('../../../CHANGELOG.md', import.meta.url)) });
     },
