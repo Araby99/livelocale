@@ -105,3 +105,15 @@ test('has no horizontal scroll at 360 px with the comparison table', async ({ pa
   expect(await box.evaluate((el) => getComputedStyle(el).overflowX)).toBe('auto');
   expect(await box.evaluate((el) => el.clientWidth)).toBeLessThanOrEqual(360);
 });
+
+// `init` installs nothing and sets up only Next.js, so the close's copy of it says to install first
+// and sends a Vite reader to the Vite page.
+test('says to install first and where Vite goes next to the closing init command', async ({
+  page,
+}) => {
+  await page.goto('./');
+  const close = page.locator('.start[data-door="developer"] .start-body');
+  await expect(close.locator('[data-copy="npx livelocale init"]')).toBeAttached();
+  await expect(close).toContainText('npm install livelocale');
+  await expect(close.locator('a[href="docs/start/vite.html"]')).toBeAttached();
+});
