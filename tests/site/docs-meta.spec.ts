@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { SIDEBAR } from '../../site/src/lib/docs-config';
+import { OG_IMAGE_ALT } from '../../site/src/lib/seo';
 
 const SITE = 'http://localhost:4173/livelocale/';
 
@@ -41,7 +42,7 @@ test('gives every docs page its own title, description and absolute share tags',
     expect(meta('og:url'), url).toBe(`${SITE}${url}`);
     expect(meta('og:image:width'), url).toBe('1200');
     expect(meta('og:image:height'), url).toBe('630');
-    expect(meta('og:image:alt'), url).toBe('livelocale: Stop collecting screenshots.');
+    expect(meta('og:image:alt'), url).toBe(OG_IMAGE_ALT);
     expect(meta('twitter:card'), url).toBe('summary_large_image');
     expect(
       tags.filter(([key]) => key === 'theme-color'),

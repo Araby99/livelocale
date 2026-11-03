@@ -52,6 +52,17 @@ npm run docs:dev --prefix site
 - `npm run site:build` builds the docs last, after the landing page and the live demo; `SITE_URL`
   sets their base too. Search is VitePress's local search, so nothing is fetched from elsewhere.
 
+## Search engines and AI assistants
+
+Every page's robots rule, canonical URL, share tags and JSON-LD, and the files written beside the
+site (`sitemap.xml`, `robots.txt`, `llms.txt`, `llms-full.txt` and a `.md` copy of every docs
+page) come from `SITE_URL` and the docs sources on every build: `src/lib/seo.ts`,
+`src/lib/seo-files.ts` (run from the VitePress config's `buildEnd`) and
+`src/lib/docs-markdown.ts`. A `github.io` `SITE_URL` builds the noindex preview;
+[`LAUNCH.md`](LAUNCH.md) has the details. The name is always `livelocale` (DESIGN.md, Do's).
+`404.html` is the landing page's 404, which Pages serves for any missing address under the site,
+the docs included.
+
 ## Docs media
 
 The docs' screenshots and clips (`DocShot`, `DocClip`) come from the real Studio, made by one

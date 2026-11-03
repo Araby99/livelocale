@@ -3,6 +3,13 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { siteConfig } from './src/lib/site-config';
 import { injectCheckExcerpt } from './scripts/check-excerpt.mjs';
+import {
+  faqFromHtml,
+  jsonLdScript,
+  landingJsonLd,
+  robotsContent,
+  withRobotsMeta,
+} from './src/lib/seo';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
 const CHECK_OUTPUT = fileURLToPath(new URL('src/ci/check-output.json', import.meta.url));
@@ -11,7 +18,8 @@ const CHECK_OUTPUT = fileURLToPath(new URL('src/ci/check-output.json', import.me
 function checkExcerpt(): Plugin {
   return {
     name: 'livelocale-check-excerpt',
-    transformIndexHtml(html) {
+    transformIndexHtml(html, { path }) {
+      if (path !== '/index.html') return html;
       if (!existsSync(CHECK_OUTPUT)) {
         throw new Error(
           'site/src/ci/check-output.json is missing: run node site/scripts/hardcoded-report.mjs first'
@@ -79,16 +87,54 @@ export function inlineCss(): Plugin {
   };
 }
 
+/** The package version the JSON-LD names: the root package.json the site documents. */
+const VERSION = (
+  JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as {
+    version: string;
+  }
+).version;
+
+/**
+ * The robots meta on every page (noindex on the github.io preview, src/lib/seo.ts; always on the
+ * 404 page) and, on the landing page, its JSON-LD: the website, the software, its author and the
+ * FAQ, read from the FAQ section itself so the two never differ.
+ */
+export function seoHead(siteUrl: string): Plugin {
+  return {
+    name: 'livelocale-seo-head',
+    transformIndexHtml(html, { path }) {
+      if (path === '/404.html') return withRobotsMeta(html, 'noindex');
+      const withRobots = withRobotsMeta(html, robotsContent(siteUrl));
+      if (path !== '/index.html') return withRobots;
+      const description = /<meta\s+name="description"\s+content="([^"]+)"/.exec(html)?.[1];
+      if (!description) throw new Error('index.html has no meta description');
+      const data = landingJsonLd({
+        siteUrl,
+        version: VERSION,
+        description,
+        faq: faqFromHtml(html),
+      });
+      const script = `<script type="application/ld+json">${jsonLdScript(data)}</script>`;
+      return withRobots.replace('</head>', () => `${script}\n  </head>`);
+    },
+  };
+}
+
+const { siteUrl, base } = siteConfig(process.env);
+
 export default defineConfig({
   root,
   // The pathname of SITE_URL: /livelocale/ on the Pages project URL, / on a custom domain.
-  base: siteConfig(process.env).base,
-  plugins: [checkExcerpt(), preloadHeadlineFont(), inlineCss()],
+  base,
+  plugins: [checkExcerpt(), seoHead(siteUrl), preloadHeadlineFont(), inlineCss()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     rolldownOptions: {
-      input: { main: fileURLToPath(new URL('index.html', import.meta.url)) },
+      input: {
+        main: fileURLToPath(new URL('index.html', import.meta.url)),
+        notFound: fileURLToPath(new URL('404.html', import.meta.url)),
+      },
     },
   },
 });

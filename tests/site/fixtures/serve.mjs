@@ -1,6 +1,6 @@
 // Static server for the built site: serves <root> under <base> (as GitHub Pages serves a project
 // site) and 404s everything else, so a root-relative URL fails the tests instead of working by
-// accident. Text responses are gzipped when the client accepts it, and byte ranges are honoured
+// accident. A missing file under <base> gets <root>/404.html with status 404, as on Pages. Text responses are gzipped when the client accepts it, and byte ranges are honoured
 // (browsers need them to seek a video), as Pages does.
 // Usage: node tests/site/fixtures/serve.mjs <root> <port> <base>
 import { createServer } from 'node:http';
@@ -22,8 +22,10 @@ const MIME = {
   '.woff': 'font/woff',
   '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8',
+  '.md': 'text/markdown; charset=utf-8',
+  '.xml': 'application/xml; charset=utf-8',
 };
-const GZIP = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt']);
+const GZIP = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt', '.md', '.xml']);
 
 const [rootArg, portArg, baseArg = '/'] = process.argv.slice(2);
 if (!rootArg || !portArg) {
@@ -59,7 +61,14 @@ const server = createServer(async (req, res) => {
   }
   if (!pathname.startsWith(base)) return notFound(res);
   const file = await findFile(pathname.slice(base.length)).catch(() => null);
-  if (!file) return notFound(res);
+  if (!file) {
+    // Under the base, Pages answers a missing file with the site's 404.html, still as a 404.
+    const page = await readFile(join(root, '404.html')).catch(() => null);
+    if (!page) return notFound(res);
+    res.writeHead(404, { 'Content-Type': MIME['.html'], 'Content-Length': page.length });
+    res.end(req.method === 'HEAD' ? undefined : page);
+    return;
+  }
 
   const ext = extname(file).toLowerCase();
   let body = await readFile(file);

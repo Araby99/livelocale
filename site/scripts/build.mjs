@@ -1,7 +1,7 @@
 // The ordered site build (run: npm run site:build from the repo root). Each step must finish
 // before the next; later steps add to site/dist, which is the folder Pages deploys.
 import { spawn } from 'node:child_process';
-import { cp } from 'node:fs/promises';
+import { cp, readdir, readFile, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ import { syncBrand } from './sync-brand.mjs';
 import { writeSampleReport } from './hardcoded-report.mjs';
 import { writeCliSnippets } from './docs/cli-snippets.mjs';
 import { siteConfig } from '../src/lib/site-config.ts';
+import { withRobotsMeta } from '../src/lib/seo.ts';
 
 const SITE_DIR = fileURLToPath(new URL('..', import.meta.url));
 const require = createRequire(import.meta.url);
@@ -31,6 +32,18 @@ function runNode(args, env) {
 }
 
 /**
+ * Marks every page of the live demo noindex: it is Tidewell, a fictional site inside the Studio,
+ * and must not turn up in search results as if it were livelocale's.
+ */
+async function noindexDemo(dir) {
+  const files = await readdir(dir, { recursive: true });
+  for (const file of files.filter((f) => f.endsWith('.html'))) {
+    const path = join(dir, file);
+    await writeFile(path, withRobotsMeta(await readFile(path, 'utf8'), 'noindex, nofollow'));
+  }
+}
+
+/**
  * Builds the whole site into site/dist. SITE_URL in env sets the base (see site-config.ts); its
  * normalised form reaches index.html as %VITE_SITE_URL%, so the share tags carry absolute URLs.
  * The CI excerpt's `check --hardcoded` report runs first (it needs the built CLI in the root dist).
@@ -38,7 +51,8 @@ function runNode(args, env) {
  * two planted mistakes, packed with the share Studio under <base>demo/ (no --expose-repo, so the
  * Studio offers no GitHub action) and copied to site/dist/demo/. Last, the docs' `cli` blocks are
  * run on their fixtures (site/.cache/docs-cli/) and VitePress builds the docs into site/dist/docs/
- * under <base>docs/ (its config reads SITE_URL from env).
+ * under <base>docs/ (its config reads SITE_URL from env); its buildEnd writes the Markdown copies,
+ * llms.txt, llms-full.txt, sitemap.xml and robots.txt (src/lib/seo-files.ts).
  */
 export async function buildSite(env) {
   const { siteUrl, base } = siteConfig(env);
@@ -67,6 +81,7 @@ export async function buildSite(env) {
     env
   );
   await cp(join(SITE_DIR, 'stage', 'dist'), join(SITE_DIR, 'dist', 'demo'), { recursive: true });
+  await noindexDemo(join(SITE_DIR, 'dist', 'demo'));
   writeCliSnippets();
   await runNode([VITEPRESS_BIN, 'build', 'docs'], env);
   console.log('site/dist complete');

@@ -22,7 +22,8 @@ changes the repository settings; those steps are the owner's.
 - [ ] 6. (owner) Set the repository variable `SITE_LIVE` to `true`, then run the Site workflow by
      `workflow_dispatch`; from now on pushes to `main` deploy.
 - [ ] 7. (owner) Check `https://livelocale.js.org/` and `/docs/` on a phone and a computer; paste
-     the URL into the LinkedIn Post Inspector to confirm the og-image.
+     the URL into the LinkedIn Post Inspector to confirm the og-image; view the page source and
+     check `<meta name="robots" content="index, follow, …">` (the preview's `noindex` is gone).
 - [ ] 8. (agent, on the owner's go) The go-live README commit: copy `site/launch/README.md` over
      `README.md`, set `package.json` `homepage` to `https://livelocale.js.org/`, check that
      `npm test` passes (the publish workflow runs it before `npm publish`), and commit
@@ -32,3 +33,29 @@ changes the repository settings; those steps are the owner's.
      changes.
 - [ ] 10. (owner) Set the GitHub repository's website to `https://livelocale.js.org/`; set
       `brand/avatar-512.png` as the GitHub avatar and as the Gravatar of the npm account's email.
+
+## Search engines and AI assistants
+
+What the build writes for them, all from `SITE_URL` (`site/src/lib/seo.ts`,
+`site/src/lib/seo-files.ts`), so the domain switch moves every absolute URL at once:
+
+- **The preview is noindex.** When `SITE_URL` is on `github.io` (the hidden preview of steps 2
+  to 4), every landing and docs page carries `<meta name="robots" content="noindex, nofollow">`;
+  any other URL, `https://livelocale.js.org/` included, gets `index, follow`. It is decided at
+  build time, so step 6's run after the domain switch is the first indexable build. The preview's
+  `robots.txt` sits under `/livelocale/`, not at the host root, so crawlers never read it; the
+  meta tag is what keeps the preview out. The live demo (`demo/`) and both 404 pages are always
+  noindex.
+- `<base>sitemap.xml`: the landing page and every docs page, each `lastmod` from the last git
+  commit that touched its source (the build time outside git).
+- `<base>robots.txt`: every agent allowed, the AI crawlers (GPTBot, ClaudeBot, PerplexityBot,
+  Google-Extended, CCBot and others) named one by one, and the sitemap's URL.
+- `<base>llms.txt` ([llmstxt.org](https://llmstxt.org/)) and `<base>llms-full.txt`: the summary
+  and a link per docs page, and all the docs as one Markdown file, generated from `site/docs/` on
+  every build. Every docs page also has its Markdown copy beside it (`docs/start/nextjs.md`),
+  linked from its head as `rel="alternate" type="text/markdown"`.
+- JSON-LD: the landing page describes the software, the website, its author (Araby99, the
+  package author) and the FAQ, read from the FAQ section itself; each docs page is a
+  `TechArticle` with its breadcrumbs.
+- After step 6 (owner, optional): submit `https://livelocale.js.org/sitemap.xml` in Google Search
+  Console and Bing Webmaster Tools.

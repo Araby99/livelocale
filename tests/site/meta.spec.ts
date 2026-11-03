@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { OG_IMAGE_ALT } from '../../site/src/lib/seo';
 
 test('carries absolute share tags and the brand icons', async ({ page, request }) => {
   await page.goto('./');
@@ -8,7 +9,7 @@ test('carries absolute share tags and the brand icons', async ({ page, request }
   expect(await meta('og:image')).toBe('http://localhost:4173/livelocale/og-image.png');
   expect(await meta('og:url')).toBe('http://localhost:4173/livelocale/');
   expect(await meta('twitter:card')).toBe('summary_large_image');
-  expect(await meta('og:image:alt')).toBe('livelocale: Stop collecting screenshots.');
+  expect(await meta('og:image:alt')).toBe(OG_IMAGE_ALT);
   expect(await meta('description')).toContain('Stop finding untranslated text on launch day.');
   for (const href of await page
     .locator('link[rel~="icon"], link[rel="apple-touch-icon"]')

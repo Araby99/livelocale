@@ -1372,3 +1372,31 @@ html:not(.js) .clip-toggle {
     transition: none !important;
   }
 }
+
+/* ---------- 404 ---------- */
+
+.not-found {
+  display: grid;
+  justify-items: start;
+  gap: 20px;
+  padding-block: 72px 112px;
+}
+
+.not-found h1 {
+  font-size: clamp(2.125rem, 1.2rem + 2.4vw, 3rem);
+  letter-spacing: -0.035em;
+}
+
+.not-found .pair {
+  width: min(100%, 640px);
+  margin-top: 4px;
+}
+
+.not-found .pair del {
+  overflow-wrap: anywhere;
+}
+
+.not-found > p:not(.start-links) {
+  max-width: 52ch;
+  color: var(--comment);
+}
