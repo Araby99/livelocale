@@ -21,7 +21,7 @@ It finds your stack and changes its build so the build also writes the Studio, t
 
 ```
 
-On Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. On CRA, webpack and Rsbuild it adds `livelocale pack build` after the bundler in the `build` script; on Next.js it sets up `livelocale build --preview -- next build`. The whole table, and setting the build up by hand, are in [Share links](../guides/share-links.md#set-up).
+On Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. On CRA, webpack and Rsbuild it adds `livelocale pack build` after the bundler in the `build` script; on Next.js it adds a `build:preview` script that runs `livelocale build --preview -- next build`. The whole table, and setting the build up by hand, are in [Share links](../guides/share-links.md#set-up).
 
 ::: details Didn't work?
 
@@ -29,7 +29,7 @@ On Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. On CRA, we
 - It prints "No supported build setup found": in custom CI, build with `LIVELOCALE=preview` (only for SSR and SSG), then run `npx livelocale pack <outDir>`.
 - On Vite it skips `vite.config.ts` with "no liveLocaleVite(...) call": add the plugin first, as in step 2 of [Vite + React](./vite.md).
 - It writes no workflow and says one-click pull requests need GitHub: on another git host you turn a change link into a branch with `npx livelocale apply "<link>" --pr`; see [Other git hosts](../guides/share-links.md#other-git-hosts).
-- After you deploy (next step), `npx livelocale doctor --app <url>` checks the share build on the live site.
+- After you deploy (next step), `npx livelocale doctor --app <url> --share` checks the share build on the live site.
 
 :::
 
@@ -39,10 +39,10 @@ Commit and push what `init --share` wrote. The workflow must be on the default b
 
 On GitHub, tick the one setting the workflow needs: in the repository's **Settings → Actions → General → Workflow permissions**, tick **Allow GitHub Actions to create and approve pull requests**. Without it the workflow still commits the branch, but the issue comment carries a compare link and you open the pull request yourself.
 
-Deploy as usual, then check the deployment and print the share link:
+Deploy as usual, then check the deployment and print the share link. On Next.js, deploy with `npm run build:preview` (the script `init --share` added); a plain `next build` has no Studio.
 
 ```bash
-npx livelocale doctor --app <url>
+npx livelocale doctor --app <url> --share
 ```
 
 The doctor checks the Studio page, the manifest, `flag.js`, frame headers and service workers, then prints `🔗 Share link: <base>livelocale/index.html`. Open it in a desktop browser: the Studio opens over your site, with three tips and an optional name field on the first visit. Pin the link for the people who fix your text.
@@ -51,7 +51,7 @@ The doctor checks the Studio page, the manifest, `flag.js`, frame headers and se
 
 ::: details Didn't work?
 
-Run `npx livelocale doctor --app <url>` against the deployed site and fix each line it marks.
+Run `npx livelocale doctor --app <url> --share` against the deployed site and fix each line it marks.
 
 - **Share Studio page** fails: the deployed site has no Studio at `livelocale/index.html`, or the host answers it with your app's page. Check that your host runs the build `init --share` changed and uploads the `livelocale/` folder from the build output.
 - **S3 and CloudFront:** the link must end in `index.html`.
@@ -76,7 +76,7 @@ Fixes stay in their browser, through reloads and closing the tab, until they sen
 
 - A click on the text follows the link or does nothing: that text does not go through livelocale's wrapper, so it carries no watermark. `npx livelocale check --hardcoded` lists the text in your components that never goes through translation.
 - **Save** shows a placeholder warning: the fix dropped or added a `{placeholder}`. **Save anyway** stays available and marks the edit for you.
-- No text responds at all: run `npx livelocale doctor --app <url>`. Its **Share flag script** line checks that `flag.js`, which turns the watermarks on inside the Studio, loads first in `<head>` of your pages.
+- No text responds at all: run `npx livelocale doctor --app <url> --share`. Its **Share flag script** line checks that `flag.js`, which turns the watermarks on inside the Studio, loads first in `<head>` of your pages.
 
 :::
 
@@ -94,7 +94,7 @@ Press **Create pull request**. It opens a GitHub issue already filled in with th
 - The issue gets "Waiting for a maintainer": the workflow writes only for a maintainer. Comment `/livelocale apply` on the issue.
 - The issue comment carries a compare link instead of a pull request: tick the setting in step 2, or open the pull request from that link.
 - Edits saved with **Save anyway** are skipped as `needs --force`: comment `/livelocale apply --force` to include them.
-- From your own machine, on any git host: `npx livelocale apply "<link>" --pr`. To check the deployment again, run `npx livelocale doctor --app <url>`.
+- From your own machine, on any git host: `npx livelocale apply "<link>" --pr`. To check the deployment again, run `npx livelocale doctor --app <url> --share`.
 
 :::
 

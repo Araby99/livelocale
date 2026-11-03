@@ -14,7 +14,7 @@ It needs no server, no account and no credential anywhere. The Studio ships insi
 1. Run `npx livelocale init --share` in your project. It sets up the build for your stack and, on a GitHub remote, writes `.github/workflows/livelocale.yml`. It prints every file it creates, updates, leaves unchanged or skips, then what is left for you to do.
 2. Commit and push the result. The workflow must be on the default branch, because GitHub runs issue and comment workflows only from there.
 3. On GitHub, tick [the one setting](#the-one-checkbox-setting) below.
-4. Deploy as usual, then check the deployment and print the share link.
+4. Deploy as usual, then check the deployment and print the share link. On Next.js, deploy with `npm run build:preview` (the script `init --share` added); a plain `next build` has no Studio.
 
 On a Vite app with a GitHub remote, the first step looks like this:
 
@@ -69,7 +69,7 @@ It reads the change link only from the event file, never from a shell command, a
 Once the site is deployed, check it and print the share link:
 
 ```bash
-npx livelocale doctor --app <url>
+npx livelocale doctor --app <url> --share
 ```
 
 The doctor checks the Studio page, the manifest, `flag.js`, frame headers and service workers, then prints `🔗 Share link: <base>livelocale/index.html`. Pin that link for the people who fix your text.
