@@ -22,7 +22,16 @@ export interface SidebarGroup {
 export const SIDEBAR: SidebarGroup[] = [
   { text: 'Get started', items: [{ text: 'Pick your stack', link: '/' }] },
   { text: 'Guides', items: [] },
-  { text: 'How it works', items: [] },
+  {
+    text: 'How it works',
+    items: [
+      { text: 'Zero-width watermarking', link: '/how-it-works/watermarking' },
+      { text: 'Safety switches', link: '/how-it-works/safety-switches' },
+      { text: 'When the watermark bites', link: '/how-it-works/watermark-pitfalls' },
+      { text: 'Security', link: '/how-it-works/security' },
+      { text: 'Risks and limits', link: '/how-it-works/risks-and-limits' },
+    ],
+  },
   {
     text: 'Reference',
     items: [
