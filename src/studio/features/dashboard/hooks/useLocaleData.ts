@@ -28,6 +28,11 @@ export interface UseLocaleDataParams {
   iframeRef: React.RefObject<HTMLIFrameElement | null>;
   /** The project's source locale; the reference dictionary is read from it. */
   referenceLocale?: string;
+  /**
+   * Shows the preview page in a locale. Given, a locale change goes through it; otherwise the
+   * iframe src gets `?locale=`, which drops any page opened since the src was set.
+   */
+  showLocale?: (locale: string) => void;
 }
 
 /**
@@ -38,6 +43,7 @@ export const useLocaleData = ({
   connectionStatus,
   iframeRef,
   referenceLocale = 'en',
+  showLocale,
 }: UseLocaleDataParams) => {
   const [locale, setLocale] = useState<string>('en');
 
@@ -131,6 +137,10 @@ export const useLocaleData = ({
   const handleLocaleChange = useCallback(
     (newLocale: string) => {
       setLocale(newLocale);
+      if (showLocale) {
+        showLocale(newLocale);
+        return;
+      }
       if (iframeRef.current && iframeRef.current.contentWindow) {
         try {
           const url = new URL(iframeRef.current.src);
@@ -139,7 +149,7 @@ export const useLocaleData = ({
         } catch {}
       }
     },
-    [iframeRef]
+    [iframeRef, showLocale]
   );
 
   // Refresh the locales list, keys metadata, and active dictionary

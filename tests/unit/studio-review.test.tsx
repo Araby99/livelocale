@@ -25,6 +25,8 @@ const conn = vi.hoisted(() => ({
   state: {
     connectionStatus: 'connected' as const,
     currentPath: '/',
+    locationKnown: false,
+    locationSeq: 0,
     visibleKeys: null as string[] | null,
   },
   handlers: null as unknown,
@@ -535,7 +537,11 @@ describe('useStudio in Review mode', () => {
     await waitFor(() => expect(result.current.locales).toEqual(['ar', 'en']));
     act(() => result.current.handleLocaleChange('ar'));
     expect(result.current.locale).toBe('ar');
-    expect(frame.src).toBe('https://www.acme.com/about?livelocale-origin=o&locale=ar');
+    // No live client in the frame: the page is reopened through the src, origin param last.
+    expect(frame.src).toBe(
+      'https://www.acme.com/about?locale=ar&livelocale-origin=' +
+        encodeURIComponent(location.origin)
+    );
   });
 
   it('pauses the draft re-apply loop while reviewing', async () => {

@@ -77,7 +77,16 @@ const viewerProps: React.ComponentProps<typeof IframeViewer> = {
   appOrigin: 'http://localhost:3000',
   appUrl: 'http://localhost:3000',
   connectionStatus: 'connected',
-  currentPath: '/',
+  navigation: {
+    path: '/',
+    pendingPath: null,
+    recent: [],
+    sitePages: [],
+    onNavigate: vi.fn(() => 'ok' as const),
+    isNavigating: false,
+    reload: vi.fn(),
+    showLocale: vi.fn(),
+  },
 };
 
 const baseGit: GitState = {

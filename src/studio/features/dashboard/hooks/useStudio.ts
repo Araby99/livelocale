@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { getAppOrigin, getAppUrl } from '../constants.js';
 import { useConnection } from './useConnection.js';
 import { useLocaleData } from './useLocaleData.js';
+import { usePageNavigation } from './usePageNavigation.js';
 import { useSelection } from './useSelection.js';
 import { useLocaleActions } from './useLocaleActions.js';
 import { useKeySearch } from './useKeySearch.js';
@@ -14,8 +15,7 @@ import {
   fetchLocaleDictionary,
   type LiveLocaleMode,
 } from '../../../api.js';
-import { getStudioRuntime, getStaticTransport, urlLocaleOptions } from '../../../runtime.js';
-import { urlWithLocale } from '../../../locale-inference.js';
+import { getStudioRuntime, getStaticTransport } from '../../../runtime.js';
 import { useAuth } from './useAuth.js';
 import { useDrafts } from './useDrafts.js';
 import { useUnsentGuard } from './useUnsentGuard.js';
@@ -62,8 +62,19 @@ export const useStudio = () => {
   const setLocaleRef = useRef<(locale: string) => void>(() => {});
   const setErrorRef = useRef<(message: string) => void>(() => {});
   const visibleTextsRef = useRef<(texts: VisibleText[]) => void>(() => {});
+  // Page navigation needs the locale, so it is created after useLocaleData.
+  const showLocaleRef = useRef<(locale: string) => void>(() => {});
+  const showLocaleInPage = useCallback((l: string) => showLocaleRef.current(l), []);
 
-  const { connectionStatus, currentPath, visibleKeys, iframeRef, sendToIframe } = useConnection({
+  const {
+    connectionStatus,
+    currentPath,
+    locationKnown,
+    locationSeq,
+    visibleKeys,
+    iframeRef,
+    sendToIframe,
+  } = useConnection({
     onElementSelected: (el) => selectElementRef.current(el),
     onLocaleDetected: (locale) => setLocaleRef.current(locale),
     onError: (message) => setErrorRef.current(message),
@@ -88,20 +99,22 @@ export const useStudio = () => {
     connectionStatus,
     iframeRef,
     referenceLocale,
+    showLocale: showLocaleInPage,
   });
+
+  const navigation = usePageNavigation({
+    iframeRef,
+    currentPath,
+    locationKnown,
+    locationSeq,
+    locale,
+    sendToIframe,
+  });
+  showLocaleRef.current = navigation.showLocale;
 
   const history = useHistory();
   const staticTransport = getStaticTransport();
   const drafts = useDrafts(staticTransport);
-
-  // Share link: point the app preview at a chosen language, marking it in the address the way
-  // the current page address already does (else `?locale=`). Server stacks keep handleLocaleChange.
-  const showLocaleInFrame = (l: string) => {
-    const frame = iframeRef.current;
-    if (!frame) return;
-    const next = urlWithLocale(currentPath, l, urlLocaleOptions());
-    if (next !== null) frame.src = new URL(next, getAppOrigin()).href;
-  };
 
   // The locale edits go to: inferred and always shown on a share link; today's behaviour otherwise.
   const target = useTargetLocale({
@@ -110,7 +123,8 @@ export const useStudio = () => {
     locale,
     setLocale,
     setMenuLocale: setLocaleAndNavigate,
-    showLocale: showLocaleInFrame,
+    // Share link: the current page in a chosen language, marked the way its address marks it.
+    showLocale: showLocaleInPage,
     locales,
     getCandidates: async () => (staticTransport ? staticTransport.textCandidates() : {}),
   });
@@ -179,9 +193,6 @@ export const useStudio = () => {
   }, [auth.tokenVersion]);
 
   // Review mode: a change link in the URL hash (or pasted) shown read-only over the app.
-  const reloadFrame = () => {
-    if (iframeRef.current) iframeRef.current.src = iframeRef.current.src;
-  };
   const reviewMode = useReview({
     mode,
     locale,
@@ -195,7 +206,7 @@ export const useStudio = () => {
     currentPath,
     visibleKeys,
     sendToIframe,
-    reloadFrame,
+    reloadFrame: navigation.reload,
     // Development: a row applied to the local files is an ordinary edit of this session.
     onApplied: (change) => {
       history.record(change);
@@ -388,6 +399,7 @@ export const useStudio = () => {
     isSuccess,
     error,
     currentPath,
+    navigation,
     iframeRef,
     appOrigin: getAppOrigin(),
     appUrl: getAppUrl(),

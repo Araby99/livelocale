@@ -36,7 +36,7 @@ export const App = () => {
     isLoading,
     isSuccess,
     error,
-    currentPath,
+    navigation,
     iframeRef,
     appOrigin,
     appUrl,
@@ -262,7 +262,7 @@ export const App = () => {
               appOrigin={appOrigin}
               appUrl={appUrl}
               connectionStatus={connectionStatus}
-              currentPath={currentPath}
+              navigation={navigation}
             />
           )
         }

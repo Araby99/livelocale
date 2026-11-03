@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen, act, cleanup } from '@testing-library/react';
+import { render, screen, act, cleanup, fireEvent } from '@testing-library/react';
 import {
   IframeViewer,
   SLOW_CONNECTION_MS,
@@ -11,8 +11,25 @@ import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.js'
 import { textFor } from '../../src/studio/i18n/catalogue.js';
 import { STATIC_MANIFEST_MISSING } from '../../src/studio/config.js';
 import type { StudioLanguage } from '../../src/studio/preferences.js';
+import type { PageNavigation } from '../../src/studio/features/dashboard/hooks/usePageNavigation.js';
 
-const renderViewer = (connectionStatus: 'connecting' | 'connected', lang: StudioLanguage = 'en') =>
+const navigationStub = (overrides: Partial<PageNavigation> = {}): PageNavigation => ({
+  path: '/',
+  pendingPath: null,
+  recent: [],
+  sitePages: [],
+  onNavigate: vi.fn(() => 'ok' as const),
+  isNavigating: false,
+  reload: vi.fn(),
+  showLocale: vi.fn(),
+  ...overrides,
+});
+
+const renderViewer = (
+  connectionStatus: 'connecting' | 'connected',
+  lang: StudioLanguage = 'en',
+  navigation: PageNavigation = navigationStub()
+) =>
   render(
     <StudioLanguageProvider initial={lang}>
       <IframeViewer
@@ -20,7 +37,7 @@ const renderViewer = (connectionStatus: 'connecting' | 'connected', lang: Studio
         appOrigin="https://preview.example.com"
         appUrl="https://preview.example.com"
         connectionStatus={connectionStatus}
-        currentPath="/"
+        navigation={navigation}
       />
     </StudioLanguageProvider>
   );
@@ -55,7 +72,7 @@ describe('IframeViewer slow-connection help', () => {
           appOrigin="https://preview.example.com"
           appUrl="https://preview.example.com"
           connectionStatus="connected"
-          currentPath="/"
+          navigation={navigationStub()}
         />
       </StudioLanguageProvider>
     );
@@ -70,6 +87,20 @@ describe('IframeViewer slow-connection help', () => {
     const status = screen.getByTestId('connection-status');
     expect(status.getAttribute('data-status')).toBe('connected');
     expect(status.textContent).toBe(textFor('ar')('viewer.status_connected'));
+  });
+
+  it('reload is disabled while navigating', () => {
+    renderViewer('connected', 'en', navigationStub({ isNavigating: true }));
+    const reload = screen.getByRole('button', { name: 'Reload Frame' }) as HTMLButtonElement;
+    expect(reload.disabled).toBe(true);
+    expect(reload.getAttribute('data-testid')).toBe('reload-frame');
+  });
+
+  it('reload calls navigation.reload', () => {
+    const navigation = navigationStub();
+    renderViewer('connected', 'en', navigation);
+    fireEvent.click(screen.getByRole('button', { name: 'Reload Frame' }));
+    expect(navigation.reload).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the English status words', () => {

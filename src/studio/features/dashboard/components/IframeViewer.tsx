@@ -1,6 +1,8 @@
 import React, { useEffect, useState, type ReactNode } from 'react';
 import { ConnectionStatus } from '../types/index.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import type { PageNavigation } from '../hooks/usePageNavigation.js';
+import { AddressBar } from './AddressBar.js';
 
 /** How long the Studio waits for the app's bridge before suggesting causes. */
 export const SLOW_CONNECTION_MS = 8000;
@@ -23,7 +25,8 @@ interface IframeViewerProps {
   /** The URL the preview loads: the app origin, or the folder above a static Studio. */
   appUrl: string;
   connectionStatus: ConnectionStatus;
-  currentPath: string;
+  /** The address field and Reload, wired to the preview by usePageNavigation. */
+  navigation: PageNavigation;
 }
 
 export const IframeViewer = ({
@@ -31,6 +34,7 @@ export const IframeViewer = ({
   appOrigin,
   appUrl,
   connectionStatus,
+  navigation,
 }: IframeViewerProps) => {
   const { t } = useStudioText();
   // The browser never tells the parent page why a frame stayed blank (a CSP
@@ -43,27 +47,21 @@ export const IframeViewer = ({
     return () => clearTimeout(timer);
   }, [connectionStatus]);
 
-  const reloadIframe = () => {
-    if (iframeRef.current) {
-      iframeRef.current.src = iframeRef.current.src;
-    }
-  };
-
   return (
     <div className="flex-1 flex flex-col h-full bg-raised border border-line rounded-2xl overflow-hidden relative">
       {/* Top bar */}
-      <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 select-none shrink-0">
-        <div className="flex items-center gap-3 w-1/3">
-          {/* Decorative Window Controls */}
-          <div className="flex items-center gap-2">
-            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
-            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
-            <span className="w-3 h-3 rounded-full bg-line-strong"></span>
-          </div>
-        </div>
+      <div className="h-14 bg-surface border-b border-line flex items-center justify-between gap-4 px-6 shrink-0">
+        {/* The address field takes the room left by the status group (flex-1 min-w-0). */}
+        <AddressBar
+          path={navigation.path}
+          pendingPath={navigation.pendingPath}
+          recent={navigation.recent}
+          sitePages={navigation.sitePages}
+          onNavigate={navigation.onNavigate}
+        />
 
         {/* Connection status and actions */}
-        <div className="flex items-center gap-4 w-1/3 justify-end">
+        <div className="flex items-center gap-4 justify-end shrink-0">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
               {t('viewer.status')}
@@ -87,8 +85,10 @@ export const IframeViewer = ({
 
           <button
             type="button"
-            onClick={reloadIframe}
-            className="p-1.5 hover:bg-raised-hover text-fg-muted hover:text-fg rounded-lg transition duration-200 border border-transparent hover:border-line-strong"
+            data-testid="reload-frame"
+            onClick={navigation.reload}
+            disabled={navigation.isNavigating}
+            className="p-1.5 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-raised-hover text-fg-muted hover:text-fg rounded-lg transition duration-200 border border-transparent hover:border-line-strong"
             aria-label={t('viewer.reload')}
             title={t('viewer.reload')}
           >
