@@ -1,0 +1,4 @@
+{
+  "prompt": "SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example). Nothing is drawn, mocked or overlaid; everything on screen is the product. The last frame of the clip alt-click-edit.webm / alt-click-edit.mp4 (Playwright recordVideo at 1280x720, 4.72 s, encoded with ffmpeg-static), as WebP q82. Ships as the poster of the docs clip \"alt-click-edit\": Alt+Click the Tidewell headline, fix the typo and save it.",
+  "createdAt": "2026-11-03T10:29:09.917Z"
+}

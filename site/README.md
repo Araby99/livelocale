@@ -48,6 +48,39 @@ npm run docs:dev --prefix site
 - `npm run site:build` builds the docs last, after the landing page and the live demo; `SITE_URL`
   sets their base too. Search is VitePress's local search, so nothing is fetched from elsewhere.
 
+## Docs media
+
+The docs' screenshots and clips (`DocShot`, `DocClip`) come from the real Studio, made by one
+command. It needs the built CLI and both playground installs:
+
+```sh
+npm run build
+npm ci --prefix playground
+npm ci --prefix playground-vite
+node site/scripts/record-docs.mjs
+```
+
+Pass names to re-shoot only those (the rest of the manifest is kept), for example
+`node site/scripts/record-docs.mjs next-alt-click send-link`. The names, the app each one films
+and what it shows are `SHOTS` and `CLIPS` in `site/scripts/docs/media.mjs`.
+
+- The dev shots run `next dev -p 3100` in `playground/`, `vite --port 5180` in `playground-vite/`
+  and `livelocale studio --port 3110`; the share shots and the clips pack the Tidewell stage
+  (`site/stage`) as `record-hero.mjs` does and serve it on a port in 5170-5179, browsed as
+  `http://tidewell.example`. A server already answering on 3100, 3110 or 5180 stops the run.
+- Saves in the dev Studio write the playgrounds' locale files; the recorder snapshots
+  `playground/locales/` and `playground-vite/locales/` and puts them back after every capture.
+- Shots are Chromium at 1440x900, DPR 2, saved as WebP q82 at 1200 px wide; clips are Playwright's
+  `recordVideo` at 1280x720, encoded to VP9 WebM and H.264 MP4 (no audio) with the last frame as
+  the poster. Everything goes to `site/media/docs/` with a provenance sidecar per raster and
+  `manifest.json` (the sizes the components read). No cursor or overlay is added.
+- `share-send-dialog` saves its change link to `site/scripts/docs/fixtures/change-link.txt`, which
+  `share-review-mode` opens.
+
+In a page: `<DocShot name="next-alt-click" alt="…" caption="…" />` and
+`<DocClip name="send-link" label="…" caption="…" />`. An unknown name or an empty `alt` or `label`
+fails the build, and a unit test checks every page's tags against the manifest.
+
 ## Test
 
 ```sh

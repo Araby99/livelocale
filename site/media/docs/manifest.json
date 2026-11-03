@@ -1,0 +1,105 @@
+{
+  "shots": {
+    "next-studio-open": {
+      "file": "next-studio-open.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "next-alt-click": {
+      "file": "next-alt-click.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "next-saved-file": {
+      "file": "next-saved-file.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "vite-studio-open": {
+      "file": "vite-studio-open.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "vite-alt-click": {
+      "file": "vite-alt-click.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "vite-saved-file": {
+      "file": "vite-saved-file.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "share-open-link": {
+      "file": "share-open-link.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "share-alt-click": {
+      "file": "share-alt-click.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "share-send-dialog": {
+      "file": "share-send-dialog.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "share-review-mode": {
+      "file": "share-review-mode.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "studio-plural": {
+      "file": "studio-plural.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "studio-placeholder-warning": {
+      "file": "studio-placeholder-warning.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "studio-arabic": {
+      "file": "studio-arabic.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "studio-light": {
+      "file": "studio-light.webp",
+      "width": 1200,
+      "height": 750
+    },
+    "studio-keyboard": {
+      "file": "studio-keyboard.webp",
+      "width": 1200,
+      "height": 750
+    }
+  },
+  "clips": {
+    "alt-click-edit": {
+      "webm": "alt-click-edit.webm",
+      "mp4": "alt-click-edit.mp4",
+      "poster": "alt-click-edit.poster.webp",
+      "width": 1280,
+      "height": 720,
+      "seconds": 4.72
+    },
+    "send-link": {
+      "webm": "send-link.webm",
+      "mp4": "send-link.mp4",
+      "poster": "send-link.poster.webp",
+      "width": 1280,
+      "height": 720,
+      "seconds": 4
+    },
+    "arabic-switch": {
+      "webm": "arabic-switch.webm",
+      "mp4": "arabic-switch.mp4",
+      "poster": "arabic-switch.poster.webp",
+      "width": 1280,
+      "height": 720,
+      "seconds": 4.69
+    }
+  }
+}

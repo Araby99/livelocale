@@ -1,0 +1,4 @@
+{
+  "prompt": "SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from the real dev Studio (`livelocale studio`, port 3110) editing the Vite + React playground (playground-vite/, `vite --port 5180` with `liveLocaleVite`). Nothing is drawn, mocked or overlaid; everything on screen is the product. A screenshot at 1440x900, DPR 2, dark colour scheme, browser locale en-US, converted with ffmpeg-static to WebP q82, 1200 px wide. Ships as the docs shot \"vite-saved-file\": after Save: the preview shows the new headline, Changes lists playground-vite/locales/en.json as modified with its git diff.",
+  "createdAt": "2026-11-03T10:28:22.931Z"
+}
