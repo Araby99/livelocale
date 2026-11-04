@@ -27,6 +27,8 @@ export function setNestedProperty(obj: Record<string, any>, keyPath: string, val
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]!;
     // Checked again at the write so the guard sits next to the assignment it protects.
+    // These literals mirror DANGEROUS_KEY_SEGMENTS in validate.ts; the check above
+    // throws first, and the literal comparisons are what CodeQL's guard detection reads.
     if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
       throw new Error(`[livelocale] Forbidden key segment in path: "${keyPath}".`);
     }

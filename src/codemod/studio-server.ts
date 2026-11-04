@@ -98,7 +98,10 @@ export function createStudioServer(options: StudioServerOptions): http.Server {
     }
 
     // A path inside studioDir is relative to it without climbing out (`..`) or
-    // switching drives (an absolute result on Windows).
+    // switching drives (an absolute result on Windows). The prefix test also
+    // refuses a top-level file whose name starts with `..` (such as `..x.js`);
+    // the Studio build never emits one, and this form is the containment guard
+    // CodeQL recognises.
     const relativePath = path.relative(studioDir, filePath);
     if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
       res.statusCode = 403;
