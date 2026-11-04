@@ -26,6 +26,12 @@ updates:
       # it supports ESLint 10.
       - dependency-name: 'eslint'
         update-types: ['version-update:semver-major']
+      # typescript 7 (the native port) has no classic compiler API: its main export is only the
+      # version, and the API is under typescript/unstable/*. tsup's dts build, typescript-eslint
+      # (peer typescript <6.1) and the tests of check --hardcoded (which loads the user's
+      # typescript through that API) all need it. Lift when TS 7 ships a stable API they support.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
       dev-tooling:
         dependency-type: development
