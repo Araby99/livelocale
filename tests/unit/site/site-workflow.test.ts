@@ -25,7 +25,7 @@ it('deploys only by hand or once the owner sets SITE_LIVE', () => {
   );
   expect(wf).not.toMatch(/if: github\.event_name != 'pull_request'/);
   expect(wf).toMatch(/npm run site:build/);
-  expect(wf).toContain('actions/deploy-pages@v4');
+  expect(wf).toMatch(/actions\/deploy-pages@v\d+\b/);
   expect(wf).toMatch(/pages: write/);
   expect(wf).toContain("vars.SITE_URL || 'https://araby99.github.io/livelocale/'");
 });

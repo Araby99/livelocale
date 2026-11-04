@@ -5,6 +5,52 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Majors held on purpose. Each rule says what has to change before it is lifted; remove the
+    # rule then and let Dependabot propose the major again.
+    ignore:
+      # CI still runs the toolchain on Node 20 (ci.yml matrix: 20 and 24). These majors declare
+      # Node 22 or later in engines: @changesets/cli 3 (^22.11), vitest and @vitest/coverage-v8 5
+      # (^22.12), jsdom 30 (^22.22.2), tsup 9 (^22.18). They were not tried on Node 20; npm ci only
+      # warns on engines, and @axe-core/playwright (>=22.12) and lint-staged (>=22.22.1) already
+      # declare Node 22 too. Node 20 is end-of-life since April 2026: lift these together when
+      # Node 20 leaves the CI matrix.
+      - dependency-name: '@changesets/cli'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/coverage-v8'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'jsdom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'tsup'
+        update-types: ['version-update:semver-major']
+      # eslint 10: eslint-plugin-react (latest 7.37.5) declares eslint ^3 to ^9.7 only. Lift when
+      # it supports ESLint 10.
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      # typescript 7 (the native port) has no classic compiler API: its main export is only the
+      # version, and the API is under typescript/unstable/*. tsup's dts build, typescript-eslint
+      # (peer typescript <6.1) and the tests of check --hardcoded (which loads the user's
+      # typescript through that API) all need it. Lift when TS 7 ships a stable API they support.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      # React 19 for the bundled Studio adds 79 KB to its JS (340,869 to 419,891 bytes; gzip
+      # 101 KB to 124 KB) and takes dist/studio to 1,118,151 bytes, over the 1,100,000-byte budget
+      # in tests/integration/studio-bundle.test.ts, for no feature the Studio needs. Lift once the
+      # Studio has room in its budget, together with the matching @types majors.
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react-dom'
+        update-types: ['version-update:semver-major']
+      # @types/node follows the oldest Node the code may rely on, so newer APIs cannot slip in
+      # unnoticed. engines says >=18, but vite 8 (peer @types/node ^20.19 or >=22.12) rules out 18,
+      # so 20 is the lowest usable major. Lift when the engines floor rises.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       dev-tooling:
         dependency-type: development
