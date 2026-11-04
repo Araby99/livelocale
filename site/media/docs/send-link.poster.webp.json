@@ -1,4 +1,4 @@
 {
-  "prompt": "SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example). Nothing is drawn, mocked or overlaid; everything on screen is the product. The last frame of the clip send-link.webm / send-link.mp4 (Playwright recordVideo at 1280x720, 4.01 s, encoded with ffmpeg-static), as WebP q82. Ships as the poster of the docs clip \"send-link\": open Send to developer and get the change link for the fix.",
-  "createdAt": "2026-11-04T10:13:59.477Z"
+  "prompt": "SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example). Nothing is drawn, mocked or overlaid; everything on screen is the product. The last frame of the clip send-link.webm / send-link.mp4 (Playwright recordVideo at 1280x720, 4 s, encoded with ffmpeg-static), as WebP q82. Ships as the poster of the docs clip \"send-link\": open Send to developer and get the change link for the fix.",
+  "createdAt": "2026-11-04T10:20:14.135Z"
 }

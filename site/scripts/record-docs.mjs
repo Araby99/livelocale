@@ -474,17 +474,22 @@ async function film(browser, name, work) {
     await context.close();
   }
   const seconds = Number(Math.min(to - from, limit).toFixed(2));
+  // The input seek can leave the first frame a frame after 0 (0.04 s), so a clip would load at
+  // that time instead of 0; setpts starts every clip at 0.
   const trim = ['-ss', from.toFixed(3), '-i', raw, '-t', String(seconds), '-an'];
+  const zeroStart = ['-vf', 'setpts=PTS-STARTPTS'];
   const webm = `${name}.webm`;
   const mp4 = `${name}.mp4`;
   const poster = `${name}.poster.webp`;
   ffmpeg([
     ...trim,
+    ...zeroStart,
     ...['-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '36', '-row-mt', '1', '-pix_fmt', 'yuv420p'],
     join(OUT_DIR, webm),
   ]);
   ffmpeg([
     ...trim,
+    ...zeroStart,
     ...['-c:v', 'libx264', '-preset', 'slow', '-crf', '26', '-profile:v', 'high'],
     ...['-pix_fmt', 'yuv420p', '-movflags', '+faststart', join(OUT_DIR, mp4)],
   ]);

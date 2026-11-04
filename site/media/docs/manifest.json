@@ -88,7 +88,7 @@
       "poster": "alt-click-edit.poster.webp",
       "width": 1280,
       "height": 720,
-      "seconds": 5.19
+      "seconds": 4.92
     },
     "send-link": {
       "webm": "send-link.webm",
@@ -96,7 +96,7 @@
       "poster": "send-link.poster.webp",
       "width": 1280,
       "height": 720,
-      "seconds": 4.01
+      "seconds": 4
     },
     "arabic-switch": {
       "webm": "arabic-switch.webm",
@@ -104,7 +104,7 @@
       "poster": "arabic-switch.poster.webp",
       "width": 1280,
       "height": 720,
-      "seconds": 4.89
+      "seconds": 4.91
     }
   }
 }
