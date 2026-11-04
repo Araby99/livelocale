@@ -10,8 +10,9 @@ updates:
     ignore:
       # CI still runs the toolchain on Node 20 (ci.yml matrix: 20 and 24). These majors declare
       # Node 22 or later in engines: @changesets/cli 3 (^22.11), vitest and @vitest/coverage-v8 5
-      # (^22.12; 4 is adopted, the last major that declares ^20), jsdom 30 (^22.22.2), tsup 9
-      # (^22.18). They were not tried on Node 20; npm ci only warns on engines, and
+      # (^22.12; 4 is adopted, the last major that declares ^20), jsdom 30 (^22.22.2). They were
+      # not tried on Node 20 (tsup 9, which declares ^22.18, was: CI passes on Node 20, so it is
+      # adopted); npm ci only warns on engines, and
       # @axe-core/playwright (>=22.12) and lint-staged (>=22.22.1) already declare Node 22 too.
       # Node 20 is end-of-life since April 2026: lift these together when Node 20 leaves the CI
       # matrix.
@@ -22,8 +23,6 @@ updates:
       - dependency-name: '@vitest/coverage-v8'
         update-types: ['version-update:semver-major']
       - dependency-name: 'jsdom'
-        update-types: ['version-update:semver-major']
-      - dependency-name: 'tsup'
         update-types: ['version-update:semver-major']
       # eslint 10: eslint-plugin-react (latest 7.37.5) declares eslint ^3 to ^9.7 only. Lift when
       # it supports ESLint 10.
