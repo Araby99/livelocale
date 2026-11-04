@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
+  followNavigation,
+  navigationHref,
   readSameOriginParent,
   resolveStudioOrigin,
   DEFAULT_STUDIO_ORIGIN,
@@ -128,4 +130,93 @@ describe('readSameOriginParent', () => {
     ).toBeNull());
   it('returns null for an opaque own origin', () =>
     expect(readSameOriginParent(make({ location: { origin: 'null' } }, 'null'))).toBeNull());
+});
+
+describe('navigationHref', () => {
+  const own = 'http://localhost:3020';
+
+  it('returns the href of a same-origin http(s) URL', () =>
+    expect(navigationHref({ url: 'http://localhost:3020/about/?locale=ar#top' }, own)).toBe(
+      'http://localhost:3020/about/?locale=ar#top'
+    ));
+
+  it('refuses URLs that are not on its own origin', () => {
+    for (const url of [
+      'http://evil.example/',
+      'http://localhost:3021/',
+      'https://localhost:3020/',
+      'http://localhost:3020.evil.example/',
+      'http://u:p@localhost:3020/',
+      'javascript:alert(1)',
+      'data:text/html,x',
+      '//evil.example/',
+      '/about/',
+      'http://localhost:3020/' + 'a'.repeat(2048),
+    ]) {
+      expect(navigationHref({ url }, own), url).toBeNull();
+    }
+  });
+
+  it('refuses payloads without an own string url', () => {
+    expect(navigationHref({ url: 1 }, own)).toBeNull();
+    expect(navigationHref(null, own)).toBeNull();
+    expect(navigationHref('http://localhost:3020/', own)).toBeNull();
+    expect(navigationHref(Object.create({ url: 'http://localhost:3020/' }), own)).toBeNull();
+  });
+});
+
+describe('followNavigation', () => {
+  const make = () => ({ href: 'http://a/b#faq', assign: vi.fn(), reload: vi.fn() });
+
+  it('reloads when asked for the current URL', () => {
+    const loc = make();
+    followNavigation(loc, 'http://a/b#faq');
+    expect(loc.reload).toHaveBeenCalledTimes(1);
+    expect(loc.assign).not.toHaveBeenCalled();
+  });
+
+  it('assigns any other URL', () => {
+    const loc = make();
+    followNavigation(loc, 'http://a/c');
+    expect(loc.assign).toHaveBeenCalledWith('http://a/c');
+    expect(loc.reload).not.toHaveBeenCalled();
+  });
+});
+
+// The NAVIGATE branch in src/client/index.ts is exactly these two calls.
+describe('NAVIGATE handling (navigationHref then followNavigation)', () => {
+  const navigate = (
+    loc: { href: string; origin: string; assign: (u: string) => void; reload: () => void },
+    payload: unknown
+  ) => {
+    const href = navigationHref(payload, loc.origin);
+    if (href !== null) followNavigation(loc, href);
+  };
+  const make = () => ({
+    href: 'http://localhost:3020/?tab=3#faq',
+    origin: 'http://localhost:3020',
+    assign: vi.fn(),
+    reload: vi.fn(),
+  });
+
+  it('reloads when the Studio sends the current URL that has a hash', () => {
+    const loc = make();
+    navigate(loc, { url: 'http://localhost:3020/?tab=3#faq' });
+    expect(loc.reload).toHaveBeenCalledTimes(1);
+    expect(loc.assign).not.toHaveBeenCalled();
+  });
+
+  it('assigns another page on its own origin', () => {
+    const loc = make();
+    navigate(loc, { url: 'http://localhost:3020/about/' });
+    expect(loc.assign).toHaveBeenCalledWith('http://localhost:3020/about/');
+    expect(loc.reload).not.toHaveBeenCalled();
+  });
+
+  it('does nothing for a refused URL', () => {
+    const loc = make();
+    navigate(loc, { url: 'http://evil.example/' });
+    expect(loc.assign).not.toHaveBeenCalled();
+    expect(loc.reload).not.toHaveBeenCalled();
+  });
 });

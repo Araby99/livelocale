@@ -3,8 +3,10 @@ export type ClientMessageType =
   | 'READY'
   | 'ERROR'
   | 'VISIBLE_KEYS_CHANGED'
-  | 'VISIBLE_TEXTS_CHANGED';
-export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION';
+  | 'VISIBLE_TEXTS_CHANGED'
+  | 'LOCATION_CHANGED'
+  | 'LEAVING';
+export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION' | 'NAVIGATE';
 
 /** Where `livelocale studio` runs unless the Studio says otherwise. */
 export const DEFAULT_STUDIO_ORIGIN = 'http://localhost:3010';
@@ -91,6 +93,72 @@ export const MAX_VISIBLE_TEXT_LENGTH = 200;
 
 const KEY_PATTERN = /^[a-zA-Z0-9._-]+$/;
 
+/** Longest page location, in UTF-16 code units, READY and LOCATION_CHANGED carry. */
+export const MAX_LOCATION_LENGTH = 2048;
+
+/** C0 and C1 control characters and DEL, which a URL parser strips or reads specially. */
+const LOCATION_CONTROL_RE = /[\u0000-\u001f\u007f-\u009f]/;
+
+/** An origin a reported path is resolved against, to check that it stays on it. */
+const LOCATION_PROBE_ORIGIN = 'http://livelocale.invalid';
+
+/**
+ * The `url` own string of an object payload when it is a same-origin path:
+ * starts with `/`, not with `//`; holds no C0/C1 control character or DEL
+ * anywhere and no backslash before its query or hash (a URL parser drops tabs
+ * and newlines and reads `\` as `/`, so `/\t/host` or `/\host` would name a
+ * host); still resolves on the origin it is read against; and is at most
+ * MAX_LOCATION_LENGTH long. Else `null`. Never throws.
+ */
+export function toLocationUrl(payload: unknown): string | null {
+  try {
+    if (!payload || typeof payload !== 'object') return null;
+    if (!Object.prototype.hasOwnProperty.call(payload, 'url')) return null;
+    const url = (payload as { url?: unknown }).url;
+    if (typeof url !== 'string' || url.length > MAX_LOCATION_LENGTH) return null;
+    if (!url.startsWith('/') || url.startsWith('//')) return null;
+    if (LOCATION_CONTROL_RE.test(url)) return null;
+    if (/^[^?#]*\\/.test(url)) return null;
+    if (new URL(url, LOCATION_PROBE_ORIGIN).origin !== LOCATION_PROBE_ORIGIN) return null;
+    return url;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The href a NAVIGATE payload asks for when it is safe to follow: the payload
+ * is an object whose own `url` is a string of at most MAX_LOCATION_LENGTH that
+ * parses on its own (relative and protocol-relative input is refused) as an
+ * http(s) URL on `ownOrigin` without credentials; else `null`. Never throws.
+ */
+export function navigationHref(payload: unknown, ownOrigin: string): string | null {
+  try {
+    if (!payload || typeof payload !== 'object') return null;
+    if (!Object.prototype.hasOwnProperty.call(payload, 'url')) return null;
+    const url = (payload as { url?: unknown }).url;
+    if (typeof url !== 'string' || url.length > MAX_LOCATION_LENGTH) return null;
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    if (parsed.origin !== ownOrigin || parsed.username || parsed.password) return null;
+    return parsed.href;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Opens `href`, reloading when it is the current URL: assigning the current
+ * URL with a hash is a fragment navigation that reloads nothing.
+ */
+export function followNavigation(
+  loc: Pick<Location, 'href' | 'assign' | 'reload'>,
+  href: string
+): void {
+  if (href === loc.href) loc.reload();
+  else loc.assign(href);
+}
+
 export interface TranslationPayload {
   key: string;
   fallbackValue: string;
@@ -151,6 +219,12 @@ export class IframeBridge {
         texts.push({ key, text: text.slice(0, MAX_VISIBLE_TEXT_LENGTH) });
       }
       payload = texts;
+    }
+
+    if (type === 'READY' || type === 'LOCATION_CHANGED') {
+      // Never dropped: the Studio must connect, and learn when the location is unknown.
+      const url = toLocationUrl(payload);
+      payload = url === null ? {} : { url };
     }
 
     const message = {

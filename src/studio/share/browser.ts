@@ -3,7 +3,8 @@ export type PrefName =
   | 'translator-name'
   | 'github-repo'
   | 'studio-language'
-  | 'studio-theme';
+  | 'studio-theme'
+  | `recent-pages:${string}`;
 
 /** Used when `localStorage` is missing or throws (private windows, blocked site data). */
 const memoryPrefs = new Map<PrefName, string>();

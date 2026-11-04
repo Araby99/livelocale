@@ -175,6 +175,10 @@ Open `http://localhost:3010` to view the Studio, loaded with your app. `--app` d
 `http://localhost:3000`; you can also switch apps without restarting by opening
 `http://localhost:3010/?app=http://localhost:3001`.
 
+The preview bar's address field shows the page you are on. Type a path and press Enter to open it
+in the current language. Suggestions list your recent pages and, on a share link, every page of the
+site. Reload reloads the page you are on.
+
 The Studio has the new LiveLocale look, in light and dark. It speaks English and Arabic; the share
 link follows the browser language, and the switch is in the header. Share links also follow your
 system's light or dark setting; the dev Studio starts dark until you pick System, Light or Dark.
@@ -412,6 +416,9 @@ npx livelocale pack <outDir> [--dir <path>] [--locales <path>] [--source <locale
 The share link is `<your site><base>livelocale/index.html`. Nothing is written outside
 `<outDir>/livelocale/` except that one script tag, and an existing `livelocale/` folder is replaced
 only when pack wrote it.
+
+`manifest.json` now lists the site's HTML pages (`pages`, at most 2,000) for the Studio's
+suggestions.
 
 ### `build`
 

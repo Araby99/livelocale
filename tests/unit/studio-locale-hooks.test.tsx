@@ -88,6 +88,35 @@ describe('useLocaleData', () => {
     iframe.remove();
   });
 
+  it('hands the language switch to showLocale when given', async () => {
+    vi.stubGlobal(
+      'fetch',
+      routeFetch({
+        '/api/livelocale': () => ['ar', 'en'],
+        '?action=keys': () => ({ allKeys: [], codeKeys: [] }),
+        '?locale=en': () => ({ hello: 'Hello' }),
+        '?locale=ar': () => ({ hello: 'مرحبا' }),
+      })
+    );
+    const iframe = document.createElement('iframe');
+    const src = 'http://localhost:3000/?livelocale-origin=http%3A%2F%2Flocalhost%3A3010';
+    iframe.src = src;
+    document.body.appendChild(iframe);
+    const iframeRef = { current: iframe };
+    const showLocale = vi.fn();
+    const { result } = renderHook(() =>
+      useLocaleData({ connectionStatus: 'connected', iframeRef, showLocale })
+    );
+    await waitFor(() => expect(result.current.localeData['hello']).toBe('Hello'));
+
+    act(() => result.current.handleLocaleChange('ar'));
+    expect(showLocale).toHaveBeenCalledWith('ar');
+    expect(result.current.locale).toBe('ar');
+    expect(iframe.src).toBe(src);
+    await waitFor(() => expect(result.current.localeData['hello']).toBe('مرحبا'));
+    iframe.remove();
+  });
+
   it('reports which locale the loaded dictionary belongs to', async () => {
     let releaseAr: () => void = () => {};
     const arGate = new Promise<void>((r) => (releaseAr = r));
