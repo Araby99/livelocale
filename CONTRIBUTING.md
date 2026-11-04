@@ -1,69 +1,64 @@
 # Contributing to livelocale
 
-Thank you for your interest in contributing to `livelocale`! This guide will help you get started with running and developing the project locally.
+Thanks for helping. Everyone taking part follows the [Code of Conduct](CODE_OF_CONDUCT.md).
+Security problems go through [SECURITY.md](SECURITY.md), never a public issue.
 
-## Development Setup
+## Setup
 
-1. **Clone the repository**:
+You need Node.js 18 or newer and npm.
 
-   ```bash
-   git clone https://github.com/Araby99/livelocale.git
-   cd livelocale
-   ```
+```bash
+git clone https://github.com/Araby99/livelocale.git
+cd livelocale
+npm ci
+npm run build
+```
 
-2. **Install dependencies**:
+## Checks
 
-   ```bash
-   npm install
-   ```
+Run these before you open a pull request; CI runs the same ones:
 
-3. **Build the packages**:
+```bash
+npm run build
+npm test                # unit and integration tests (Vitest)
+npm run typecheck
+npm run lint
+npm run format:check    # npm run format:write fixes formatting
+npm ci --prefix playground && npm ci --prefix playground-vite   # once, for E2E
+npx playwright install --with-deps                              # once
+npm run test:e2e        # end-to-end tests (Playwright)
+```
 
-   ```bash
-   npm run build
-   ```
+Husky and lint-staged check formatting and linting on every commit.
 
-4. **Run the tests**:
-   - Unit and Integration tests:
-     ```bash
-     npm run test
-     ```
-   - End-to-End (Playwright) tests:
-     ```bash
-     npx playwright install --with-deps
-     npm run test:e2e
-     ```
+## Rules for changes
 
-## Code Quality Standards
+- **No runtime dependencies.** `package.json` has no `dependencies` field and must stay that way.
+  The Studio UI is bundled into the package at build time; anything else goes in
+  `devDependencies` or is an optional peer dependency loaded from the user's project
+  (`check --hardcoded` uses the project's own `typescript`).
+- **Keep the Node floor.** `engines.node` stays at `>=18`.
+- **Add tests** for a bug fix or a feature.
+- **Add a changeset** for every user-facing change: run `npx changeset`, pick the bump and
+  describe the change in a sentence. Docs-only and test-only changes need none.
 
-Before submitting a Pull Request, please ensure:
+## Pull requests
 
-- Your code is properly formatted: `npm run format:check` (or format your files using `npm run format:write`).
-- Your code passes the linter rules: `npm run lint`.
-- TypeScript compiles without errors: `npm run typecheck`.
-- All tests pass: `npm run test` and `npm run test:e2e`.
+1. Fork the repo and branch from `main`.
+2. Use [Conventional Commits](https://www.conventionalcommits.org/) messages, such as
+   `fix(studio): ...` or `docs: ...`.
+3. Open the pull request against `main` and fill in the template.
 
-## Submission Process
-
-1. Fork the repo and create your branch from `main`.
-2. Implement your changes and add tests if applicable.
-3. Commit your changes. Pre-commit hooks via Husky and lint-staged will automatically verify formatting and linting.
-4. Push your branch and open a Pull Request against `main`.
-
-## Release Process
+## Release process
 
 Versions and the changelog are managed with [Changesets](https://github.com/changesets/changesets).
 
-1. With every user-facing change, add a changeset describing it:
-   ```bash
-   npx changeset
-   ```
-2. To cut a release, apply the pending changesets. This bumps `package.json` and prepends the
-   notes to `CHANGELOG.md`:
+1. Apply the pending changesets. This bumps `package.json` and prepends the notes to
+   `CHANGELOG.md`:
    ```bash
    npm run version
    ```
-   Set the same version in `plugins/livelocale/.claude-plugin/plugin.json`, so the Claude Code
+2. Set the same version in `plugins/livelocale/.claude-plugin/plugin.json`, so the Claude Code
    plugin updates with the npm release and its skill describes that release; a unit test fails
    until the two match.
 3. Commit the result, push, and create a GitHub release tagged `vX.Y.Z`. The publish workflow
