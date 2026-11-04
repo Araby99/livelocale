@@ -57,6 +57,72 @@ updates:
         dependency-type: development
         patterns:
           - '*'
+  # The test apps and the site are private and never published, so every package in them is
+  # tooling: one grouped PR per directory. The E2E suite (playground, playground-vite) and the site
+  # gate check each PR. livelocale itself is a file:.. link and is not updated here.
+  - package-ecosystem: npm
+    directory: /playground
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # The playground renders the linked livelocale, which resolves React from the root: it stays
+      # on the root's React major (see the react rule above). @types/node: as above.
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # typescript: as above. next dev and next build load the project's typescript through the
+      # classic compiler API to check its TypeScript setup, which TS 7 does not have.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+    groups:
+      dev-tooling:
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    directory: /playground-vite
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # As in /playground: the root's React major.
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+    groups:
+      dev-tooling:
+        patterns:
+          - '*'
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    ignore:
+      # vitepress is pinned to 2.0.0-alpha.20: alpha.21 pulls @vueuse/core 15, which declares
+      # Node 22 or later. Lift with the Node 22 rules above, when Node 20 leaves the CI matrix.
+      - dependency-name: 'vitepress'
+        versions: ['>= 2.0.0-alpha.21']
+      # The demo stage (site/stage, React) stays on the root's React major, as in /playground.
+      # @types/node: as above.
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+    groups:
+      dev-tooling:
+        patterns:
+          - '*'
   - package-ecosystem: github-actions
     directory: /
     schedule:

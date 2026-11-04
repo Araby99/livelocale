@@ -23,7 +23,7 @@
     "livelocale": "file:..",
     "opentype.js": "^2.0.0",
     "vite": "^8.3.5",
-    "vitepress": "1.6.4"
+    "vitepress": "2.0.0-alpha.20"
   },
   "dependencies": {
     "i18next": "^26.7.1",

@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // next dev would otherwise write an AGENTS.md here whenever a coding agent runs it.
+  agentRules: false,
   async headers() {
     return [
       {
