@@ -61,7 +61,7 @@ The README is the content source today; the docs rewrite it for learning (task o
 
 ### 3.5 README after the docs exist
 
-Short: one-paragraph pitch, install, a 30-second Next.js example, links to the docs pages (getting started, share links, CI, reference), licence. _Claude's call_: the GitHub README shrinks in a commit on go-live day, so it never links to docs that are not public; the npm page shows the README of the last published version, so a README-only patch release (0.11.1) on go-live day carries it to npm (the owner creates that release, as for every release).
+Short: one-paragraph pitch, install, a 30-second Next.js example, links to the docs pages (getting started, share links, CI, reference), licence. _Claude's call_: the GitHub README shrinks in a commit on go-live day, so it never links to docs that are not public; the npm page shows the README of the last published version, so a patch release on go-live day carries it to npm (the owner creates that release, as for every release). It was planned as a README-only 0.11.1; since 0.12.0 shipped first, it is 0.12.1 and also carries the share address field's locale fix.
 
 ## 4. Landing additions
 

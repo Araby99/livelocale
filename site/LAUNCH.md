@@ -30,9 +30,13 @@ changes the repository settings; those steps are the owner's.
      `https://livelocale.js.org/`), set `package.json` `homepage` to `https://livelocale.js.org/`,
      check that `npm test` passes (the publish workflow runs it before `npm publish`), and commit
      `docs: shrink the README to the pitch and links to the docs`.
-- [ ] 9. (owner) The README-only 0.11.1 release, created by the owner as for every release, so npm
-     shows the short README and the new homepage. It carries the step 8 commit and no code
-     changes.
+- [ ] 9. (owner) The 0.12.1 release, created by the owner as for every release, so npm shows the
+     short README and the new homepage. It carries the step 8 commit and the pending changeset
+     (`.changeset/share-address-locale.md`: the share Studio's address field no longer shows its
+     own `?locale=`). `npm run version` consumes the changeset; the `CHANGELOG.md` entry is
+     `## [0.12.1] - <date>` in the house format of the 0.12.0 entry, and
+     `plugins/livelocale/.claude-plugin/plugin.json` is set to 0.12.1 too; commit
+     `chore: release 0.12.1`, then the GitHub release `v0.12.1`.
 - [ ] 10. (owner) Set the GitHub repository's website to `https://livelocale.js.org/`; set
       `brand/avatar-512.png` as the GitHub avatar and as the Gravatar of the npm account's email.
       Once step 8 is on `main`, check the plugin in a Claude Code session:

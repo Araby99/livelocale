@@ -25,7 +25,7 @@ it('lists the launch steps in order, owner-gated', () => {
   expect(at('workflow_dispatch')).toBeLessThan(at('js.org pull request'));
   expect(at('`SITE_URL`')).toBeLessThan(at('`SITE_LIVE` to `true`'));
   expect(at('`SITE_LIVE` to `true`')).toBeLessThan(at('site/launch/README.md'));
-  expect(at('site/launch/README.md')).toBeLessThan(at('0.11.1'));
+  expect(at('site/launch/README.md')).toBeLessThan(at('0.12.1'));
 });
 it('gates the preview on Lighthouse and checks real Safari on a phone', () => {
   expect(step(2)).toContain('`lighthouse` job');
@@ -58,7 +58,7 @@ it('prepares a short README whose docs links all exist', () => {
     );
 });
 // Step 8 swaps in the short README, so a unit test that pins README.md must hold for the go-live
-// README too; one that pins the long README's content turns main red and stops the 0.11.1 release,
+// README too; one that pins the long README's content turns main red and stops the 0.12.1 release,
 // whose publish workflow runs the tests first.
 it('leaves no unit test that pins the long README alone', () => {
   const tests = fs
