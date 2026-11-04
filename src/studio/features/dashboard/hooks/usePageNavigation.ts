@@ -53,7 +53,7 @@ export function usePageNavigation({
   const ctx: AddressContext = {
     appOrigin,
     base: appBasePath(),
-    hideLocale: runtime.kind === 'server' ? locale : null,
+    hideLocale: locale,
     shareDir: runtime.kind === 'static' ? appBasePath() + SHARE_DIR + '/' : null,
   };
   // A page opened through the iframe src has no client to report it, so the hook keeps the
@@ -175,8 +175,7 @@ export function usePageNavigation({
     const next = urlWithLocale(pagePath, nextLocale, urlLocaleOptions());
     if (next === null) return;
     // Shown as it will be once the Studio's locale is the new one.
-    const shown = runtime.kind === 'server' ? { ...ctx, hideLocale: nextLocale } : ctx;
-    startPending(toDisplayPath(next, shown));
+    startPending(toDisplayPath(next, { ...ctx, hideLocale: nextLocale }));
     go(next);
   };
 

@@ -13,7 +13,7 @@ export interface AddressContext {
   appOrigin: string;
   /** The path the app's pages live under: starts and ends with `/`, encoded. */
   base: string;
-  /** The Studio's locale in server mode (its `?locale=` is not shown), null in share mode. */
+  /** The Studio's locale: its `?locale=` is not shown (null shows every `locale`). */
   hideLocale: string | null;
   /** `base + SHARE_DIR + '/'` in share mode (never opened in the preview), null in server mode. */
   shareDir: string | null;

@@ -343,6 +343,31 @@ describe('usePageNavigation', () => {
     expect(result.current.pendingPath).toBe('/ar/about/');
   });
 
+  it("hides the share Studio's own locale from the field and the recent pages", () => {
+    useStaticRuntime();
+    const { result, rerender, props, sendToIframe } = setup({
+      currentPath: '/livelocale-demo/?locale=ar',
+      locale: 'ar',
+    });
+    expect(result.current.path).toBe('/');
+    rerender({ ...props, currentPath: '/livelocale-demo/pricing/?locale=ar', locationSeq: 1 });
+    rerender({ ...props, currentPath: '/livelocale-demo/?locale=ar', locationSeq: 2 });
+    rerender({ ...props, currentPath: '/livelocale-demo/pricing/?locale=ar', locationSeq: 3 });
+    expect(result.current.path).toBe('/pricing/');
+    expect(result.current.recent).toEqual(['/pricing/', '/']);
+    // A recent page opens in the language the preview shows.
+    act(() => {
+      result.current.onNavigate('/');
+    });
+    expect(sendToIframe).toHaveBeenLastCalledWith('NAVIGATE', {
+      url: 'http://localhost:3020/livelocale-demo/?locale=ar',
+    });
+    act(() => {
+      result.current.showLocale('en');
+    });
+    expect(result.current.pendingPath).toBe('/pricing/');
+  });
+
   it('clears pending on the next location', () => {
     const { result, rerender, props } = setup();
     act(() => {

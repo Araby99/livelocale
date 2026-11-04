@@ -19,7 +19,7 @@ The Studio shows the site in its preview panel but has no way to reach a page ex
 ### 3.1 The address field
 
 - Lives in the preview bar (`IframeViewer`), in place of the three decorative window dots, between the left edge and the status/reload group; it grows to fill the free width.
-- Shows the path relative to the site's base: in share mode relative to the manifest's `basePath` (so a site under `/livelocale-demo/` shows `/pricing`, not `/livelocale-demo/pricing`); in dev mode the app URL's path plus search, minus the Studio's own `livelocale-origin` parameter and minus a `?locale=` the Studio itself manages. Hash fragments are kept.
+- Shows the path relative to the site's base: in share mode relative to the manifest's `basePath` (so a site under `/livelocale-demo/` shows `/pricing`, not `/livelocale-demo/pricing`); in dev mode the app URL's path plus search, minus the Studio's own `livelocale-origin` parameter and minus a `?locale=` the Studio itself manages (in share mode too since 0.12.1, so recent pages hold one entry per page, not one per language). Hash fragments are kept.
 - Monospace, `dir="ltr"` in the Arabic Studio too (it is a path), with an accessible name ("Page address" / Arabic equivalent).
 - Edit, then **Enter** navigates; **Escape** restores the current path and keeps focus; leaving the field without Enter restores it.
 - Input is normalised: a missing leading `/` is added; a full URL is accepted only when it is on the previewed site's origin (then reduced to its path); anything else (another origin, `javascript:`, `data:`, a protocol-relative URL) is refused with an inline message ("Only pages on this site can open here").
