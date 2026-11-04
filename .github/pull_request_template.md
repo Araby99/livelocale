@@ -1,33 +1,19 @@
-## Description
+## What and why
 
-Please include a summary of the change and the related issue. Please also include relevant motivation and context. List any dependencies that are required for this change.
+<!-- What does this change, and why? Link the issue: "Fixes #123". -->
 
-Fixes # (issue number)
+## Type of change
 
-## Type of Change
-
-Please delete options that are not relevant.
-
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation update
-
-## How Has This Been Tested?
-
-Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce.
-
-- [ ] Unit Tests
-- [ ] Integration Tests
-- [ ] Playwright E2E Tests
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Docs, tests or tooling only
 
 ## Checklist
 
-- [ ] My code follows the style guidelines of this project
-- [ ] I have performed a self-review of my own code
-- [ ] I have commented my code, particularly in hard-to-understand areas
-- [ ] I have made corresponding changes to the documentation
-- [ ] My changes generate no new warnings
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] New and existing unit tests pass locally with my changes
-- [ ] Any dependent changes have been merged and published in downstream modules
+- [ ] `npm run build`, `npm test`, `npm run typecheck`, `npm run lint` and `npm run format:check` pass
+- [ ] `npm run test:e2e` passes, if the Studio, the client or the server changed
+- [ ] Tests cover the change
+- [ ] A changeset is added (`npx changeset`) for a user-facing change
+- [ ] No runtime `dependencies` added to `package.json`
+- [ ] Docs updated, if behavior changed

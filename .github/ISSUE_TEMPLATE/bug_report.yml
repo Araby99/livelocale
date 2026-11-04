@@ -1,0 +1,80 @@
+name: Bug report
+description: Something in livelocale does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Security problems go to a private advisory, not here:
+        https://github.com/Araby99/livelocale/security/advisories/new
+  - type: input
+    id: version
+    attributes:
+      label: livelocale version
+      description: From `npm ls livelocale`.
+      placeholder: 0.12.0
+    validations:
+      required: true
+  - type: dropdown
+    id: framework
+    attributes:
+      label: Framework
+      options:
+        - Next.js App Router
+        - Vite + React
+        - Static host share link
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node version
+      description: From `node --version`.
+      placeholder: v22.11.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: OS and browser
+      placeholder: macOS 15, Chrome 130
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened
+      description: Include error messages and screenshots if you have them.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: A link to a minimal repository helps most.
+      placeholder: |
+        1. npx livelocale init
+        2. npx next dev and npx livelocale studio
+        3. Alt-click the heading
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: Output of `npx livelocale doctor`
+      description: Run it in the project root and paste the output.
+      render: text
+  - type: checkboxes
+    id: searched
+    attributes:
+      label: Before you submit
+      options:
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true

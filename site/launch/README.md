@@ -9,7 +9,7 @@
   <p>Keep next-intl or react-i18next. LiveLocale adds in-context editing for Next.js and React + Vite: no account, no server, no browser extension. Your translations stay as JSON in git.</p>
   
   <p align="center">
-    <a href="https://github.com/Araby99/livelocale/actions/workflows/ci.yml"><img src="https://github.com/Araby99/livelocale/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
+    <a href="https://github.com/Araby99/livelocale/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/Araby99/livelocale/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status" /></a>
     <a href="https://www.npmjs.com/package/livelocale"><img src="https://img.shields.io/npm/v/livelocale.svg?style=flat-square" alt="NPM Version" /></a>
     <a href="https://www.npmjs.com/package/livelocale"><img src="https://img.shields.io/npm/dm/livelocale.svg?style=flat-square" alt="NPM Downloads" /></a>
     <a href="https://github.com/Araby99/livelocale/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/livelocale.svg?style=flat-square" alt="License" /></a>
@@ -94,6 +94,12 @@ Open `http://localhost:3010`, hold Alt (Option on a Mac), click a line of text a
 - [Share links](https://livelocale.js.org/docs/guides/share-links.html): fixes from the deployed site, no account and no install.
 - [Catch untranslated text in CI](https://livelocale.js.org/docs/guides/ci-check.html): missing keys, placeholder drift and hardcoded text.
 - [CLI reference](https://livelocale.js.org/docs/reference/cli/index.html): every command and flag.
+
+## Contributing
+
+- [Contributing guide](CONTRIBUTING.md): setup, checks and changesets.
+- [Security policy](SECURITY.md): report a vulnerability privately.
+- [Code of Conduct](CODE_OF_CONDUCT.md): how we work together.
 
 ## License
 
