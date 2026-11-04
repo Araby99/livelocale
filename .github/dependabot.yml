@@ -44,6 +44,11 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@types/react-dom'
         update-types: ['version-update:semver-major']
+      # @types/node follows the oldest Node the code may rely on, so newer APIs cannot slip in
+      # unnoticed. engines says >=18, but vite 8 (peer @types/node ^20.19 or >=22.12) rules out 18,
+      # so 20 is the lowest usable major. Lift when the engines floor rises.
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
     groups:
       dev-tooling:
         dependency-type: development
