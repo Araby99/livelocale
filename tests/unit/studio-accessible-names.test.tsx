@@ -9,6 +9,7 @@ import { LocaleManager } from '../../src/studio/features/dashboard/components/Lo
 import { LocaleRow } from '../../src/studio/features/dashboard/components/LocaleRow.jsx';
 import { ChangesPanel } from '../../src/studio/features/dashboard/components/ChangesPanel.jsx';
 import { IframeViewer } from '../../src/studio/features/dashboard/components/IframeViewer.jsx';
+import { AddressBar } from '../../src/studio/features/dashboard/components/AddressBar.jsx';
 import { SendDialog } from '../../src/studio/features/dashboard/components/SendDialog.jsx';
 import { GitHubIssueAction } from '../../src/studio/features/dashboard/components/GitHubIssueAction.jsx';
 import type { GitState } from '../../src/studio/api.js';
@@ -76,7 +77,16 @@ const viewerProps: React.ComponentProps<typeof IframeViewer> = {
   appOrigin: 'http://localhost:3000',
   appUrl: 'http://localhost:3000',
   connectionStatus: 'connected',
-  currentPath: '/',
+  navigation: {
+    path: '/',
+    pendingPath: null,
+    recent: [],
+    sitePages: [],
+    onNavigate: vi.fn(() => 'ok' as const),
+    isNavigating: false,
+    reload: vi.fn(),
+    showLocale: vi.fn(),
+  },
 };
 
 const baseGit: GitState = {
@@ -198,6 +208,20 @@ describe('Studio accessible names', () => {
     const { container } = render(<IframeViewer {...viewerProps} />);
     expect(unnamedControls(container)).toEqual([]);
     expect(screen.getByRole('button', { name: 'Reload Frame' })).toBeTruthy();
+  });
+
+  it('names the page address field', () => {
+    const { container } = render(
+      <AddressBar
+        path="/"
+        pendingPath={null}
+        recent={[]}
+        sitePages={[]}
+        onNavigate={vi.fn(() => 'ok' as const)}
+      />
+    );
+    expect(unnamedControls(container)).toEqual([]);
+    expect(screen.getByRole('combobox', { name: 'Page address' }).id).toBe('studio-address');
   });
 
   it('names every control in SendDialog once a link is shown', async () => {

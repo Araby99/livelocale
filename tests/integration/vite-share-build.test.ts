@@ -47,6 +47,7 @@ describe.skipIf(!hasStudio)('vite build with share', { timeout: BUILD_TIMEOUT },
     expect(m).toMatchObject({ basePath: '/repo/', locales: ['ar', 'en'], sourceLocale: 'en' });
     expect('repo' in m).toBe(false);
     expect(m.codeKeys).toContain('home.title');
+    expect(m.pages).toEqual(['/']);
     expect(fs.existsSync(path.join(tmp, 'dist/livelocale/index.html'))).toBe(true);
   });
 

@@ -3,6 +3,8 @@ import { it, expect } from 'vitest';
 import { parseChangeSet } from '../../src/core/change-link.js';
 import {
   isShareManifest,
+  manifestPages,
+  MAX_MANIFEST_PAGES,
   parseShareManifest,
   SHARE_DIR,
   SHARE_FLAG_FILE,
@@ -51,6 +53,35 @@ it('accepts a 64-character lowercase hex base', () =>
 
 it('ignores unknown fields (forward compatible)', () =>
   expect(isShareManifest({ ...valid, extra: 1 })).toBe(true));
+
+it('accepts a manifest without pages (0.11)', () => {
+  expect('pages' in valid).toBe(false);
+  expect(isShareManifest(valid)).toBe(true);
+});
+
+it('accepts sorted site pages', () =>
+  expect(isShareManifest({ ...valid, pages: ['/', '/about/'] })).toBe(true));
+
+it.each([
+  ['a string', '/'],
+  ['a path without a slash', ['about']],
+  ['a number', ['/', 3]],
+])('ignores a malformed pages (%s)', (_name, pages) =>
+  expect(isShareManifest({ ...valid, pages })).toBe(true)
+);
+
+it('manifestPages reads pages leniently', () => {
+  expect(MAX_MANIFEST_PAGES).toBe(2000);
+  expect(manifestPages(valid)).toEqual([]);
+  expect(manifestPages({ ...valid, pages: '/' })).toEqual([]);
+  expect(manifestPages({ ...valid, pages: ['/', 3, 'about', '//evil', '/', '/a'] })).toEqual([
+    '/',
+    '/a',
+  ]);
+  const many = Array.from({ length: 2001 }, (_, i) => `/p${i}`);
+  expect(manifestPages({ ...valid, pages: many })).toEqual(many.slice(0, 2000));
+  expect(manifestPages(Object.create({ pages: ['/'] }) as object)).toEqual([]);
+});
 
 it.each([
   ['format 2', { ...valid, format: 2 }],

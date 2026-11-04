@@ -380,6 +380,105 @@ describe('useConnection', () => {
     expect(forwarded[0]).toEqual({ key: 'k0', text: 't0' });
   });
 
+  it('follows LOCATION_CHANGED from the app origin', () => {
+    const handlers = makeHandlers();
+    const { result } = renderHook(() => useConnection(handlers));
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/' } });
+    expect(result.current.locationSeq).toBe(1);
+    post({
+      source: 'livelocale-client',
+      type: 'LOCATION_CHANGED',
+      payload: { url: '/fr/pricing' },
+    });
+    expect(result.current.currentPath).toBe('/fr/pricing');
+    expect(result.current.locationSeq).toBe(2);
+    expect(result.current.locationKnown).toBe(true);
+    expect(handlers.onLocaleDetected).toHaveBeenCalledWith('fr');
+  });
+
+  it('ignores foreign LOCATION_CHANGED and forgets the location on a malformed one', () => {
+    const malformed = [
+      { url: '//evil.example/' },
+      { url: '/\\evil.example/' },
+      { url: 'https://x/' },
+      { url: 42 },
+      {},
+      { url: '/' + 'a'.repeat(2048) },
+    ];
+    for (const payload of malformed) {
+      const { result, unmount } = renderHook(() => useConnection(makeHandlers()));
+      post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a' } });
+      post(
+        { source: 'livelocale-client', type: 'LOCATION_CHANGED', payload: { url: '/b' } },
+        'https://evil.example.com'
+      );
+      expect(result.current.currentPath).toBe('/a');
+      expect(result.current.locationSeq).toBe(1);
+      expect(result.current.locationKnown).toBe(true);
+
+      post({ source: 'livelocale-client', type: 'LOCATION_CHANGED', payload });
+      expect(result.current.currentPath).toBe('/a');
+      expect(result.current.locationSeq).toBe(1);
+      expect(result.current.locationKnown).toBe(false);
+      unmount();
+    }
+  });
+
+  it('never takes a reported url that a URL parser reads as another host', () => {
+    const tricks = [
+      '/\t/evil.example/',
+      '/\n/evil.example/',
+      '/\r/evil.example/',
+      '/\\evil.example/',
+      '/\t\\evil.example/',
+      '/\u0000/evil.example/',
+      '/\u001f/evil.example/',
+      '/\u007f/evil.example/',
+      '/\u0085/evil.example/',
+      '/\u009f/evil.example/',
+      '/a\\..\\..\\/evil.example/',
+      '/ok\t',
+    ];
+    for (const url of tricks) {
+      const { result, unmount } = renderHook(() => useConnection(makeHandlers()));
+      post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a' } });
+      post({ source: 'livelocale-client', type: 'LOCATION_CHANGED', payload: { url } });
+      expect(result.current.currentPath, JSON.stringify(url)).toBe('/a');
+      expect(result.current.locationSeq).toBe(1);
+      expect(result.current.locationKnown).toBe(false);
+      expect(new URL(result.current.currentPath, 'http://localhost:3000').host).toBe(
+        'localhost:3000'
+      );
+      unmount();
+    }
+  });
+
+  it('keeps a reported url whose query or hash holds a backslash', () => {
+    const { result } = renderHook(() => useConnection(makeHandlers()));
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a?q=x\\y#h\\i' } });
+    expect(result.current.currentPath).toBe('/a?q=x\\y#h\\i');
+    expect(result.current.locationKnown).toBe(true);
+  });
+
+  it('connects on a READY without a usable url', () => {
+    const { result } = renderHook(() => useConnection(makeHandlers()));
+    post({ source: 'livelocale-client', type: 'READY', payload: {} });
+    expect(result.current.connectionStatus).toBe('connected');
+    expect(result.current.locationKnown).toBe(false);
+    expect(result.current.currentPath).toBe('/');
+  });
+
+  it('forgets the location on LEAVING', () => {
+    const { result } = renderHook(() => useConnection(makeHandlers()));
+    post({ source: 'livelocale-client', type: 'READY', payload: { url: '/a' } });
+    expect(result.current.locationKnown).toBe(true);
+    post({ source: 'livelocale-client', type: 'LEAVING' });
+    expect(result.current.locationKnown).toBe(false);
+    expect(result.current.connectionStatus).toBe('connected');
+    expect(result.current.currentPath).toBe('/a');
+    expect(result.current.locationSeq).toBe(1);
+  });
+
   it('reads the URL locale against the static manifest', () => {
     setStudioRuntime({
       kind: 'static',

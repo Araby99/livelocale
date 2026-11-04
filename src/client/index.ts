@@ -1,8 +1,15 @@
 'use client';
 
 import { DOMInterceptor } from './dom-interceptor.js';
-import { IframeBridge, readSameOriginParent, resolveStudioOrigin } from './iframe-bridge.js';
+import {
+  IframeBridge,
+  followNavigation,
+  navigationHref,
+  readSameOriginParent,
+  resolveStudioOrigin,
+} from './iframe-bridge.js';
 import { decodeKey } from './watermark.js';
+import { watchLocation } from './location-watch.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
 
 export { DOMInterceptor } from './dom-interceptor.js';
@@ -116,8 +123,20 @@ if (
 
   interceptor.init();
 
+  const locationUrl = () =>
+    window.location.pathname + window.location.search + window.location.hash;
+
   // Send a READY message to the parent studio
-  bridge.sendToParent('READY', { url: window.location.pathname + window.location.search });
+  bridge.sendToParent('READY', { url: locationUrl() });
+
+  // Report client-side navigations, say when this document goes away (the
+  // next one may have no client to answer), and greet again when the
+  // back-forward cache restores it.
+  watchLocation(window, (url) => bridge.sendToParent('LOCATION_CHANGED', { url }));
+  window.addEventListener('pagehide', () => bridge.sendToParent('LEAVING'));
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) bridge.sendToParent('READY', { url: locationUrl() });
+  });
 
   // Listen to studio commands
   bridge.listenToParent((type, payload) => {
@@ -134,6 +153,9 @@ if (
       restorePreviews();
       interceptor.destroy();
       interceptor.init();
+    } else if (type === 'NAVIGATE') {
+      const href = navigationHref(payload, window.location.origin);
+      if (href !== null) followNavigation(window.location, href);
     }
   });
 

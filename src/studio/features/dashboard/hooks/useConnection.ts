@@ -1,7 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConnectionStatus, SelectedElement } from '../types/index.js';
 import { getAppOrigin } from '../constants.js';
-import { MAX_VISIBLE_TEXTS, type VisibleText } from '../../../../client/iframe-bridge.js';
+import {
+  MAX_VISIBLE_TEXTS,
+  toLocationUrl,
+  type VisibleText,
+} from '../../../../client/iframe-bridge.js';
 import { localeFromUrl } from '../../../locale-inference.js';
 import { urlLocaleOptions } from '../../../runtime.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
@@ -34,6 +38,10 @@ export const useConnection = (handlers: ConnectionHandlers) => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
   const [currentPath, setCurrentPath] = useState<string>('/');
   const [visibleKeys, setVisibleKeys] = useState<string[] | null>(null);
+  // True while the document in the frame has a live client at `currentPath`.
+  const [locationKnown, setLocationKnown] = useState(false);
+  // Bumped on every location the client reports, even a repeat of the same path.
+  const [locationSeq, setLocationSeq] = useState(0);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -59,13 +67,32 @@ export const useConnection = (handlers: ConnectionHandlers) => {
 
       const { type, payload } = event.data;
 
+      // Takes a reported location; returns false (location unknown) when it is unusable.
+      const followLocation = (): boolean => {
+        const url = toLocationUrl(payload);
+        if (url === null) {
+          setLocationKnown(false);
+          return false;
+        }
+        setCurrentPath(url);
+        setLocationKnown(true);
+        setLocationSeq((seq) => seq + 1);
+        const locale = localeFromUrl(url, urlLocaleOptions());
+        if (locale) handlersRef.current.onLocaleDetected(locale);
+        return true;
+      };
+
       if (type === 'READY') {
         setConnectionStatus('connected');
-        setCurrentPath(payload.url || '/');
         // Reset visible keys on page navigation so the sidebar shows all keys briefly
-        setVisibleKeys(null);
-        const locale = localeFromUrl(payload.url || '/', urlLocaleOptions());
-        if (locale) handlersRef.current.onLocaleDetected(locale);
+        if (followLocation()) setVisibleKeys(null);
+      } else if (type === 'LOCATION_CHANGED') {
+        // The interceptor's mutation observer reports the new page's keys.
+        followLocation();
+      } else if (type === 'LEAVING') {
+        // The next document may have no client; keep the status to avoid a
+        // connecting overlay on every link click.
+        setLocationKnown(false);
       } else if (type === 'ELEMENT_SELECTED') {
         handlersRef.current.onElementSelected(payload);
       } else if (type === 'ERROR') {
@@ -101,6 +128,8 @@ export const useConnection = (handlers: ConnectionHandlers) => {
   return {
     connectionStatus,
     currentPath,
+    locationKnown,
+    locationSeq,
     visibleKeys,
     iframeRef,
     sendToIframe,

@@ -4,6 +4,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {
   packOutput,
+  pagePathOf,
+  pagesTruncatedWarning,
   resolveStudioDir,
   RELATIVE_BASE_WARNING,
   type PackOptions,
@@ -152,6 +154,92 @@ describe('packOutput', () => {
     expect(read('out/livelocale/assets/app.js')).toBe('console.log(1)');
   });
 
+  it('lists every HTML page in the manifest', async () => {
+    const r = await pack();
+    expect(r.manifest.pages).toEqual(['/', '/docs/a.html']);
+    expect(JSON.parse(read('out/livelocale/manifest.json')).pages).toEqual(['/', '/docs/a.html']);
+  });
+
+  it('lists pages when flags are not injected', async () => {
+    const r = await pack({ injectHtml: false });
+    expect(r.htmlInjected).toEqual([]);
+    expect(r.manifest.pages).toEqual(['/', '/docs/a.html']);
+  });
+
+  it('leaves not-found pages out of the list', async () => {
+    removeShareProjects();
+    setup({
+      'out/404.html': APP_HTML,
+      'out/_not-found.html': APP_HTML,
+      'out/404/index.html': APP_HTML,
+    });
+    const r = await pack();
+    expect(r.manifest.pages).toEqual(['/', '/docs/a.html']);
+    expect(r.htmlInjected).toContain('404.html');
+  });
+
+  it('leaves not-found pages out of the list whatever their letter case', async () => {
+    removeShareProjects();
+    setup({
+      'out/404.HTML': APP_HTML,
+      'out/_NOT-FOUND.Html': APP_HTML,
+      'out/_Not-Found/index.html': APP_HTML,
+    });
+    const r = await pack();
+    expect(r.manifest.pages).toEqual(['/', '/docs/a.html']);
+    expect(r.htmlInjected).toContain('404.HTML');
+    expect(r.htmlInjected).toContain('_Not-Found/index.html');
+  });
+
+  it('hides only the named not-found pages', async () => {
+    removeShareProjects();
+    setup({ 'out/_not-found/index.html': APP_HTML, 'out/404-help.html': APP_HTML });
+    const r = await pack();
+    expect(r.manifest.pages).toEqual(['/', '/404-help.html', '/docs/a.html']);
+    expect(r.htmlInjected).toContain('_not-found/index.html');
+  });
+
+  it('lists non-ASCII pages as written', async () => {
+    removeShareProjects();
+    setup({ 'out/مدونة/index.html': APP_HTML });
+    const r = await pack();
+    expect(r.manifest.pages).toContain('/مدونة/');
+  });
+
+  it('sorts the mapped paths', async () => {
+    removeShareProjects();
+    setup({ 'out/a-b.html': APP_HTML, 'out/a/index.html': APP_HTML });
+    const r = await pack();
+    expect(r.manifest.pages).toEqual(['/', '/a-b.html', '/a/', '/docs/a.html']);
+  });
+
+  it('omits pages when there is no HTML document', async () => {
+    fs.rmSync(file('out'), { recursive: true });
+    fs.mkdirSync(file('out'));
+    fs.writeFileSync(file('out/app.js'), 'console.log(2)', 'utf-8');
+    const r = await pack();
+    expect('pages' in r.manifest).toBe(false);
+    expect('pages' in JSON.parse(read('out/livelocale/manifest.json'))).toBe(false);
+  });
+
+  it('caps pages at 2,000 with a warning', async () => {
+    fs.rmSync(file('out'), { recursive: true });
+    fs.mkdirSync(file('out'));
+    const all: string[] = [];
+    for (let n = 0; n < 2001; n++) {
+      fs.writeFileSync(file(`out/p${n}.html`), APP_HTML, 'utf-8');
+      all.push(`/p${n}.html`);
+    }
+    fs.writeFileSync(file('out/404.html'), APP_HTML, 'utf-8');
+    const r = await pack({ injectHtml: false });
+    expect(r.manifest.pages).toHaveLength(2000);
+    expect(r.manifest.pages).toEqual(all.sort().slice(0, 2000));
+    expect(r.warnings).toContain(pagesTruncatedWarning(2001));
+    expect(pagesTruncatedWarning(2001)).toBe(
+      "The site has 2001 HTML pages; the manifest lists the first 2000 for the Studio's page suggestions."
+    );
+  });
+
   it('refuses a folder it did not write', async () => {
     fs.mkdirSync(file('out/livelocale'));
     fs.writeFileSync(file('out/livelocale/notes.txt'), 'mine', 'utf-8');
@@ -188,6 +276,20 @@ describe('packOutput', () => {
     await expect(pack(options())).rejects.toMatchObject({ code, message: message() });
     expect(fs.existsSync(file('out/livelocale'))).toBe(false);
     expect(read('out/index.html')).toBe(APP_HTML);
+  });
+});
+
+describe('pagePathOf', () => {
+  it('maps index files to folder paths', () => {
+    expect(pagePathOf('index.html')).toBe('/');
+    expect(pagePathOf('blog/hello/index.html')).toBe('/blog/hello/');
+    expect(pagePathOf('404.html')).toBe('/404.html');
+  });
+
+  it('escapes what a path cannot hold', () => {
+    expect(pagePathOf('a#b.html')).toBe('/a%23b.html');
+    expect(pagePathOf('50%.html')).toBe('/50%25.html');
+    expect(pagePathOf('my page.html')).toBe('/my%20page.html');
   });
 });
 
