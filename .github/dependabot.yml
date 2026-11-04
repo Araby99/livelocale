@@ -5,6 +5,23 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Majors held on purpose. Each rule says what has to change before it is lifted; remove the
+    # rule then and let Dependabot propose the major again.
+    ignore:
+      # The dev toolchain has to run on every Node version CI tests (Node 20 and 24, the closest
+      # to the package's engines floor of >=18). These majors require Node 22 or later:
+      # @changesets/cli 3 (^22.11), vitest and @vitest/coverage-v8 5 (^22.12), jsdom 30 (^22.22.2),
+      # tsup 9 (^22.18). Lift together when Node 20 leaves the CI matrix.
+      - dependency-name: '@changesets/cli'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/coverage-v8'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'jsdom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'tsup'
+        update-types: ['version-update:semver-major']
     groups:
       dev-tooling:
         dependency-type: development
