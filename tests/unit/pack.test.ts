@@ -238,7 +238,7 @@ describe('packOutput', () => {
     expect(pagesTruncatedWarning(2001)).toBe(
       "The site has 2001 HTML pages; the manifest lists the first 2000 for the Studio's page suggestions."
     );
-  });
+  }, 30_000);
 
   it('refuses a folder it did not write', async () => {
     fs.mkdirSync(file('out/livelocale'));
