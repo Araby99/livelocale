@@ -51,8 +51,10 @@ jobs:
       - name: Build Library & Studio
         run: npm run build
 
+      # The package's own tests. The site and brand tests need the site/ installs and check
+      # versions a prerelease rewrites; CI and the Site workflow run them on every push.
       - name: Run Unit & Integration Tests
-        run: npm run test
+        run: npm run test:package
 
       # A version can already be on npm when it was published by hand (a new package's first
       # release has to be); then the release only records it.

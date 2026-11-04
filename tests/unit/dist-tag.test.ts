@@ -34,6 +34,16 @@ describe('publish.yml', () => {
     expect(yml).toContain('package-manager-cache: false');
   });
 
+  it("runs only the package's tests, not the site's", () => {
+    // The site and brand tests need site/ installs and check versions a prerelease rewrites;
+    // CI and the Site workflow run them.
+    expect(yml).toContain('run: npm run test:package');
+    const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8')) as {
+      scripts: Record<string, string>;
+    };
+    expect(pkg.scripts['test:package']).toBe('vitest run --exclude "tests/unit/{site,brand}/**"');
+  });
+
   it('publishes under the dist-tag the version maps to', () => {
     expect(yml).toContain('npm publish --provenance --tag "$TAG"');
   });
