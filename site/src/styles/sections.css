@@ -84,7 +84,8 @@
       'lede actions'
       'proof next';
     align-items: center;
-    column-gap: 40px;
+    /* 24px, not more: the sentence keeps two lines even where the buttons render wider (Linux). */
+    column-gap: 24px;
     row-gap: 6px;
   }
 
