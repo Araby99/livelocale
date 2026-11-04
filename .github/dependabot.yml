@@ -77,6 +77,10 @@ updates:
         update-types: ['version-update:semver-major']
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # typescript: as above. next dev and next build load the project's typescript through the
+      # classic compiler API to check its TypeScript setup, which TS 7 does not have.
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
       dev-tooling:
         patterns:
