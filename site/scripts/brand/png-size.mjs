@@ -27,7 +27,7 @@ export function pngTopLeft(bytes) {
     throw new Error('Unsupported PNG');
   }
   const idat = [];
-  for (let at = 8; at + 8 <= bytes.length; ) {
+  for (let at = 8; at + 8 <= bytes.length;) {
     const length = view.getUint32(at);
     const type = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
     if (type === 'IDAT') idat.push(bytes.subarray(at + 8, at + 8 + length));
@@ -44,7 +44,7 @@ export function pngText(bytes) {
   pngSize(bytes); // throws Not a PNG
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
   const text = {};
-  for (let at = 8; at + 8 <= bytes.length; ) {
+  for (let at = 8; at + 8 <= bytes.length;) {
     const length = view.getUint32(at);
     const type = String.fromCharCode(...bytes.subarray(at + 4, at + 8));
     if (type === 'tEXt') {

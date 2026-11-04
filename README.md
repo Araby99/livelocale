@@ -7,7 +7,7 @@
   </h1>
   <p><strong>Click any text in your app. Fix the translation. Ship it as a pull request.</strong></p>
   <p>Keep next-intl or react-i18next. LiveLocale adds in-context editing for Next.js and React + Vite: no account, no server, no browser extension. Your translations stay as JSON in git.</p>
-  
+
   <p align="center">
     <a href="https://github.com/Araby99/livelocale/actions/workflows/ci.yml"><img src="https://github.com/Araby99/livelocale/actions/workflows/ci.yml/badge.svg" alt="CI Status" /></a>
     <a href="https://www.npmjs.com/package/livelocale"><img src="https://img.shields.io/npm/v/livelocale.svg?style=flat-square" alt="NPM Version" /></a>

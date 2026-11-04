@@ -212,9 +212,8 @@ export function toWire(set: ChangeSet): ChangeWire {
     src: set.src,
     by: set.by,
     note: set.note,
-    e: set.edits.map(
-      ({ locale, key, from, to, force }): ChangeEditTuple =>
-        force ? [locale, key, from, to, 1] : [locale, key, from, to]
+    e: set.edits.map(({ locale, key, from, to, force }): ChangeEditTuple =>
+      force ? [locale, key, from, to, 1] : [locale, key, from, to]
     ),
   };
 }

@@ -206,9 +206,10 @@ export async function createStaticTransport(
 
   let lastManifestFetch = now();
   // A store that cannot be read must not keep the Studio from starting.
-  const initialReconcile = await reconcile().catch(
-    (): ReconcileResult => ({ live: [], conflicts: [] })
-  );
+  const initialReconcile = await reconcile().catch((): ReconcileResult => ({
+    live: [],
+    conflicts: [],
+  }));
 
   async function fetchManifestText(): Promise<string | null> {
     try {

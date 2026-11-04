@@ -47,9 +47,7 @@ export function setNestedProperty(obj: Record<string, any>, keyPath: string, val
 
 /** The outcome of reading a dotted key without writing to it. */
 export type KeyLookup =
-  | { state: 'string'; value: string }
-  | { state: 'missing' }
-  | { state: 'occupied' };
+  { state: 'string'; value: string } | { state: 'missing' } | { state: 'occupied' };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
