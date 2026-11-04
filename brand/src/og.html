@@ -197,8 +197,17 @@
       <div class="screen"><img id="shot" alt="" /></div>
     </aside>
     <script>
+      // Only a local PNG frame (file: URL) may fill the window; anything else is ignored.
       const shot = new URLSearchParams(location.search).get('shot');
-      if (shot) document.getElementById('shot').src = shot;
+      if (shot) {
+        let frame = null;
+        try {
+          frame = new URL(shot);
+        } catch {}
+        if (frame && frame.protocol === 'file:' && !frame.host && /\.png$/i.test(frame.pathname)) {
+          document.getElementById('shot').src = 'file://' + frame.pathname;
+        }
+      }
     </script>
   </body>
 </html>
