@@ -26,7 +26,10 @@ jobs:
         with:
           node-version: 24
           registry-url: 'https://registry.npmjs.org/'
-          cache: 'npm'
+          # No dependency cache in the release job: a cache entry written by another workflow
+          # could end up in the published package. Also stops setup-node caching on its own if
+          # package.json ever gains a packageManager field.
+          package-manager-cache: false
 
       # Trusted publishing (OIDC, no NPM_TOKEN) needs npm 11.5.1 or later. Pinned to 11.x because
       # newer majors can drop support for the runner's Node version.

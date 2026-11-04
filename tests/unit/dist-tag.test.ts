@@ -28,6 +28,12 @@ describe('publish.yml', () => {
   const yml = fs.readFileSync('.github/workflows/publish.yml', 'utf-8');
   const at = (name: string) => yml.indexOf(`name: ${name}`);
 
+  it('does not restore a dependency cache in the release job', () => {
+    // A cache shared with other workflows could be poisoned and end up in the published package.
+    expect(yml).not.toMatch(/^\s*cache:/m);
+    expect(yml).toContain('package-manager-cache: false');
+  });
+
   it('publishes under the dist-tag the version maps to', () => {
     expect(yml).toContain('npm publish --provenance --tag "$TAG"');
   });
