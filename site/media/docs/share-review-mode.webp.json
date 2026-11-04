@@ -1,4 +1,4 @@
 {
   "prompt": "SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example). Nothing is drawn, mocked or overlaid; everything on screen is the product. A screenshot at 1440x900, DPR 2, dark colour scheme, browser locale en-US, converted with ffmpeg-static to WebP q82, 1200 px wide. Ships as the docs shot \"share-review-mode\": a change link opened in the Studio: review mode shows the fix on the page and lists each change with its check, Create pull request and the apply command.",
-  "createdAt": "2026-11-03T10:28:35.411Z"
+  "createdAt": "2026-11-04T10:12:44.683Z"
 }

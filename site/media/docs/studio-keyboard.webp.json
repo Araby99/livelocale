@@ -1,4 +1,4 @@
 {
   "prompt": "SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example). Nothing is drawn, mocked or overlaid; everything on screen is the product. A screenshot at 1440x900, DPR 2, dark colour scheme, browser locale en-US, converted with ffmpeg-static to WebP q82, 1200 px wide. Ships as the docs shot \"studio-keyboard\": a key found and picked from the Locale Directory with the keyboard (type, Tab, Enter): the editor open on hero.cta, the focus in its field.",
-  "createdAt": "2026-11-03T10:28:51.499Z"
+  "createdAt": "2026-11-04T10:13:11.014Z"
 }
