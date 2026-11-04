@@ -82,4 +82,26 @@ describe('createStudioServer', () => {
     const res = await request(port, '/..%2F..%2Fpackage.json');
     expect(res.status).toBe(403);
   });
+
+  it('should refuse a sibling directory that shares the studio directory as a prefix', async () => {
+    const sibling = `${studioDir}-evil`;
+    fs.mkdirSync(sibling, { recursive: true });
+    fs.writeFileSync(path.join(sibling, 'secret.txt'), 'secret', 'utf-8');
+    try {
+      const res = await request(
+        port,
+        `/..%2F${encodeURIComponent(path.basename(sibling))}%2Fsecret.txt`
+      );
+      expect(res.status).toBe(403);
+      expect(res.body).not.toContain('secret');
+    } finally {
+      fs.rmSync(sibling, { recursive: true, force: true });
+    }
+  });
+
+  it('should refuse traversal written with encoded backslashes', async () => {
+    const res = await request(port, '/..%5C..%5Cpackage.json');
+    expect(res.body).not.toContain('"name"');
+    if (path.sep === '\\') expect(res.status).toBe(403);
+  });
 });

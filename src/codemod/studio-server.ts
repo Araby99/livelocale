@@ -97,7 +97,10 @@ export function createStudioServer(options: StudioServerOptions): http.Server {
       return;
     }
 
-    if (filePath !== studioDir && !filePath.startsWith(studioDir + path.sep)) {
+    // A path inside studioDir is relative to it without climbing out (`..`) or
+    // switching drives (an absolute result on Windows).
+    const relativePath = path.relative(studioDir, filePath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
       res.statusCode = 403;
       res.end('Forbidden');
       return;
