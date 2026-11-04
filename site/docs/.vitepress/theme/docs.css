@@ -237,11 +237,11 @@ body {
   border-radius: 4px;
 }
 
-/* The search button is named by its text (search-a11y.ts). Below 768px VitePress shows the icon
-   only and drops the text with display: none, which would leave the button nameless: the text is
-   hidden visually instead, so it still names the button. */
+/* The search button is named by its text. Below 768px VitePress shows the icon only and drops the
+   text with display: none, which would leave the button nameless: the text is hidden visually
+   instead, so it still names the button. The extra .VPNavBarSearch outweighs the scoped rule. */
 @media (max-width: 767px) {
-  .DocSearch-Button .DocSearch-Button-Placeholder {
+  .VPNavBarSearch .VPNavBarSearchButton .text {
     display: inline-block;
     position: absolute;
     width: 1px;

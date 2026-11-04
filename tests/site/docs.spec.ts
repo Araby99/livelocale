@@ -171,9 +171,12 @@ test('keeps the docs header and the local nav in reach on a phone', async ({ pag
   const { navTop, navBottom, localTop, expected } = await page.evaluate(() => {
     const nav = document.querySelector('.Layout > .VPNav')!.getBoundingClientRect();
     const local = document.querySelector('.Layout > .VPLocalNav')!.getBoundingClientRect();
-    const navHeight = parseFloat(
-      getComputedStyle(document.documentElement).getPropertyValue('--vp-nav-height')
-    );
+    // --vp-nav-height is in rem since VitePress 2: a probe resolves it to pixels.
+    const probe = document.createElement('div');
+    probe.style.height = 'var(--vp-nav-height)';
+    document.body.append(probe);
+    const navHeight = probe.getBoundingClientRect().height;
+    probe.remove();
     return { navTop: nav.top, navBottom: nav.bottom, localTop: local.top, expected: navHeight + 1 };
   });
   expect(navTop).toBe(0);
