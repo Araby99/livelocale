@@ -32,6 +32,18 @@ updates:
       # typescript through that API) all need it. Lift when TS 7 ships a stable API they support.
       - dependency-name: 'typescript'
         update-types: ['version-update:semver-major']
+      # React 19 for the bundled Studio adds 79 KB to its JS (340,869 to 419,891 bytes; gzip
+      # 101 KB to 124 KB) and takes dist/studio to 1,118,151 bytes, over the 1,100,000-byte budget
+      # in tests/integration/studio-bundle.test.ts, for no feature the Studio needs. Lift once the
+      # Studio has room in its budget, together with the matching @types majors.
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@types/react-dom'
+        update-types: ['version-update:semver-major']
     groups:
       dev-tooling:
         dependency-type: development
