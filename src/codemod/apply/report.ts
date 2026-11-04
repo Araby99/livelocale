@@ -39,6 +39,9 @@ const NEWLINE_RE = /\r\n|\r|\n/g;
 // Control characters left after newlines are mapped (tab is kept: it is harmless in a span).
 const SPAN_CONTROL_RE = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f]/g;
 const CONTROL_RE = /[\u0000-\u001f\u007f-\u009f]/g;
+// A backslash right before a pipe would escape the `\` we add, so GFM would split the
+// table cell there; it is shown as a label instead (backslashes elsewhere are literal).
+const BACKSLASH_BEFORE_PIPE_RE = /\\(?=\|)/g;
 
 /** Cuts `text` to `max` code units without leaving half a surrogate pair. */
 function cut(text: string, max: number): string {
@@ -84,6 +87,7 @@ export function codeSpan(text: string, maxLength: number = DEFAULT_SPAN_LENGTH):
     .replace(NEWLINE_RE, '⏎')
     .replace(BIDI_CONTROL_RE, codePointLabel)
     .replace(SPAN_CONTROL_RE, codePointLabel)
+    .replace(BACKSLASH_BEFORE_PIPE_RE, codePointLabel)
     .replace(/\|/g, '\\|');
   if (content === '') return '` `';
 

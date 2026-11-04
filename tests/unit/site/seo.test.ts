@@ -244,3 +244,13 @@ it('leaves links inside code spans alone, double-backtick spans included', () =>
     `# T\n\nKeys (\`\`t(\`a.\${s}\`)\`\`) and \`[x](y)\`: see the [\`check\` reference](${LIVE}docs/reference/cli/check.md).\n`
   );
 });
+
+it('reads text from tags the same way on nested and unclosed markup, and fast', () => {
+  expect(htmlText('<scr<b>ipt>x')).toBe('ipt>x');
+  expect(htmlText('a <> b')).toBe('a <> b');
+  expect(htmlText('a < b')).toBe('a < b');
+  expect(htmlText('&lt;b&gt; <i>x</i>')).toBe('<b> x');
+  const start = performance.now();
+  htmlText('<'.repeat(100_000));
+  expect(performance.now() - start).toBeLessThan(500);
+});

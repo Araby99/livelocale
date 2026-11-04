@@ -109,6 +109,9 @@ const outsideFences = (md: string) => md.replace(/^(`{3,})[^\n`]*\n[\s\S]*?^\1[ 
 describe('codeSpan', () => {
   it('escapes pipes, backticks, newlines and bidi controls, and truncates', () => {
     expect(codeSpan('a|b')).toBe('`a\\|b`');
+    expect(codeSpan('a\\b')).toBe('`a\\b`');
+    expect(codeSpan('a\\|b')).toBe('`a⟨U+005C⟩\\|b`');
+    expect(codeSpan('a\\\\|b')).toBe('`a\\⟨U+005C⟩\\|b`');
     expect(codeSpan('`tick')).toBe('`` `tick ``');
     expect(codeSpan('l1\nl2')).toBe('`l1⏎l2`');
     expect(codeSpan('abc\u202edef')).toBe('`abc⟨U+202E⟩def`');

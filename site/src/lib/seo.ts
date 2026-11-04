@@ -89,10 +89,31 @@ export function sitemapXml(entries: SitemapEntry[]): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
 }
 
+/**
+ * Drops every `<…>` with at least one character inside, in one forward scan: what
+ * `replace(/<[^>]+>/g, '')` does, without its quadratic rescans of a `<` that never closes.
+ */
+function stripTags(html: string): string {
+  let out = '';
+  let i = 0;
+  while (i < html.length) {
+    const open = html.indexOf('<', i);
+    if (open === -1) break;
+    const close = html.indexOf('>', open + 1);
+    if (close === -1) break;
+    if (close === open + 1) {
+      out += html.slice(i, close + 1);
+    } else {
+      out += html.slice(i, open);
+    }
+    i = close + 1;
+  }
+  return out + html.slice(i);
+}
+
 /** The text of an HTML fragment as a reader sees it: tags dropped, entities decoded, spaces collapsed. */
 export function htmlText(html: string): string {
-  return html
-    .replace(/<[^>]+>/g, '')
+  return stripTags(html)
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')

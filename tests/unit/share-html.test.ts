@@ -169,3 +169,16 @@ describe('injectFlagScript', () => {
     );
   });
 });
+
+describe('injectFlagScript on nested flag tags', () => {
+  it('removes a flag tag that a single removal pass would leave behind', () => {
+    const flag = '<script src="/livelocale/flag.js"></script>';
+    const nested = `<scr${flag}ipt src="/livelocale/flag.js"></script>`;
+    const out = injectFlagScript(
+      `<html><head>${nested}</head><body></body></html>`,
+      '/livelocale/flag.js'
+    );
+    expect(out.match(/livelocale\/flag\.js/g)).toHaveLength(1);
+    expect(out).toBe(`<html><head>${flag}</head><body></body></html>`);
+  });
+});

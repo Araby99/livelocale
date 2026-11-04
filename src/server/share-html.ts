@@ -91,7 +91,13 @@ function escapeAttribute(value: string): string {
  */
 export function injectFlagScript(html: string, src: string): string {
   const tag = `<script src="${escapeAttribute(src)}"></script>`;
-  const cleaned = html.replace(EXISTING_FLAG_TAG, '');
+  // Removing one tag can join its neighbours into another, so repeat until nothing changes.
+  let cleaned = html;
+  let previous: string;
+  do {
+    previous = cleaned;
+    cleaned = cleaned.replace(EXISTING_FLAG_TAG, '');
+  } while (cleaned !== previous);
   for (const pattern of [HEAD_OPEN, HTML_OPEN, DOCTYPE]) {
     const match = pattern.exec(cleaned);
     if (match) {
