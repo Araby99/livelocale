@@ -15,6 +15,12 @@ npx livelocale pack <outDir> [--dir <path>] [--locales <path>] [--source <locale
 
 The share link is `<your site><base>livelocale/index.html`. Nothing is written outside `<outDir>/livelocale/` except that one script tag, and an existing `livelocale/` folder is replaced only when `pack` wrote it.
 
+## Pages in the manifest
+
+`manifest.json` lists the site's pages as `pages`: every HTML page of the build, as its path relative to the base (`/` for `index.html`, `/pricing/` for `pricing/index.html`, `/about.html`), sorted. Not-found pages such as `404.html` are left out. The share Studio suggests these pages in its [address field](../../guides/studio.md#go-to-a-page).
+
+The list holds at most 2,000 pages. A bigger site lists the first 2,000, and `pack` prints a warning.
+
 ## Flags
 
 ### `--dir`

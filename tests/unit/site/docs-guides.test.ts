@@ -52,6 +52,7 @@ it.each([
     [
       'Edit',
       'Review and commit',
+      'Go to a page',
       'Plural forms',
       'Placeholder safety',
       'Light and dark',

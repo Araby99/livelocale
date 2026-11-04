@@ -40,6 +40,17 @@ Git integration needs the `git` command on `PATH` and the locales folder inside 
 createLiveLocaleHandler({ localesPath: path.resolve('./locales'), git: false });
 ```
 
+## Go to a page
+
+The address field in the preview bar shows the page you are on, relative to the site's base path, and it follows client-side navigation too. Type a path such as `/pricing` and press Enter to open it in the language the preview shows. A full URL works when it is on the previewed site; any other address is refused with "Only pages on this site can open here".
+
+When you focus or type in the field, it suggests up to 8 pages that match what you typed:
+
+- **Recent pages** are the pages you opened in the preview, most recent first. The Studio remembers up to 20 per site in this browser.
+- **Site pages**, on a share link only, are every page of the deployed site, from the list [`pack`](../reference/cli/pack.md#pages-in-the-manifest) writes into the manifest. They reach pages no link leads to.
+
+Alt+Down or Down opens the suggestions, the arrow keys move through them, and Enter opens the one picked. Escape closes the list; a second Escape puts back the page you are on. The reload button beside the field reloads the page you are on.
+
 ## Plural forms
 
 When a message is a single ICU `plural`, `select` or `selectordinal` argument, with or without text around it, the editor replaces the text box with one field per branch.
@@ -91,6 +102,7 @@ Every control works by keyboard, with a visible focus ring, and the Studio annou
 | Enter or Space on a Locale Directory row | Opens the key in the editor and moves the focus into its field, so you can type the fix right away. |
 | Ctrl+Enter (Cmd+Enter on a Mac)          | In the editor's field, saves exactly as **Save Changes** does. **Save anyway** has no shortcut.     |
 | Escape                                   | Closes the open dialog, or an open drawer on a narrow screen.                                       |
+| Alt+Down or Down in the address field    | Opens the page suggestions. Enter opens the one picked; Escape closes them.                         |
 
 To find a key without the mouse, type in the Locale Directory's search field, Tab to the row and press Enter.
 

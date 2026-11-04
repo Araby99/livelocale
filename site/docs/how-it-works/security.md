@@ -13,7 +13,7 @@ livelocale writes to your locale files in two ways: a share link proposes edits 
 - **A leaked link only proposes text.** A developer still has to apply it, and a person has to merge the pull request. `apply` checks every edit again against your own source locale.
 - **The repository stays private by default.** The GitHub `owner/repo` is published only with `exposeRepo: true` or `pack --expose-repo`.
 - **The Studio is `noindex`**, so search engines do not list it.
-- **`manifest.json` is public.** `<base>livelocale/manifest.json` makes every string and key name public, including keys the app does not show.
+- **`manifest.json` is public.** `<base>livelocale/manifest.json` makes every string and key name public, including keys the app does not show, and lists the path of every page of the site.
 - **The same-origin risk is accepted.** The Studio frames your app on the same origin, so app scripts can read and change drafts. This is accepted because no secret is stored, and you review every edit before it is merged.
 
 ## The dev server
