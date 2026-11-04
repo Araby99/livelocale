@@ -213,9 +213,11 @@ it('versions the plugin with the npm package', () => {
 });
 
 // Every docs link in the skill is on https://livelocale.js.org/, so the marketplace that installs
-// it goes live with the domain, in the go-live commit, and not before.
+// it went live with the domain, in the go-live commit, as the launch copy.
 it('publishes the marketplace in the go-live commit, after the domain switch', () => {
-  expect(fs.existsSync('.claude-plugin/marketplace.json')).toBe(false);
+  expect(fs.readFileSync('.claude-plugin/marketplace.json', 'utf8')).toBe(
+    fs.readFileSync('site/launch/marketplace.json', 'utf8')
+  );
   const launch = fs.readFileSync('site/LAUNCH.md', 'utf8');
   const step8 = /^- \[ \] 8\. [\s\S]*?(?=^- \[ \] 9\. )/m.exec(launch)![0];
   expect(step8).toContain(

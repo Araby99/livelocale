@@ -62,7 +62,7 @@ never to do.
   `apply` checks every edit again, and a person merges the pull request. Note that the packed
   `manifest.json` is public and lists every string and key name.
 
-The full threat model is in the docs: [Security](site/docs/how-it-works/security.md).
+The full threat model is in the docs: [Security](https://livelocale.js.org/docs/how-it-works/security.html).
 
 ## Hardening tips for teams
 

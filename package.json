@@ -11,7 +11,7 @@
   "bugs": {
     "url": "https://github.com/Araby99/livelocale/issues"
   },
-  "homepage": "https://github.com/Araby99/livelocale#readme",
+  "homepage": "https://livelocale.js.org/",
   "keywords": [
     "nextjs",
     "react",
@@ -92,8 +92,8 @@
     "next": ">=13.0.0",
     "react": ">=18.0.0",
     "react-dom": ">=18.0.0",
-    "vite": ">=5.0.0",
-    "typescript": ">=4.7.0"
+    "typescript": ">=4.7.0",
+    "vite": ">=5.0.0"
   },
   "peerDependenciesMeta": {
     "next": {
