@@ -51,9 +51,10 @@ never to do.
 
 - **Development only.** The mutation API answers `403` unless `NODE_ENV=development` (or preview
   mode with a token), and production builds carry no watermark.
-- **Writes are checked.** Writes are accepted only from allowed origins (`localhost`,
-  `127.0.0.1`, `allowedOrigins`, `LIVELOCALE_ALLOWED_ORIGINS`) and only as JSON, with a body cap,
-  path containment inside `localesPath`, refusal of `__proto__` / `constructor` / `prototype` key
+- **Writes are checked.** A `POST` from a browser origin that is not allowed (allowed are
+  `localhost`, `127.0.0.1`, `allowedOrigins` and `LIVELOCALE_ALLOWED_ORIGINS`) gets `403`, and a
+  `POST` that declares a non-JSON content type gets `415`. Every write also has a body cap, path
+  containment inside `localesPath`, refusal of `__proto__` / `constructor` / `prototype` key
   segments, and atomic temp-then-rename file writes.
 - **Preview mode** refuses every request until `LIVELOCALE_TOKEN` is set, and then requires
   `Authorization: Bearer <token>` on every request.
@@ -61,7 +62,7 @@ never to do.
   `apply` checks every edit again, and a person merges the pull request. Note that the packed
   `manifest.json` is public and lists every string and key name.
 
-The full threat model is in the docs: [Security](https://livelocale.js.org/docs/how-it-works/security.html).
+The full threat model is in the docs: [Security](site/docs/how-it-works/security.md).
 
 ## Hardening tips for teams
 

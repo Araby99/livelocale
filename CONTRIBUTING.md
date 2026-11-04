@@ -11,12 +11,14 @@ You need Node.js 18 or newer and npm.
 git clone https://github.com/Araby99/livelocale.git
 cd livelocale
 npm ci
+npm ci --prefix site   # the brand tests use the site's opentype.js
 npm run build
 ```
 
 ## Checks
 
-Run these before you open a pull request; CI runs the same ones:
+Run these before you open a pull request. CI runs the same checks after installing the root,
+`playground`, `playground-vite` and `site` dependencies:
 
 ```bash
 npm run build
