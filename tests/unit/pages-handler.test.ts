@@ -14,7 +14,7 @@ vi.mock('fs', () => {
 
 vi.mock('../../src/server/file-mutator.js', () => {
   return {
-    FileMutator: vi.fn().mockImplementation(() => {
+    FileMutator: vi.fn().mockImplementation(function () {
       return {
         updateLocaleKey: vi.fn().mockResolvedValue(undefined),
         listLocales: vi.fn().mockResolvedValue(['en', 'ar', 'es']),

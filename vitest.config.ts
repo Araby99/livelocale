@@ -1,13 +1,46 @@
 import { defineConfig } from 'vitest/config';
 
+const FORKED_TEST = '**/tests/integration/vite-share-build.test.ts';
+
 export default defineConfig({
+  plugins: [
+    {
+      // Vitest 4 applies `--exclude` from the CLI to the root config only, not to inline projects,
+      // so `npm run test:package` would still run the site tests. Hand it to every project.
+      name: 'livelocale:cli-exclude-in-projects',
+      configureVitest({ vitest, project }) {
+        for (const pattern of vitest.config.cliExclude ?? []) {
+          if (!project.config.exclude.includes(pattern)) project.config.exclude.push(pattern);
+        }
+      },
+    },
+  ],
   test: {
     environment: 'node', // Default to node; client tests will override to jsdom or use it where needed
     globals: true,
     exclude: ['**/node_modules/**', '**/dist/**', '**/tests/e2e/**', '**/tests/site/**'],
-    // A real `vite build` loads Rolldown's native binding, which segfaults the whole run when loaded
-    // in a worker thread; a child process is safe.
-    poolMatchGlobs: [['**/tests/integration/vite-share-build.test.ts', 'forks']],
+    // Every test runs in worker threads, except the real `vite build`: it loads Rolldown's native
+    // binding, which segfaults the whole run when loaded in a worker thread; a child process is
+    // safe. Vitest 4 has no per-file pool option, so the split is two projects. Both extend this
+    // config, so `exclude` applies to each; `--exclude` on the CLI does through the plugin below.
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: 'threads',
+          pool: 'threads',
+          exclude: [FORKED_TEST],
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: 'forks',
+          pool: 'forks',
+          include: [FORKED_TEST],
+        },
+      },
+    ],
     // How long Vitest waits for workers (and the forked Vite build process) to close before it
     // force-stops them and exits, so a worker that hangs on shutdown cannot keep the run alive.
     teardownTimeout: 10_000,
