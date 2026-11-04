@@ -102,7 +102,7 @@ test.describe('without JavaScript', () => {
       const headers = { ...response.headers() };
       delete headers['content-encoding'];
       delete headers['content-length'];
-      const body = (await response.text()).replace(/<script\b[\s\S]*?<\/script>/gi, '');
+      const body = (await response.text()).replace(/<script\b[\s\S]*?<\/script\s*>/gi, '');
       await route.fulfill({ response, headers, body });
     });
   });
