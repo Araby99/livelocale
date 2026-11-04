@@ -34,7 +34,8 @@ changes the repository settings; those steps are the owner's.
      short README and the new homepage. It carries the step 8 commit and the pending changeset
      (`.changeset/share-address-locale.md`: the share Studio's address field no longer shows its
      own `?locale=`). `npm run version` consumes the changeset; the `CHANGELOG.md` entry is
-     `## [0.12.1] - <date>` in the house format of the 0.12.0 entry, and
+     `## [0.12.1] - <date>` with `### Patch Changes` and a **Fixed** bullet, as in the 0.10.1
+     entry (not `### Minor Changes` as in 0.12.0), and
      `plugins/livelocale/.claude-plugin/plugin.json` is set to 0.12.1 too; commit
      `chore: release 0.12.1`, then the GitHub release `v0.12.1`.
 - [ ] 10. (owner) Set the GitHub repository's website to `https://livelocale.js.org/`; set
