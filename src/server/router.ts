@@ -105,10 +105,24 @@ function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+const BEARER_PREFIX = /^Bearer\s/i;
+/** The line terminators `.` does not match, which a token may not contain. */
+const LINE_TERMINATOR = /[\n\r\u2028\u2029]/;
+
+/**
+ * The token of an `Authorization: Bearer <token>` header, or null.
+ *
+ * Same result as `/^Bearer\s+(.+)$/i` on the trimmed header followed by a trim
+ * of the capture, without that regex's quadratic backtracking on long runs of
+ * whitespace.
+ */
 function bearerToken(authorization: string | undefined): string | null {
   if (!authorization) return null;
-  const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
-  return match ? match[1]!.trim() : null;
+  const header = authorization.trim();
+  if (!BEARER_PREFIX.test(header)) return null;
+  const token = header.slice('Bearer'.length).trim();
+  if (token === '' || LINE_TERMINATOR.test(token)) return null;
+  return token;
 }
 
 const json = (

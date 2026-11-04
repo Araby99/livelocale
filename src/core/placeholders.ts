@@ -162,7 +162,9 @@ function parseIcu(message: string): ParseResult {
   return { args, error };
 }
 
-const I18NEXT_RE = /\{\{\s*([^{}]*?)\s*\}\}/g;
+// The inner text is captured untrimmed: `\s*` around a lazy `[^{}]*?` backtracks
+// polynomially on long whitespace runs, so callers trim instead.
+const I18NEXT_RE = /\{\{([^{}]*)\}\}/g;
 const NESTING_RE = /\$t\([^)]*\)/g;
 const PRINTF_RE = /%(?:\d+\$)?[-+ 0#]*\d*(?:\.\d+)?[sdifgxXoc]/g;
 const TAG_RE = /<\/?([A-Za-z][\w-]*|\d+)\b[^<>]*>/g;

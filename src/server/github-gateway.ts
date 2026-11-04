@@ -13,6 +13,7 @@ import {
   DANGEROUS_KEY_SEGMENTS,
 } from '../core/validate.js';
 import { setNestedProperty, stringifyLike, flattenKeys } from '../core/json-path.js';
+import { trimTrailingSlashes } from '../core/strings.js';
 import {
   createGitHubRest,
   decodeBase64Utf8,
@@ -68,7 +69,7 @@ const isWriteConflict = (err: unknown) =>
 const encodePath = (p: string) => p.split('/').map(encodeURIComponent).join('/');
 
 const normalizeDir = (p: string) =>
-  p.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+/, '').replace(/\/+$/, '');
+  trimTrailingSlashes(p.replace(/\\/g, '/').replace(/^\.\//, '').replace(/^\/+/, ''));
 
 function mapCompareStatus(status: string): GitChangeStatus {
   switch (status) {

@@ -78,3 +78,19 @@ describe('validateMessageSyntax', () => {
     expect(validateMessageSyntax('{g, select, male {he} other {they}}')).toBeNull();
   });
 });
+
+describe('extractPlaceholders on adversarial input', () => {
+  it('keeps trimming spaces inside i18next braces', () => {
+    expect(extractPlaceholders('Hi {{ name , uppercase }} and {{\tcount\t}}')).toEqual([
+      '{{count}}',
+      '{{name}}',
+    ]);
+  });
+
+  it('finishes fast on unclosed braces followed by a long run of whitespace', () => {
+    const message = `{{{{${'\t'.repeat(50_000)}`;
+    const start = performance.now();
+    extractPlaceholders(message);
+    expect(performance.now() - start).toBeLessThan(500);
+  });
+});

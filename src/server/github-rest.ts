@@ -6,6 +6,8 @@
  * Portable (fetch, TextEncoder and btoa/atob only), so no `Buffer`.
  */
 
+import { trimTrailingSlashes } from '../core/strings.js';
+
 /** A non-2xx answer from the GitHub REST API. */
 export class GitHubApiError extends Error {
   constructor(
@@ -87,7 +89,7 @@ export function encodeRefPath(ref: string): string {
 
 export function createGitHubRest(config: GitHubRestConfig): GitHubRest {
   const repo = config.repo;
-  const apiBase = (config.apiBase ?? 'https://api.github.com').replace(/\/+$/, '');
+  const apiBase = trimTrailingSlashes(config.apiBase ?? 'https://api.github.com');
   const fetchImpl = config.fetchImpl ?? globalThis.fetch;
   const owner = repo.split('/')[0] ?? '';
 

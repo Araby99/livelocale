@@ -98,3 +98,40 @@ describe('mutation router — info action', () => {
     ]);
   });
 });
+
+describe('mutation router — bearer token parsing', () => {
+  beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('LIVELOCALE', 'preview');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const router = () =>
+    createMutationRouter(makeMutator(), { localesPath: 'locales', authToken: 't0ken' });
+
+  it.each(['Bearer t0ken', 'bearer t0ken', '  Bearer \t t0ken  ', 'Bearer\n t0ken'])(
+    'accepts %j',
+    async (header) => expect((await router().handle(info(header))).status).toBe(200)
+  );
+
+  it.each([
+    'Bearer',
+    'Bearer ',
+    'Bearert0ken',
+    'Basic t0ken',
+    'Bearer t0\nken',
+    'Bearer t0ken\u2028x',
+  ])('refuses %j', async (header) =>
+    expect((await router().handle(info(header))).status).toBe(401)
+  );
+
+  it('answers fast on a long run of whitespace before a line break', async () => {
+    const header = `Bearer\t${'\t\t'.repeat(25_000)}a\nb`;
+    const start = performance.now();
+    expect((await router().handle(info(header))).status).toBe(401);
+    expect(performance.now() - start).toBeLessThan(500);
+  });
+});
