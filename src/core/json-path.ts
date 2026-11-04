@@ -26,6 +26,10 @@ export function setNestedProperty(obj: Record<string, any>, keyPath: string, val
   let current = obj;
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i]!;
+    // Checked again at the write so the guard sits next to the assignment it protects.
+    if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+      throw new Error(`[livelocale] Forbidden key segment in path: "${keyPath}".`);
+    }
 
     if (i === keys.length - 1) {
       current[key] = value;
@@ -33,7 +37,7 @@ export function setNestedProperty(obj: Record<string, any>, keyPath: string, val
     }
 
     if (
-      !(key in current) ||
+      !Object.prototype.hasOwnProperty.call(current, key) ||
       current[key] === null ||
       typeof current[key] !== 'object' ||
       Array.isArray(current[key])

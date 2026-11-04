@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { lookupKey } from '../../src/core/json-path.js';
+import { lookupKey, setNestedProperty } from '../../src/core/json-path.js';
 
 describe('lookupKey', () => {
   const dict = { a: { b: 'text', n: 5, nul: null, arr: ['x'], obj: {} }, s: 'top' };
@@ -32,5 +32,24 @@ describe('lookupKey', () => {
   it('treats a non-object dictionary as empty', () => {
     expect(lookupKey(undefined, 'a')).toEqual({ state: 'missing' });
     expect(lookupKey(['x'], '0')).toEqual({ state: 'missing' });
+  });
+});
+
+describe('setNestedProperty', () => {
+  it('writes nested keys and replaces non-object steps', () => {
+    const obj: Record<string, any> = { a: 'x' };
+    setNestedProperty(obj, 'a.b.c', 'v');
+    setNestedProperty(obj, 'toString.x', 'w');
+    expect(obj).toEqual({ a: { b: { c: 'v' } }, toString: { x: 'w' } });
+  });
+
+  it.each([
+    '__proto__.polluted',
+    'a.__proto__.polluted',
+    'constructor.prototype.polluted',
+    'prototype',
+  ])('refuses %s without touching Object.prototype', (keyPath) => {
+    expect(() => setNestedProperty({}, keyPath, 'yes')).toThrow(/Forbidden key segment/);
+    expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
   });
 });
