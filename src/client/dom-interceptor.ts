@@ -28,6 +28,41 @@ function debounce<T extends (...args: any[]) => void>(fn: T, wait: number): T & 
   return debounced as T & { cancel(): void };
 }
 
+/** Form controls a tap in Edit mode must not focus (focusing pops the phone keyboard). */
+const EDITABLE_SELECTOR =
+  'input, textarea, select, [contenteditable]:not([contenteditable="false"])';
+
+/** Id of the stylesheet that outlines keyed text in Edit mode. */
+const EDIT_STYLE_ID = 'livelocale-edit-style';
+
+/** Attribute on `<html>` while Edit mode is on; the stylesheet keys off it. */
+const EDIT_ATTRIBUTE = 'data-livelocale-edit';
+
+/** Space, in CSS px, kept between a revealed element and the frame's edges. */
+const REVEAL_MARGIN = 16;
+
+/**
+ * Whether the element is rendered and visible: not under `display: none`,
+ * `visibility: hidden` or zero opacity, and with a non-empty box.
+ */
+function isRendered(el: HTMLElement): boolean {
+  const visible =
+    typeof el.checkVisibility === 'function'
+      ? el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+      : el.getClientRects().length > 0;
+  if (!visible) return false;
+  const rect = el.getBoundingClientRect();
+  return rect.width > 0 && rect.height > 0;
+}
+
+/** Whether the element holds non-blank text directly (not only inside children). */
+function hasOwnText(el: Element): boolean {
+  for (const child of el.childNodes) {
+    if (child.nodeType === Node.TEXT_NODE && (child.nodeValue ?? '').trim() !== '') return true;
+  }
+  return false;
+}
+
 export class DOMInterceptor {
   private onElementSelected: (payload: {
     key: string;
@@ -35,6 +70,7 @@ export class DOMInterceptor {
     currentValue: string;
   }) => void;
   private onVisibleKeysChanged?: (keys: string[]) => void;
+  private onUnkeyedTap?: () => void;
 
   private hoveredElement: HTMLElement | null = null;
   private observer: MutationObserver | null = null;
@@ -47,6 +83,12 @@ export class DOMInterceptor {
   // ─── Alt key state ───────────────────────────────────────────────────────
   private isAltHeld: boolean = false;
 
+  // ─── Edit mode (touch) ───────────────────────────────────────────────────
+  // Kept across destroy()/init() so the Studio's CLEAR_SELECTION, which
+  // re-inits the interceptor, never unfreezes the site.
+  private editMode: boolean = false;
+  private active: boolean = false;
+
   // Debounced key-broadcast to avoid flooding the parent on rapid DOM mutations
   private broadcastVisibleKeys: (() => void) & { cancel(): void };
 
@@ -56,10 +98,12 @@ export class DOMInterceptor {
       fallbackValue: string;
       currentValue: string;
     }) => void,
-    onVisibleKeysChanged?: (keys: string[]) => void
+    onVisibleKeysChanged?: (keys: string[]) => void,
+    onUnkeyedTap?: () => void
   ) {
     this.onElementSelected = onElementSelected;
     this.onVisibleKeysChanged = onVisibleKeysChanged;
+    this.onUnkeyedTap = onUnkeyedTap;
 
     this.broadcastVisibleKeys = debounce(() => {
       if (this.onVisibleKeysChanged) {
@@ -112,6 +156,76 @@ export class DOMInterceptor {
   }
 
   /**
+   * Returns the unique keys that have at least one rendered, visible element
+   * (see `isRendered`), in document order. Keys only inside closed menus,
+   * hidden slides or a layout hidden at this width are left out.
+   */
+  getRenderedKeys(): string[] {
+    const keys = new Set<string>();
+    document.querySelectorAll<HTMLElement>('[data-i18n-key]').forEach((el) => {
+      const key = el.getAttribute('data-i18n-key');
+      if (key && !keys.has(key) && isRendered(el)) keys.add(key);
+    });
+    return Array.from(keys);
+  }
+
+  /** The first rendered, visible element carrying `key`, else `null`. */
+  private findRenderedElement(key: string): HTMLElement | null {
+    for (const el of document.querySelectorAll<HTMLElement>('[data-i18n-key]')) {
+      if (el.getAttribute('data-i18n-key') === key && isRendered(el)) return el;
+    }
+    return null;
+  }
+
+  /**
+   * Scrolls the first visible element with `key` to the centre and selects
+   * it as a tap would. Returns false, selecting nothing, when no element with
+   * that key is visible or the interceptor is not running.
+   */
+  selectKey(key: string): boolean {
+    if (!this.active) return false;
+    const el = this.findRenderedElement(key);
+    if (!el) return false;
+    if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
+    this.select(el, key);
+    return true;
+  }
+
+  /**
+   * Scrolls so the first visible element with `key` sits fully between the
+   * frame's top and `bottomInset` CSS px above its bottom (where the Studio's
+   * sheet starts), without selecting it. Does nothing when it already does,
+   * or when no element with that key is visible. A tall element keeps its top
+   * in view rather than its bottom.
+   */
+  revealKey(key: string, bottomInset: number): void {
+    if (!this.active) return;
+    const el = this.findRenderedElement(key);
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const limit = window.innerHeight - bottomInset;
+    if (rect.top >= 0 && rect.bottom <= limit) return;
+    const delta = Math.min(rect.bottom - limit + REVEAL_MARGIN, rect.top - REVEAL_MARGIN);
+    window.scrollBy(0, delta);
+  }
+
+  /**
+   * Turns Edit mode on or off. In Edit mode no tap reaches the site: a tap on
+   * keyed text selects it, a tap on other text calls `onUnkeyedTap`, and
+   * anything else does nothing. Scrolling still works. The mode is kept on
+   * the instance and re-applied by `init()`.
+   */
+  setEditMode(on: boolean): void {
+    const changed = this.editMode !== on;
+    this.editMode = on;
+    if (!this.active) return;
+    if (on) this.attachEditMode();
+    else this.detachEditMode();
+    // What is visible may have changed while the person browsed (an opened menu).
+    if (changed) this.broadcastVisibleKeys();
+  }
+
+  /**
    * Initializes the DOM event interceptors in development mode.
    * Also launches the watermark scanner and MutationObserver.
    */
@@ -148,6 +262,9 @@ export class DOMInterceptor {
     // Phase 3: Sanitize form inputs/submissions to strip ZW chars
     this.attachInputSanitizers();
 
+    this.active = true;
+    if (this.editMode) this.attachEditMode();
+
     // Broadcast the initial set of visible keys to the studio sidebar
     this.broadcastVisibleKeys();
   }
@@ -170,6 +287,8 @@ export class DOMInterceptor {
     window.removeEventListener('keydown', this.handleKeyDown, true);
     window.removeEventListener('keyup', this.handleKeyUp, true);
     window.removeEventListener('beforeinput', this.handleBeforeInput, true);
+    this.detachEditMode();
+    this.active = false;
 
     // Detach form-submit sanitizer
     document.removeEventListener('submit', this.handleFormSubmit, true);
@@ -191,6 +310,87 @@ export class DOMInterceptor {
 
     // Cancel any pending debounced broadcasts
     this.broadcastVisibleKeys.cancel();
+  }
+
+  // ─── Edit Mode ───────────────────────────────────────────────────────────
+
+  private attachEditMode(): void {
+    window.addEventListener('pointerdown', this.stopFromSite, true);
+    window.addEventListener('pointerup', this.stopFromSite, true);
+    window.addEventListener('mousedown', this.stopFromSite, true);
+    window.addEventListener('mouseup', this.stopFromSite, true);
+    // Passive and never cancelled, so a finger can still scroll the page.
+    window.addEventListener('touchstart', this.stopFromSite, { capture: true, passive: true });
+    window.addEventListener('touchend', this.stopFromSite, { capture: true, passive: true });
+    window.addEventListener('focusin', this.handleEditFocus, true);
+
+    if (!document.getElementById(EDIT_STYLE_ID)) {
+      const style = document.createElement('style');
+      style.id = EDIT_STYLE_ID;
+      style.textContent = `html[${EDIT_ATTRIBUTE}] [data-i18n-key]{outline:1px dashed rgba(79,195,220,.7);outline-offset:2px}`;
+      document.head.appendChild(style);
+    }
+    document.documentElement.setAttribute(EDIT_ATTRIBUTE, '');
+    this.hideOverlay();
+    this.hoveredElement = null;
+  }
+
+  private detachEditMode(): void {
+    window.removeEventListener('pointerdown', this.stopFromSite, true);
+    window.removeEventListener('pointerup', this.stopFromSite, true);
+    window.removeEventListener('mousedown', this.stopFromSite, true);
+    window.removeEventListener('mouseup', this.stopFromSite, true);
+    window.removeEventListener('touchstart', this.stopFromSite, true);
+    window.removeEventListener('touchend', this.stopFromSite, true);
+    window.removeEventListener('focusin', this.handleEditFocus, true);
+    document.documentElement.removeAttribute(EDIT_ATTRIBUTE);
+    document.getElementById(EDIT_STYLE_ID)?.remove();
+  }
+
+  // Sites open menus on press events; in Edit mode none of them reaches the
+  // site. Never preventDefault here: on touchstart it would stop scrolling.
+  private stopFromSite = (event: Event): void => {
+    event.stopImmediatePropagation();
+  };
+
+  private handleEditFocus = (event: FocusEvent): void => {
+    const target = event.target as HTMLElement | null;
+    if (!target || typeof target.matches !== 'function') return;
+    if (target.matches(EDITABLE_SELECTOR) || target.isContentEditable) target.blur();
+  };
+
+  /** Edit-mode click: cancelled whatever the target, then a selection or the notice. */
+  private handleEditClick(event: MouseEvent): void {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+
+    const target = event.target as HTMLElement | null;
+    if (!target || typeof target.closest !== 'function') return;
+
+    const keyedElement = target.closest('[data-i18n-key]') as HTMLElement | null;
+    // RULE CLT-003: ALWAYS CHECK data-i18n-key EXISTENCE
+    const key = keyedElement?.getAttribute('data-i18n-key');
+    if (keyedElement && key) {
+      this.select(keyedElement, key);
+    } else if (hasOwnText(target)) {
+      this.onUnkeyedTap?.();
+    }
+  }
+
+  /** Reports `element`, which carries `key`, as selected with its clean text. */
+  private select(element: HTMLElement, key: string): void {
+    // Use innerText, stripping any invisible ZW chars before sending to studio
+    const rawText = element.innerText || '';
+    const cleanText = stripWatermark(rawText);
+
+    const fallbackValue = element.getAttribute('data-i18n-template') || cleanText;
+    const currentValue = cleanText;
+
+    this.onElementSelected({
+      key,
+      fallbackValue,
+      currentValue,
+    });
   }
 
   // ─── Floating Overlay ────────────────────────────────────────────────────
@@ -493,6 +693,9 @@ export class DOMInterceptor {
   // ─── Mouse / Click Handlers ───────────────────────────────────────────────
 
   private handleMouseOver = (event: MouseEvent): void => {
+    // A tap fires emulated mouse events; the Alt+Click badge would mislead.
+    if (this.editMode) return;
+
     const target = event.target as HTMLElement | null;
     if (!target || typeof target.closest !== 'function') return;
 
@@ -533,6 +736,11 @@ export class DOMInterceptor {
   };
 
   private handleClick = (event: MouseEvent): void => {
+    if (this.editMode) {
+      this.handleEditClick(event);
+      return;
+    }
+
     // Feature 1: Only intercept clicks when Alt key is held.
     // Without Alt, let the event propagate naturally so links and buttons work.
     if (!event.altKey) return;
@@ -551,18 +759,7 @@ export class DOMInterceptor {
     event.preventDefault();
     event.stopPropagation();
 
-    // Use innerText, stripping any invisible ZW chars before sending to studio
-    const rawText = keyedElement.innerText || '';
-    const cleanText = stripWatermark(rawText);
-
-    const fallbackValue = keyedElement.getAttribute('data-i18n-template') || cleanText;
-    const currentValue = cleanText;
-
-    this.onElementSelected({
-      key,
-      fallbackValue,
-      currentValue,
-    });
+    this.select(keyedElement, key);
   };
 
   private handleCopy = (event: ClipboardEvent): void => {

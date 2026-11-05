@@ -49,7 +49,11 @@ describe('client inside a same-origin Studio', () => {
     expect(getLiveLocaleMode()).toBe('preview');
     await bootClient();
     expect(parent.postMessage).toHaveBeenCalledWith(
-      { source: 'livelocale-client', type: 'READY', payload: { url: '/' } },
+      {
+        source: 'livelocale-client',
+        type: 'READY',
+        payload: { url: '/', features: ['edit-mode'] },
+      },
       OWN
     );
   });
@@ -119,6 +123,7 @@ describe('client inside a same-origin Studio', () => {
     expect(parent.postMessage.mock.calls.map(([m]) => m.type)).toEqual([
       'READY',
       'VISIBLE_KEYS_CHANGED',
+      'RENDERED_KEYS_CHANGED',
       'VISIBLE_TEXTS_CHANGED',
     ]);
     expect(parent.postMessage).toHaveBeenLastCalledWith(
@@ -144,6 +149,96 @@ describe('client inside a same-origin Studio', () => {
     );
   });
 
+  const fromStudio = (type: string, payload?: unknown) =>
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: OWN,
+        data: { source: 'livelocale-studio', type, payload },
+      })
+    );
+
+  it('freezes the site on SET_EDIT_MODE and stays frozen after CLEAR_SELECTION', async () => {
+    const parent = studioParent();
+    setParent(parent);
+    runFlag();
+    await bootClient();
+    const h1 = document.querySelector('h1')!;
+    const site = vi.fn();
+    h1.addEventListener('click', site);
+
+    fromStudio('SET_EDIT_MODE', { on: true });
+    fromStudio('CLEAR_SELECTION');
+    h1.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+
+    expect(site).not.toHaveBeenCalled();
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'ELEMENT_SELECTED',
+        payload: expect.objectContaining({ key: 'home.title' }),
+      }),
+      OWN
+    );
+
+    fromStudio('SET_EDIT_MODE', { on: 'yes' });
+    fromStudio('SET_EDIT_MODE', { on: false });
+    h1.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    expect(site).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports a tap on text without a key', async () => {
+    const parent = studioParent();
+    setParent(parent);
+    runFlag();
+    await bootClient();
+    document.body.insertAdjacentHTML('beforeend', '<p id="plain">Not in the locale files</p>');
+
+    fromStudio('SET_EDIT_MODE', { on: true });
+    document.getElementById('plain')!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      { source: 'livelocale-client', type: 'TAP_UNKEYED', payload: undefined },
+      OWN
+    );
+  });
+
+  it('selects and reveals a key the Studio names', async () => {
+    const parent = studioParent();
+    setParent(parent);
+    runFlag();
+    await bootClient();
+    const h1 = document.querySelector('h1')!;
+    const rect = new DOMRect(0, 700, 100, 40);
+    (h1 as any).getBoundingClientRect = () => rect;
+    (h1 as any).getClientRects = () => [rect];
+    (h1 as any).scrollIntoView = vi.fn();
+    const scrollBy = vi.fn();
+    window.scrollBy = scrollBy as any;
+
+    // Clients booted by earlier tests in this file still listen, so count
+    // what an invalid message adds rather than absolute calls.
+    const selected = () =>
+      parent.postMessage.mock.calls.filter(([m]) => m.type === 'ELEMENT_SELECTED').length;
+    fromStudio('SELECT_KEY', { key: 'home.title' });
+    expect(h1.scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+    expect(parent.postMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'ELEMENT_SELECTED',
+        payload: expect.objectContaining({ key: 'home.title' }),
+      }),
+      OWN
+    );
+    const before = selected();
+    fromStudio('SELECT_KEY', { key: 42 });
+    expect(selected()).toBe(before);
+
+    fromStudio('REVEAL_KEY', { key: 'home.title', bottomInset: 'x' });
+    fromStudio('REVEAL_KEY', { key: 'home.title', bottomInset: -1 });
+    expect(scrollBy).not.toHaveBeenCalled();
+    fromStudio('REVEAL_KEY', { key: 'home.title', bottomInset: 400 });
+    expect(scrollBy).toHaveBeenCalled();
+    expect(selected()).toBe(before);
+  });
+
   it('says when the page goes away and greets again from the back-forward cache', async () => {
     const parent = studioParent();
     setParent(parent);
@@ -163,7 +258,11 @@ describe('client inside a same-origin Studio', () => {
 
     window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }));
     expect(parent.postMessage).toHaveBeenCalledWith(
-      { source: 'livelocale-client', type: 'READY', payload: { url: '/' } },
+      {
+        source: 'livelocale-client',
+        type: 'READY',
+        payload: { url: '/', features: ['edit-mode'] },
+      },
       OWN
     );
   });

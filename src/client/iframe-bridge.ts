@@ -5,8 +5,23 @@ export type ClientMessageType =
   | 'VISIBLE_KEYS_CHANGED'
   | 'VISIBLE_TEXTS_CHANGED'
   | 'LOCATION_CHANGED'
-  | 'LEAVING';
-export type StudioMessageType = 'APPLY_PREVIEW' | 'COMMIT_PREVIEW' | 'CLEAR_SELECTION' | 'NAVIGATE';
+  | 'LEAVING'
+  | 'RENDERED_KEYS_CHANGED'
+  | 'TAP_UNKEYED';
+export type StudioMessageType =
+  | 'APPLY_PREVIEW'
+  | 'COMMIT_PREVIEW'
+  | 'CLEAR_SELECTION'
+  | 'NAVIGATE'
+  | 'SET_EDIT_MODE'
+  | 'SELECT_KEY'
+  | 'REVEAL_KEY';
+
+/**
+ * What this client can do beyond the original messages, sent in READY so the
+ * Studio can hide controls an older client would ignore.
+ */
+export const CLIENT_FEATURES = ['edit-mode'];
 
 /** Where `livelocale studio` runs unless the Studio says otherwise. */
 export const DEFAULT_STUDIO_ORIGIN = 'http://localhost:3010';
@@ -92,6 +107,12 @@ export const MAX_VISIBLE_TEXTS = 100;
 export const MAX_VISIBLE_TEXT_LENGTH = 200;
 
 const KEY_PATTERN = /^[a-zA-Z0-9._-]+$/;
+
+/** Shape of one READY feature name. */
+const FEATURE_PATTERN = /^[a-z0-9-]+$/;
+
+/** Most feature names one READY message carries. */
+const MAX_FEATURES = 16;
 
 /** Longest page location, in UTF-16 code units, READY and LOCATION_CHANGED carry. */
 export const MAX_LOCATION_LENGTH = 2048;
@@ -196,7 +217,7 @@ export class IframeBridge {
       }
     }
 
-    if (type === 'VISIBLE_KEYS_CHANGED') {
+    if (type === 'VISIBLE_KEYS_CHANGED' || type === 'RENDERED_KEYS_CHANGED') {
       // Validate payload is an array of valid key strings
       if (!Array.isArray(payload)) return;
       const validKeys = (payload as unknown[]).filter(
@@ -224,7 +245,19 @@ export class IframeBridge {
     if (type === 'READY' || type === 'LOCATION_CHANGED') {
       // Never dropped: the Studio must connect, and learn when the location is unknown.
       const url = toLocationUrl(payload);
-      payload = url === null ? {} : { url };
+      const next: { url?: string; features?: string[] } = url === null ? {} : { url };
+      const features = (payload as { features?: unknown } | null | undefined)?.features;
+      if (type === 'READY' && Array.isArray(features)) {
+        next.features = features
+          .filter((f): f is string => typeof f === 'string' && FEATURE_PATTERN.test(f))
+          .slice(0, MAX_FEATURES);
+      }
+      payload = next;
+    }
+
+    if (type === 'TAP_UNKEYED') {
+      // A bare signal: nothing about the tapped page content leaves the frame.
+      payload = undefined;
     }
 
     const message = {

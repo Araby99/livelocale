@@ -2,6 +2,7 @@
 
 import { DOMInterceptor } from './dom-interceptor.js';
 import {
+  CLIENT_FEATURES,
   IframeBridge,
   followNavigation,
   navigationHref,
@@ -117,7 +118,11 @@ if (
     },
     (keys) => {
       bridge.sendToParent('VISIBLE_KEYS_CHANGED', keys);
+      bridge.sendToParent('RENDERED_KEYS_CHANGED', interceptor.getRenderedKeys());
       bridge.sendToParent('VISIBLE_TEXTS_CHANGED', interceptor.getVisibleTexts());
+    },
+    () => {
+      bridge.sendToParent('TAP_UNKEYED');
     }
   );
 
@@ -127,7 +132,7 @@ if (
     window.location.pathname + window.location.search + window.location.hash;
 
   // Send a READY message to the parent studio
-  bridge.sendToParent('READY', { url: locationUrl() });
+  bridge.sendToParent('READY', { url: locationUrl(), features: CLIENT_FEATURES });
 
   // Report client-side navigations, say when this document goes away (the
   // next one may have no client to answer), and greet again when the
@@ -135,7 +140,9 @@ if (
   watchLocation(window, (url) => bridge.sendToParent('LOCATION_CHANGED', { url }));
   window.addEventListener('pagehide', () => bridge.sendToParent('LEAVING'));
   window.addEventListener('pageshow', (event) => {
-    if (event.persisted) bridge.sendToParent('READY', { url: locationUrl() });
+    if (event.persisted) {
+      bridge.sendToParent('READY', { url: locationUrl(), features: CLIENT_FEATURES });
+    }
   });
 
   // Listen to studio commands
@@ -156,6 +163,24 @@ if (
     } else if (type === 'NAVIGATE') {
       const href = navigationHref(payload, window.location.origin);
       if (href !== null) followNavigation(window.location, href);
+    } else if (type === 'SET_EDIT_MODE') {
+      if (payload && typeof payload.on === 'boolean') {
+        interceptor.setEditMode(payload.on);
+      }
+    } else if (type === 'SELECT_KEY') {
+      if (payload && typeof payload.key === 'string') {
+        interceptor.selectKey(payload.key);
+      }
+    } else if (type === 'REVEAL_KEY') {
+      if (
+        payload &&
+        typeof payload.key === 'string' &&
+        typeof payload.bottomInset === 'number' &&
+        Number.isFinite(payload.bottomInset) &&
+        payload.bottomInset >= 0
+      ) {
+        interceptor.revealKey(payload.key, payload.bottomInset);
+      }
     }
   });
 
