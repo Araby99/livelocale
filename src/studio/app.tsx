@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Header,
   KeysDirectory,
@@ -20,6 +20,7 @@ import {
   PhoneTopBar,
   PhoneShell,
   PhoneEditorSheet,
+  PhoneEditor,
   NextMissingButton,
   BottomSheet,
   AddressBar,
@@ -135,6 +136,7 @@ export const App = () => {
     isTouch,
     isPhone,
     supportsEditMode,
+    referenceLocale,
     editMode,
     setEditMode,
     unkeyedTapSeq,
@@ -215,7 +217,7 @@ export const App = () => {
       />
     );
 
-  const side = (footer?: ReactNode) =>
+  const side = () =>
     isReviewing ? (
       <ReviewPanel
         className={isWide ? undefined : 'w-full'}
@@ -255,7 +257,6 @@ export const App = () => {
         onAddLocale={handleAddLocale}
         onRenameLocale={handleRenameLocale}
         onDeleteLocale={handleDeleteLocale}
-        footer={footer}
       />
     );
 
@@ -419,18 +420,38 @@ export const App = () => {
               selectedKey={selected?.key ?? null}
               frameRef={iframeRef}
               onReveal={revealKeyInPage}
+              // Closing the sheet is Clear Selection, unsaved-changes prompt included.
+              onDismiss={isReviewing ? undefined : handleClearSelection}
             >
-              {side(
-                canTapEdit ? (
-                  <NextMissingButton
-                    renderedKeys={renderedKeys}
-                    pageKeys={visibleKeys}
-                    currentKey={selected?.key ?? null}
-                    hasValue={(key) => (localeData[key] ?? '') !== ''}
-                    onSelectKey={selectKeyInPage}
-                  />
-                ) : undefined
-              )}
+              {isReviewing ? (
+                side()
+              ) : selected ? (
+                <PhoneEditor
+                  selected={selected}
+                  inputValue={inputValue}
+                  locale={locale}
+                  referenceLocale={referenceLocale}
+                  isLoading={isLoading}
+                  isSuccess={isSuccess}
+                  error={error}
+                  saveWarning={saveWarning}
+                  onInputChange={handleInputChange}
+                  onSave={() => handleSave()}
+                  onForceSave={handleForceSave}
+                  onDismissWarning={dismissSaveWarning}
+                  nextMissing={
+                    canTapEdit ? (
+                      <NextMissingButton
+                        renderedKeys={renderedKeys}
+                        pageKeys={visibleKeys}
+                        currentKey={selected.key}
+                        hasValue={(key) => (localeData[key] ?? '') !== ''}
+                        onSelectKey={selectKeyInPage}
+                      />
+                    ) : undefined
+                  }
+                />
+              ) : null}
             </PhoneEditorSheet>
           }
           sendSheet={sendDialog}

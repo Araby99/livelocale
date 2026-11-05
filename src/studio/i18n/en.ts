@@ -19,6 +19,10 @@ export const en = {
   'phone.menu': 'More',
   'phone.send': 'Send · {count}',
   'phone.next_missing': 'Next missing',
+  'phone.save': 'Save',
+  'phone.missing': 'missing',
+  'phone.more': 'Show more',
+  'phone.less': 'Show less',
   'phone.done_all': 'Everything on this page is translated.',
   'phone.done_hidden': {
     one: 'Everything you can see is translated. 1 more is in a hidden part of the page (a menu or slide).',

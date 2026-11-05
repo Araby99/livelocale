@@ -4,28 +4,7 @@ import { TranslationEditor, type SaveWarning } from './TranslationEditor.jsx';
 import { EmptySelection } from './EmptySelection.jsx';
 import { LocaleManager } from './LocaleManager.jsx';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
-import type { StringKey, StudioText } from '../../../i18n/catalogue.js';
-
-const LOCALE_NAMES: Readonly<Record<string, StringKey>> = {
-  en: 'editor.lang_en',
-  ar: 'editor.lang_ar',
-  es: 'editor.lang_es',
-  fr: 'editor.lang_fr',
-  de: 'editor.lang_de',
-  zh: 'editor.lang_zh',
-  ja: 'editor.lang_ja',
-  pt: 'editor.lang_pt',
-  it: 'editor.lang_it',
-  ru: 'editor.lang_ru',
-  hi: 'editor.lang_hi',
-  tr: 'editor.lang_tr',
-};
-
-const getLocaleLabel = (code: string, t: StudioText) => {
-  const base = code.split('-')[0]?.toLowerCase() || code;
-  const name = t(LOCALE_NAMES[base] || LOCALE_NAMES[code] || 'editor.lang_custom');
-  return `${name} (${code})`;
-};
+import { getLocaleLabel } from '../locale-names.js';
 
 interface EditorPanelProps {
   selected: SelectedElement | null;
@@ -47,8 +26,6 @@ interface EditorPanelProps {
   onDeleteLocale: (locale: string) => Promise<void>;
   /** Width and flex classes; defaults to the fixed column width. */
   className?: string;
-  /** Shown under the editor while a key is selected (the phone's Next missing). */
-  footer?: React.ReactNode;
 }
 
 /**
@@ -74,7 +51,6 @@ export const EditorPanel = ({
   onRenameLocale,
   onDeleteLocale,
   className = 'w-[420px] shrink-0',
-  footer,
 }: EditorPanelProps) => {
   const { t } = useStudioText();
   const [isManageOpen, setIsManageOpen] = useState(false);
@@ -197,10 +173,6 @@ export const EditorPanel = ({
         />
       ) : (
         <EmptySelection />
-      )}
-
-      {footer != null && !isManageOpen && selected && (
-        <div className="shrink-0 bg-surface border-t border-line px-6 py-3">{footer}</div>
       )}
     </div>
   );

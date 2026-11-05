@@ -446,6 +446,7 @@ export const useStudio = () => {
     isTouch,
     isPhone,
     supportsEditMode,
+    referenceLocale,
     editMode,
     setEditMode,
     renderedKeys,

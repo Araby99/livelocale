@@ -166,6 +166,46 @@ describe('PhoneEditorSheet', () => {
     expect(screen.getByRole('dialog')).toBeTruthy();
   });
 
+  it('closing the sheet clears the selection and waits for it before hiding', () => {
+    const onDismiss = vi.fn();
+    const { rerender } = render(sheet({ selectionCount: 1, onDismiss }));
+    fireEvent.click(screen.getByTestId('bottom-sheet-backdrop'));
+    expect(onDismiss).toHaveBeenCalledTimes(1);
+    // An unsaved-changes prompt may keep the selection: the sheet stays up meanwhile.
+    expect(screen.getByRole('dialog')).toBeTruthy();
+    rerender(sheet({ selectionCount: 1, onDismiss, selectedKey: null }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    // The next pick brings it back.
+    rerender(sheet({ selectionCount: 2, onDismiss, selectedKey: 'home.title' }));
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
+  it('the sheet leaves at least 40% of the visible height to the page', () => {
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      value: Object.assign(new EventTarget(), { height: 800, offsetTop: 0 }),
+    });
+    render(sheet({ selectionCount: 1 }));
+    const dialog = screen.getByRole('dialog');
+    expect(parseFloat(dialog.style.maxHeight)).toBeLessThanOrEqual(480);
+    delete (window as { visualViewport?: unknown }).visualViewport;
+  });
+
+  it('dims the page only lightly and leaves the top bar undimmed', () => {
+    render(sheet({ selectionCount: 1 }));
+    const backdrop = screen.getByTestId('bottom-sheet-backdrop');
+    expect(backdrop.className).toContain('bg-overlay/40');
+    expect(backdrop.className).toContain('top-14');
+  });
+
+  it('reports when it shows and hides', () => {
+    const onOpenChange = vi.fn();
+    const { rerender } = render(sheet({ selectionCount: 0, onOpenChange }));
+    expect(onOpenChange).toHaveBeenLastCalledWith(false);
+    rerender(sheet({ selectionCount: 1, onOpenChange }));
+    expect(onOpenChange).toHaveBeenLastCalledWith(true);
+  });
+
   it('opening the sheet reveals the picked key above it', () => {
     Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
       configurable: true,

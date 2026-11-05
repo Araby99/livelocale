@@ -47,8 +47,22 @@ interface PhoneEditorSheetProps {
   frameRef: RefObject<HTMLElement | null>;
   /** Scrolls the page so `key` sits above `bottomInset` CSS px from the frame's bottom. */
   onReveal: (key: string, bottomInset: number) => void;
+  /**
+   * Called when the person closes the sheet (swipe down, a tap above it, Escape); it clears the
+   * selection, which may first ask about unsaved changes. Given, the sheet stays up until the
+   * selection is gone, so "keep editing" keeps it open. Without it, closing only hides the sheet.
+   */
+  onDismiss?: () => void;
+  /** Told whenever the sheet shows or hides. */
+  onOpenChange?: (open: boolean) => void;
   children: ReactNode;
 }
+
+/**
+ * The most of the visible height the editor sheet takes, so at least ~40% of the page stays
+ * in view above it, live-updating as the person types.
+ */
+export const EDITOR_SHEET_MAX_SHARE = 0.6;
 
 /** How many CSS px at the bottom of the frame the sheet covers, keyboard included. */
 function coveredFrameBottom(sheet: HTMLElement, frame: HTMLElement | null, inset: number): number {
@@ -68,6 +82,8 @@ export const PhoneEditorSheet = ({
   selectedKey,
   frameRef,
   onReveal,
+  onDismiss,
+  onOpenChange,
   children,
 }: PhoneEditorSheetProps) => {
   const { t } = useStudioText();
@@ -83,6 +99,16 @@ export const PhoneEditorSheet = ({
     if (selectionCount > 0) setOpen(true);
   }, [selectionCount]);
 
+  // A cleared selection leaves nothing to edit.
+  useEffect(() => {
+    if (selectedKey === null) setOpen(false);
+  }, [selectedKey]);
+
+  const shown = open && (selectedKey !== null || onDismiss === undefined);
+  const onOpenChangeRef = useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
+  useEffect(() => onOpenChangeRef.current?.(shown), [shown]);
+
   useEffect(() => {
     if (!open || selectedKey === null) return;
     const sheet = contentRef.current?.closest<HTMLElement>('[role="dialog"]');
@@ -97,7 +123,13 @@ export const PhoneEditorSheet = ({
   }, [open, selectedKey, selectionCount, inset, frameRef]);
 
   return (
-    <BottomSheet open={open} onClose={() => setOpen(false)} labelledBy={titleId}>
+    <BottomSheet
+      open={shown}
+      onClose={onDismiss ?? (() => setOpen(false))}
+      labelledBy={titleId}
+      maxHeightShare={EDITOR_SHEET_MAX_SHARE}
+      lightBackdrop
+    >
       <div ref={contentRef} className="flex flex-col">
         <h2 id={titleId} className="sr-only">
           {t('layout.editor')}
@@ -123,7 +155,8 @@ interface NextMissingButtonProps {
 /**
  * Moves the selection to the next visible text with no value in the edited locale. With no
  * visible gap left it says so, counting the gaps in hidden parts of the page, and never
- * claims the page is fully translated while some remain.
+ * claims the page is fully translated while some remain. Made for a wrapping flex row: the
+ * button takes an equal share of it and the status line a full row above.
  */
 export const NextMissingButton = ({
   renderedKeys,
@@ -155,13 +188,13 @@ export const NextMissingButton = ({
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <>
       <button
         type="button"
         data-testid="next-missing"
         onClick={goNext}
         disabled={renderedKeys === null}
-        className="min-h-11 w-full px-4 inline-flex items-center justify-center gap-2 rounded-xl border bg-raised border-line text-fg text-xs font-semibold hover:border-line-strong disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
+        className="flex-1 min-h-11 px-4 inline-flex items-center justify-center gap-2 rounded-xl border bg-raised border-line text-fg text-sm font-semibold hover:border-line-strong disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
       >
         {t('phone.next_missing')}
         <svg
@@ -177,13 +210,17 @@ export const NextMissingButton = ({
           <path d="M5 12h14M13 6l6 6-6 6" />
         </svg>
       </button>
-      <p role="status" aria-live="polite" className="text-xs text-fg-muted empty:hidden">
+      <p
+        role="status"
+        aria-live="polite"
+        className="order-first basis-full text-xs text-fg-muted empty:hidden"
+      >
         {hiddenMissing === null
           ? ''
           : hiddenMissing === 0
             ? t('phone.done_all')
             : t('phone.done_hidden', { count: hiddenMissing })}
       </p>
-    </div>
+    </>
   );
 };

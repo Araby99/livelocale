@@ -14,6 +14,11 @@ interface PluralEditorProps {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  /**
+   * `sheet` is the phone's editor sheet: tighter spacing and 16px text, so a phone does not
+   * zoom in when a field takes focus.
+   */
+  variant?: 'panel' | 'sheet';
 }
 
 const CATEGORY_HINTS: Readonly<Record<string, StringKey>> = {
@@ -31,7 +36,13 @@ const CATEGORY_HINTS: Readonly<Record<string, StringKey>> = {
  * already present (explicit `=0`, select cases). Renders nothing when the
  * message is not a single plural-like argument, so callers fall back to raw text.
  */
-export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditorProps) => {
+export const PluralEditor = ({
+  locale,
+  value,
+  onChange,
+  disabled,
+  variant = 'panel',
+}: PluralEditorProps) => {
   const { t } = useStudioText();
   const parsed = useMemo(() => parsePluralMessage(value), [value]);
 
@@ -63,11 +74,13 @@ export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditor
     emit({}, next);
   };
 
-  const inputClass =
-    'w-full bg-surface border border-line hover:border-line-strong rounded-lg px-3 py-2 text-xs text-fg placeholder-fg-muted transition duration-150 disabled:opacity-60';
+  const inSheet = variant === 'sheet';
+  const inputClass = `w-full bg-surface border border-line hover:border-line-strong rounded-lg px-3 text-fg placeholder-fg-muted transition duration-150 disabled:opacity-60 ${
+    inSheet ? 'py-1.5 text-base' : 'py-2 text-xs'
+  }`;
 
   return (
-    <div className="space-y-3" data-testid="plural-editor">
+    <div className={inSheet ? 'space-y-2' : 'space-y-3'} data-testid="plural-editor">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-fg-muted font-mono">
           <span dir="ltr">{parsed.type}</span> {t('plural.on')}{' '}
@@ -97,7 +110,7 @@ export const PluralEditor = ({ locale, value, onChange, disabled }: PluralEditor
         </label>
       )}
 
-      <div className="space-y-2">
+      <div className={inSheet ? 'space-y-1.5' : 'space-y-2'}>
         {fields.map((f) => (
           <label key={f.selector} className="block space-y-1">
             <span className="flex items-center gap-2 text-[10px] font-mono">

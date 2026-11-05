@@ -1,9 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { extractPlaceholders } from '../../../../core/placeholders.js';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
 import { PluralEditor } from './PluralEditor.jsx';
 import { TRANSLATION_INPUT_ID } from '../constants.js';
+import { useSaveFocus } from '../hooks/useSaveFocus.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
 
@@ -30,20 +31,36 @@ interface TranslationEditorProps {
   onClear: () => void;
 }
 
-type ChipState = 'present' | 'missing' | 'extra';
+export type ChipState = 'present' | 'missing' | 'extra';
 
-const CHIP_STYLES: Record<ChipState, string> = {
+export const CHIP_STYLES: Record<ChipState, string> = {
   present: 'bg-raised border border-line-strong text-fg',
   missing:
     'bg-transparent border-[1.5px] border-dashed border-danger-line text-danger-fg line-through',
   extra: 'glyph-warn bg-warning-bg border border-warning-line text-warning-fg',
 };
 
-const CHIP_TITLES: Record<ChipState, StringKey> = {
+export const CHIP_TITLES: Record<ChipState, StringKey> = {
   present: 'editor.chip_present',
   missing: 'editor.chip_missing',
   extra: 'editor.chip_extra',
 };
+
+/** Each placeholder of `reference` and `input`: present in both, missing, or extra. */
+export function usePlaceholderChips(reference: string, input: string) {
+  return useMemo(() => {
+    const expected = new Set(extractPlaceholders(reference));
+    const current = new Set(extractPlaceholders(input));
+    const list: { token: string; state: ChipState }[] = [];
+    for (const token of expected) {
+      list.push({ token, state: current.has(token) ? 'present' : 'missing' });
+    }
+    for (const token of current) {
+      if (!expected.has(token)) list.push({ token, state: 'extra' });
+    }
+    return list;
+  }, [reference, input]);
+}
 
 export const TranslationEditor = ({
   selected,
@@ -66,31 +83,7 @@ export const TranslationEditor = ({
   const usePluralEditor = isPlural && !showRaw;
   const canSave = !isLoading && inputValue !== selected.currentValue;
 
-  // A save disables the focused control, and the browser then drops focus to <body>. Remember
-  // where focus was when the save started and put it back (or on the input) once it ends.
-  const rootRef = useRef<HTMLDivElement>(null);
-  const focusBeforeSave = useRef<HTMLElement | null>(null);
-  const startSave = (save: () => void) => {
-    const active = document.activeElement;
-    focusBeforeSave.current =
-      active instanceof HTMLElement && rootRef.current?.contains(active) ? active : null;
-    save();
-  };
-  useEffect(() => {
-    if (isLoading) return;
-    const before = focusBeforeSave.current;
-    focusBeforeSave.current = null;
-    const root = rootRef.current;
-    if (!before || !root) return;
-    const active = document.activeElement;
-    if (active && active !== document.body && active.isConnected) return; // the user moved on
-    const usable = (el: Element | null): el is HTMLElement =>
-      el instanceof HTMLElement && el.isConnected && !el.matches(':disabled');
-    const target = usable(before)
-      ? before
-      : root.querySelector<HTMLElement>('textarea:not(:disabled), input:not(:disabled)');
-    target?.focus();
-  }, [isLoading]);
+  const { rootRef, startSave } = useSaveFocus<HTMLDivElement>(isLoading);
 
   // Ctrl+Enter (Cmd+Enter on Mac) saves, exactly as the Save button would. "Save anyway" stays a click.
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
@@ -100,18 +93,7 @@ export const TranslationEditor = ({
   };
 
   // Live placeholder parity between the reference text and the current input.
-  const chips = useMemo(() => {
-    const reference = new Set(extractPlaceholders(selected.fallbackValue || ''));
-    const current = new Set(extractPlaceholders(inputValue));
-    const list: { token: string; state: ChipState }[] = [];
-    for (const token of reference) {
-      list.push({ token, state: current.has(token) ? 'present' : 'missing' });
-    }
-    for (const token of current) {
-      if (!reference.has(token)) list.push({ token, state: 'extra' });
-    }
-    return list;
-  }, [selected.fallbackValue, inputValue]);
+  const chips = usePlaceholderChips(selected.fallbackValue || '', inputValue);
 
   return (
     <div ref={rootRef} className="flex-1 flex flex-col p-6 overflow-y-auto space-y-6">

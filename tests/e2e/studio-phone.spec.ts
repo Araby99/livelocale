@@ -123,6 +123,57 @@ test('switching back to Edit on the new page freezes it again', async ({ page })
   await tapKey(page, 'home.title');
 });
 
+test('the editor sheet is compact and keeps the picked text in view above it', async ({ page }) => {
+  await openStudio(page);
+  await tapKey(page, 'home.title');
+  const sheet = editorSheet(page);
+  // None of the desktop panel's chrome.
+  await expect(sheet).not.toContainText('Translation Studio');
+  await expect(sheet).not.toContainText('Clear Selection');
+  await expect(sheet.getByRole('combobox')).toHaveCount(0);
+  await expect(sheet.getByTestId('manage-languages-toggle')).toHaveCount(0);
+  await expect(sheet.getByRole('button', { name: 'Save' })).toBeVisible();
+  await expect(sheet.getByTestId('next-missing')).toBeVisible();
+
+  // At least ~40% of the screen stays on the page.
+  const viewport = page.viewportSize()!;
+  const box = (await sheet.boundingBox())!;
+  expect(box.height).toBeLessThanOrEqual(viewport.height * 0.6 + 1);
+
+  // The picked text is visible above the sheet once it has settled.
+  const picked = page.frameLocator('#app-preview-iframe').locator('[data-i18n-key="home.title"]');
+  await expect
+    .poll(async () => {
+      const text = await picked.boundingBox();
+      const top = (await sheet.boundingBox())!.y;
+      return text !== null && text.y >= 56 && text.y + text.height <= top;
+    })
+    .toBe(true);
+
+  // Typing updates the page behind the sheet.
+  await page.locator('#studio-translation-input').fill('Live from the sheet');
+  await expect(picked).toHaveText(shows('Live from the sheet'));
+});
+
+test('closing the sheet with unsaved text asks first, then clears the selection', async ({
+  page,
+}) => {
+  await openStudio(page);
+  await tapKey(page, 'home.title');
+  await page.locator('#studio-translation-input').fill('Not saved yet');
+  await page.keyboard.press('Escape');
+  const confirm = page.getByRole('dialog', { name: /unsaved/i });
+  await expect(confirm).toBeVisible();
+  await confirm.getByRole('button', { name: /keep/i }).tap();
+  await expect(editorSheet(page)).toBeVisible();
+  await page.getByTestId('bottom-sheet-backdrop').tap({ position: { x: 20, y: 20 } });
+  await page
+    .getByRole('dialog', { name: /unsaved/i })
+    .getByRole('button', { name: /discard/i })
+    .tap();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});
+
 test('the More menu closes once an item is chosen', async ({ page }) => {
   await openStudio(page);
   await page.getByRole('button', { name: 'More' }).tap();

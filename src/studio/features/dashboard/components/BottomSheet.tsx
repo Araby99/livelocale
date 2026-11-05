@@ -8,7 +8,7 @@ export const CLOSE_DRAG_PX = 80;
 const CLOSE_FLICK_SPEED = 0.5;
 /** A flick must still move at least this far, so a tap on the handle never closes. */
 const MIN_FLICK_PX = 16;
-/** The most of the visible height the sheet may take, matching `max-h-[85dvh]`. */
+/** The most of the visible height the sheet takes by default, matching `max-h-[85dvh]`. */
 const MAX_HEIGHT_SHARE = 0.85;
 
 interface BottomSheetProps {
@@ -16,6 +16,13 @@ interface BottomSheetProps {
   onClose: () => void;
   /** The id of the element that names the sheet, usually its heading. */
   labelledBy: string;
+  /** The most of the visible height (above the keyboard) the sheet may take, 0 to 1. */
+  maxHeightShare?: number;
+  /**
+   * A faint dim (about 20%) that keeps the page behind readable, starting below the phone's
+   * top bar (56px) so the bar does not look disabled. A tap anywhere outside still closes.
+   */
+  lightBackdrop?: boolean;
   children: ReactNode;
 }
 
@@ -24,7 +31,14 @@ interface BottomSheetProps {
  * Tapping the dimmed page, Escape, or dragging the handle down closes it. The
  * sheet sits directly above the phone keyboard while one is open.
  */
-export const BottomSheet = ({ open, onClose, labelledBy, children }: BottomSheetProps) => {
+export const BottomSheet = ({
+  open,
+  onClose,
+  labelledBy,
+  maxHeightShare = MAX_HEIGHT_SHARE,
+  lightBackdrop = false,
+  children,
+}: BottomSheetProps) => {
   const dialogRef = useDialog<HTMLDivElement>(open, onClose);
   const inset = useKeyboardInset();
   // `dvh` ignores the keyboard, so cap the height to what is visible above it too.
@@ -58,12 +72,17 @@ export const BottomSheet = ({ open, onClose, labelledBy, children }: BottomSheet
   };
 
   return (
-    <div className="fixed inset-0 z-50">
+    <div
+      className="fixed inset-0 z-50"
+      onClick={lightBackdrop ? (e) => e.target === e.currentTarget && onClose() : undefined}
+    >
       <div
         data-testid="bottom-sheet-backdrop"
         aria-hidden="true"
         onClick={onClose}
-        className="absolute inset-0 bg-overlay animate-in fade-in duration-200"
+        className={`absolute inset-x-0 bottom-0 animate-in fade-in duration-200 ${
+          lightBackdrop ? 'top-14 bg-overlay/40' : 'top-0 bg-overlay'
+        }`}
       />
       <div
         ref={dialogRef}
@@ -73,11 +92,13 @@ export const BottomSheet = ({ open, onClose, labelledBy, children }: BottomSheet
         style={{
           bottom: `${inset}px`,
           maxHeight:
-            visibleHeight > 0 ? `${Math.floor(visibleHeight * MAX_HEIGHT_SHARE)}px` : undefined,
+            visibleHeight > 0 ? `${Math.floor(visibleHeight * maxHeightShare)}px` : undefined,
           // `translate`, not `transform`, so a drag during the slide-in does not jump.
           translate: dragOffset > 0 ? `0 ${dragOffset}px` : undefined,
         }}
-        className="absolute inset-x-0 max-h-[85dvh] flex flex-col bg-raised border-t border-line rounded-t-2xl pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-200"
+        className={`absolute inset-x-0 ${
+          maxHeightShare === MAX_HEIGHT_SHARE ? 'max-h-[85dvh]' : ''
+        } ${lightBackdrop ? 'shadow-[0_-6px_20px_rgb(0_0_0/0.18)]' : ''} flex flex-col bg-raised border-t border-line rounded-t-2xl pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-200`}
       >
         <div
           data-testid="bottom-sheet-handle"
