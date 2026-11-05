@@ -244,3 +244,27 @@ test('Send shows the change list and Copy link', async ({ page, context }) => {
   expect(copied).toMatch(/^http:\/\/localhost:3020\/livelocale\/index\.html#lc1\.[A-Za-z0-9_-]+$/);
   await expect(page.locator('#studio-send-button')).toHaveText('Send · 0');
 });
+
+test('the top bar still works while the editor sheet is open', async ({ page }) => {
+  await openStudio(page);
+  await tapKey(page, 'home.title');
+  await saveInSheet(page, 'Hello from a phone');
+  // Send sits above the sheet's dim: a tap opens Send instead of closing the editor.
+  await page.locator('#studio-send-button').tap();
+  const send = page.getByRole('dialog', { name: 'Send to developer' });
+  await expect(send).toBeVisible();
+  await expect(send.getByTestId('send-dialog-changes')).toContainText('home.title · en');
+  await page.keyboard.press('Escape');
+  await expect(send).toHaveCount(0);
+
+  // The editor sheet is still up, and the locale chip takes the tap too.
+  await expect(editorSheet(page)).toBeVisible();
+  const chip = page.getByRole('combobox', { name: 'Locale' });
+  // A trial tap checks the chip is what a finger there would hit, without opening the picker.
+  await chip.tap({ trial: true });
+  await chip.selectOption('ar');
+  await expect(page.frameLocator('#app-preview-iframe').locator('main')).toHaveAttribute(
+    'lang',
+    'ar'
+  );
+});

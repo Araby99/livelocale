@@ -193,4 +193,33 @@ describe('BottomSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(1);
     now.mockRestore();
   });
+
+  it('with a light backdrop, taps over the top bar pass through to the page', () => {
+    const onClose = vi.fn();
+    render(
+      <BottomSheet open onClose={onClose} labelledBy="sheet-title" lightBackdrop>
+        <h2 id="sheet-title">Edit text</h2>
+      </BottomSheet>
+    );
+    const dialog = screen.getByRole('dialog');
+    const backdrop = screen.getByTestId('bottom-sheet-backdrop');
+    const wrapper = backdrop.parentElement!;
+    // The wrapper spans the whole screen, top bar included, so it must not catch taps.
+    expect(wrapper.className).toContain('pointer-events-none');
+    expect(backdrop.className).toContain('pointer-events-auto');
+    expect(backdrop.className).toContain('top-14');
+    expect(dialog.className).toContain('pointer-events-auto');
+    // A click that lands on the wrapper itself (only possible over the bar) never closes.
+    fireEvent.click(wrapper);
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(backdrop);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('with the full backdrop, the sheet still covers the whole screen', () => {
+    render(<Sheet open />);
+    const backdrop = screen.getByTestId('bottom-sheet-backdrop');
+    expect(backdrop.parentElement!.className).not.toContain('pointer-events-none');
+    expect(backdrop.className).toContain('top-0');
+  });
 });

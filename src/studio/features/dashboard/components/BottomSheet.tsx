@@ -20,7 +20,8 @@ interface BottomSheetProps {
   maxHeightShare?: number;
   /**
    * A faint dim (about 20%) that keeps the page behind readable, starting below the phone's
-   * top bar (56px) so the bar does not look disabled. A tap anywhere outside still closes.
+   * top bar (56px). The bar stays usable: a tap on it reaches the bar (the locale chip, Send)
+   * instead of closing the sheet. A tap on the dimmed page below the bar still closes.
    */
   lightBackdrop?: boolean;
   children: ReactNode;
@@ -72,16 +73,15 @@ export const BottomSheet = ({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50"
-      onClick={lightBackdrop ? (e) => e.target === e.currentTarget && onClose() : undefined}
-    >
+    // With the light backdrop the wrapper lets taps through, so only the dim and the sheet
+    // catch them and the top bar above the dim keeps working.
+    <div className={`fixed inset-0 z-50 ${lightBackdrop ? 'pointer-events-none' : ''}`}>
       <div
         data-testid="bottom-sheet-backdrop"
         aria-hidden="true"
         onClick={onClose}
         className={`absolute inset-x-0 bottom-0 animate-in fade-in duration-200 ${
-          lightBackdrop ? 'top-14 bg-overlay/40' : 'top-0 bg-overlay'
+          lightBackdrop ? 'top-14 bg-overlay/40 pointer-events-auto' : 'top-0 bg-overlay'
         }`}
       />
       <div
@@ -98,7 +98,9 @@ export const BottomSheet = ({
         }}
         className={`absolute inset-x-0 ${
           maxHeightShare === MAX_HEIGHT_SHARE ? 'max-h-[85dvh]' : ''
-        } ${lightBackdrop ? 'shadow-[0_-6px_20px_rgb(0_0_0/0.18)]' : ''} flex flex-col bg-raised border-t border-line rounded-t-2xl pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-200`}
+        } ${
+          lightBackdrop ? 'shadow-[0_-6px_20px_rgb(0_0_0/0.18)] pointer-events-auto' : ''
+        } flex flex-col bg-raised border-t border-line rounded-t-2xl pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-200`}
       >
         <div
           data-testid="bottom-sheet-handle"

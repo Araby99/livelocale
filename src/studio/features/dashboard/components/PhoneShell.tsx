@@ -48,7 +48,7 @@ interface PhoneEditorSheetProps {
   /** Scrolls the page so `key` sits above `bottomInset` CSS px from the frame's bottom. */
   onReveal: (key: string, bottomInset: number) => void;
   /**
-   * Called when the person closes the sheet (swipe down, a tap above it, Escape); it clears the
+   * Called when the person closes the sheet (swipe down, a tap on the page above it, Escape); it clears the
    * selection, which may first ask about unsaved changes. Given, the sheet stays up until the
    * selection is gone, so "keep editing" keeps it open. Without it, closing only hides the sheet.
    */
