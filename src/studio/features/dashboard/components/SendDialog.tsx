@@ -78,6 +78,8 @@ export const SendDialog = ({
   const asSheet = presentation === 'sheet';
   // Phones get at least 44 px to tap; the desktop dialog keeps its compact buttons.
   const actionButton = `${actionButtonBase} ${asSheet ? 'min-h-11' : 'h-9'}`;
+  // 16px text in the sheet's fields, so a phone does not zoom in when one takes focus.
+  const fieldText = asSheet ? 'min-h-11 text-base' : 'h-9 text-xs';
   const [name, setName] = useState(() => readPref('translator-name') ?? '');
   const [note, setNote] = useState('');
   const [includeSent, setIncludeSent] = useState(false);
@@ -214,12 +216,8 @@ export const SendDialog = ({
     writePref('translator-name', value === '' ? null : value);
   };
 
-  const content = (
+  const fields = (
     <>
-      <h3 id="studio-send-title" className="text-base font-bold text-fg font-heading">
-        {t('send.title')}
-      </h3>
-
       <label className="block space-y-1">
         <span className="text-[11px] font-semibold text-fg-muted">{t('send.name_label')}</span>
         <input
@@ -229,7 +227,7 @@ export const SendDialog = ({
           maxLength={SEND_NAME_MAX_CHARS}
           value={name}
           onChange={(e) => handleNameChange(e.target.value)}
-          className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs text-fg"
+          className={`w-full px-3 rounded-xl bg-surface border border-line text-fg ${fieldText}`}
         />
       </label>
 
@@ -242,7 +240,9 @@ export const SendDialog = ({
           maxLength={SEND_NOTE_MAX_CHARS}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-xs text-fg resize-none"
+          className={`w-full px-3 py-2 rounded-xl bg-surface border border-line text-fg resize-none ${
+            asSheet ? 'text-base' : 'text-xs'
+          }`}
         />
       </label>
 
@@ -256,20 +256,31 @@ export const SendDialog = ({
           {t('send.include_sent', { count: alreadySent })}
         </label>
       )}
+    </>
+  );
 
+  const changes = (
+    <>
       {showingSent ? null : included.length === 0 ? (
         <p className="text-xs text-fg-muted">{t('send.nothing_to_send')}</p>
       ) : (
-        <ul data-testid="send-dialog-changes" className="max-h-48 overflow-y-auto space-y-1.5">
+        <ul
+          data-testid="send-dialog-changes"
+          className={asSheet ? 'divide-y divide-line' : 'max-h-48 overflow-y-auto space-y-1.5'}
+        >
           {included.map((d) => (
             <li
               key={`${d.locale}/${d.key}`}
-              className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
+              className={
+                asSheet
+                  ? 'py-2 space-y-1'
+                  : 'px-3 py-2 rounded-xl bg-surface border border-line space-y-1'
+              }
             >
               <span dir="ltr" className="block text-[11px] font-mono text-info-fg break-all">
                 {`${d.key} · ${d.locale}`}
               </span>
-              <div className="text-[10px] leading-relaxed">
+              <div className={`${asSheet ? 'text-xs' : 'text-[10px]'} leading-relaxed`}>
                 {d.from ? (
                   <span
                     dir="auto"
@@ -296,6 +307,31 @@ export const SendDialog = ({
             </li>
           ))}
         </ul>
+      )}
+    </>
+  );
+
+  const content = (
+    <>
+      <h3
+        id="studio-send-title"
+        className={
+          asSheet ? 'text-sm font-semibold text-fg' : 'text-base font-bold text-fg font-heading'
+        }
+      >
+        {t('send.title')}
+      </h3>
+
+      {asSheet ? (
+        <>
+          {changes}
+          {fields}
+        </>
+      ) : (
+        <>
+          {fields}
+          {changes}
+        </>
       )}
 
       {overflow > 0 && (
@@ -435,8 +471,8 @@ export const SendDialog = ({
 
   if (asSheet) {
     return (
-      <BottomSheet open onClose={onClose} labelledBy="studio-send-title">
-        <div className="space-y-4">{content}</div>
+      <BottomSheet open onClose={onClose} labelledBy="studio-send-title" lightBackdrop>
+        <div className="space-y-3">{content}</div>
       </BottomSheet>
     );
   }
