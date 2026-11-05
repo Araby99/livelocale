@@ -1,6 +1,6 @@
 import React, { useRef, useState, type ReactNode } from 'react';
 import { useDialog } from '../hooks/useDialog.js';
-import { useKeyboardInset } from '../hooks/useKeyboardInset.js';
+import { useKeyboardInset, useVisualViewportHeight } from '../hooks/useKeyboardInset.js';
 
 /** A drag on the handle longer than this many px closes the sheet. */
 export const CLOSE_DRAG_PX = 80;
@@ -8,6 +8,8 @@ export const CLOSE_DRAG_PX = 80;
 const CLOSE_FLICK_SPEED = 0.5;
 /** A flick must still move at least this far, so a tap on the handle never closes. */
 const MIN_FLICK_PX = 16;
+/** The most of the visible height the sheet may take, matching `max-h-[85dvh]`. */
+const MAX_HEIGHT_SHARE = 0.85;
 
 interface BottomSheetProps {
   open: boolean;
@@ -25,6 +27,8 @@ interface BottomSheetProps {
 export const BottomSheet = ({ open, onClose, labelledBy, children }: BottomSheetProps) => {
   const dialogRef = useDialog<HTMLDivElement>(open, onClose);
   const inset = useKeyboardInset();
+  // `dvh` ignores the keyboard, so cap the height to what is visible above it too.
+  const visibleHeight = useVisualViewportHeight();
   const drag = useRef<{ startY: number; startAt: number } | null>(null);
   const [dragOffset, setDragOffset] = useState(0);
 
@@ -68,7 +72,10 @@ export const BottomSheet = ({ open, onClose, labelledBy, children }: BottomSheet
         aria-labelledby={labelledBy}
         style={{
           bottom: `${inset}px`,
-          transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+          maxHeight:
+            visibleHeight > 0 ? `${Math.floor(visibleHeight * MAX_HEIGHT_SHARE)}px` : undefined,
+          // `translate`, not `transform`, so a drag during the slide-in does not jump.
+          translate: dragOffset > 0 ? `0 ${dragOffset}px` : undefined,
         }}
         className="absolute inset-x-0 max-h-[85dvh] flex flex-col bg-raised border-t border-line rounded-t-2xl pb-[env(safe-area-inset-bottom)] animate-in slide-in-from-bottom duration-200"
       >

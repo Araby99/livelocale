@@ -6,6 +6,7 @@ import { BottomSheet } from '../../src/studio/features/dashboard/components/Bott
 import {
   keyboardInset,
   useKeyboardInset,
+  useVisualViewportHeight,
 } from '../../src/studio/features/dashboard/hooks/useKeyboardInset.js';
 
 /** A stand-in for `window.visualViewport` that tests can resize like a phone keyboard. */
@@ -82,6 +83,19 @@ describe('keyboardInset', () => {
     render(<Probe />);
     expect(screen.getByRole('status').textContent).toBe('0');
   });
+
+  it('useVisualViewportHeight follows visualViewport and falls back to innerHeight', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: undefined });
+    const Probe = () => <output>{useVisualViewportHeight()}</output>;
+    const { unmount } = render(<Probe />);
+    expect(screen.getByRole('status').textContent).toBe('800');
+    unmount();
+    const vv = installViewport(800);
+    render(<Probe />);
+    act(() => vv.resize(500));
+    expect(screen.getByRole('status').textContent).toBe('500');
+  });
 });
 
 describe('BottomSheet', () => {
@@ -134,6 +148,16 @@ describe('BottomSheet', () => {
     expect(dialog.style.bottom).toBe('300px');
     act(() => vv.resize(800));
     expect(dialog.style.bottom).toBe('0px');
+  });
+
+  it('sheet height never exceeds the space left above the keyboard', () => {
+    Object.defineProperty(window, 'innerHeight', { configurable: true, value: 800 });
+    const vv = installViewport(800);
+    render(<Sheet open />);
+    const dialog = screen.getByRole('dialog');
+    act(() => vv.resize(500));
+    expect(parseFloat(dialog.style.maxHeight)).toBeLessThanOrEqual(500);
+    expect(dialog.style.maxHeight).toMatch(/px$/);
   });
 
   it('dragging the handle down past the threshold closes, a short drag does not', () => {
