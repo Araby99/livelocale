@@ -4,7 +4,10 @@ import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { ChangeLinkError, encodeChangeLink } from '../../src/core/change-link.js';
 import { copyText, downloadText, readPref, writePref } from '../../src/studio/share/browser.js';
-import { SendDialog } from '../../src/studio/features/dashboard/components/SendDialog.jsx';
+import {
+  SendDialog,
+  shareLink,
+} from '../../src/studio/features/dashboard/components/SendDialog.jsx';
 import type { Draft } from '../../src/studio/transport/drafts.js';
 import { MANIFEST, SHA_A, STUDIO_URL } from './helpers/share-fixtures.js';
 
@@ -331,5 +334,141 @@ describe('SendDialog', () => {
     const { onMarkSent } = renderDialog(drafts, { ...MANIFEST, repo: 'acme/web' });
     fireEvent.click(await screen.findByText('Open on GitHub'));
     await waitFor(() => expect(onMarkSent).toHaveBeenCalledWith(drafts));
+  });
+});
+
+describe('shareLink', () => {
+  const URL_ = 'https://www.acme.com/livelocale/index.html#lc1.TOKEN';
+
+  it('is unsupported without navigator.share', async () => {
+    expect(await shareLink(URL_, {} as Pick<Navigator, 'share' | 'canShare'>)).toBe('unsupported');
+  });
+
+  it('is unsupported when the browser cannot share a link', async () => {
+    const share = vi.fn(async () => {});
+    expect(await shareLink(URL_, { share, canShare: () => false })).toBe('unsupported');
+    expect(share).not.toHaveBeenCalled();
+  });
+
+  it('shares the link', async () => {
+    const share = vi.fn(async () => {});
+    expect(await shareLink(URL_, { share, canShare: () => true })).toBe('shared');
+    expect(share).toHaveBeenCalledWith({ url: URL_ });
+  });
+
+  it('reports a dismissed share menu as cancelled', async () => {
+    const share = vi.fn(async () => {
+      throw new DOMException('dismissed', 'AbortError');
+    });
+    expect(await shareLink(URL_, { share } as Pick<Navigator, 'share' | 'canShare'>)).toBe(
+      'cancelled'
+    );
+  });
+
+  it('reports any other failure as unsupported', async () => {
+    const share = vi.fn(async () => {
+      throw new DOMException('no', 'NotAllowedError');
+    });
+    expect(await shareLink(URL_, { share } as Pick<Navigator, 'share' | 'canShare'>)).toBe(
+      'unsupported'
+    );
+  });
+});
+
+describe('SendDialog as a phone sheet', () => {
+  const nav = navigator as Navigator & { share?: Navigator['share'] };
+  let share: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    share = vi.fn(async () => {});
+    Object.defineProperty(navigator, 'share', { value: share, configurable: true, writable: true });
+  });
+
+  afterEach(() => {
+    delete nav.share;
+  });
+
+  function renderSheet(drafts: Draft[] = [draft(1), draft(2)]) {
+    const onMarkSent = vi.fn(async () => {});
+    render(
+      <SendDialog
+        isOpen
+        presentation="sheet"
+        onClose={vi.fn()}
+        drafts={drafts}
+        manifest={MANIFEST}
+        studioHref={STUDIO_URL}
+        onMarkSent={onMarkSent}
+      />
+    );
+    return { onMarkSent };
+  }
+
+  it('renders in a labelled bottom sheet', async () => {
+    renderSheet();
+    await linkField();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog.getAttribute('aria-labelledby')).toBe('studio-send-title');
+    expect(screen.getByTestId('bottom-sheet-handle')).toBeTruthy();
+  });
+
+  it('sheet presentation shows Share link when navigator.share exists', async () => {
+    renderSheet();
+    await linkField();
+    expect(screen.getByRole('button', { name: 'Share link…' })).toBeTruthy();
+    expect(button('studio-send-copy')).toBeTruthy();
+  });
+
+  it('without navigator.share only Copy link shows', async () => {
+    delete nav.share;
+    renderSheet();
+    await linkField();
+    expect(screen.queryByRole('button', { name: 'Share link…' })).toBeNull();
+    expect(button('studio-send-copy')).toBeTruthy();
+  });
+
+  it('the desktop dialog never offers Share link', async () => {
+    renderDialog();
+    await linkField();
+    expect(screen.queryByRole('button', { name: 'Share link…' })).toBeNull();
+  });
+
+  it('successful share marks drafts sent', async () => {
+    const drafts = [draft(1), draft(2)];
+    const { onMarkSent } = renderSheet(drafts);
+    await linkField();
+    fireEvent.click(screen.getByRole('button', { name: 'Share link…' }));
+    await screen.findByText('Link shared. Your developer can open it to review the changes.');
+    expect(share).toHaveBeenCalledWith({ url: LINK });
+    expect(onMarkSent).toHaveBeenCalledWith(drafts);
+  });
+
+  it('cancelled share (AbortError) does not mark drafts sent', async () => {
+    share.mockRejectedValue(new DOMException('dismissed', 'AbortError'));
+    const { onMarkSent } = renderSheet();
+    await linkField();
+    fireEvent.click(screen.getByRole('button', { name: 'Share link…' }));
+    await waitFor(() => expect(share).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(onMarkSent).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).toBeNull();
+  });
+
+  it('a failed share points to Copy link and does not mark drafts sent', async () => {
+    share.mockRejectedValue(new DOMException('no', 'NotAllowedError'));
+    const { onMarkSent } = renderSheet();
+    await linkField();
+    fireEvent.click(screen.getByRole('button', { name: 'Share link…' }));
+    await screen.findByText('The share menu did not open. Use Copy link instead.');
+    expect(onMarkSent).not.toHaveBeenCalled();
+  });
+
+  it('Share link is off while the link is too long for a message', async () => {
+    encode.mockResolvedValue('lc1.' + 'A'.repeat(6000));
+    renderSheet();
+    await screen.findByText(/Use Download file instead/);
+    expect(
+      (screen.getByRole('button', { name: 'Share link…' }) as HTMLButtonElement).disabled
+    ).toBe(true);
   });
 });

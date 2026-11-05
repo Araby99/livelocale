@@ -42,6 +42,7 @@ export const en = {
   'send.encode_failed': 'Could not create the link: {reason}',
   'send.too_long': 'This batch is too long for a chat message. Use Download file instead.',
   'send.copy': 'Copy link',
+  'send.share': 'Share link…',
   'send.link_label': 'Change link',
   'send.download': 'Download file',
   'send.close': 'Close',
@@ -49,6 +50,8 @@ export const en = {
   'send.github_hint':
     'Press “Submit new issue” on GitHub. A pull-request link appears as a comment about a minute later.',
   'send.copied': 'Link copied. Paste it to your developer in chat or email.',
+  'send.shared': 'Link shared. Your developer can open it to review the changes.',
+  'send.share_failed': 'The share menu did not open. Use Copy link instead.',
   'send.downloaded': 'File saved. Send it to your developer.',
   'send.opened': 'GitHub opened in a new tab.',
   'send.copy_failed':

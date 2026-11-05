@@ -310,6 +310,7 @@ export const App = () => {
       manifest={staticManifest}
       studioHref={window.location.href}
       onMarkSent={markDraftsSent}
+      presentation={isPhone ? 'sheet' : 'dialog'}
     />
   );
 
