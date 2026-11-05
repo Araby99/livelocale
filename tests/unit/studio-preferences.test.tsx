@@ -3,13 +3,9 @@ import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render, cleanup } from '@testing-library/react';
 import {
-  initialStudioLanguage,
   initialThemeChoice,
-  saveLanguage,
   saveThemeChoice,
-  storedLanguage,
   storedThemeChoice,
-  STUDIO_LANGUAGE_KEY,
   STUDIO_THEME_KEY,
 } from '../../src/studio/preferences.js';
 import { writePref } from '../../src/studio/share/browser.js';
@@ -32,7 +28,6 @@ const renderHeader = (extra: Partial<React.ComponentProps<typeof Header>> = {}) 
   );
 
 beforeEach(() => {
-  writePref('studio-language', null);
   writePref('studio-theme', null);
   localStorage.clear();
 });
@@ -43,21 +38,6 @@ afterEach(() => {
 });
 
 describe('studio preferences', () => {
-  it.each([
-    [{ stored: 'ar', isShareStudio: false, browserLanguage: 'en-US' }, 'ar'],
-    [{ stored: 'en', isShareStudio: true, browserLanguage: 'ar-EG' }, 'en'],
-    [{ stored: 'fr', isShareStudio: true, browserLanguage: 'ar' }, 'ar'],
-    [{ stored: null, isShareStudio: false, browserLanguage: 'ar-EG' }, 'en'],
-    [{ stored: null, isShareStudio: true, browserLanguage: 'ar-EG' }, 'ar'],
-    [{ stored: null, isShareStudio: true, browserLanguage: 'AR' }, 'ar'],
-    [{ stored: null, isShareStudio: true, browserLanguage: 'arz' }, 'ar'],
-    [{ stored: null, isShareStudio: true, browserLanguage: 'ar_SA' }, 'ar'],
-    [{ stored: null, isShareStudio: true, browserLanguage: 'arn-CL' }, 'en'],
-    [{ stored: null, isShareStudio: true, browserLanguage: 'en-US' }, 'en'],
-    [{ stored: null, isShareStudio: true, browserLanguage: undefined }, 'en'],
-    [{ stored: null, isShareStudio: true, browserLanguage: '' }, 'en'],
-  ])('starts %o in %s', (input, lang) => expect(initialStudioLanguage(input)).toBe(lang));
-
   it('defaults the dev Studio to dark and the share Studio to the system setting', () => {
     expect(initialThemeChoice({ stored: null, isShareStudio: false })).toBe('dark');
     expect(initialThemeChoice({ stored: null, isShareStudio: true })).toBe('system');
@@ -69,14 +49,10 @@ describe('studio preferences', () => {
     expect(storedThemeChoice()).toBeNull();
   });
 
-  it('stores both choices under their keys and reads them back', () => {
-    saveLanguage('ar');
+  it('stores the theme choice under its key and reads it back', () => {
     saveThemeChoice('light');
-    expect([
-      localStorage.getItem(STUDIO_LANGUAGE_KEY),
-      localStorage.getItem(STUDIO_THEME_KEY),
-    ]).toEqual(['ar', 'light']);
-    expect([storedLanguage(), storedThemeChoice()]).toEqual(['ar', 'light']);
+    expect(localStorage.getItem(STUDIO_THEME_KEY)).toBe('light');
+    expect(storedThemeChoice()).toBe('light');
   });
 
   it('keeps working in memory when localStorage throws', () => {

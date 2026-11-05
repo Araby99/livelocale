@@ -2,7 +2,6 @@ import React, { useEffect, useRef } from 'react';
 import { FIRST_RUN_TIP_KEYS } from '../hooks/useFirstRun.js';
 import { useDialog } from '../hooks/useDialog.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
-import { LanguageToggle } from './LanguageToggle.js';
 
 interface FirstRunTipsProps {
   open: boolean;
@@ -16,7 +15,7 @@ export const FirstRunTips = ({ open, name, onNameChange, onDismiss }: FirstRunTi
   const { t } = useStudioText();
   const dialogRef = useDialog<HTMLDivElement>(open, onDismiss);
   const nameRef = useRef<HTMLInputElement>(null);
-  // The language switch comes first in the title row; the name field still takes focus on open.
+  // The name field takes focus on open.
   useEffect(() => {
     if (open) nameRef.current?.focus();
   }, [open]);
@@ -31,12 +30,9 @@ export const FirstRunTips = ({ open, name, onNameChange, onDismiss }: FirstRunTi
         aria-labelledby="studio-tips-title"
         className="bg-raised border border-line rounded-2xl w-full max-w-md p-6"
       >
-        <div className="flex items-center justify-between gap-3">
-          <h3 id="studio-tips-title" className="text-base font-bold text-fg font-heading">
-            {t('tips.title')}
-          </h3>
-          <LanguageToggle />
-        </div>
+        <h3 id="studio-tips-title" className="text-base font-bold text-fg font-heading">
+          {t('tips.title')}
+        </h3>
         <ol className="mt-3 space-y-2 list-decimal list-inside text-xs text-fg leading-relaxed">
           {FIRST_RUN_TIP_KEYS.map((key) => (
             <li key={key}>{t(key)}</li>

@@ -13,7 +13,7 @@ changes the repository settings; those steps are the owner's.
       linked from nowhere; that run's `lighthouse` job is green (medians >= 0.90).
 - [ ] 3. (owner) Check the preview on a real phone and a computer: the hero video plays muted with
       a working pause, iPhone Safari included, where a chapter seek must land too (automated
-      WebKit cannot decode the video), the door switch, the Arabic clip, the FAQ, the docs search,
+      WebKit cannot decode the video), the door switch, the right-to-left clip, the FAQ, the docs search,
       the Next.js getting-started page, no sideways scroll.
 - [ ] 4. (owner) Open the js.org pull request (`site/README.md`, "Claiming livelocale.js.org")
       against the preview; wait for the merge.

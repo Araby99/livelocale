@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { STUDIO_LANGUAGE_KEY, STUDIO_THEME_KEY } from '../../src/studio/preferences.js';
+import { STUDIO_THEME_KEY } from '../../src/studio/preferences.js';
 import { seriousViolations } from './fixtures/axe.js';
 import { editKey } from './fixtures/share.js';
 
@@ -7,40 +7,16 @@ const DEV = 'http://localhost:3010';
 const SHARE = 'http://localhost:3020/livelocale/index.html';
 
 interface Variant {
-  name: 'dark-en' | 'light-en' | 'dark-ar' | 'light-ar';
+  name: 'dark' | 'light';
   /** localStorage preferences set before the dev Studio loads. */
   stored: [string, string][];
-  rtl: boolean;
   /** Browser settings for the share Studio. */
-  share: { colorScheme: 'dark' | 'light'; locale?: string };
+  share: { colorScheme: 'dark' | 'light' };
 }
 
 const VARIANTS: Variant[] = [
-  { name: 'dark-en', stored: [], rtl: false, share: { colorScheme: 'dark' } },
-  {
-    name: 'light-en',
-    stored: [[STUDIO_THEME_KEY, 'light']],
-    rtl: false,
-    share: { colorScheme: 'light' },
-  },
-  {
-    name: 'dark-ar',
-    stored: [
-      [STUDIO_THEME_KEY, 'dark'],
-      [STUDIO_LANGUAGE_KEY, 'ar'],
-    ],
-    rtl: true,
-    share: { colorScheme: 'dark', locale: 'ar' },
-  },
-  {
-    name: 'light-ar',
-    stored: [
-      [STUDIO_THEME_KEY, 'light'],
-      [STUDIO_LANGUAGE_KEY, 'ar'],
-    ],
-    rtl: true,
-    share: { colorScheme: 'light', locale: 'ar' },
-  },
+  { name: 'dark', stored: [], share: { colorScheme: 'dark' } },
+  { name: 'light', stored: [[STUDIO_THEME_KEY, 'light']], share: { colorScheme: 'light' } },
 ];
 
 const connected = (page: Page) =>
@@ -110,7 +86,6 @@ for (const variant of VARIANTS) {
       await page.setViewportSize({ width, height });
       await page.goto(DEV);
       await connected(page);
-      if (variant.rtl) await expect(page.getByTestId('studio-root')).toHaveAttribute('dir', 'rtl');
     };
 
     for (const [screen, { width, height, reach }] of Object.entries(DEV_SCREENS)) {
@@ -146,7 +121,7 @@ for (const variant of VARIANTS) {
   });
 
   test.describe(`share Studio, ${variant.name}`, () => {
-    test.use({ colorScheme: variant.share.colorScheme, locale: variant.share.locale ?? 'en-US' });
+    test.use({ colorScheme: variant.share.colorScheme, locale: 'en-US' });
 
     test(`${variant.name} tips has no serious axe violations`, async ({ page }) => {
       await page.goto(SHARE);

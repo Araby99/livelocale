@@ -3,8 +3,6 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { LocalePicker } from '../../src/studio/features/dashboard/components/LocalePicker.jsx';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
-import { textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 vi.stubGlobal('__STUDIO_VERSION__', '0.0.0-test');
 
@@ -25,25 +23,15 @@ const headerProps = {
   onToggleChanges: () => {},
 };
 
-const renderPicker = (
-  overrides: Partial<React.ComponentProps<typeof LocalePicker>> = {},
-  lang: StudioLanguage = 'en'
-) =>
+const renderPicker = (overrides: Partial<React.ComponentProps<typeof LocalePicker>> = {}) =>
   render(
-    <StudioLanguageProvider initial={lang}>
-      <LocalePicker
-        candidates={['ar', 'en']}
-        onChoose={vi.fn()}
-        onCancel={vi.fn()}
-        {...overrides}
-      />
-    </StudioLanguageProvider>
+    <LocalePicker candidates={['ar', 'en']} onChoose={vi.fn()} onCancel={vi.fn()} {...overrides} />
   );
 
 describe('LocalePicker', () => {
-  it('titles the locale picker in Arabic', () => {
-    renderPicker({}, 'ar');
-    expect(screen.getByRole('dialog', { name: textFor('ar')('picker.title') })).toBeTruthy();
+  it('titles the locale picker', () => {
+    renderPicker();
+    expect(screen.getByRole('dialog', { name: 'Which language are you editing?' })).toBeTruthy();
   });
 
   it('offers each candidate and reports the choice', () => {

@@ -34,7 +34,9 @@ it('renders the changelog from the first release, without the preamble links', (
   const source = fs.readFileSync('CHANGELOG.md', 'utf8');
   const body = changelogBody(source);
   const { version } = JSON.parse(fs.readFileSync('package.json', 'utf8')) as { version: string };
-  expect(body.startsWith(`## [${version}]`)).toBe(true);
+  // An `## [Unreleased]` section may sit above the latest release until the next one is cut.
+  expect(body.startsWith('## [Unreleased]') || body.startsWith(`## [${version}]`)).toBe(true);
+  expect(body).toContain(`## [${version}]`);
   expect(source).toContain(body.trimEnd().slice(0, 200));
   expect(body).not.toContain('keepachangelog.com');
   expect(fs.readFileSync(`${REFERENCE}/changelog.md`, 'utf8')).toContain('<!-- @changelog -->');

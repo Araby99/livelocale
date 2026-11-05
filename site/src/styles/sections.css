@@ -947,53 +947,53 @@ html:not(.js) .story + .story {
   }
 }
 
-/* ---------- Arabic, right to left ---------- */
+/* ---------- Every locale, right to left included ---------- */
 
-.arabic {
+.locales {
   display: grid;
   gap: 32px;
   padding-block: 72px 88px;
   border-top: 1px solid var(--rule);
 }
 
-.arabic h2 {
+.locales h2 {
   margin-bottom: 16px;
   font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
   letter-spacing: -0.03em;
 }
 
-.arabic-text {
+.locales-text {
   display: grid;
   align-content: start;
   gap: 16px;
 }
 
-.arabic-text p {
+.locales-text p {
   max-width: 46ch;
 }
 
-.arabic-sample {
+.locales-sample {
   display: grid;
   justify-items: start;
   gap: 4px;
 }
 
-.arabic-sample [lang='ar'] {
+.locales-sample [lang='ar'] {
   font-weight: 500;
 }
 
-.arabic-gloss {
+.locales-gloss {
   color: var(--comment);
   font-size: 0.9375rem;
 }
 
-.arabic-link a {
+.locales-link a {
   display: inline-block;
   padding-block: 4px;
   font-weight: 500;
 }
 
-.arabic-clip {
+.locales-clip {
   min-width: 0;
   margin: 0;
 }
@@ -1049,7 +1049,7 @@ html:not(.js) .clip-toggle {
   display: none;
 }
 
-.arabic-clip figcaption {
+.locales-clip figcaption {
   margin-top: 10px;
   color: var(--comment);
   font-size: 0.875rem;
@@ -1057,7 +1057,7 @@ html:not(.js) .clip-toggle {
 }
 
 @media (min-width: 900px) {
-  .arabic {
+  .locales {
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
     gap: 56px;
     padding-block: 104px 112px;

@@ -5,7 +5,7 @@ import { render, screen, within, cleanup } from '@testing-library/react';
 import { KeysDirectory } from '../../src/studio/features/dashboard/components/KeysDirectory.jsx';
 import { LocalePicker } from '../../src/studio/features/dashboard/components/LocalePicker.jsx';
 import type { SelectedElement } from '../../src/studio/features/dashboard/types/index.js';
-import { textFor } from '../../src/studio/i18n/catalogue.js';
+import { englishText } from '../../src/studio/i18n/catalogue.js';
 
 afterEach(cleanup);
 
@@ -47,7 +47,7 @@ it('marks the selected key row as Wash with an inset Patch bar at the start edge
 
 it('outlines a missing translation with a dashed red line, never a red fill', () => {
   renderKeys({ selected: null });
-  const badge = screen.getByText(textFor('en')('keys.missing'));
+  const badge = screen.getByText(englishText('keys.missing'));
   expect(badge.className.split(/\s+/)).toEqual(
     expect.arrayContaining([
       'border-dashed',

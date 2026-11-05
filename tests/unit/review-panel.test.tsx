@@ -9,8 +9,7 @@ import {
 } from '../../src/studio/features/dashboard/components/ReviewPanel.js';
 import type { ReviewState } from '../../src/studio/features/dashboard/hooks/useReview.js';
 import { REVIEW_STATUS_KEYS, type ReviewRow } from '../../src/studio/share/review.js';
-import { englishText, textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
+import { englishText } from '../../src/studio/i18n/catalogue.js';
 
 const LABEL = (status: keyof typeof REVIEW_STATUS_KEYS) => englishText(REVIEW_STATUS_KEYS[status]);
 
@@ -46,8 +45,7 @@ const reviewOf = (
 
 const renderPanel = (
   review: ReviewState | null,
-  props: Partial<React.ComponentProps<typeof ReviewPanel>> = {},
-  lang?: StudioLanguage
+  props: Partial<React.ComponentProps<typeof ReviewPanel>> = {}
 ) => {
   const panel = (
     <ReviewPanel
@@ -64,9 +62,7 @@ const renderPanel = (
       {...props}
     />
   );
-  return render(
-    lang ? <StudioLanguageProvider initial={lang}>{panel}</StudioLanguageProvider> : panel
-  );
+  return render(panel);
 };
 
 describe('ReviewPanel', () => {
@@ -126,29 +122,14 @@ describe('ReviewPanel', () => {
     );
   });
 
-  it('shows status labels in Arabic and the apply command left-to-right', () => {
-    renderPanel(reviewOf([row({ locale: 'ar', key: 'a', to: 'b' })]), {}, 'ar');
-    expect(screen.getAllByText(textFor('ar')('review.status_apply')).length).toBeGreaterThan(0);
+  it('keeps the apply command left-to-right for an Arabic locale', () => {
+    renderPanel(reviewOf([row({ locale: 'ar', key: 'a', to: 'b' })]));
     expect(
       screen
         .getByText(/npx livelocale apply/)
         .closest('[dir]')
         ?.getAttribute('dir')
     ).toBe('ltr');
-    expect(screen.getByRole('button', { name: textFor('ar')('review.copy_command') })).toBeTruthy();
-  });
-
-  it('keeps the GitHub menu path English in the Arabic Run workflow hint', () => {
-    renderPanel(
-      reviewOf([row({ locale: 'ar', key: 'a', to: 'b' })], { target: 'github' }),
-      { repo: 'acme/web' },
-      'ar'
-    );
-    const hint = textFor('ar')('review.run_workflow_hint', {
-      path: 'Actions → LiveLocale → Run workflow',
-    });
-    expect(hint).toContain('\u2068Actions → LiveLocale → Run workflow\u2069');
-    expect(document.body.textContent).toContain(hint);
   });
 
   it('switches to the clipboard command for very long links', () => {
@@ -384,15 +365,6 @@ describe('ReviewPanel', () => {
       expect(document.body.textContent).toContain(
         'Enter it as owner/repo, for example acme/website.'
       );
-    });
-
-    it('asks for the repository in Arabic', () => {
-      const ar = textFor('ar');
-      renderPanel(githubReview(), {}, 'ar');
-      expect(document.body.textContent).toContain(ar('repo.question'));
-      fireEvent.change(repoInput(), { target: { value: 'acme' } });
-      fireEvent.click(screen.getByRole('button', { name: ar('repo.save') }));
-      expect(document.body.textContent).toContain(ar('repo.malformed'));
     });
 
     it('prefills but does not trust the repo inside the link', () => {

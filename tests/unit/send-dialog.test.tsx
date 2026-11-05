@@ -7,8 +7,6 @@ import { copyText, downloadText, readPref, writePref } from '../../src/studio/sh
 import { SendDialog } from '../../src/studio/features/dashboard/components/SendDialog.jsx';
 import type { Draft } from '../../src/studio/transport/drafts.js';
 import { MANIFEST, SHA_A, STUDIO_URL } from './helpers/share-fixtures.js';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
-import type { StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 vi.mock('../../src/core/change-link.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/core/change-link.js')>()),
@@ -42,11 +40,7 @@ function draft(i: number, status: Draft['status'] = 'unsent'): Draft {
   };
 }
 
-function renderDialog(
-  drafts: Draft[] = [draft(1), draft(2)],
-  manifest = MANIFEST,
-  lang?: StudioLanguage
-) {
+function renderDialog(drafts: Draft[] = [draft(1), draft(2)], manifest = MANIFEST) {
   const onMarkSent = vi.fn(async () => {});
   const dialog = (
     <SendDialog
@@ -58,7 +52,7 @@ function renderDialog(
       onMarkSent={onMarkSent}
     />
   );
-  render(lang ? <StudioLanguageProvider initial={lang}>{dialog}</StudioLanguageProvider> : dialog);
+  render(dialog);
   return { onMarkSent };
 }
 
@@ -112,12 +106,6 @@ afterEach(() => {
 });
 
 describe('SendDialog', () => {
-  it('titles the dialog in Arabic', async () => {
-    renderDialog(undefined, undefined, 'ar');
-    await linkField();
-    expect(screen.getByRole('dialog', { name: 'إرسال إلى المطوّر' })).toBeTruthy();
-  });
-
   it('focuses the name field and closes on Escape', async () => {
     const onClose = vi.fn();
     render(

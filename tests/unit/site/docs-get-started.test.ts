@@ -49,7 +49,7 @@ it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
     for (const href of [
       '../guides/share-links.html',
       '../guides/ci-check.html',
-      '../guides/studio.html#arabic-and-right-to-left',
+      '../guides/studio.html#right-to-left-sites',
     ])
       expect(next[1]).toContain(`(${href})`);
   }

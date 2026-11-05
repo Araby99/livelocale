@@ -7,10 +7,8 @@ import {
   SLOW_CONNECTION_MS,
 } from '../../src/studio/features/dashboard/components/IframeViewer.js';
 import { SetupProblems } from '../../src/studio/features/dashboard/components/SetupProblems.js';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.js';
-import { textFor } from '../../src/studio/i18n/catalogue.js';
+import { englishText } from '../../src/studio/i18n/catalogue.js';
 import { STATIC_MANIFEST_MISSING } from '../../src/studio/config.js';
-import type { StudioLanguage } from '../../src/studio/preferences.js';
 import type { PageNavigation } from '../../src/studio/features/dashboard/hooks/usePageNavigation.js';
 
 const navigationStub = (overrides: Partial<PageNavigation> = {}): PageNavigation => ({
@@ -27,19 +25,16 @@ const navigationStub = (overrides: Partial<PageNavigation> = {}): PageNavigation
 
 const renderViewer = (
   connectionStatus: 'connecting' | 'connected',
-  lang: StudioLanguage = 'en',
   navigation: PageNavigation = navigationStub()
 ) =>
   render(
-    <StudioLanguageProvider initial={lang}>
-      <IframeViewer
-        iframeRef={React.createRef<HTMLIFrameElement>()}
-        appOrigin="https://preview.example.com"
-        appUrl="https://preview.example.com"
-        connectionStatus={connectionStatus}
-        navigation={navigation}
-      />
-    </StudioLanguageProvider>
+    <IframeViewer
+      iframeRef={React.createRef<HTMLIFrameElement>()}
+      appOrigin="https://preview.example.com"
+      appUrl="https://preview.example.com"
+      connectionStatus={connectionStatus}
+      navigation={navigation}
+    />
   );
 
 describe('IframeViewer slow-connection help', () => {
@@ -66,15 +61,13 @@ describe('IframeViewer slow-connection help', () => {
     vi.useFakeTimers();
     const { rerender } = renderViewer('connecting');
     rerender(
-      <StudioLanguageProvider initial="en">
-        <IframeViewer
-          iframeRef={React.createRef<HTMLIFrameElement>()}
-          appOrigin="https://preview.example.com"
-          appUrl="https://preview.example.com"
-          connectionStatus="connected"
-          navigation={navigationStub()}
-        />
-      </StudioLanguageProvider>
+      <IframeViewer
+        iframeRef={React.createRef<HTMLIFrameElement>()}
+        appOrigin="https://preview.example.com"
+        appUrl="https://preview.example.com"
+        connectionStatus="connected"
+        navigation={navigationStub()}
+      />
     );
     act(() => {
       vi.advanceTimersByTime(SLOW_CONNECTION_MS * 2);
@@ -82,15 +75,15 @@ describe('IframeViewer slow-connection help', () => {
     expect(screen.queryByTestId('slow-connection-help')).toBeNull();
   });
 
-  it('marks the connection status for tests in any language', () => {
-    renderViewer('connected', 'ar');
+  it('marks the connection status for tests', () => {
+    renderViewer('connected');
     const status = screen.getByTestId('connection-status');
     expect(status.getAttribute('data-status')).toBe('connected');
-    expect(status.textContent).toBe(textFor('ar')('viewer.status_connected'));
+    expect(status.textContent).toBe(englishText('viewer.status_connected'));
   });
 
   it('reload is disabled while navigating', () => {
-    renderViewer('connected', 'en', navigationStub({ isNavigating: true }));
+    renderViewer('connected', navigationStub({ isNavigating: true }));
     const reload = screen.getByRole('button', { name: 'Reload Frame' }) as HTMLButtonElement;
     expect(reload.disabled).toBe(true);
     expect(reload.getAttribute('data-testid')).toBe('reload-frame');
@@ -98,7 +91,7 @@ describe('IframeViewer slow-connection help', () => {
 
   it('reload calls navigation.reload', () => {
     const navigation = navigationStub();
-    renderViewer('connected', 'en', navigation);
+    renderViewer('connected', navigation);
     fireEvent.click(screen.getByRole('button', { name: 'Reload Frame' }));
     expect(navigation.reload).toHaveBeenCalledTimes(1);
   });
@@ -106,19 +99,6 @@ describe('IframeViewer slow-connection help', () => {
   it('keeps the English status words', () => {
     renderViewer('connecting');
     expect(screen.getByTestId('connection-status').textContent).toBe('CONNECTING');
-  });
-
-  it('keeps the commands and origins in the Arabic slow-connection help', () => {
-    vi.useFakeTimers();
-    renderViewer('connecting', 'ar');
-    act(() => {
-      vi.advanceTimersByTime(SLOW_CONNECTION_MS);
-    });
-    const help = screen.getByTestId('slow-connection-help');
-    expect(help.textContent).toContain(textFor('ar')('viewer.slow_title'));
-    expect(help.textContent).toContain('frame-ancestors');
-    expect(help.textContent).toContain('npx livelocale doctor --app https://preview.example.com');
-    expect(help.textContent).not.toContain('{');
   });
 });
 
@@ -146,16 +126,14 @@ describe('SetupProblems', () => {
   });
 });
 
-describe('SetupProblems in Arabic', () => {
+describe('SetupProblems messages', () => {
   afterEach(cleanup);
 
-  it('shows the missing-manifest problem in Arabic and a server problem as given', () => {
+  it('shows the missing-manifest problem and a server problem as given', () => {
     render(
-      <StudioLanguageProvider initial="ar">
-        <SetupProblems problems={[STATIC_MANIFEST_MISSING, 'Server: locales folder missing']} />
-      </StudioLanguageProvider>
+      <SetupProblems problems={[STATIC_MANIFEST_MISSING, 'Server: locales folder missing']} />
     );
-    expect(screen.getByText(textFor('ar')('setup.manifest_missing'))).toBeTruthy();
+    expect(screen.getByText(englishText('setup.manifest_missing'))).toBeTruthy();
     expect(screen.getByText('Server: locales folder missing')).toBeTruthy();
   });
 });

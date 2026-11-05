@@ -1,5 +1,4 @@
 import { expect, test, type Page } from '@playwright/test';
-import { STUDIO_LANGUAGE_KEY } from '../../src/studio/preferences.js';
 
 const DEV = 'http://localhost:3010';
 const SHARE = 'http://localhost:3020/livelocale/index.html';
@@ -126,18 +125,5 @@ test.describe('share Studio', () => {
     await go(page, '/about/');
     await expect.poll(() => framePath(page)).toBe('/about/');
     await expect(address(page)).toHaveValue('/about/');
-  });
-
-  test.describe('in Arabic', () => {
-    test.beforeEach(async ({ page }) => {
-      await page.addInitScript((key) => localStorage.setItem(key, 'ar'), STUDIO_LANGUAGE_KEY);
-    });
-
-    test('works in the Arabic Studio', async ({ page }) => {
-      await openShare(page);
-      await expect(page.getByTestId('studio-root')).toHaveAttribute('dir', 'rtl');
-      await expect(address(page)).toHaveAttribute('dir', 'ltr');
-      await openAboutFromList(page);
-    });
   });
 });

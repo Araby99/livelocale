@@ -1,11 +1,8 @@
 import type { Message } from './catalogue.js';
 
-/** English Studio copy: the source catalogue. Every key's Arabic lives in `ar.ts`. */
+/** The Studio's copy. The Studio interface is English only; a customer site's locales are content. */
 export const en = {
   'common.arrow': '→',
-  // The toggle's name starts with its visible autonym (WCAG 2.5.3, label in name).
-  'language.switch_to_ar': 'العربية: show the Studio in Arabic',
-  'language.switch_to_en': 'English: show the Studio in English',
   'tips.title': 'Welcome to LiveLocale',
   'tips.step1': 'Hold Alt/Option and click any text.',
   'tips.step2':
@@ -56,7 +53,7 @@ export const en = {
   'link_error.unreadable': 'Could not read the change link.',
   'backup.too_many': 'More than {max} changes: send some of them first, then download the backup.',
   'backup.no_link': 'No change link found in this file.',
-  // A plural for the Arabic forms; the English keeps its 0.10 wording for every count.
+  // A plural message; the English keeps its 0.10 wording for every count.
   'backup.restored': { other: 'Restored {count} changes ({skipped} already here).' },
   'header.tagline': 'Live Visual Translation Studio',
   'header.locale_unset': 'Language: not chosen yet',
@@ -94,7 +91,7 @@ export const en = {
   'layout.review': 'Review',
   'layout.editor': 'Editor',
   'keys.title': 'Locale Directory',
-  // A plural for the Arabic forms; the English keeps its 0.10 wording for every count.
+  // A plural message; the English keeps its 0.10 wording for every count.
   'keys.count': { other: '{count} keys' },
   'keys.search': 'Search keys or values...',
   'keys.search_label': 'Search keys or values',
@@ -242,7 +239,7 @@ export const en = {
   'changes.refresh': 'Refresh',
   'changes.close': 'Close',
   'changes.locale_files': 'Locale files',
-  // A plural for the Arabic forms; the English keeps its 0.10 wording for every count.
+  // A plural message; the English keeps its 0.10 wording for every count.
   'changes.changed': { other: '{count} changed' },
   'changes.loading': 'Loading git status…',
   'changes.git_disabled':
@@ -276,7 +273,7 @@ export const en = {
   'changes.pull_request': 'Pull request:',
   'changes.committed': 'Committed as {hash}. Push whenever you are ready.',
   'changes.session': 'This session',
-  // A plural for the Arabic forms; the English keeps its 0.10 wording for every count.
+  // A plural message; the English keeps its 0.10 wording for every count.
   'changes.edits': { other: '{count} edits' },
   'changes.no_edits': 'No edits saved yet in this session.',
   'changes.undo': 'Undo',

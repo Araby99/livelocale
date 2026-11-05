@@ -56,7 +56,7 @@ it.each([
       'Plural forms',
       'Placeholder safety',
       'Light and dark',
-      'Arabic and right to left',
+      'Right-to-left sites',
       'Keyboard',
     ],
   ],

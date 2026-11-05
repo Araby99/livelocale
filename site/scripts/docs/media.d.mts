@@ -11,12 +11,12 @@ export type ShotName =
   | 'share-review-mode'
   | 'studio-plural'
   | 'studio-placeholder-warning'
-  | 'studio-arabic'
+  | 'studio-rtl-site'
   | 'studio-light'
   | 'studio-keyboard'
   | 'studio-missing';
 
-export type ClipName = 'alt-click-edit' | 'send-link' | 'arabic-switch';
+export type ClipName = 'alt-click-edit' | 'send-link' | 'rtl-site';
 
 export const SHOTS: Record<
   ShotName,

@@ -38,13 +38,17 @@ describe('the check --hardcoded and Studio docs', () => {
       expect(flat(ciCheck)).toContain(s);
   });
 
-  it('describes the Studio language, theme and keyboard support', () => {
+  it('describes the English Studio, right-to-left sites, theme and keyboard support', () => {
     for (const s of [
-      'The Studio speaks English and Arabic',
+      "The Studio's interface is in English",
+      'flips under the Studio, while the Studio around it stays left to right',
       'System, Light and Dark',
       'fonts ship inside the package',
       'visible focus ring',
     ])
       expect(flat(studio)).toContain(s);
+    expect(studio).not.toMatch(
+      /speaks English and Arabic|Arabic Studio|Studio in Arabic|in Arabic and by keyboard/
+    );
   });
 });

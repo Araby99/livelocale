@@ -1,0 +1,4 @@
+{
+  "prompt": "SOURCED, not generated. Captured by site/scripts/record-docs.mjs in headless Chromium from the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example). Nothing is drawn, mocked or overlaid; everything on screen is the product. A screenshot at 1440x900, DPR 2, dark colour scheme, browser locale en-US, converted with ffmpeg-static to WebP q82, 1200 px wide. Ships as the docs shot \"studio-rtl-site\": the English Studio on the Tidewell site with the Locale menu set to Arabic: the site flips right to left under the Studio, the editor open on the Alt+Clicked headline.",
+  "createdAt": "2026-11-05T09:26:05.450Z"
+}

@@ -1,6 +1,5 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import React from 'react';
 import { renderHook, act, cleanup, waitFor } from '@testing-library/react';
 import { ChangeLinkError, decodeChangeLink, type ChangeSet } from '../../src/core/change-link.js';
 import { useReview } from '../../src/studio/features/dashboard/hooks/useReview.js';
@@ -12,8 +11,6 @@ import type { StaticTransport } from '../../src/studio/transport/static.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
 import { describeLinkError } from '../../src/studio/share/send.js';
 import { AR, EN, MANIFEST, SHA_A } from './helpers/share-fixtures.js';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
-import { textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
 
 vi.mock('../../src/core/change-link.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/core/change-link.js')>()),
@@ -64,7 +61,7 @@ const BUILT: Record<string, Record<string, unknown>> = { ar: AR, en: EN, fr: FR 
 
 type Props = Parameters<typeof useReview>[0];
 
-const setupReview = (overrides: Partial<Props> = {}, lang?: StudioLanguage) => {
+const setupReview = (overrides: Partial<Props> = {}) => {
   const readBuiltLocale = vi.fn(async (l: string) => {
     const dict = BUILT[l];
     if (!dict) throw new Error('404');
@@ -87,12 +84,7 @@ const setupReview = (overrides: Partial<Props> = {}, lang?: StudioLanguage) => {
     reloadFrame,
     ...overrides,
   };
-  const wrapper = lang
-    ? ({ children }: { children: React.ReactNode }) => (
-        <StudioLanguageProvider initial={lang}>{children}</StudioLanguageProvider>
-      )
-    : undefined;
-  const hook = renderHook((props: Props) => useReview(props), { initialProps, wrapper });
+  const hook = renderHook((props: Props) => useReview(props), { initialProps });
   return {
     ...hook,
     initialProps,
@@ -179,28 +171,6 @@ describe('useReview', () => {
     });
     expect(opened).toBe(false);
     expect(result.current.error).toBe('The source locale "en" could not be loaded.');
-  });
-
-  it('reports open failures in Arabic', async () => {
-    const ar = textFor('ar');
-    decode.mockRejectedValueOnce(new ChangeLinkError('NOT_FOUND', 'not found'));
-    decode.mockRejectedValueOnce(new ChangeLinkError('CORRUPT', 'corrupt'));
-    const { result } = setupReview({}, 'ar');
-    await act(async () => {
-      await result.current.openReview('hello');
-    });
-    expect(result.current.error).toBe(ar('review.no_link'));
-    await act(async () => {
-      await result.current.openReview('lc1.abc');
-    });
-    expect(result.current.error).toBe(ar('link_error.damaged'));
-    cleanup();
-
-    const failing = setupReview({ readLocale: async () => Promise.reject(new Error('404')) }, 'ar');
-    await act(async () => {
-      await failing.result.current.openReview('lc1.abc');
-    });
-    expect(failing.result.current.error).toBe(ar('review.source_failed', { locale: 'en' }));
   });
 
   it('overlays proposed values for the current locale only', async () => {
@@ -369,28 +339,6 @@ describe('useReview local apply', () => {
       force: true,
     });
     expect(result.current.applyResults[id('fr', 'home.greet')]).toEqual({ state: 'applied' });
-  });
-
-  it('gives skip reasons and checks in Arabic', async () => {
-    const ar = textFor('ar');
-    vi.mocked(fetch).mockResolvedValue(answer(200, { success: true }) as unknown as Response);
-    const { result } = setupReview({ mode: 'development' }, 'ar');
-    await act(async () => {
-      await result.current.openReview('lc1.abc');
-    });
-    const forced = result.current.review!.rows.find((r) => r.status === 'needs-force')!;
-    expect(forced.checks[0]!.message.endsWith(ar('review.saved_anyway'))).toBe(true);
-    await act(async () => {
-      await result.current.applyLocal({ includeForced: false });
-    });
-    expect(result.current.applyResults[id('fr', 'home.greet')]).toEqual({
-      state: 'skipped',
-      reason: ar('review.forced_not_included'),
-    });
-    expect(result.current.applyResults[id('fr', 'home.title')]).toEqual({
-      state: 'skipped',
-      reason: ar('review.status_conflict'),
-    });
   });
 
   it('records a failed save without stopping the batch', async () => {

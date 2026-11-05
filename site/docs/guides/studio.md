@@ -1,6 +1,6 @@
 ---
 title: The Studio
-description: Edit your site's text in the Studio, review and commit the locale files, edit plural forms safely, and use it in light or dark, in Arabic and by keyboard.
+description: Edit your site's text in the Studio, review and commit locale files, edit plural forms safely, and edit right-to-left sites such as Arabic.
 ---
 
 # The Studio
@@ -82,15 +82,13 @@ The Studio comes in a light and a dark theme. The switch in the header has three
 
 The Studio's fonts ship inside the package, so it loads nothing from Google.
 
-## Arabic and right to left
+## Right-to-left sites
 
-The Studio speaks English and Arabic. The language switch is in the header and shows the other language's own name, **العربية** or **English**. In Arabic the whole Studio mirrors to right to left. A share link opened in an Arabic browser starts in Arabic; the dev Studio starts in English. Either way the Studio remembers your choice.
+The Studio's interface is in English. The **Locale** menu in the editor picks the locale you edit. On a share link the preview then shows the site in that locale, so an Arabic or Hebrew site that lays itself out right to left flips under the Studio, while the Studio around it stays left to right. The editing fields use `dir="auto"`, so right-to-left text reads and types correctly in them.
 
-The Studio's language and the language you edit are separate: the **Locale** menu in the editor picks the locale. On a share link the preview then shows the site in that language, so an Arabic site that lays itself out right to left does so under the Studio.
+<DocClip name="rtl-site" label="The English Studio on the Tidewell demo site: the Locale menu is set to Arabic and the site under it flips right to left." caption="Pick the Arabic locale and the site under the Studio flips right to left." />
 
-<DocClip name="arabic-switch" label="Switch the Studio to Arabic on the Tidewell demo site: the Studio mirrors to right to left, then the Arabic locale is picked and the site under it flips right to left too." caption="The Studio mirrors, and the Arabic site under it flips." />
-
-<DocShot name="studio-arabic" alt="The Studio in Arabic, laid out right to left, over the Arabic Tidewell demo site, with the editor open on the Alt+Clicked headline hero.title." caption="Editing the Arabic site in the Arabic Studio." />
+<DocShot name="studio-rtl-site" alt="The English Studio over the Arabic Tidewell demo site, laid out right to left, with the editor open on the Alt+Clicked headline hero.title." caption="Editing the Arabic site, right to left, in the English Studio." />
 
 ## Keyboard
 

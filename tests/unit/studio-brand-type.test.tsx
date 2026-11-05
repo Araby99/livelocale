@@ -21,11 +21,6 @@ describe('Studio brand type', () => {
     expect(css).toMatch(/body\s*\{[^}]*font-family:\s*var\(--font-sans\);/);
   });
 
-  it('enlarges Arabic text and opens its line height', () => {
-    expect(css).toMatch(/html\[lang='ar'\]\s*\{[^}]*font-size:\s*108%;/);
-    expect(css).toMatch(/html\[lang='ar'\] body\s*\{[^}]*line-height:\s*1\.7;/);
-  });
-
   it('bundles the brand faces from Fontsource and nothing from Google', () => {
     for (const f of [
       '@fontsource/martian-mono/latin-500.css',

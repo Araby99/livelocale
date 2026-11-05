@@ -14,9 +14,9 @@ test.describe('without JavaScript', () => {
     const fixer = page.getByRole('heading', { level: 2, name: 'When you fix the text' });
     await expect(developer).toBeVisible();
     await expect(fixer).toBeVisible();
-    const arabic = page.getByRole('heading', {
+    const locales = page.getByRole('heading', {
       level: 2,
-      name: 'Arabic, right to left, done properly',
+      name: 'Edit every language your site speaks',
     });
     const compare = page.getByRole('heading', {
       level: 2,
@@ -24,15 +24,15 @@ test.describe('without JavaScript', () => {
     });
     const faq = page.getByRole('heading', { level: 2, name: 'Questions developers ask' });
     const works = page.getByRole('heading', { level: 2, name: 'Works where you already are' });
-    await expect(arabic).toBeVisible();
+    await expect(locales).toBeVisible();
     await expect(compare).toBeVisible();
     await expect(faq).toBeVisible();
     const ys = await Promise.all(
-      [developer, fixer, arabic, compare, faq, works].map(async (h) => (await h.boundingBox())!.y)
+      [developer, fixer, locales, compare, faq, works].map(async (h) => (await h.boundingBox())!.y)
     );
     expect([...ys].sort((a, b) => a - b)).toEqual(ys);
     for (const h of [
-      'Arabic, right to left, done properly',
+      'Edit every language your site speaks',
       'Works where you already are',
       'Start in two minutes',
       'Fix your first string now',

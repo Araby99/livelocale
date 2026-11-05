@@ -8,7 +8,7 @@ import {
   REVIEW_STATUS_KEYS,
   reviewSummary,
 } from '../../src/studio/share/review.js';
-import { englishText, textFor } from '../../src/studio/i18n/catalogue.js';
+import { englishText } from '../../src/studio/i18n/catalogue.js';
 
 const label = (status: keyof typeof REVIEW_STATUS_KEYS) => englishText(REVIEW_STATUS_KEYS[status]);
 
@@ -100,19 +100,6 @@ describe('buildReviewRows', () => {
       { level: 'warning', message: `${forced!.message} Saved with “Save anyway”.` },
     ]);
     expect(forced!.checks[0]!.message).toContain('{count}');
-  });
-
-  it('translates its own wrapper and keeps the core message English', () => {
-    const [row] = buildReviewRows({
-      set: set([e('ar', 'cart.count', null, 'لديك عناصر', true)]),
-      sourceLocale: 'en',
-      targets,
-      allowForce: false,
-      t: textFor('ar'),
-    });
-    expect(row!.status).toBe('needs-force');
-    expect(row!.checks[0]!.message.startsWith(row!.message!)).toBe(true);
-    expect(row!.checks[0]!.message.endsWith(textFor('ar')('review.saved_anyway'))).toBe(true);
   });
 
   it('maps every status to a catalogue key', () =>

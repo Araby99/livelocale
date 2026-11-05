@@ -60,8 +60,8 @@
       "width": 1200,
       "height": 750
     },
-    "studio-arabic": {
-      "file": "studio-arabic.webp",
+    "studio-rtl-site": {
+      "file": "studio-rtl-site.webp",
       "width": 1200,
       "height": 750
     },
@@ -98,13 +98,13 @@
       "height": 720,
       "seconds": 4
     },
-    "arabic-switch": {
-      "webm": "arabic-switch.webm",
-      "mp4": "arabic-switch.mp4",
-      "poster": "arabic-switch.poster.webp",
+    "rtl-site": {
+      "webm": "rtl-site.webm",
+      "mp4": "rtl-site.mp4",
+      "poster": "rtl-site.poster.webp",
       "width": 1280,
       "height": 720,
-      "seconds": 4.91
+      "seconds": 3.93
     }
   }
 }

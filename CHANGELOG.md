@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Minor Changes
+
+- **Changed**
+  - The Studio's interface is English only. The Arabic translation of the Studio and its language switch in the header are removed. Arabic and other right-to-left sites still edit and preview right to left: pick their locale in the **Locale** menu and the site under the Studio flips.
+
 ## [0.12.1] - 2026-11-04
 
 ### Patch Changes

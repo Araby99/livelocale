@@ -1,5 +1,5 @@
 // The page's entry: brand styles, then the small behaviours. Of the video, only the cut for this
-// viewport is fetched, and only while the video is on screen; the Arabic clip loads as it nears
+// viewport is fetched, and only while the video is on screen; the right-to-left clip loads as it nears
 // the screen.
 import './styles/tokens.css';
 import './styles/fonts.css';
@@ -11,8 +11,8 @@ import wideMp4 from '../media/hero/hero-wide.mp4?url';
 import narrowWebm from '../media/hero/hero-narrow.webm?url';
 import narrowMp4 from '../media/hero/hero-narrow.mp4?url';
 import chapters from '../media/hero/chapters.json';
-import arabicWebm from '../media/docs/arabic-switch.webm?url';
-import arabicMp4 from '../media/docs/arabic-switch.mp4?url';
+import rtlSiteWebm from '../media/docs/rtl-site.webm?url';
+import rtlSiteMp4 from '../media/docs/rtl-site.mp4?url';
 import { startDemoVideo } from './demo-video';
 import { startDoors } from './doors';
 import { startCopyButtons } from './copy';
@@ -28,11 +28,13 @@ if (demo)
 startDoors();
 startCopyButtons();
 
-// The Arabic section's clip: its sources are set here (hashed by Vite) and attached by startClip
+// The locales section's clip: its sources are set here (hashed by Vite) and attached by startClip
 // only when the clip nears the screen. Its poster is in the HTML, so it shows without JavaScript.
-const arabic = document.querySelector<HTMLElement>('#arabic [data-clip]');
-if (arabic) {
-  arabic.querySelector<HTMLSourceElement>('[data-clip-webm]')?.setAttribute('data-src', arabicWebm);
-  arabic.querySelector<HTMLSourceElement>('[data-clip-mp4]')?.setAttribute('data-src', arabicMp4);
-  startClip(arabic, window);
+const rtlSite = document.querySelector<HTMLElement>('#locales [data-clip]');
+if (rtlSite) {
+  rtlSite
+    .querySelector<HTMLSourceElement>('[data-clip-webm]')
+    ?.setAttribute('data-src', rtlSiteWebm);
+  rtlSite.querySelector<HTMLSourceElement>('[data-clip-mp4]')?.setAttribute('data-src', rtlSiteMp4);
+  startClip(rtlSite, window);
 }

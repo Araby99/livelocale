@@ -3,33 +3,22 @@ import React from 'react';
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { Header } from '../../src/studio/features/dashboard/components/Header.js';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.js';
-import { textFor } from '../../src/studio/i18n/catalogue.js';
-import type { StudioLanguage } from '../../src/studio/preferences.js';
 
 (globalThis as Record<string, unknown>).__STUDIO_VERSION__ = 'test';
 
-const renderHeader = (
-  extra: Partial<React.ComponentProps<typeof Header>> = {},
-  lang: StudioLanguage = 'en'
-) =>
+const renderHeader = (extra: Partial<React.ComponentProps<typeof Header>> = {}) =>
   render(
-    <StudioLanguageProvider initial={lang}>
-      <Header
-        coveragePercentage={50}
-        changesCount={0}
-        isChangesOpen={false}
-        onToggleChanges={() => {}}
-        unsentCount={2}
-        canSend
-        onSend={() => {}}
-        {...extra}
-      />
-    </StudioLanguageProvider>
+    <Header
+      coveragePercentage={50}
+      changesCount={0}
+      isChangesOpen={false}
+      onToggleChanges={() => {}}
+      unsentCount={2}
+      canSend
+      onSend={() => {}}
+      {...extra}
+    />
   );
-
-const renderArabicHeader = (extra: Partial<React.ComponentProps<typeof Header>> = {}) =>
-  renderHeader(extra, 'ar');
 
 describe('Header in Review mode', () => {
   afterEach(cleanup);
@@ -87,20 +76,8 @@ describe('Header in Review mode', () => {
     expect(screen.getByTestId('brand-mark')).toBeTruthy();
   });
 
-  it.each([1, 2, 11])('shows the Arabic review chip for %i changes', (n) => {
-    renderArabicHeader({ reviewCount: n });
-    expect(screen.getByTestId('review-chip').textContent).toBe(
-      textFor('ar')('header.reviewing', { count: n })
-    );
-  });
-
-  it('isolates the locale code in the Arabic chip', () => {
-    renderArabicHeader({ targetLocale: { locale: 'pt-BR', source: 'url', mismatch: null } });
-    expect(screen.getByTestId('target-locale').textContent).toContain('\u2068pt-BR\u2069');
-  });
-
-  it('keeps the wordmark English and left-to-right in Arabic', () => {
-    renderArabicHeader({});
+  it('keeps the wordmark English and left-to-right', () => {
+    renderHeader({});
     const heading = screen.getByRole('heading', { level: 1 });
     expect(heading.textContent).toBe('livelocale');
     expect(heading.getAttribute('lang')).toBe('en');

@@ -757,7 +757,7 @@ async function main() {
     await me.click();
     await wait(120);
 
-    // 6-10 s: switch the Studio to Arabic; the preview flips right to left.
+    // 6-10 s: switch the locale to Arabic; the preview flips right to left.
     chapter('Fix it in every language');
     const select = page.locator('select').first();
     const sel = centre(await select.boundingBox());

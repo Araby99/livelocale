@@ -38,7 +38,7 @@ interface HeaderProps {
   onCloseReview?: () => void;
   /** Opens the Import change link dialog; the button renders only in development mode. */
   onImport?: () => void;
-  /** Header settings (language, then theme); always visible, rendered only when set. */
+  /** Header settings (the theme toggle); always visible, rendered only when set. */
   settings?: React.ReactNode;
 }
 
@@ -79,7 +79,7 @@ export const Header = ({
       <div className="flex items-center gap-3 shrink-0">
         <BrandMark className="h-8 w-8 shrink-0" />
         <div>
-          {/* The wordmark is the brand: the same in every Studio language. */}
+          {/* The wordmark is the brand and is never translated. */}
           <h1
             lang="en"
             dir="ltr"
@@ -109,7 +109,6 @@ export const Header = ({
               </span>
             ) : (
               <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] whitespace-nowrap min-w-0">
-                {/* The locale code is isolated by the catalogue in right-to-left text. */}
                 <span className="font-bold text-accent-fg">
                   {t(isReviewing ? 'header.viewing' : 'header.editing', {
                     locale: targetLocale.locale,

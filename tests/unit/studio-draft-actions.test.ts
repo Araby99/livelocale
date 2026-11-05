@@ -8,7 +8,6 @@ import {
 } from '../../src/studio/features/dashboard/hooks/draftActions.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
 import { AR, MANIFEST, SHA_A, STUDIO_URL } from './helpers/share-fixtures.js';
-import { textFor } from '../../src/studio/i18n/catalogue.js';
 
 const d = (o: Partial<Draft> = {}): Draft => ({
   scope: 'path:/',
@@ -90,20 +89,12 @@ describe('createDraftActions.undoDraft', () => {
     expect(deps.setIsUndoing).toHaveBeenLastCalledWith(false);
   });
 
-  it('uses the Arabic fallback only when the error has no message', async () => {
-    const ar = textFor('ar');
+  it('passes a server error message through as given', async () => {
     const { deps, actions } = setup({
-      t: ar,
-      discard: vi.fn(async () => Promise.reject(new Error(''))),
-    });
-    await actions.undoDraft(d());
-    expect(deps.setError).toHaveBeenLastCalledWith(ar('errors.undo_failed'));
-    const second = setup({
-      t: ar,
       discard: vi.fn(async () => Promise.reject(new Error('Server: file locked'))),
     });
-    await second.actions.undoDraft(d());
-    expect(second.deps.setError).toHaveBeenLastCalledWith('Server: file locked');
+    await actions.undoDraft(d());
+    expect(deps.setError).toHaveBeenLastCalledWith('Server: file locked');
   });
 
   it('does nothing outside a share link', async () => {

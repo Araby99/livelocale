@@ -86,7 +86,7 @@ type Literal =
   | ts.TemplateMiddle
   | ts.TemplateTail;
 
-/** True when a call's arguments are never copy: `t(…)`, `textFor(…)(…)`, `require(…)`, `console.*(…)`,
+/** True when a call's arguments are never copy: `t(…)`, `require(…)`, `console.*(…)`,
  *  `withCode(…)` and the string tests in TEST_METHODS. */
 function isCodeCall(call: ts.CallExpression): boolean {
   const callee = call.expression;
@@ -96,11 +96,7 @@ function isCodeCall(call: ts.CallExpression): boolean {
       (ts.isIdentifier(callee.expression) && callee.expression.text === 'console') ||
       TEST_METHODS.has(callee.name.text)
     );
-  return (
-    ts.isCallExpression(callee) &&
-    ts.isIdentifier(callee.expression) &&
-    callee.expression.text === 'textFor'
-  );
+  return false;
 }
 
 /** True for a JSX attribute whose value is code: a code attribute, a `data-*` attribute, or any

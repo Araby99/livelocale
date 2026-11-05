@@ -10,7 +10,7 @@ interface SetupProblemsProps {
 
 /**
  * Banner for server setup problems that would make every save fail. The Studio's own
- * problems (missing manifest, storage) show in the Studio language; server problems stay as given.
+ * problems (missing manifest, storage) go through the text catalogue; server problems stay as given.
  */
 export const SetupProblems = ({ problems, title }: SetupProblemsProps) => {
   const { t } = useStudioText();

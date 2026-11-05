@@ -103,4 +103,4 @@ Press **Create pull request**. It opens a GitHub issue already filled in with th
 
 - [Share links](../guides/share-links.html): the workflow, the trust gate, base branches and every host.
 - [Catch untranslated text in CI](../guides/ci-check.html): fail the build on missing keys, placeholder drift and hardcoded text.
-- [Arabic and right to left](../guides/studio.html#arabic-and-right-to-left): edit an Arabic site in a Studio that reads right to left.
+- [Right-to-left sites](../guides/studio.html#right-to-left-sites): edit an Arabic or Hebrew site that flips right to left under the Studio.

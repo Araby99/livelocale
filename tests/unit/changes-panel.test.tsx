@@ -4,8 +4,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { ChangesPanel } from '../../src/studio/features/dashboard/components/ChangesPanel.jsx';
 import type { GitState } from '../../src/studio/api.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
-import { textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
+import { englishText } from '../../src/studio/i18n/catalogue.js';
 
 const baseGit: GitState = {
   available: true,
@@ -15,10 +14,7 @@ const baseGit: GitState = {
   diff: '--- a/locales/en.json\n+++ b/locales/en.json\n-  "a": "x"\n+  "a": "y"\n',
 };
 
-const renderPanel = (
-  overrides: Partial<React.ComponentProps<typeof ChangesPanel>> = {},
-  lang?: StudioLanguage
-) => {
+const renderPanel = (overrides: Partial<React.ComponentProps<typeof ChangesPanel>> = {}) => {
   const props = {
     isOpen: true,
     onClose: vi.fn(),
@@ -34,8 +30,7 @@ const renderPanel = (
     isUndoing: false,
     ...overrides,
   };
-  const panel = <ChangesPanel {...props} />;
-  render(lang ? <StudioLanguageProvider initial={lang}>{panel}</StudioLanguageProvider> : panel);
+  render(<ChangesPanel {...props} />);
   return props;
 };
 
@@ -134,23 +129,19 @@ describe('ChangesPanel', () => {
   });
 });
 
-describe('ChangesPanel — Arabic', () => {
-  it('shows the git view in Arabic with file paths left-to-right', () => {
-    const ar = textFor('ar');
-    renderPanel({}, 'ar');
-    expect(screen.getByRole('heading', { name: ar('changes.title') })).toBeTruthy();
-    expect(screen.getByText(ar('changes.status_modified'))).toBeTruthy();
-    expect(screen.getByRole('button', { name: ar('changes.commit') })).toBeTruthy();
+describe('ChangesPanel — content direction', () => {
+  it('keeps file paths left-to-right', () => {
+    renderPanel();
     expect(screen.getByText('locales/en.json').getAttribute('dir')).toBe('ltr');
     cleanup();
   });
 
-  it('keeps the git: false setting as code inside the Arabic sentence', () => {
-    renderPanel({ git: { ...baseGit, available: false, isRepo: false, changes: [] } }, 'ar');
+  it('keeps the git: false setting as code inside the sentence', () => {
+    renderPanel({ git: { ...baseGit, available: false, isRepo: false, changes: [] } });
     const code = screen.getByText('git: false');
     expect(code.tagName).toBe('CODE');
     expect(code.closest('p')!.textContent).toContain(
-      textFor('ar')('changes.git_disabled').split('{code}')[0]!
+      englishText('changes.git_disabled').split('{code}')[0]!
     );
     cleanup();
   });

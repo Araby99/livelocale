@@ -15,7 +15,6 @@ import {
   selectDraftsForSend,
 } from '../../src/studio/share/send.js';
 import { MANIFEST, SHA_A } from './helpers/share-fixtures.js';
-import { textFor } from '../../src/studio/i18n/catalogue.js';
 
 const d = (o: Partial<Draft> = {}): Draft => ({
   scope: 'path:/',
@@ -183,14 +182,5 @@ describe('describeLinkError', () => {
     expect(describeLinkError(new Error('boom'))).toBe('boom');
     expect(describeLinkError(new Error(''))).toBe('Could not read the change link.');
     expect(describeLinkError('nope')).toBe('Could not read the change link.');
-  });
-});
-
-describe('describeLinkError in Arabic', () => {
-  it('describes a damaged link in Arabic and keeps an unknown error as written', () => {
-    const damaged = new ChangeLinkError('CORRUPT', 'x');
-    expect(describeLinkError(damaged, textFor('ar'))).toBe(textFor('ar')('link_error.damaged'));
-    expect(describeLinkError(damaged, textFor('ar'))).not.toBe(describeLinkError(damaged));
-    expect(describeLinkError(new Error('Server said no'), textFor('ar'))).toBe('Server said no');
   });
 });

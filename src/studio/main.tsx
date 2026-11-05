@@ -15,13 +15,7 @@ import '@fontsource/ibm-plex-sans-arabic/arabic-700.css';
 import './index.css';
 import App from './app.js';
 import { startStudio } from './bootstrap.js';
-import {
-  initialStudioLanguage,
-  initialThemeChoice,
-  storedLanguage,
-  storedThemeChoice,
-} from './preferences.js';
-import { StudioLanguageProvider } from './i18n/StudioLanguage.js';
+import { initialThemeChoice, storedThemeChoice } from './preferences.js';
 import { isShareStudio } from './runtime.js';
 import { applyTheme, prefersDark, resolveTheme } from './theme.js';
 
@@ -46,16 +40,9 @@ startStudio({
         prefersDark()
       )
     );
-    const language = initialStudioLanguage({
-      stored: storedLanguage(),
-      isShareStudio: isShareStudio(),
-      browserLanguage: navigator.language,
-    });
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>
-        <StudioLanguageProvider initial={language}>
-          <App />
-        </StudioLanguageProvider>
+        <App />
       </React.StrictMode>
     );
   });

@@ -14,7 +14,7 @@ const apps = (ports) => ({
 });
 
 /**
- * The screenshots, by name: the app, the browser locale (`ar` opens the Studio in Arabic), the
+ * The screenshots, by name: the app, the browser locale (en-US unless set), the
  * colour scheme (`light`, else dark) and the step it shows.
  */
 export const SHOTS = {
@@ -66,10 +66,9 @@ export const SHOTS = {
     app: 'next',
     use: 'home.greeting saved without its {name} placeholder: the editor warns, with Save anyway and Keep editing',
   },
-  'studio-arabic': {
+  'studio-rtl-site': {
     app: 'share',
-    locale: 'ar',
-    use: 'the Studio in Arabic, right to left, on the Arabic Tidewell site, the editor open on the Alt+Clicked headline',
+    use: 'the English Studio on the Tidewell site with the Locale menu set to Arabic: the site flips right to left under the Studio, the editor open on the Alt+Clicked headline',
   },
   'studio-light': {
     app: 'share',
@@ -78,7 +77,7 @@ export const SHOTS = {
   },
   'studio-missing': {
     app: 'next',
-    use: 'the editor switched to Arabic: the Locale Directory marks the keys ar.json lacks as Missing, and the editor is open on home.greeting with no Arabic text yet',
+    use: 'the Locale menu set to ar: the Locale Directory marks the keys ar.json lacks as Missing, and the editor is open on home.greeting with no Arabic text yet',
   },
   'studio-keyboard': {
     app: 'share',
@@ -98,10 +97,10 @@ export const CLIPS = {
     seconds: 6,
     use: 'open Send to developer and get the change link for the fix',
   },
-  'arabic-switch': {
+  'rtl-site': {
     app: 'share',
     seconds: 6,
-    use: 'switch the Studio to Arabic: the Studio mirrors and the Tidewell site under it flips right to left',
+    use: 'pick Arabic in the Locale menu: the Tidewell site flips right to left under the Studio, which stays in English',
   },
 };
 

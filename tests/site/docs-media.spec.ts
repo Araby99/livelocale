@@ -1,10 +1,10 @@
 import { test, expect, type Page } from '@playwright/test';
 import { SIDEBAR } from '../../site/src/lib/docs-config';
 
-// The Studio guide carries DocShots and the arabic-switch DocClip below the fold.
+// The Studio guide carries DocShots and the rtl-site DocClip below the fold.
 const PAGE = 'docs/guides/studio.html';
 const CLIP = '.doc-clip';
-const POSTER = /arabic-switch\.poster\.[\w-]+\.webp$/;
+const POSTER = /rtl-site\.poster\.[\w-]+\.webp$/;
 
 const isClipFile = (url: string) => /\.(webm|mp4)(\?|$)/.test(url);
 const paused = (page: Page) =>

@@ -8,8 +8,7 @@ import {
   draftDisplayState,
 } from '../../src/studio/features/dashboard/components/DraftList.jsx';
 import type { Draft } from '../../src/studio/transport/drafts.js';
-import { StudioLanguageProvider } from '../../src/studio/i18n/StudioLanguage.jsx';
-import { englishText, textFor, type StudioLanguage } from '../../src/studio/i18n/catalogue.js';
+import { englishText } from '../../src/studio/i18n/catalogue.js';
 
 const d = (o: Partial<Draft> = {}): Draft => ({
   scope: 'path:/',
@@ -27,10 +26,7 @@ const d = (o: Partial<Draft> = {}): Draft => ({
   ...o,
 });
 
-const renderList = (
-  overrides: Partial<React.ComponentProps<typeof DraftList>> = {},
-  lang?: StudioLanguage
-) => {
+const renderList = (overrides: Partial<React.ComponentProps<typeof DraftList>> = {}) => {
   const props = {
     drafts: [] as Draft[],
     onUndo: vi.fn(async () => {}),
@@ -39,8 +35,7 @@ const renderList = (
     onRestoreBackup: vi.fn(async () => ''),
     ...overrides,
   };
-  const list = <DraftList {...props} />;
-  render(lang ? <StudioLanguageProvider initial={lang}>{list}</StudioLanguageProvider> : list);
+  render(<DraftList {...props} />);
   return props;
 };
 
@@ -178,24 +173,6 @@ describe('DraftList', () => {
     renderList({ onReviewChange });
     fireEvent.click(screen.getByRole('button', { name: 'Review a change link or file' }));
     expect(onReviewChange).toHaveBeenCalledTimes(1);
-  });
-
-  it('points the change arrow to the left in Arabic', () => {
-    const ar = textFor('ar');
-    renderList({ drafts: [d(), d({ key: 'home.b', status: 'sent', sentAt: 2 })] }, 'ar');
-    expect(screen.getAllByText('←').length).toBeGreaterThan(0);
-    expect(screen.getByText(ar('draft_list.status_unsent'))).toBeTruthy();
-    expect(
-      screen.getByRole('button', {
-        name: ar('draft_list.undo_aria', { key: 'home.title', locale: 'ar' }),
-      })
-    ).toBeTruthy();
-    expect(
-      screen.getByRole('button', {
-        name: ar('draft_list.remove_aria', { key: 'home.b', locale: 'ar' }),
-      })
-    ).toBeTruthy();
-    expect(screen.getByRole('button', { name: ar('draft_list.download') })).toBeTruthy();
   });
 
   it('labels live entries "Live now" without an action button', () => {

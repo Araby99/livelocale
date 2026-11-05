@@ -15,7 +15,6 @@ import {
   FirstRunTips,
   StudioLayout,
   ThemeToggle,
-  LanguageToggle,
   useStudio,
   useTheme,
   useMediaQuery,
@@ -122,7 +121,7 @@ export const App = () => {
     importError,
   } = useStudio();
   const theme = useTheme(isShareStudio());
-  const { lang, dir, t } = useStudioText();
+  const { t } = useStudioText();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
@@ -171,8 +170,6 @@ export const App = () => {
   return (
     <div
       data-testid="studio-root"
-      lang={lang}
-      dir={dir}
       className="w-screen h-screen flex flex-col bg-app text-fg font-sans select-none overflow-hidden antialiased"
     >
       <TokenModal isOpen={needsToken} onSubmit={submitToken} />
@@ -193,12 +190,7 @@ export const App = () => {
         isReviewing={isReviewing}
         onCloseReview={closeReview}
         onImport={openImport}
-        settings={
-          <>
-            <LanguageToggle />
-            <ThemeToggle choice={theme.choice} onChange={theme.setChoice} />
-          </>
-        }
+        settings={<ThemeToggle choice={theme.choice} onChange={theme.setChoice} />}
       />
 
       <ChangesPanel

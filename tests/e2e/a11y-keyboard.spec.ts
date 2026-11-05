@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test';
-import { STUDIO_LANGUAGE_KEY, STUDIO_THEME_KEY } from '../../src/studio/preferences.js';
+import { STUDIO_THEME_KEY } from '../../src/studio/preferences.js';
 
 const tabStops = async (page: Page, n: number) => {
   const seen: { tag: string; outline: string; width: string; color: string }[] = [];
@@ -124,30 +124,23 @@ test.describe('keyboard journeys', () => {
   });
 });
 
-// Review Focus 4 (outside the describe: the language is set before the first goto)
-test('reaches the language and theme controls by keyboard in Arabic', async ({ page }) => {
-  await page.addInitScript((key) => localStorage.setItem(key, 'ar'), STUDIO_LANGUAGE_KEY);
+// Review Focus 4
+test('reaches the theme controls by keyboard', async ({ page }) => {
   await page.goto('http://localhost:3010');
   await connected(page);
-  await expect(page.getByTestId('studio-root')).toHaveAttribute('dir', 'rtl');
   const ring = () =>
     page.evaluate(() => {
       const s = getComputedStyle(document.activeElement!);
       return `${s.outlineStyle} ${s.outlineWidth}`;
     });
-  await page.locator('#studio-language-toggle').focus();
-  expect(await ring()).toBe('solid 2px');
-  await page.keyboard.press('Tab');
-  await expect(page.locator('[data-theme-choice="system"]')).toBeFocused();
+  await page.locator('[data-theme-choice="system"]').focus();
   expect(await ring()).toBe('solid 2px');
   await page.keyboard.press('Tab');
   await expect(page.locator('[data-theme-choice="light"]')).toBeFocused();
+  expect(await ring()).toBe('solid 2px');
   await page.keyboard.press('Enter');
   await expect(page.locator('[data-theme-choice="light"]')).toHaveAttribute('aria-pressed', 'true');
   expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(
     false
   );
-  await page.locator('#studio-language-toggle').focus();
-  await page.keyboard.press('Enter');
-  await expect(page.getByTestId('studio-root')).toHaveAttribute('dir', 'ltr');
 });

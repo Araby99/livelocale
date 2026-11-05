@@ -10,7 +10,6 @@ import { LocalePicker } from '../../../src/studio/features/dashboard/components/
 import { TokenModal } from '../../../src/studio/features/dashboard/components/TokenModal.js';
 import { RepoPrompt } from '../../../src/studio/features/dashboard/components/RepoPrompt.js';
 import { Header } from '../../../src/studio/features/dashboard/components/Header.js';
-import { LanguageToggle } from '../../../src/studio/features/dashboard/components/LanguageToggle.js';
 import { ThemeToggle } from '../../../src/studio/features/dashboard/components/ThemeToggle.js';
 import type { Draft } from '../../../src/studio/transport/drafts.js';
 import type { ReviewRow } from '../../../src/studio/share/review.js';
@@ -75,7 +74,6 @@ export type FixtureName =
   | 'TokenModal'
   | 'RepoPrompt'
   | 'Header'
-  | 'LanguageToggle'
   | 'ThemeToggle';
 
 const draft = (o: Partial<Draft> = {}): Draft => ({
@@ -174,7 +172,6 @@ export const FIXTURES: Record<FixtureName, () => React.ReactElement> = {
       canSend: true,
       onSend: () => {},
     }),
-  LanguageToggle: () => h(LanguageToggle),
   ThemeToggle: () => h(ThemeToggle, { choice: 'dark', onChange: () => {} }),
 };
 

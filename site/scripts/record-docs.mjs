@@ -313,7 +313,7 @@ const SCENES = {
     await page.getByTestId('save-warning').waitFor();
     await settle(page, 300);
   },
-  async 'studio-arabic'(page) {
+  async 'studio-rtl-site'(page) {
     await openShare(page);
     await page.locator('select').first().selectOption('ar');
     await app(page).getByText('خطط تنمو معك').waitFor();
@@ -385,12 +385,10 @@ const TAKES = {
       await sleep(3200);
     },
   },
-  'arabic-switch': {
+  'rtl-site': {
     setup: (page) => openShare(page),
     async act(page) {
-      await sleep(800);
-      await page.locator('#studio-language-toggle').click();
-      await sleep(1300);
+      await sleep(1200);
       await page.locator('select').first().selectOption('ar');
       await app(page).getByText('خطط تنمو معك').waitFor();
       await settle(page, 2200);

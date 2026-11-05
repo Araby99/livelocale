@@ -7,7 +7,7 @@ description: Run livelocale check in CI to fail the build on missing keys, broke
 
 `npx livelocale check` is a read-only check of your translations, built for CI. It runs in any `NODE_ENV`, never writes a file, and exits with code 1 when it finds a problem, so the CI job fails.
 
-<DocShot lead name="studio-missing" alt="The Studio on the Next.js playground with the editor set to Arabic: the Locale Directory marks cart.items and home.greeting as Missing, coverage reads 40%, and the editor is open on home.greeting with an empty translation field." caption="The gap the check fails on, as the Studio shows it: keys with no Arabic text yet." />
+<DocShot lead name="studio-missing" alt="The Studio on the Next.js playground with the Locale menu set to Arabic (ar): the Locale Directory marks cart.items and home.greeting as Missing, coverage reads 40%, and the editor is open on home.greeting with an empty translation field." caption="The gap the check fails on, as the Studio shows it: keys with no Arabic text yet." />
 
 ## Run the check
 

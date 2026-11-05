@@ -98,7 +98,7 @@ export function llmsTxt(opts: { siteUrl: string; sidebar: SidebarGroup[]; pages:
 - Next.js: \`npx livelocale init\` writes the API route; the Studio runs beside \`next dev\`. Vite: add the \`liveLocaleVite\` plugin from \`livelocale/vite\`; the Studio runs beside \`vite\`.
 - Share links: \`npx livelocale init --share\` ships the Studio inside a static build, so someone with no git account can fix text on the deployed site and send a change link; on GitHub a workflow turns it into a pull request, elsewhere \`npx livelocale apply "<link>" --pr\` does.
 - CI: \`npx livelocale check\` fails the build on missing keys, broken ICU and placeholder drift; \`--hardcoded\` also fails it on text that never went through translation.
-- Keep next-intl or react-i18next: translations stay as JSON locale files in your repository. The Studio speaks English and Arabic and mirrors right to left.
+- Keep next-intl or react-i18next: translations stay as JSON locale files in your repository. The Studio edits every locale, and right-to-left sites such as Arabic flip right to left under it.
 - Every page below is Markdown; the same page as HTML ends in \`.html\` (the front door is \`${siteUrl}docs/\`). The landing page is ${siteUrl}.
 
 ${sections.join('\n\n')}

@@ -37,4 +37,4 @@ livelocale is a free, open-source npm package for React sites on Next.js, Vite o
 
 - [Share links](./guides/share-links.html): let someone fix text on the deployed site, with no account and no install.
 - [Catch untranslated text in CI](./guides/ci-check.html): fail the build on missing keys, placeholder drift and hardcoded text.
-- [Arabic and right to left](./guides/studio.html#arabic-and-right-to-left): edit an Arabic site in a Studio that reads right to left.
+- [Right-to-left sites](./guides/studio.html#right-to-left-sites): edit an Arabic or Hebrew site that flips right to left under the Studio.

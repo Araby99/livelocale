@@ -253,8 +253,8 @@
               <code>hero.title</code>; “grows” is changed to “grow” and saved.
             </li>
             <li>
-              The Studio switches to Arabic and the page turns right to left. The “Start free trial”
-              button has no Arabic yet;
+              The locale is switched to Arabic and the page turns right to left. The “Start free
+              trial” button has no Arabic yet;
               <span lang="ar" dir="rtl">ابدأ تجربتك المجانية</span>
               is typed and saved.
             </li>
@@ -440,7 +440,8 @@
                 <h3>Hold Alt and click the wrong text</h3>
                 <p>
                   The editor opens on that exact string, showing the text it will replace. Type the
-                  fix in any language: switch to Arabic and the page turns right to left, and
+                  fix in any locale: switch the locale to Arabic and the page turns right to left,
+                  and
                   <span lang="ar" dir="rtl" class="ar-sample">ابدأ تجربتك المجانية</span> goes into
                   the button that had no Arabic yet.
                 </p>
@@ -494,32 +495,36 @@
         </section>
       </div>
 
-      <section class="col arabic" id="arabic" aria-labelledby="arabic-title">
-        <div class="arabic-text">
-          <h2 id="arabic-title">Arabic, right to left, done properly</h2>
+      <section class="col locales" id="locales" aria-labelledby="locales-title">
+        <div class="locales-text">
+          <h2 id="locales-title">Edit every language your site speaks</h2>
           <p>
-            The Studio itself speaks Arabic: switch it in the header and the whole Studio mirrors to
-            right to left. Pick the Arabic locale and your right-to-left site flips under it.
+            One page, every locale, fixed in place. Pick French, German or Japanese in the Studio’s
+            Locale menu and the page shows that text, ready to edit. Pick Arabic or Hebrew and a
+            site that lays itself out right to left flips under the Studio, which stays in English.
           </p>
-          <p class="arabic-sample">
-            <span lang="ar" dir="rtl">إرسال إلى المطوّر</span>
-            <span class="arabic-gloss">The Studio’s Send to developer button, in Arabic.</span>
+          <p class="locales-sample">
+            <span lang="ar" dir="rtl">ابدأ تجربتك المجانية</span>
+            <span class="locales-gloss"
+              ><code>hero.cta</code> in the <code>ar</code> locale, typed straight into the
+              page.</span
+            >
           </p>
-          <p class="arabic-link">
-            <a href="docs/guides/studio.html#arabic-and-right-to-left">Read the Studio guide</a>
+          <p class="locales-link">
+            <a href="docs/guides/studio.html#right-to-left-sites">Read about right-to-left sites</a>
           </p>
         </div>
-        <figure class="arabic-clip" data-clip>
+        <figure class="locales-clip" data-clip>
           <div class="clip-frame">
             <video
               muted
               loop
               playsinline
               preload="none"
-              poster="/media/docs/arabic-switch.poster.webp"
+              poster="/media/docs/rtl-site.poster.webp"
               width="1280"
               height="720"
-              aria-label="The Studio switches to Arabic on the Tidewell demo site and mirrors to right to left, then the Arabic locale is picked and the site under it flips right to left too."
+              aria-label="The English Studio on the Tidewell demo site: the Locale menu is set to Arabic and the site under it flips right to left, while the Studio stays in English."
             >
               <source data-clip-webm type="video/webm" />
               <source data-clip-mp4 type="video/mp4" />

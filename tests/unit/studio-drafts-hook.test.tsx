@@ -7,7 +7,6 @@ import { useUnsentGuard } from '../../src/studio/features/dashboard/hooks/useUns
 import { Header } from '../../src/studio/features/dashboard/components/Header.jsx';
 import { DRAFTS_CHANGED_EVENT, type StaticTransport } from '../../src/studio/transport/static.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
-import { textFor } from '../../src/studio/i18n/catalogue.js';
 
 const draft = (overrides: Partial<Draft> = {}): Draft => ({
   scope: 'acme/site',
@@ -109,13 +108,6 @@ describe('useDrafts', () => {
     expect(unsentLabel(1)).toBe('1 change not sent');
     expect(unsentLabel(5)).toBe('5 changes not sent');
   });
-
-  it.each([
-    [0, 'لا توجد تغييرات غير مرسلة'],
-    [2, 'تغييران لم يُرسلا'],
-  ])('labels %i unsent changes in Arabic', (n, text) =>
-    expect(unsentLabel(n, textFor('ar'))).toBe(text)
-  );
 });
 
 describe('useUnsentGuard', () => {

@@ -160,15 +160,6 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Arabic reads better a little larger and with more line height; rem sizes scale with it. */
-html[lang='ar'] {
-  font-size: 108%;
-}
-
-html[lang='ar'] body {
-  line-height: 1.7;
-}
-
 /* One focus ring for every control; components never set their own. Inside a scroll container an
    outside ring is clipped by the container's edge, so rows of the key list, drawers and dialogs draw it inset.
    An overflow-hidden box is not listed (the app shell is one, so every ring would go inset); an
