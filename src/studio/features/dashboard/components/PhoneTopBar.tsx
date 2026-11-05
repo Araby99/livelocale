@@ -14,11 +14,16 @@ interface PhoneTopBarProps {
   /** Opens the Send flow; the Send button renders only when set (static mode). */
   onSend?: () => void;
   /**
-   * What the More menu holds (theme, keys, changes, page address). Clicking an element marked
-   * `data-closes-menu` inside it closes the menu.
+   * What the More menu holds (theme, keys, changes, page address). Choosing any item in it (a
+   * button or an option) closes the menu.
    */
   menu: ReactNode;
+  /** The menu closes whenever this value changes, such as the page address it navigated to. */
+  closeSignal?: unknown;
 }
+
+/** What counts as choosing an item in the More menu. */
+const MENU_ITEM_SELECTOR = ['button', 'a[href]', '[role="option"]', '[data-closes-menu]'].join(',');
 
 // At least 44 x 44 px per control, so a thumb hits it.
 const CONTROL = 'min-h-11 min-w-11 shrink-0 rounded-xl border text-xs font-semibold';
@@ -35,6 +40,7 @@ export const PhoneTopBar = ({
   onChooseLocale,
   onSend,
   menu,
+  closeSignal,
 }: PhoneTopBarProps) => {
   const { t } = useStudioText();
   const menuId = useId();
@@ -55,16 +61,33 @@ export const PhoneTopBar = ({
       if (menuRef.current?.contains(target) || menuButtonRef.current?.contains(target)) return;
       setIsMenuOpen(false);
     };
+    // A tap in the site moves focus into its frame, which blurs this window.
+    const onBlur = () => setIsMenuOpen(false);
     document.addEventListener('keydown', onKeyDown);
     document.addEventListener('pointerdown', onPointerDown);
+    window.addEventListener('blur', onBlur);
     return () => {
       document.removeEventListener('keydown', onKeyDown);
       document.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('blur', onBlur);
     };
   }, [isMenuOpen]);
 
+  // A submitted page address (or anything else the caller signals) is a choice made.
+  const firstSignal = useRef(true);
+  useEffect(() => {
+    if (firstSignal.current) {
+      firstSignal.current = false;
+      return;
+    }
+    setIsMenuOpen(false);
+  }, [closeSignal]);
+
   const onMenuClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest('[data-closes-menu]')) setIsMenuOpen(false);
+    const target = event.target as HTMLElement;
+    if (target.closest(MENU_ITEM_SELECTOR)) {
+      setIsMenuOpen(false);
+    }
   };
 
   return (
@@ -126,6 +149,15 @@ export const PhoneTopBar = ({
           <circle cx="19" cy="12" r="2" />
         </svg>
       </button>
+
+      {isMenuOpen && (
+        <div
+          data-testid="phone-menu-backdrop"
+          aria-hidden="true"
+          onClick={() => setIsMenuOpen(false)}
+          className="fixed inset-x-0 bottom-0 top-14 z-30"
+        />
+      )}
 
       {isMenuOpen && (
         <div

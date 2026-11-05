@@ -409,6 +409,7 @@ export const App = () => {
               onChooseLocale={handleLocaleChange}
               onSend={mode === 'static' ? openSend : undefined}
               menu={menu}
+              closeSignal={navigation.pendingPath ?? navigation.path}
             />
           }
           viewer={viewer(true)}

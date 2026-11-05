@@ -92,6 +92,38 @@ describe('PhoneTopBar', () => {
     expect(screen.queryByRole('button', { name: englishText('theme.dark') })).toBeNull();
   });
 
+  it('the menu closes after any item is chosen', () => {
+    render(topBar());
+    const menuButton = screen.getByRole('button', { name: englishText('phone.menu') });
+    fireEvent.click(menuButton);
+    // The theme buttons carry no data-closes-menu; choosing one still closes the menu.
+    fireEvent.click(screen.getByRole('button', { name: englishText('theme.dark') }));
+    expect(screen.queryByTestId('phone-menu')).toBeNull();
+    expect(menuButton.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('the menu closes when focus moves into the site frame (window blur)', () => {
+    render(topBar());
+    fireEvent.click(screen.getByRole('button', { name: englishText('phone.menu') }));
+    expect(screen.getByTestId('phone-menu')).toBeTruthy();
+    fireEvent.blur(window);
+    expect(screen.queryByTestId('phone-menu')).toBeNull();
+  });
+
+  it('the menu closes when the backdrop is tapped', () => {
+    render(topBar());
+    fireEvent.click(screen.getByRole('button', { name: englishText('phone.menu') }));
+    fireEvent.click(screen.getByTestId('phone-menu-backdrop'));
+    expect(screen.queryByTestId('phone-menu')).toBeNull();
+  });
+
+  it('the menu closes when closeSignal changes (a page address was submitted)', () => {
+    const { rerender } = render(topBar({ closeSignal: '/' }));
+    fireEvent.click(screen.getByRole('button', { name: englishText('phone.menu') }));
+    rerender(topBar({ closeSignal: '/about' }));
+    expect(screen.queryByTestId('phone-menu')).toBeNull();
+  });
+
   it('every control in the bar is at least 44px tall', () => {
     render(topBar());
     const bar = screen.getByTestId('phone-top-bar');

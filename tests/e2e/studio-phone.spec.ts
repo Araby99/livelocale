@@ -123,6 +123,18 @@ test('switching back to Edit on the new page freezes it again', async ({ page })
   await tapKey(page, 'home.title');
 });
 
+test('the More menu closes once an item is chosen', async ({ page }) => {
+  await openStudio(page);
+  await page.getByRole('button', { name: 'More' }).tap();
+  await expect(page.getByTestId('phone-menu')).toBeVisible();
+  await page.getByRole('button', { name: 'Dark theme' }).tap();
+  await expect(page.getByTestId('phone-menu')).toHaveCount(0);
+  await page.getByRole('button', { name: 'More' }).tap();
+  await expect(page.getByTestId('phone-menu')).toBeVisible();
+  await page.getByTestId('phone-menu-backdrop').tap({ position: { x: 20, y: 300 } });
+  await expect(page.getByTestId('phone-menu')).toHaveCount(0);
+});
+
 test('type and save updates the page', async ({ page }) => {
   await openStudio(page);
   await tapKey(page, 'home.title');
