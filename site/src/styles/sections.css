@@ -1,6 +1,7 @@
 /* The page, top to bottom: the hero (headline, the filmed demo, the two-door switch), the two
-   stories, where it works, and the close. One authored motion moment: the door switch (the patch
-   slides to the chosen door and that story's steps are patched in). */
+   stories, every locale, who it's for, the comparison, the questions, where it works, and the
+   close. One authored motion moment: the door switch (the patch slides to the chosen door and
+   that story's steps are patched in). */
 
 /* ---------- Hero ---------- */
 
@@ -558,6 +559,19 @@ html:not(.js) .doors-row {
   }
 }
 
+/* What it isn't, closing the hero: outside the doors, so every visitor reads it, and under the
+   first viewport, which the video already fills. */
+.hero-not {
+  margin-top: 16px;
+  color: var(--comment);
+  font-size: 0.9375rem;
+}
+
+.hero-not strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+
 /* ---------- The stories ---------- */
 
 /* With JavaScript only the chosen door's story and close show; without it, both, in order. */
@@ -1064,6 +1078,75 @@ html:not(.js) .clip-toggle {
   }
 }
 
+/* ---------- Who it's for ---------- */
+
+.who {
+  display: grid;
+  gap: 32px;
+  padding-block: 72px 88px;
+  border-top: 1px solid var(--rule);
+}
+
+.who h2 {
+  font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
+  letter-spacing: -0.03em;
+}
+
+.who-text {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.who-text p {
+  max-width: 46ch;
+}
+
+/* The three readers in order, ruled like the lists below them: who, their story, the next page. */
+.who-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.who-list li {
+  display: grid;
+  gap: 6px;
+  padding-block: 18px;
+  border-top: 1px solid var(--rule);
+}
+
+.who-list li:last-child {
+  border-bottom: 1px solid var(--rule);
+}
+
+.who-list h3 {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.who-list p {
+  max-width: 62ch;
+  color: var(--comment);
+}
+
+.who-list a {
+  display: block;
+  width: fit-content;
+  padding-block: 4px;
+  font-weight: 500;
+}
+
+@media (min-width: 900px) {
+  .who {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    align-items: start;
+    gap: 56px;
+    padding-block: 104px 112px;
+  }
+}
+
 /* ---------- Why not a hosted platform ---------- */
 
 .compare {
@@ -1087,6 +1170,33 @@ html:not(.js) .clip-toggle {
 
 .compare-text p {
   max-width: 46ch;
+}
+
+/* Each claim on the page, one link from the doc or test that backs it. */
+.proof {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.proof-title {
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.proof-list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.proof-list a {
+  display: inline-block;
+  padding-block: 4px;
+  font-weight: 500;
 }
 
 /* On a phone the table scrolls inside this box; the page never scrolls sideways. */

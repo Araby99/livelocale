@@ -52,7 +52,86 @@ test('compares the mechanism without naming anyone', async ({ page }) => {
   await expect(page.locator('body')).not.toContainText(COMPETITORS);
 });
 
-test('answers the seven questions, each with its docs link', async ({ page }) => {
+// Who it's for and what it isn't sit outside the doors: every visitor sees them, whichever door.
+test("shows Who it's for outside the doors", async ({ page }) => {
+  const who = page.getByRole('heading', { level: 2, name: "Who it's for" });
+  for (const hash of ['', '#fixer']) {
+    await page.goto(`./${hash}`);
+    await expect(who).toBeVisible();
+  }
+  await page.goto('./');
+  await page.getByRole('radio', { name: 'I fix the text' }).click();
+  await expect(who).toBeVisible();
+  await page.getByRole('radio', { name: 'I ship the site' }).click();
+  await expect(who).toBeVisible();
+  await expect(page.locator('#who')).not.toHaveAttribute('data-door');
+  await expect(page.locator('#who [data-door]')).toHaveCount(0);
+});
+
+test('names the three audiences in order', async ({ page }) => {
+  await page.goto('./');
+  const items = page.locator('#who .who-list > li');
+  await expect(items).toHaveCount(3);
+  await expect(items.locator('h3')).toHaveText([
+    /content or marketing people/,
+    /freelance/i,
+    /CI check/,
+  ]);
+  const hrefs = await items.evaluateAll((lis) =>
+    lis.map((li) => [...li.querySelectorAll('a')].map((a) => a.getAttribute('href')))
+  );
+  expect(hrefs).toEqual([
+    ['docs/guides/studio.html'],
+    ['docs/guides/share-links.html'],
+    ['docs/guides/ci-check.html'],
+  ]);
+  await expect(items.nth(2)).toContainText('npx livelocale check --hardcoded');
+  await expect(items.nth(2)).toContainText('Translating on your own?');
+  await expect(page.locator('body')).not.toContainText(/not for you|more than you need/i);
+});
+
+test('says it is not an i18n library', async ({ page }) => {
+  for (const hash of ['', '#fixer']) {
+    await page.goto(`./${hash}`);
+    const line = page.locator('.hero .hero-not');
+    await expect(line).toBeVisible();
+    await expect(line).toContainText('Not an i18n library');
+    await expect(line).toContainText('next-intl');
+    await expect(line).toContainText('react-i18next');
+  }
+  await expect(page.locator('.hero .hero-lede')).toContainText(
+    'livelocale sits on top of next-intl or react-i18next.'
+  );
+});
+
+test('proof links resolve to their docs', async ({ page }) => {
+  await page.goto('./');
+  const proof = page.locator('#compare .proof-list a');
+  expect(await proof.evaluateAll((as) => as.map((a) => a.getAttribute('href')))).toEqual([
+    'docs/how-it-works/safety-switches.html',
+    'docs/how-it-works/watermarking.html#tested-on-right-to-left-scripts',
+    'docs/guides/ci-check.html#what-it-does-not-see',
+  ]);
+  // The CI excerpt in the developer's story links the same limits.
+  await expect(
+    page.locator('#developer a[href="docs/guides/ci-check.html#what-it-does-not-see"]')
+  ).toHaveCount(1);
+  for (const [href, heading] of [
+    ['docs/how-it-works/safety-switches.html', null],
+    [
+      'docs/how-it-works/watermarking.html#tested-on-right-to-left-scripts',
+      'Tested on right-to-left scripts',
+    ],
+    ['docs/guides/ci-check.html#what-it-does-not-see', 'What it does not see'],
+  ] as const) {
+    const res = await page.goto(href);
+    expect(res!.status(), href).toBe(200);
+    const hash = href.split('#')[1];
+    if (hash) await expect(page.locator(`[id="${hash}"]`)).toHaveText(new RegExp(heading!));
+  }
+});
+
+test('answers the eight questions, each with its docs link', async ({ page }) => {
   await page.goto('./');
   await expect(
     page.getByRole('heading', { level: 2, name: 'Questions developers ask' })
@@ -61,6 +140,7 @@ test('answers the seven questions, each with its docs link', async ({ page }) =>
     'Does anything ship to production?',
     'Is it secure?',
     "We don't use GitHub. Does it work?",
+    'Is it an i18n library?',
     'Which i18n libraries does it work with?',
     'Does it work with a static export?',
     'What does it cost?',
@@ -75,6 +155,7 @@ test('answers the seven questions, each with its docs link', async ({ page }) =>
     'docs/how-it-works/safety-switches.html',
     'docs/how-it-works/security.html',
     'docs/guides/share-links.html#other-git-hosts',
+    'docs/',
     'docs/',
     'docs/reference/cli/build.html',
     'https://github.com/Araby99/livelocale/blob/main/LICENSE',

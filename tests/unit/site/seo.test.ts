@@ -114,7 +114,9 @@ it('says what livelocale is first, on the landing page and the docs front door',
   const lede = /<p class="hero-lede">([\s\S]*?)<\/p>/.exec(
     fs.readFileSync('site/index.html', 'utf8')
   )![1]!;
-  expect(htmlText(lede)).toMatch(/^livelocale is a free npm package for React: .+pull request\.$/);
+  expect(htmlText(lede)).toMatch(
+    /^livelocale sits on top of next-intl or react-i18next\. .+pull request\.$/
+  );
   const front = fs.readFileSync('site/docs/index.md', 'utf8');
   const first = front
     .slice(front.indexOf('\n# '))
