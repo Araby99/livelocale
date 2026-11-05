@@ -27,6 +27,8 @@ interface IframeViewerProps {
   connectionStatus: ConnectionStatus;
   /** The address field and Reload, wired to the preview by usePageNavigation. */
   navigation: PageNavigation;
+  /** Shows the address and status bar above the frame; the phone moves it into its menu. */
+  toolbar?: boolean;
 }
 
 export const IframeViewer = ({
@@ -35,6 +37,7 @@ export const IframeViewer = ({
   appUrl,
   connectionStatus,
   navigation,
+  toolbar = true,
 }: IframeViewerProps) => {
   const { t } = useStudioText();
   // The browser never tells the parent page why a frame stayed blank (a CSP
@@ -48,66 +51,72 @@ export const IframeViewer = ({
   }, [connectionStatus]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-raised border border-line rounded-2xl overflow-hidden relative">
+    <div
+      className={`flex-1 flex flex-col h-full bg-raised overflow-hidden relative ${
+        toolbar ? 'border border-line rounded-2xl' : ''
+      }`}
+    >
       {/* Top bar */}
-      <div className="h-14 bg-surface border-b border-line flex items-center justify-between gap-4 px-6 shrink-0">
-        {/* The address field takes the room left by the status group (flex-1 min-w-0). */}
-        <AddressBar
-          path={navigation.path}
-          pendingPath={navigation.pendingPath}
-          recent={navigation.recent}
-          sitePages={navigation.sitePages}
-          onNavigate={navigation.onNavigate}
-        />
+      {toolbar && (
+        <div className="h-14 bg-surface border-b border-line flex items-center justify-between gap-4 px-6 shrink-0">
+          {/* The address field takes the room left by the status group (flex-1 min-w-0). */}
+          <AddressBar
+            path={navigation.path}
+            pendingPath={navigation.pendingPath}
+            recent={navigation.recent}
+            sitePages={navigation.sitePages}
+            onNavigate={navigation.onNavigate}
+          />
 
-        {/* Connection status and actions */}
-        <div className="flex items-center gap-4 justify-end shrink-0">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
-              {t('viewer.status')}
-            </span>
-            <span
-              data-testid="connection-status"
-              data-status={connectionStatus}
-              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                connectionStatus === 'connected'
-                  ? 'glyph-done bg-success-bg text-success-fg border border-success-line'
-                  : connectionStatus === 'connecting'
-                    ? 'glyph-warn bg-warning-bg text-warning-fg border border-warning-line animate-pulse'
-                    : 'bg-danger-bg text-danger-fg border border-dashed border-danger-line'
-              }`}
+          {/* Connection status and actions */}
+          <div className="flex items-center gap-4 justify-end shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
+                {t('viewer.status')}
+              </span>
+              <span
+                data-testid="connection-status"
+                data-status={connectionStatus}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  connectionStatus === 'connected'
+                    ? 'glyph-done bg-success-bg text-success-fg border border-success-line'
+                    : connectionStatus === 'connecting'
+                      ? 'glyph-warn bg-warning-bg text-warning-fg border border-warning-line animate-pulse'
+                      : 'bg-danger-bg text-danger-fg border border-dashed border-danger-line'
+                }`}
+              >
+                {connectionStatus === 'connected'
+                  ? t('viewer.status_connected')
+                  : t('viewer.status_connecting')}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              data-testid="reload-frame"
+              onClick={navigation.reload}
+              disabled={navigation.isNavigating}
+              className="p-1.5 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-raised-hover text-fg-muted hover:text-fg rounded-lg transition duration-200 border border-transparent hover:border-line-strong"
+              aria-label={t('viewer.reload')}
+              title={t('viewer.reload')}
             >
-              {connectionStatus === 'connected'
-                ? t('viewer.status_connected')
-                : t('viewer.status_connecting')}
-            </span>
+              <svg
+                aria-hidden="true"
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                viewBox="0 0 24 24"
+              >
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
           </div>
-
-          <button
-            type="button"
-            data-testid="reload-frame"
-            onClick={navigation.reload}
-            disabled={navigation.isNavigating}
-            className="p-1.5 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-raised-hover text-fg-muted hover:text-fg rounded-lg transition duration-200 border border-transparent hover:border-line-strong"
-            aria-label={t('viewer.reload')}
-            title={t('viewer.reload')}
-          >
-            <svg
-              aria-hidden="true"
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              viewBox="0 0 24 24"
-            >
-              <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
-              <path d="M21 3v5h-5" />
-            </svg>
-          </button>
         </div>
-      </div>
+      )}
 
       {/* Frame Container */}
       <div className="flex-1 bg-raised relative">

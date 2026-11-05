@@ -16,6 +16,15 @@ export const en = {
   'touch.browse': 'Browse',
   'touch.hint': 'Tap any text to fix it',
   'touch.unkeyed': "This text isn't in your locale files, so it can't be edited here.",
+  'phone.menu': 'More',
+  'phone.send': 'Send · {count}',
+  'phone.next_missing': 'Next missing',
+  'phone.done_all': 'Everything on this page is translated.',
+  'phone.done_hidden': {
+    one: 'Everything you can see is translated. 1 more is in a hidden part of the page (a menu or slide).',
+    other:
+      'Everything you can see is translated. {count} more are in hidden parts of the page (menus, slides).',
+  },
   'drafts.unsent': { one: '1 change not sent', other: '{count} changes not sent' },
   'send.title': 'Send to developer',
   'send.name_label': 'Your name',

@@ -55,7 +55,7 @@ it('draws the ring inset inside every scrolling overflow utility', () => {
 // inset rule. Each one is either reviewed (its controls sit at least 4px inside its edge, or it holds
 // none) or pads itself with `p-1 -m-1`, which gives the ring room without moving anything.
 const REVIEWED_OVERFLOW_HIDDEN: Record<string, number> = {
-  'app.tsx': 1, // app shell: every control sits inside the padded layout
+  'app.tsx': 2, // app shells: every control sits inside the padded layout or the px-2 phone bars
   'StudioLayout.tsx': 1, // p-2 or p-6 around its children
   'EditorPanel.tsx': 1, // rounded panel: px-6 header, p-4 rows, scroll body is inset
   'KeysDirectory.tsx': 1, // same panel shape

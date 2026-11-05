@@ -47,6 +47,8 @@ interface EditorPanelProps {
   onDeleteLocale: (locale: string) => Promise<void>;
   /** Width and flex classes; defaults to the fixed column width. */
   className?: string;
+  /** Shown under the editor while a key is selected (the phone's Next missing). */
+  footer?: React.ReactNode;
 }
 
 /**
@@ -72,6 +74,7 @@ export const EditorPanel = ({
   onRenameLocale,
   onDeleteLocale,
   className = 'w-[420px] shrink-0',
+  footer,
 }: EditorPanelProps) => {
   const { t } = useStudioText();
   const [isManageOpen, setIsManageOpen] = useState(false);
@@ -194,6 +197,10 @@ export const EditorPanel = ({
         />
       ) : (
         <EmptySelection />
+      )}
+
+      {footer != null && !isManageOpen && selected && (
+        <div className="shrink-0 bg-surface border-t border-line px-6 py-3">{footer}</div>
       )}
     </div>
   );
