@@ -49,6 +49,16 @@ test.describe('Responsive Studio layout', () => {
     await expect(page.getByTestId('studio-drawer-keys')).toBeHidden();
   });
 
+  // A desktop with a mouse never taps to edit, however narrow its window.
+  test('never shows the Edit / Browse switch on a desktop, even at 800x600', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 600 });
+    await page.goto('http://localhost:3010');
+    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByTestId('studio-toggle-keys')).toBeVisible();
+    await expect(page.getByTestId('edit-browse-switch')).toHaveCount(0);
+    await expect(page.getByTestId('phone-shell')).toHaveCount(0);
+  });
+
   test('shows three columns at 1440x900', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('http://localhost:3010');

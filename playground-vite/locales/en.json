@@ -1,1 +1,10 @@
-{ "home": { "title": "Welcome to the static playground", "greet": "Hello, {name}!" } }
+{
+  "home": {
+    "title": "Welcome to the static playground",
+    "greet": "Hello, {name}!",
+    "about": "About",
+    "cta": "Start your free trial",
+    "footer": "Made with care in Cairo",
+    "menu_item": "Pricing"
+  }
+}
