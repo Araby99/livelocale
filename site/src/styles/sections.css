@@ -47,6 +47,11 @@
   color: var(--paper);
 }
 
+/* A library name breaks at its hyphen on a phone ("react-" / "i18next"); keep it whole. */
+.hero-lede .nobr {
+  white-space: nowrap;
+}
+
 .hero-proof {
   color: var(--comment);
   font-size: 0.9375rem;
@@ -1124,6 +1129,7 @@ html:not(.js) .clip-toggle {
   font-family: var(--font-display);
   font-size: 0.9375rem;
   font-weight: 500;
+  line-height: 1.35;
 }
 
 .who-list p {

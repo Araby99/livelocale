@@ -17,7 +17,7 @@
       media="(min-width: 640px)"
       fetchpriority="high"
     />
-    <title>livelocale: your team fixes next-intl or react-i18next text</title>
+    <title>livelocale: a review layer for next-intl or react-i18next</title>
     <meta
       name="description"
       content="livelocale is a free layer on top of next-intl or react-i18next for React sites: your content people fix text on the real site, and you get a pull request."
@@ -129,8 +129,8 @@
           <h1 id="hero-title"><span class="patch">Stop</span> collecting screenshots.</h1>
           <div class="hero-aside">
             <p class="hero-lede">
-              livelocale sits on top of next-intl or react-i18next. Your team fixes the text; you
-              get a pull request.
+              livelocale sits on top of next-intl or <span class="nobr">react-i18next</span>. Your
+              team fixes text on the real site; you get a pull request.
             </p>
             <div class="actions">
               <button type="button" class="cmd" data-copy="npm install livelocale">
@@ -555,10 +555,7 @@
       <section class="col who" id="who" aria-labelledby="who-title">
         <div class="who-text">
           <h2 id="who-title">Who it's for</h2>
-          <p>
-            livelocale changes how text gets fixed, not how your site is translated. Three kinds of
-            developers get the most from it.
-          </p>
+          <p>Three kinds of developers get the most from it.</p>
         </div>
         <ol class="who-list">
           <li>
@@ -580,9 +577,9 @@
           <li>
             <h3>Developers who want only the CI check</h3>
             <p>
-              <code>npx livelocale check --hardcoded</code> fails the build on missing translations
-              and text typed straight into JSX, with no Studio. Translating on your own? The CI
-              check alone catches missing keys and hard-coded text.
+              <code>npx livelocale check --hardcoded</code> works without the Studio: it fails the
+              build on missing translations and text typed straight into JSX. Translating on your
+              own? It catches the key you forgot in one language before anyone sees it.
             </p>
             <a href="docs/guides/ci-check.html">Add the CI check</a>
           </li>

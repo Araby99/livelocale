@@ -3,7 +3,7 @@ import { OG_IMAGE_ALT } from '../../site/src/lib/seo';
 
 test('carries absolute share tags and the brand icons', async ({ page, request }) => {
   await page.goto('./');
-  await expect(page).toHaveTitle('livelocale: your team fixes next-intl or react-i18next text');
+  await expect(page).toHaveTitle('livelocale: a review layer for next-intl or react-i18next');
   const meta = (p: string) =>
     page.locator(`meta[property="${p}"], meta[name="${p}"]`).getAttribute('content');
   expect(await meta('og:image')).toBe('http://localhost:4173/livelocale/og-image.png');
