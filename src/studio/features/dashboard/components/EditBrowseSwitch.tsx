@@ -61,9 +61,15 @@ export const EditBrowseSwitch = ({
 export const TapNotice = ({
   editMode,
   unkeyedTapSeq,
+  placement = 'default',
+  hidden = false,
 }: {
   editMode: boolean;
   unkeyedTapSeq: number;
+  /** `phone` lifts it above the phone's bottom bar (the Edit / Browse switch). */
+  placement?: 'default' | 'phone';
+  /** Keeps a message out of sight (a sheet is open); the live region still announces it. */
+  hidden?: boolean;
 }) => {
   const { t } = useStudioText();
   const [message, setMessage] = useState<StringKey | null>(null);
@@ -101,13 +107,17 @@ export const TapNotice = ({
 
   // The live region stays in the tree so a screen reader announces each new message.
   return (
-    <div className="fixed inset-x-0 bottom-6 z-40 flex justify-center px-4 pointer-events-none">
+    <div
+      className={`fixed inset-x-0 z-40 flex justify-center px-4 pointer-events-none ${
+        placement === 'phone' ? 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]' : 'bottom-6'
+      }`}
+    >
       <p
         role="status"
         aria-live="polite"
         data-testid="tap-notice"
         className={
-          message === null
+          message === null || hidden
             ? 'sr-only'
             : 'max-w-sm px-4 py-2 rounded-xl bg-raised border border-line-strong text-xs text-fg text-center'
         }

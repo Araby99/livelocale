@@ -91,6 +91,28 @@ describe('TapNotice', () => {
   });
 });
 
+describe('TapNotice on a phone', () => {
+  it('sits above the bottom bar instead of over it', () => {
+    render(<TapNotice editMode={true} unkeyedTapSeq={0} placement="phone" />);
+    const wrapper = screen.getByTestId('tap-notice').parentElement!;
+    expect(wrapper.className).toContain('bottom-[calc(4.5rem+env(safe-area-inset-bottom))]');
+    expect(wrapper.className).not.toMatch(/(^|\s)bottom-6(\s|$)/);
+  });
+
+  it('stays out of sight while a sheet is open, and the live region stays', () => {
+    vi.useFakeTimers();
+    const { rerender } = render(
+      <TapNotice editMode={true} unkeyedTapSeq={0} placement="phone" hidden={true} />
+    );
+    const notice = screen.getByTestId('tap-notice');
+    expect(notice.className).toContain('sr-only');
+    rerender(<TapNotice editMode={true} unkeyedTapSeq={1} placement="phone" hidden={true} />);
+    expect(screen.getByTestId('tap-notice').className).toContain('sr-only');
+    rerender(<TapNotice editMode={true} unkeyedTapSeq={2} placement="phone" hidden={false} />);
+    expect(screen.getByTestId('tap-notice').className).not.toContain('sr-only');
+  });
+});
+
 describe('StudioLayout toolbar', () => {
   it('shows the toolbar in the wide layout when one is given (a wide touch tablet)', () => {
     render(

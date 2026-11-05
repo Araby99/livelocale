@@ -154,6 +154,8 @@ export const App = () => {
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
   // The phone's keys list, a sheet opened from the More menu.
   const [isKeysSheetOpen, setIsKeysSheetOpen] = useState(false);
+  // The phone's editor sheet is up; the tap notice stays out of its way.
+  const [isEditorSheetOpen, setIsEditorSheetOpen] = useState(false);
 
   // Every completed pick brings the editor forward when it lives in a drawer,
   // including a repeat pick of the key that is already selected. Keyed on the
@@ -325,7 +327,12 @@ export const App = () => {
         error={importError}
       />
 
-      <TapNotice editMode={canTapEdit && editMode} unkeyedTapSeq={unkeyedTapSeq} />
+      <TapNotice
+        editMode={canTapEdit && editMode}
+        unkeyedTapSeq={unkeyedTapSeq}
+        placement={isPhone ? 'phone' : 'default'}
+        hidden={isPhone && (isEditorSheetOpen || isSendOpen || isKeysSheetOpen)}
+      />
 
       <FirstRunTips
         // On touch the first tip depends on whether the site's client can tap to edit, which
@@ -425,6 +432,7 @@ export const App = () => {
               onReveal={revealKeyInPage}
               // Closing the sheet is Clear Selection, unsaved-changes prompt included.
               onDismiss={isReviewing ? undefined : handleClearSelection}
+              onOpenChange={setIsEditorSheetOpen}
             >
               {isReviewing ? (
                 side()
