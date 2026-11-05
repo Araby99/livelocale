@@ -2,6 +2,8 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { getAppOrigin, getAppUrl } from '../constants.js';
 import { useConnection } from './useConnection.js';
+import { useEditMode } from './useEditMode.js';
+import { useTouchDevice } from './useTouchDevice.js';
 import { useLocaleData } from './useLocaleData.js';
 import { usePageNavigation } from './usePageNavigation.js';
 import { useSelection } from './useSelection.js';
@@ -71,14 +73,29 @@ export const useStudio = () => {
     currentPath,
     locationKnown,
     locationSeq,
+    readySeq,
     visibleKeys,
+    renderedKeys,
+    supportsEditMode,
+    unkeyedTapSeq,
     iframeRef,
     sendToIframe,
+    setSiteEditMode,
+    selectKeyInPage,
+    revealKeyInPage,
   } = useConnection({
     onElementSelected: (el) => selectElementRef.current(el),
     onLocaleDetected: (locale) => setLocaleRef.current(locale),
     onError: (message) => setErrorRef.current(message),
     onVisibleTexts: (texts) => visibleTextsRef.current(texts),
+  });
+
+  // Touch devices tap to edit through the Edit/Browse switch, re-sent to every new page.
+  const { isTouch, isPhone } = useTouchDevice();
+  const { editMode, setEditMode } = useEditMode({
+    active: isTouch && supportsEditMode,
+    readySeq,
+    setSiteEditMode,
   });
 
   const {
@@ -425,6 +442,17 @@ export const useStudio = () => {
     filterPageOnly,
     setFilterPageOnly,
     visibleKeys,
+    // Touch devices: Edit/Browse switch and tap-to-edit
+    isTouch,
+    isPhone,
+    supportsEditMode,
+    editMode,
+    setEditMode,
+    renderedKeys,
+    unkeyedTapSeq,
+    setSiteEditMode,
+    selectKeyInPage,
+    revealKeyInPage,
     // Changes panel: git + session history
     isChangesOpen,
     toggleChanges: () => setIsChangesOpen((v) => !v),

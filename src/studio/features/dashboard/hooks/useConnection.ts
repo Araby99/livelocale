@@ -30,6 +30,16 @@ function toVisibleTexts(payload: unknown[]): VisibleText[] {
   return texts;
 }
 
+/** The string entries of a key list payload. */
+const toKeys = (payload: unknown[]): string[] =>
+  payload.filter((key): key is string => typeof key === 'string');
+
+/** Whether a READY payload says the client can freeze the page and select on tap. */
+const hasEditMode = (payload: unknown): boolean => {
+  const features = (payload as { features?: unknown } | null | undefined)?.features;
+  return Array.isArray(features) && features.includes('edit-mode');
+};
+
 /**
  * Owns the iframe bridge: connection status, message listener with origin
  * validation, and outbound commands to the embedded app preview.
@@ -42,6 +52,14 @@ export const useConnection = (handlers: ConnectionHandlers) => {
   const [locationKnown, setLocationKnown] = useState(false);
   // Bumped on every location the client reports, even a repeat of the same path.
   const [locationSeq, setLocationSeq] = useState(0);
+  // Bumped on every READY: each new document must be told the Studio's Edit mode again.
+  const [readySeq, setReadySeq] = useState(0);
+  // The latest client said it understands Edit mode; an older one keeps view-only behaviour.
+  const [supportsEditMode, setSupportsEditMode] = useState(false);
+  // Keys with a visible element on the page, in document order (for Next missing).
+  const [renderedKeys, setRenderedKeys] = useState<string[] | null>(null);
+  // Bumped on every tap on text that has no translation key.
+  const [unkeyedTapSeq, setUnkeyedTapSeq] = useState(0);
 
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
@@ -84,6 +102,9 @@ export const useConnection = (handlers: ConnectionHandlers) => {
 
       if (type === 'READY') {
         setConnectionStatus('connected');
+        setSupportsEditMode(hasEditMode(payload));
+        setRenderedKeys(null);
+        setReadySeq((seq) => seq + 1);
         // Reset visible keys on page navigation so the sidebar shows all keys briefly
         if (followLocation()) setVisibleKeys(null);
       } else if (type === 'LOCATION_CHANGED') {
@@ -102,6 +123,12 @@ export const useConnection = (handlers: ConnectionHandlers) => {
         if (Array.isArray(payload)) {
           setVisibleKeys(payload as string[]);
         }
+      } else if (type === 'RENDERED_KEYS_CHANGED') {
+        if (Array.isArray(payload)) {
+          setRenderedKeys(toKeys(payload));
+        }
+      } else if (type === 'TAP_UNKEYED') {
+        setUnkeyedTapSeq((seq) => seq + 1);
       } else if (type === 'VISIBLE_TEXTS_CHANGED') {
         if (Array.isArray(payload)) {
           handlersRef.current.onVisibleTexts?.(toVisibleTexts(payload));
@@ -125,13 +152,36 @@ export const useConnection = (handlers: ConnectionHandlers) => {
     }
   }, []);
 
+  // Edit mode freezes the page and turns taps into selections.
+  const setSiteEditMode = useCallback(
+    (on: boolean) => sendToIframe('SET_EDIT_MODE', { on }),
+    [sendToIframe]
+  );
+  // Scrolls the first visible element with `key` into view and selects it.
+  const selectKeyInPage = useCallback(
+    (key: string) => sendToIframe('SELECT_KEY', { key }),
+    [sendToIframe]
+  );
+  // Scrolls so the key's text sits above `bottomInset` CSS px from the frame's bottom.
+  const revealKeyInPage = useCallback(
+    (key: string, bottomInset: number) => sendToIframe('REVEAL_KEY', { key, bottomInset }),
+    [sendToIframe]
+  );
+
   return {
     connectionStatus,
     currentPath,
     locationKnown,
     locationSeq,
+    readySeq,
     visibleKeys,
+    renderedKeys,
+    supportsEditMode,
+    unkeyedTapSeq,
     iframeRef,
     sendToIframe,
+    setSiteEditMode,
+    selectKeyInPage,
+    revealKeyInPage,
   };
 };
