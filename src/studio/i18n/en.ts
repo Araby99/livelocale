@@ -9,6 +9,8 @@ export const en = {
   'tips.step2':
     'Type your fix. The page updates as you type, and your changes are kept in this browser.',
   'tips.step3': 'When you are done, press Send to developer and paste the link to your developer.',
+  'tips.view_only':
+    "This site's LiveLocale version can only be viewed on a phone. Open this link on a computer to edit.",
   'tips.name_label': 'Your name (optional, credited in the pull request)',
   'tips.start': 'Start editing',
   'touch.mode_label': 'Tap mode',

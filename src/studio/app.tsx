@@ -328,8 +328,11 @@ export const App = () => {
       <TapNotice editMode={canTapEdit && editMode} unkeyedTapSeq={unkeyedTapSeq} />
 
       <FirstRunTips
-        open={showTips}
+        // On touch the first tip depends on whether the site's client can tap to edit, which
+        // is known once it has connected.
+        open={showTips && (!isTouch || connectionStatus === 'connected')}
         touch={isTouch}
+        viewOnly={isTouch && !supportsEditMode}
         name={translatorName}
         onNameChange={setTranslatorName}
         onDismiss={dismissTips}

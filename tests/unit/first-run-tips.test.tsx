@@ -87,3 +87,22 @@ describe('first-run tips on touch devices', () => {
     expect(screen.queryByText(englishText('tips.step1_touch'))).toBeNull();
   });
 });
+
+describe('first-run tips on a touch device whose site cannot tap to edit', () => {
+  it('says the site can only be viewed on a phone, never to tap text', () => {
+    render(
+      <FirstRunTips
+        open={true}
+        touch={true}
+        viewOnly={true}
+        name=""
+        onNameChange={vi.fn()}
+        onDismiss={vi.fn()}
+      />
+    );
+    expect(screen.getByText(englishText('tips.view_only'))).toBeTruthy();
+    expect(screen.queryByText(englishText('tips.step1_touch'))).toBeNull();
+    expect(screen.queryByText(/Tap any text/)).toBeNull();
+    expect(screen.queryByText(englishText('tips.step1'))).toBeNull();
+  });
+});

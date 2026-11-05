@@ -1,5 +1,9 @@
 import React, { useEffect, useRef } from 'react';
-import { FIRST_RUN_TIP_KEYS, FIRST_RUN_TOUCH_TIP_KEYS } from '../hooks/useFirstRun.js';
+import {
+  FIRST_RUN_TIP_KEYS,
+  FIRST_RUN_TOUCH_TIP_KEYS,
+  FIRST_RUN_VIEW_ONLY_TIP_KEYS,
+} from '../hooks/useFirstRun.js';
 import { useDialog } from '../hooks/useDialog.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
@@ -7,6 +11,8 @@ interface FirstRunTipsProps {
   open: boolean;
   /** A touch device: the first tip says to tap instead of Alt+Click. */
   touch?: boolean;
+  /** A touch device whose site client cannot tap to edit: the first tip says to use a computer. */
+  viewOnly?: boolean;
   name: string;
   onNameChange(v: string): void;
   onDismiss(): void;
@@ -16,6 +22,7 @@ interface FirstRunTipsProps {
 export const FirstRunTips = ({
   open,
   touch = false,
+  viewOnly = false,
   name,
   onNameChange,
   onDismiss,
@@ -42,7 +49,12 @@ export const FirstRunTips = ({
           {t('tips.title')}
         </h3>
         <ol className="mt-3 space-y-2 list-decimal list-inside text-xs text-fg leading-relaxed">
-          {(touch ? FIRST_RUN_TOUCH_TIP_KEYS : FIRST_RUN_TIP_KEYS).map((key) => (
+          {(touch && viewOnly
+            ? FIRST_RUN_VIEW_ONLY_TIP_KEYS
+            : touch
+              ? FIRST_RUN_TOUCH_TIP_KEYS
+              : FIRST_RUN_TIP_KEYS
+          ).map((key) => (
             <li key={key}>{t(key)}</li>
           ))}
         </ol>
