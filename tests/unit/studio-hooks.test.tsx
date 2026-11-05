@@ -86,6 +86,35 @@ describe('useSelection', () => {
     });
   });
 
+  it('takes the reference from the source locale, not the text on the page', () => {
+    const params = {
+      ...makeParams(),
+      localeData: { 'home.title': 'مرحبا' },
+      enLocaleData: { 'home.title': 'Welcome' },
+    };
+    const { result } = renderHook(() => useSelection(params));
+
+    // A pick on a page already showing the Arabic value reports that text as its fallback.
+    act(() =>
+      result.current.selectElement({
+        key: 'home.title',
+        fallbackValue: 'مرحبا',
+        currentValue: 'مرحبا',
+      })
+    );
+    expect(result.current.selected?.fallbackValue).toBe('Welcome');
+  });
+
+  it('keeps the page fallback as the reference when the source locale lacks the key', () => {
+    const params = { ...makeParams(), localeData: { 'home.new': 'جديد' }, enLocaleData: {} };
+    const { result } = renderHook(() => useSelection(params));
+
+    act(() =>
+      result.current.selectElement({ key: 'home.new', fallbackValue: 'New', currentValue: 'جديد' })
+    );
+    expect(result.current.selected?.fallbackValue).toBe('New');
+  });
+
   it('counts every completed pick, including a repeat pick of the same key', () => {
     const params = makeParams();
     const { result } = renderHook(() => useSelection(params));

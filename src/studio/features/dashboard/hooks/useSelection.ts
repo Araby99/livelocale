@@ -85,6 +85,13 @@ export const useSelection = ({
     [sendToIframe, selected?.key]
   );
 
+  // A pick reports the text on the page, which is the edited locale's text once the page
+  // shows it; the reference is the source locale's value whenever the source has the key.
+  const referenceFor = useCallback(
+    (el: SelectedElement) => enLocaleData[el.key] ?? el.fallbackValue,
+    [enLocaleData]
+  );
+
   const selectElement = useCallback(
     (newElement: SelectedElement) => {
       // Expose the custom Confirmation Modal state instead of using blocking window.confirm (RULE STD-004)
@@ -98,6 +105,7 @@ export const useSelection = ({
 
       setSelected({
         ...newElement,
+        fallbackValue: referenceFor(newElement),
         currentValue: rawValue,
       });
       setSelectionCount((n) => n + 1);
@@ -106,7 +114,7 @@ export const useSelection = ({
       setSaveWarning(null);
       setError(null);
     },
-    [hasUnsavedChanges, localeData, setError]
+    [hasUnsavedChanges, localeData, referenceFor, setError]
   );
 
   // Expose trigger actions to handle Confirmation Modal choice
@@ -115,6 +123,7 @@ export const useSelection = ({
       const rawValue = localeData[pendingElement.key] ?? pendingElement.currentValue;
       setSelected({
         ...pendingElement,
+        fallbackValue: referenceFor(pendingElement),
         currentValue: rawValue,
       });
       setSelectionCount((n) => n + 1);
@@ -129,7 +138,7 @@ export const useSelection = ({
     setShowConfirmModal(false);
     setIsSuccess(false);
     setError(null);
-  }, [pendingElement, localeData, sendToIframe, setError]);
+  }, [pendingElement, localeData, referenceFor, sendToIframe, setError]);
 
   const cancelDiscard = useCallback(() => {
     setPendingElement(null);
