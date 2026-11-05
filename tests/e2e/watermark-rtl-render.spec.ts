@@ -45,7 +45,7 @@ const CASES: { name: string; text: string }[] = [
   { name: 'Arabic phrase', text: 'ابدأ تجربتك المجانية' },
   { name: 'Arabic with Latin and digits', text: 'خطة Pro بـ 29 دولار' },
   // A real zero-width non-joiner inside the word, as Persian spells it.
-  { name: 'Persian with a zero-width non-joiner', text: 'می‌خواهم' },
+  { name: 'Persian with a zero-width non-joiner', text: 'می\u200Cخواهم' },
   { name: 'Hebrew', text: 'שלום עולם' },
 ];
 
@@ -122,7 +122,7 @@ test.describe('watermark on right-to-left scripts', () => {
     // connected form. If this comparison found no difference, the one above
     // would prove nothing.
     const text = 'بيت';
-    await renderPairs(page, [{ plain: text, other: '‍' + text }]);
+    await renderPairs(page, [{ plain: text, other: '\u200D' + text }]);
 
     const plain = await measure(page, 'plain-0');
     const joined = await measure(page, 'other-0');
