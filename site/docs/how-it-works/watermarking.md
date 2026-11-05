@@ -27,6 +27,10 @@ Two choices keep the text intact:
 - **The watermark comes first.** Code that cuts text from the right, such as `text.substring(0, 40)`, keeps the key.
 - **The delimiters are non-joining.** The delimiters touch the visible text, and a zero-width joiner there would make the first Arabic letter take its connected form, as if a hidden letter came before it. The joiner only appears between other zero-width characters, never next to a letter.
 
+## Tested on right-to-left scripts
+
+A [browser test](https://github.com/Araby99/livelocale/blob/main/tests/e2e/watermark-rtl-render.spec.ts) renders Arabic, Arabic mixed with Latin and digits, Persian with its own zero-width non-joiner, and Hebrew, each once plain and once watermarked, in the same font on the same page. It checks that both versions have the same size and the same pixels. A control in the same test puts a zero-width joiner next to the first Arabic letter and checks that the pixels do change, so the comparison is shown to catch a difference.
+
 ## How Alt+Click finds the key
 
 `LiveLocaleProvider` loads the in-page client in the browser while livelocale is on, and the client starts only when the page is framed, inside the Studio. Then:
