@@ -108,8 +108,8 @@ it('gives the docs front door two breadcrumbs and every other page three', () =>
 });
 
 it('says what livelocale is first, on the landing page and the docs front door', () => {
-  expect(SUMMARY.startsWith('livelocale is a free, open-source npm package for React sites')).toBe(
-    true
+  expect(SUMMARY).toMatch(
+    /^livelocale is a free, open-source .*layer on top of next-intl or react-i18next/
   );
   const lede = /<p class="hero-lede">([\s\S]*?)<\/p>/.exec(
     fs.readFileSync('site/index.html', 'utf8')
@@ -122,7 +122,32 @@ it('says what livelocale is first, on the landing page and the docs front door',
     .slice(front.indexOf('\n# '))
     .split('\n')
     .find((l) => l && !l.startsWith('#'))!;
-  expect(first).toMatch(/^livelocale is a free, open-source npm package for React sites/);
+  expect(first).toMatch(
+    /^livelocale is a free, open-source .*layer on top of next-intl or react-i18next/
+  );
+});
+
+// "an i18n library" may appear only as what livelocale is not.
+const SELF_LIBRARY = /(?<!not )an i18n library|is an? (?:free,? )?(?:open-source )?i18n library/i;
+
+it('describes livelocale as a layer on next-intl and react-i18next in llms.txt and JSON-LD', () => {
+  const pages = docsPages({ siteUrl: LIVE, docsDir: 'site/docs', sidebar: SIDEBAR });
+  const llms = llmsTxt({ siteUrl: LIVE, sidebar: SIDEBAR, pages });
+  const summary = /^> (.+)$/m.exec(llms)![1]!;
+  const html = fs.readFileSync('site/index.html', 'utf8');
+  const meta = /<meta\s+name="description"\s+content="([^"]+)"/.exec(html)![1]!;
+  const jsonLd = landingJsonLd({ siteUrl: LIVE, version: '1.0.0', description: meta, faq: [] }) as {
+    '@graph': { description?: string }[];
+  };
+  const descriptions = jsonLd['@graph'].map((n) => n.description).filter(Boolean) as string[];
+  expect(descriptions).toHaveLength(2);
+  for (const text of [summary, ...descriptions]) {
+    expect(text).toContain('next-intl');
+    expect(text).toContain('react-i18next');
+    expect(text).not.toMatch(SELF_LIBRARY);
+  }
+  expect(SUMMARY).toMatch(/not an i18n library/);
+  expect(llms).toMatch(/^- Who it's for: .*team.*freelance.*CI check/m);
 });
 
 it('maps docs files to their HTML and Markdown URLs', () => {

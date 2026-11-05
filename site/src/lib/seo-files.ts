@@ -94,6 +94,7 @@ export function llmsTxt(opts: { siteUrl: string; sidebar: SidebarGroup[]; pages:
 
 > ${SUMMARY}
 
+- Who it's for: teams whose content people review copy and keep asking developers for text changes; freelance and agency developers whose client fixes their own copy through a share link; any developer who only wants the CI check.
 - Install: \`npm install livelocale\` (Node.js 18 or later). One package, MIT licence, no runtime dependencies, no account, no server.
 - Next.js: \`npx livelocale init\` writes the API route; the Studio runs beside \`next dev\`. Vite: add the \`liveLocaleVite\` plugin from \`livelocale/vite\`; the Studio runs beside \`vite\`.
 - Share links: \`npx livelocale init --share\` ships the Studio inside a static build, so someone with no git account can fix text on the deployed site and send a change link; on GitHub a workflow turns it into a pull request, elsewhere \`npx livelocale apply "<link>" --pr\` does.

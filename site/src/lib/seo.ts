@@ -17,7 +17,7 @@ export const AUTHOR = { name: 'Araby99', url: 'https://github.com/Araby99' };
  * front door say the same in their own words (tests/unit/site/seo.test.ts).
  */
 export const SUMMARY =
-  'livelocale is a free, open-source npm package for React sites on Next.js, Vite or any static host: anyone on the team holds Alt, clicks the wrong text on the running site and fixes it in any language, and the developer gets the fix as a JSON edit or a pull request.';
+  'livelocale is a free, open-source editing and review layer on top of next-intl or react-i18next for React sites on Next.js, Vite or any static host: anyone on the team holds Alt, clicks the wrong text on the running site and fixes it, and the developer gets the fix as a JSON edit or a pull request. It is not an i18n library; routing, formatting and locale detection stay with your library.';
 
 /** The share image's text alternative, on the landing page and every docs page. */
 export const OG_IMAGE_ALT =

@@ -5,8 +5,8 @@
       <img src="brand/logo.svg" alt="livelocale" height="64">
     </picture>
   </h1>
-  <p><strong>Click any text in your app. Fix the translation. Ship it as a pull request.</strong></p>
-  <p>Keep next-intl or react-i18next. LiveLocale adds in-context editing for Next.js and React + Vite: no account, no server, no browser extension. Your translations stay as JSON in git.</p>
+  <p><strong>The editing and review layer on top of next-intl or react-i18next.</strong></p>
+  <p>Your content people fix text on the real site, and you get each fix as an edit to your JSON locale files in git, or as a pull request. For Next.js and React + Vite: no account, no server, no browser extension.</p>
 
   <p align="center">
     <a href="https://github.com/Araby99/livelocale/actions/workflows/ci.yml?query=branch%3Amain"><img src="https://github.com/Araby99/livelocale/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI Status" /></a>
@@ -17,6 +17,16 @@
 </div>
 
 ---
+
+**It is not an i18n library.** next-intl or react-i18next keeps doing routing, locale detection,
+date and number formatting and message rendering; livelocale only edits and reviews the text.
+
+- **Freelancing?** Your client fixes their own copy through a
+  [share link](https://livelocale.js.org/docs/guides/share-links.html), and you review a pull
+  request instead of collecting screenshots.
+- **Only want CI?** [`npx livelocale check --hardcoded`](https://livelocale.js.org/docs/guides/ci-check.html)
+  works without the Studio. Translating on your own? The CI check alone catches missing keys and
+  hard-coded text.
 
 Run your app beside the livelocale Studio, hold Alt and click a line of text, and fix it. The save
 goes straight into your locale JSON file as an ordinary edit you commit. In development every

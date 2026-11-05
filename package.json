@@ -1,7 +1,7 @@
 {
   "name": "livelocale",
   "version": "0.12.1",
-  "description": "Click any text in your running React app to edit its translation. Edits stay as JSON in git, or arrive as a pull request from a deployed preview. Local-first, zero-dependency.",
+  "description": "The editing and review layer on top of next-intl or react-i18next. Your team fixes text on the real site; you get a JSON edit in git or a pull request. A CI check catches missing translations.",
   "license": "MIT",
   "author": "Araby99",
   "repository": {
@@ -26,6 +26,8 @@
     "vite",
     "i18next",
     "next-intl",
+    "react-i18next",
+    "translation-review",
     "rtl",
     "git"
   ],

@@ -5,7 +5,7 @@ description: Ship the Studio inside your build so anyone can fix text on the dep
 
 # Share links
 
-A share link lets someone fix your site's text on the deployed site, with no account and no install, and every fix comes back to you as a pull request.
+A share link lets someone fix your site's text on the deployed site, with no account and no install, and every fix comes back to you as a pull request. Working freelance? Your client fixes their own copy on the site you deployed, and you review a pull request instead of a pile of screenshots.
 
 <DocShot lead name="share-review-mode" alt="A change link opened in the Studio: review mode shows the fix on the Tidewell page and lists each change with its check, Create pull request and the apply command." caption="What you get back: every change on the real page, with its check and Create pull request." />
 
