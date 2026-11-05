@@ -13,7 +13,8 @@
 // host-resolver rule). Saves in the dev Studio write the playgrounds' locale files, so those are
 // snapshotted first and put back after every capture and when the run ends.
 //
-// Shots: Chromium at 1440x900, DPR 2, a PNG converted to WebP q82 at 1200 px wide. Clips:
+// Shots: Chromium at 1440x900, DPR 2, a PNG converted to WebP q82 at 1200 px wide; a phone
+// shot is a 390x844 touch screen (hasTouch, isMobile), DPR 2, converted at 640 px wide. Clips:
 // Playwright's recordVideo at 1280x720, trimmed to the action and encoded to VP9 WebM and H.264
 // MP4 (+faststart, no audio), with the last frame as the WebP poster. Every raster gets a
 // provenance sidecar (<file>.json); site/media/docs/manifest.json lists sizes for DocShot and
@@ -40,6 +41,9 @@ const PLAYGROUND_VITE = join(ROOT_DIR, 'playground-vite');
 
 const SHOT_VIEW = { width: 1440, height: 900 };
 const SHOT_WIDTH = 1200;
+// A phone the size of an iPhone 14, so the Studio shows its phone layout (touch, screen < 768 px).
+const PHONE_VIEW = { width: 390, height: 844 };
+const PHONE_WIDTH = 640;
 const CLIP_VIEW = { width: 1280, height: 720 };
 // DOCS_NEXT_PORT, DOCS_VITE_PORT and DOCS_STUDIO_PORT move the dev servers off their defaults
 // (for a machine where those ports are taken); the provenance names the ports actually used.
@@ -227,6 +231,12 @@ async function retype(page, text, delay = 0) {
   await page.keyboard.type(text, { delay });
 }
 
+/** Taps `target` (a locator inside the preview) on a touch screen and waits for the editor. */
+async function tap(page, target) {
+  await target.tap();
+  await field(page).waitFor();
+}
+
 async function save(page) {
   await page.getByRole('button', { name: 'Save Changes' }).click();
 }
@@ -350,6 +360,24 @@ const SCENES = {
     await field(page).waitFor();
     await settle(page, 300);
   },
+  async 'studio-phone'(page) {
+    await page.goto(`http://${HOST}/livelocale/index.html`);
+    // the Edit / Browse switch shows once the page says it can tap to edit
+    await page.getByRole('radiogroup', { name: 'Tap mode' }).waitFor();
+    const name = page.locator('#studio-tips-name');
+    await name.waitFor();
+    await name.fill('Lina');
+    await page.locator('#studio-tips-start').tap();
+    await name.waitFor({ state: 'hidden' });
+    await settle(page);
+    await tap(page, app(page).locator('h1'));
+    await page.waitForFunction(() =>
+      document.querySelector('textarea')?.value.includes('Plans that grows')
+    );
+    await field(page).fill('Plans that grow with you');
+    // the sheet's slide-up, then fonts and paint
+    await settle(page, 600);
+  },
 };
 
 /**
@@ -411,11 +439,15 @@ async function writeSidecar(file, name, what) {
 }
 
 async function shoot(browser, name, work) {
-  const { locale, theme, use } = SHOTS[name];
+  const { locale, theme, device, use } = SHOTS[name];
   const scheme = theme ?? 'dark';
+  const phone = device === 'phone';
+  const view = phone ? PHONE_VIEW : SHOT_VIEW;
+  const width = phone ? PHONE_WIDTH : SHOT_WIDTH;
   const context = await browser.newContext({
-    viewport: SHOT_VIEW,
+    viewport: view,
     deviceScaleFactor: 2,
+    ...(phone && { hasTouch: true, isMobile: true }),
     colorScheme: scheme,
     locale: locale ?? 'en-US',
     timezoneId: 'UTC',
@@ -430,14 +462,14 @@ async function shoot(browser, name, work) {
     const file = `${name}.webp`;
     const out = join(OUT_DIR, file);
     ffmpeg([
-      ...['-i', png, '-vf', `scale=${SHOT_WIDTH}:-2:flags=lanczos`],
+      ...['-i', png, '-vf', `scale=${width}:-2:flags=lanczos`],
       ...['-c:v', 'libwebp', '-quality', '82', out],
     ]);
     const size = webpSize(await readFile(out));
     await writeSidecar(
       out,
       name,
-      `A screenshot at ${SHOT_VIEW.width}x${SHOT_VIEW.height}, DPR 2, ${scheme} colour scheme, browser locale ${locale ?? 'en-US'}, converted with ffmpeg-static to WebP q82, ${SHOT_WIDTH} px wide. Ships as the docs shot "${name}": ${use}.`
+      `A screenshot at ${view.width}x${view.height}${phone ? ' (a touch phone)' : ''}, DPR 2, ${scheme} colour scheme, browser locale ${locale ?? 'en-US'}, converted with ffmpeg-static to WebP q82, ${width} px wide. Ships as the docs shot "${name}": ${use}.`
     );
     return { file, ...size };
   } finally {

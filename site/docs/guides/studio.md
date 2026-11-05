@@ -106,4 +106,21 @@ To find a key without the mouse, type in the Locale Directory's search field, Ta
 
 <DocShot name="studio-keyboard" alt="The Locale Directory searched for trial: two keys match, hero.cta is picked, and the editor is open on hero.cta with the focus ring on its field." caption="Search, Tab, Enter: the key is open and the field has the focus." />
 
-Alt+Click needs a keyboard, so on phones and tablets a share link can only view the site.
+On a phone or a tablet there is no Alt key: the Studio switches to tapping, as the next section shows.
+
+## On a phone
+
+A share link opened on a phone shows the site on almost the whole screen. A thin bar at the top holds the language, **Send · N** (the changes not sent yet) and a **⋯** menu with the rest. A switch at the bottom picks what a tap does:
+
+- **Edit**, where the Studio opens: text you can fix is outlined, and tapping it opens the editor. The site is frozen, so a tap on a link or a button selects its text instead of following it. Text that is not in your locale files says so when tapped, and a tap on an image or empty space does nothing. Scrolling works as usual.
+- **Browse**: the site works as it does without the Studio. Use it to open a menu or go to another page, then switch back to **Edit**. The switch keeps your choice from page to page.
+
+The editor slides up from the bottom as a sheet, with the key, the reference text and the field. The page changes as you type, and the sheet stays above the phone's keyboard. **Next missing** moves to the next text on the page that has no translation in the locale you edit. When none are left on screen, it says how many more are in parts of the page you cannot see, such as a closed menu.
+
+**Send · N** opens the same change list as on a desktop. **Share link…** opens the phone's own share menu, so the link goes out by WhatsApp, Slack, email or any other app; **Copy link** is always there too.
+
+<DocShot name="studio-phone" alt="A share link on a phone: the Tidewell headline tapped in Edit, and the editor sheet open over the page on hero.title with the typo fixed, Save Changes and Next missing under the field." caption="Tap the text, fix it in the sheet that slides up." />
+
+Drafts are kept in the phone's browser, which loses them more easily than a desktop: a private tab forgets them when it closes, and iOS clears the data of sites you have not opened for a while. Send your changes when you are done.
+
+On a tablet the Studio keeps its usual layout, with the same **Edit** and **Browse** switch for tapping. A desktop with a mouse never shows the switch.

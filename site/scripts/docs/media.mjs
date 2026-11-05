@@ -15,7 +15,7 @@ const apps = (ports) => ({
 
 /**
  * The screenshots, by name: the app, the browser locale (en-US unless set), the
- * colour scheme (`light`, else dark) and the step it shows.
+ * colour scheme (`light`, else dark), the device (`phone`, else a desktop) and the step it shows.
  */
 export const SHOTS = {
   'next-studio-open': {
@@ -82,6 +82,11 @@ export const SHOTS = {
   'studio-keyboard': {
     app: 'share',
     use: 'a key found and picked from the Locale Directory with the keyboard (type, Tab, Enter): the editor open on hero.cta, the focus in its field',
+  },
+  'studio-phone': {
+    app: 'share',
+    device: 'phone',
+    use: 'a share link on a phone: the Tidewell headline tapped in Edit, the editor sheet open over the page with the typo fixed',
   },
 };
 

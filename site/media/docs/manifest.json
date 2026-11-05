@@ -79,6 +79,11 @@
       "file": "studio-keyboard.webp",
       "width": 1200,
       "height": 750
+    },
+    "studio-phone": {
+      "file": "studio-phone.webp",
+      "width": 640,
+      "height": 1386
     }
   },
   "clips": {

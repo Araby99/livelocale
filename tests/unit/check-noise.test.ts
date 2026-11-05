@@ -22,8 +22,9 @@ describe('check --hardcoded noise benchmark', () => {
 
   it('finds exactly the two real hardcoded links in the Vite playground', async () =>
     expect(await hardcoded('playground-vite')).toEqual([
-      { file: 'src/main.tsx', line: 40, column: 11, text: 'العربية' },
-      { file: 'src/main.tsx', line: 43, column: 11, text: 'About' },
+      { file: 'src/main.tsx', line: 50, column: 11, text: 'العربية' },
+      // the logo link's aria-label (the About link's text is translated)
+      { file: 'src/main.tsx', line: 55, column: 54, text: 'About' },
     ]));
 
   it.each(['playground', 'playground-vite'])(

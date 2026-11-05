@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Minor Changes
 
+- **Added**
+  - Share links work on phones and tablets. A switch at the bottom picks **Edit** (tap any text to fix it; the site is frozen, so a tap on a link selects its text instead of following it) or **Browse** (the site works as usual). On a phone the Studio shows a thin top bar with the language and **Send · N**, the editor slides up from the bottom and stays above the keyboard, **Next missing** walks the untranslated text you can see on the page, and **Share link…** sends the change link through the phone's share menu. Desktop behaviour is unchanged.
 - **Changed**
   - The Studio's interface is English only. The Arabic translation of the Studio and its language switch in the header are removed. Arabic and other right-to-left sites still edit and preview right to left: pick their locale in the **Locale** menu and the site under the Studio flips.
 

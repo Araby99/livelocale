@@ -58,6 +58,7 @@ it.each([
       'Light and dark',
       'Right-to-left sites',
       'Keyboard',
+      'On a phone',
     ],
   ],
   [
@@ -117,5 +118,27 @@ it('names every opt-out the check accepts', () => {
     '--strict',
   ]) {
     expect(md).toContain(optOut);
+  }
+});
+
+it('shows editing from a phone in the Studio guide', () => {
+  const md = page('guides/studio.md');
+  const phone = md.slice(md.indexOf('## On a phone'));
+  expect(phone).toContain('<DocShot name="studio-phone"');
+  for (const word of ['**Edit**', '**Browse**', '**Share link…**', '**Next missing']) {
+    expect(phone).toContain(word);
+  }
+});
+
+it('never says a share link only views on a phone', () => {
+  const pages = [
+    'how-it-works/risks-and-limits.md',
+    'guides/studio.md',
+    'guides/share-links.md',
+    'start/static-host.md',
+  ];
+  for (const file of pages) {
+    const prose = page(file).replace(/\s+/g, ' ');
+    expect(prose, file).not.toMatch(/desktop only|can only view|in a desktop browser/i);
   }
 });

@@ -48,7 +48,7 @@ Deploy as usual, then check the deployment and print the share link. On Next.js,
 npx livelocale doctor --app <url> --share
 ```
 
-The doctor checks the Studio page, the manifest, `flag.js`, frame headers and service workers, then prints `🔗 Share link: <base>livelocale/index.html`. Open it in a desktop browser: the Studio opens over your site, with three tips and an optional name field on the first visit. Pin the link for the people who fix your text.
+The doctor checks the Studio page, the manifest, `flag.js`, frame headers and service workers, then prints `🔗 Share link: <base>livelocale/index.html`. Open it in a browser, on a computer or a phone: the Studio opens over your site, with three tips and an optional name field on the first visit. Pin the link for the people who fix your text.
 
 <DocShot name="share-open-link" alt="A share link opened on the Tidewell demo site: the Studio over the page, with the three first-run tips and the optional name field." caption="The first visit: three tips and an optional name." />
 

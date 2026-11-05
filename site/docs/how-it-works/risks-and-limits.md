@@ -14,8 +14,8 @@ description: The risks of share links and preview mode that livelocale does not 
 
 ## Limits
 
-- **Desktop only.** Alt+Click needs a keyboard; phones and tablets can only view.
 - **Drafts live in one browser.** Clearing site data, a private window, or Safari's 7-day cap on script-writable storage can lose unsent work. Send often, or use **Download backup** in Changes.
+- **On a phone, drafts are easier to lose.** A private tab forgets them when it closes, and iOS clears the data of sites you have not opened for a while. The **Send · N** count in the phone's top bar keeps unsent work in sight; send your changes when you are done.
 - **One app per repository.**
 
 ## What preview mode does not do

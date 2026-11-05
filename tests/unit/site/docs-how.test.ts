@@ -34,6 +34,8 @@ it('names the three zero-width characters the watermark uses', () => {
 
 it('keeps the honest risks honest', () => {
   const md = page('risks-and-limits');
-  expect(md).toContain('Desktop only');
   expect(md).toContain('public');
+  // drafts are easier to lose on a phone, and the page says so
+  expect(md).toMatch(/On a phone/);
+  expect(md.replace(/\s+/g, ' ')).toMatch(/private tab/i);
 });

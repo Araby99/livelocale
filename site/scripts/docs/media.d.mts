@@ -14,13 +14,20 @@ export type ShotName =
   | 'studio-rtl-site'
   | 'studio-light'
   | 'studio-keyboard'
-  | 'studio-missing';
+  | 'studio-missing'
+  | 'studio-phone';
 
 export type ClipName = 'alt-click-edit' | 'send-link' | 'rtl-site';
 
 export const SHOTS: Record<
   ShotName,
-  { app: 'next' | 'vite' | 'share'; locale?: 'ar'; theme?: 'light'; use: string }
+  {
+    app: 'next' | 'vite' | 'share';
+    locale?: 'ar';
+    theme?: 'light';
+    device?: 'phone';
+    use: string;
+  }
 >;
 
 export const CLIPS: Record<ClipName, { app: 'share'; seconds: number; use: string }>;
