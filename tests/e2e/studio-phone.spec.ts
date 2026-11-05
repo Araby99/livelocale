@@ -155,6 +155,35 @@ test('the editor sheet is compact and keeps the picked text in view above it', a
   await expect(picked).toHaveText(shows('Live from the sheet'));
 });
 
+test('the picked text keeps a solid amber outline until the selection clears', async ({ page }) => {
+  await openStudio(page);
+  // Arabic leaves home.cta out, so Next missing has somewhere to go.
+  await page.getByRole('combobox', { name: 'Locale' }).selectOption('ar');
+  const frame = page.frameLocator('#app-preview-iframe');
+  await expect(frame.locator('main')).toHaveAttribute('lang', 'ar');
+  await expect(modeSwitch(page).getByRole('radio', { name: 'Edit' })).toBeChecked();
+  const title = frame.locator('[data-i18n-key="home.title"]');
+  await tapKey(page, 'home.title');
+  await expect(title).toHaveAttribute('data-livelocale-picked', '');
+  await expect(title).toHaveCSS('outline-style', 'solid');
+  await expect(title).toHaveCSS('outline-color', 'rgb(255, 178, 36)');
+  await expect(frame.locator('[data-livelocale-picked]')).toHaveCount(1);
+
+  // Next missing moves the marker with the selection.
+  await page.getByTestId('next-missing').tap();
+  await expect(editorSheet(page)).toContainText('home.cta');
+  await expect(frame.locator('[data-i18n-key="home.cta"]')).toHaveAttribute(
+    'data-livelocale-picked',
+    ''
+  );
+  await expect(frame.locator('[data-livelocale-picked]')).toHaveCount(1);
+
+  // Closing the sheet clears the selection, and the marker with it.
+  await page.getByTestId('bottom-sheet-backdrop').tap({ position: { x: 20, y: 20 } });
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(frame.locator('[data-livelocale-picked]')).toHaveCount(0);
+});
+
 test('closing the sheet with unsaved text asks first, then clears the selection', async ({
   page,
 }) => {

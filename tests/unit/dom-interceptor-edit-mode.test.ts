@@ -329,6 +329,104 @@ describe('DOMInterceptor edit mode', () => {
     const overlay = document.getElementById('livelocale-highlighter-overlay')!;
     expect(overlay.style.opacity).not.toBe('1');
   });
+
+  describe('picked-text marker', () => {
+    const PICKED = 'data-livelocale-picked';
+    const twoKeys = () => {
+      document.body.innerHTML = `<h1>${encodeKey('Hello', 'home.title')}</h1><a href="/next"><span>${encodeKey('Get started', 'hero.cta')}</span></a>`;
+      return {
+        title: document.querySelector('h1')!,
+        cta: document.querySelector('span')!,
+      };
+    };
+    const picked = () => Array.from(document.querySelectorAll(`[${PICKED}]`));
+
+    it('a tap in edit mode marks the keyed element, styled as a solid amber outline', () => {
+      const { cta } = twoKeys();
+      interceptor.init();
+      interceptor.setEditMode(true);
+
+      click(cta);
+
+      expect(picked()).toEqual([cta]);
+      const css = document.getElementById('livelocale-edit-style')!.textContent!;
+      expect(css).toContain(
+        `html[data-livelocale-edit] [data-i18n-key][${PICKED}]{outline:2px solid #FFB224;outline-offset:3px}`
+      );
+    });
+
+    it('a new pick moves the marker', () => {
+      const { title, cta } = twoKeys();
+      interceptor.init();
+      interceptor.setEditMode(true);
+
+      click(cta);
+      click(title);
+
+      expect(picked()).toEqual([title]);
+    });
+
+    it('selectKey (SELECT_KEY, Next missing) marks the element it selects', () => {
+      const { title, cta } = twoKeys();
+      layout(title, { top: 0, height: 20 }, true);
+      layout(cta, { top: 40, height: 20 }, true);
+      interceptor.init();
+      interceptor.setEditMode(true);
+      click(title);
+
+      expect(interceptor.selectKey('hero.cta')).toBe(true);
+
+      expect(picked()).toEqual([cta]);
+    });
+
+    it('CLEAR_SELECTION (destroy + init) clears the marker and keeps edit mode', () => {
+      const { cta } = twoKeys();
+      interceptor.init();
+      interceptor.setEditMode(true);
+      click(cta);
+
+      interceptor.destroy();
+      interceptor.init();
+
+      expect(picked()).toEqual([]);
+      expect(document.documentElement.hasAttribute('data-livelocale-edit')).toBe(true);
+    });
+
+    it('turning edit mode off clears the marker', () => {
+      const { cta } = twoKeys();
+      interceptor.init();
+      interceptor.setEditMode(true);
+      click(cta);
+
+      interceptor.setEditMode(false);
+
+      expect(picked()).toEqual([]);
+    });
+
+    it('a tap on unkeyed text leaves the current marker alone', () => {
+      const { cta } = twoKeys();
+      document.body.insertAdjacentHTML('beforeend', '<p>Plain text</p>');
+      interceptor.init();
+      interceptor.setEditMode(true);
+      click(cta);
+
+      click(document.querySelector('p')!);
+
+      expect(picked()).toEqual([cta]);
+    });
+
+    it('Alt+Click outside edit mode never marks anything', () => {
+      const { cta } = twoKeys();
+      layout(cta, { top: 40, height: 20 }, true);
+      interceptor.init();
+
+      click(cta, { altKey: true });
+      expect(onElementSelected).toHaveBeenCalledWith(expect.objectContaining({ key: 'hero.cta' }));
+      expect(interceptor.selectKey('hero.cta')).toBe(true);
+
+      expect(picked()).toEqual([]);
+    });
+  });
 });
 
 describe('IframeBridge edit-mode messages', () => {

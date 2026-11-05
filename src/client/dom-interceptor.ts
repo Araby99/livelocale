@@ -38,6 +38,12 @@ const EDIT_STYLE_ID = 'livelocale-edit-style';
 /** Attribute on `<html>` while Edit mode is on; the stylesheet keys off it. */
 const EDIT_ATTRIBUTE = 'data-livelocale-edit';
 
+/**
+ * Attribute on the keyed element picked in Edit mode, drawn as a solid amber outline so the
+ * person can see which text the Studio's editor is for. Cleared with the selection.
+ */
+const PICKED_ATTRIBUTE = 'data-livelocale-picked';
+
 /** Space, in CSS px, kept between a revealed element and the frame's edges. */
 const REVEAL_MARGIN = 16;
 
@@ -88,6 +94,8 @@ export class DOMInterceptor {
   // re-inits the interceptor, never unfreezes the site.
   private editMode: boolean = false;
   private active: boolean = false;
+  /** The element carrying `PICKED_ATTRIBUTE`, if any. */
+  private pickedElement: HTMLElement | null = null;
 
   // Debounced key-broadcast to avoid flooding the parent on rapid DOM mutations
   private broadcastVisibleKeys: (() => void) & { cancel(): void };
@@ -332,7 +340,9 @@ export class DOMInterceptor {
     if (!document.getElementById(EDIT_STYLE_ID)) {
       const style = document.createElement('style');
       style.id = EDIT_STYLE_ID;
-      style.textContent = `html[${EDIT_ATTRIBUTE}] [data-i18n-key]{outline:1px dashed rgba(79,195,220,.7);outline-offset:2px}`;
+      style.textContent =
+        `html[${EDIT_ATTRIBUTE}] [data-i18n-key]{outline:1px dashed rgba(79,195,220,.7);outline-offset:2px}` +
+        `html[${EDIT_ATTRIBUTE}] [data-i18n-key][${PICKED_ATTRIBUTE}]{outline:2px solid #FFB224;outline-offset:3px}`;
       document.head.appendChild(style);
     }
     document.documentElement.setAttribute(EDIT_ATTRIBUTE, '');
@@ -350,6 +360,20 @@ export class DOMInterceptor {
     window.removeEventListener('focusin', this.handleEditFocus, true);
     document.documentElement.removeAttribute(EDIT_ATTRIBUTE);
     document.getElementById(EDIT_STYLE_ID)?.remove();
+    // Leaving Edit mode, or destroy() (the Studio's CLEAR_SELECTION), ends the pick.
+    this.clearPicked();
+  }
+
+  /** Moves the picked-text marker to `element`. */
+  private markPicked(element: HTMLElement): void {
+    this.clearPicked();
+    element.setAttribute(PICKED_ATTRIBUTE, '');
+    this.pickedElement = element;
+  }
+
+  private clearPicked(): void {
+    this.pickedElement?.removeAttribute(PICKED_ATTRIBUTE);
+    this.pickedElement = null;
   }
 
   // Sites open menus on press events; in Edit mode none of them reaches the
@@ -382,8 +406,13 @@ export class DOMInterceptor {
     }
   }
 
-  /** Reports `element`, which carries `key`, as selected with its clean text. */
+  /**
+   * Reports `element`, which carries `key`, as selected with its clean text. In Edit mode it
+   * also gets the picked-text marker; an Alt+Click pick on a desktop does not.
+   */
   private select(element: HTMLElement, key: string): void {
+    if (this.editMode) this.markPicked(element);
+
     // Use innerText, stripping any invisible ZW chars before sending to studio
     const rawText = element.innerText || '';
     const cleanText = stripWatermark(rawText);
