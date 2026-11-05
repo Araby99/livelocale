@@ -89,7 +89,7 @@ describe('first-run tips on touch devices', () => {
 });
 
 describe('first-run tips on a touch device whose site cannot tap to edit', () => {
-  it('says the site can only be viewed on a phone, never to tap text', () => {
+  it('says the site can only be viewed on a phone or tablet, never to tap text', () => {
     render(
       <FirstRunTips
         open={true}
@@ -101,6 +101,11 @@ describe('first-run tips on a touch device whose site cannot tap to edit', () =>
       />
     );
     expect(screen.getByText(englishText('tips.view_only'))).toBeTruthy();
+    expect(
+      screen.getByText(
+        'On a phone or tablet, this site can only be viewed. Open this link on a computer to edit.'
+      )
+    ).toBeTruthy();
     expect(screen.queryByText(englishText('tips.step1_touch'))).toBeNull();
     expect(screen.queryByText(/Tap any text/)).toBeNull();
     expect(screen.queryByText(englishText('tips.step1'))).toBeNull();
