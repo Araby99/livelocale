@@ -69,3 +69,21 @@ describe('first-run tips', () => {
     expect(screen.queryByText(FIRST_RUN_TIPS[0])).toBeNull();
   });
 });
+
+describe('first-run tips on touch devices', () => {
+  const tips = (touch: boolean) =>
+    render(
+      <FirstRunTips open={true} touch={touch} name="" onNameChange={vi.fn()} onDismiss={vi.fn()} />
+    );
+
+  it('tips show the tap step on touch and the Alt step otherwise', () => {
+    const { unmount } = tips(true);
+    expect(screen.getByText(englishText('tips.step1_touch'))).toBeTruthy();
+    expect(screen.queryByText(englishText('tips.step1'))).toBeNull();
+    expect(screen.getByText(englishText('tips.step2'))).toBeTruthy();
+    unmount();
+    tips(false);
+    expect(screen.getByText(englishText('tips.step1'))).toBeTruthy();
+    expect(screen.queryByText(englishText('tips.step1_touch'))).toBeNull();
+  });
+});

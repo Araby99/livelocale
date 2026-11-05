@@ -15,7 +15,10 @@ interface StudioLayoutProps {
   sideLabel: string;
   openPanel: StudioPanel;
   onOpenPanelChange: (panel: StudioPanel) => void;
-  /** Extra controls shown after the drawer toggles in compact mode. */
+  /**
+   * Extra controls shown after the drawer toggles in compact mode, and in a row of their own
+   * above the viewer in the wide layout (a wide touch tablet). Desktops pass none.
+   */
   toolbar?: ReactNode;
 }
 
@@ -133,6 +136,9 @@ export const StudioLayout = ({
             </button>
             {toolbar}
           </div>
+        )}
+        {isWide && toolbar && (
+          <div className="flex items-center gap-2 shrink-0 select-none">{toolbar}</div>
         )}
         {viewer}
       </div>

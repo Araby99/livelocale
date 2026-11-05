@@ -13,6 +13,8 @@ import {
   ImportChangeDialog,
   ReviewPanel,
   FirstRunTips,
+  EditBrowseSwitch,
+  TapNotice,
   StudioLayout,
   ThemeToggle,
   useStudio,
@@ -119,11 +121,19 @@ export const App = () => {
     closeImport,
     submitImport,
     importError,
+    isTouch,
+    supportsEditMode,
+    editMode,
+    setEditMode,
+    unkeyedTapSeq,
   } = useStudio();
   const theme = useTheme(isShareStudio());
   const { t } = useStudioText();
 
   const isWide = useMediaQuery(WIDE_LAYOUT_QUERY, true);
+  // Tap to edit needs a touch device and a client that knows Edit mode; an older client keeps
+  // the view-only behaviour, with no switch that would do nothing.
+  const canTapEdit = isTouch && supportsEditMode;
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
 
   // Every completed pick brings the editor forward when it lives in a drawer,
@@ -223,6 +233,9 @@ export const App = () => {
         openPanel={openPanel}
         onOpenPanelChange={setOpenPanel}
         sideLabel={isReviewing ? t('layout.review') : t('layout.editor')}
+        toolbar={
+          canTapEdit ? <EditBrowseSwitch editMode={editMode} onChange={setEditMode} /> : undefined
+        }
         keys={
           <KeysDirectory
             className={isWide ? undefined : 'w-full'}
@@ -326,8 +339,11 @@ export const App = () => {
         error={importError}
       />
 
+      <TapNotice editMode={canTapEdit && editMode} unkeyedTapSeq={unkeyedTapSeq} />
+
       <FirstRunTips
         open={showTips}
+        touch={isTouch}
         name={translatorName}
         onNameChange={setTranslatorName}
         onDismiss={dismissTips}

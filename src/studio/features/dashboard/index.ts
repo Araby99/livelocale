@@ -8,6 +8,7 @@ export { TokenModal } from './components/TokenModal.jsx';
 export { SetupProblems } from './components/SetupProblems.jsx';
 export { LocalePicker } from './components/LocalePicker.jsx';
 export { FirstRunTips } from './components/FirstRunTips.jsx';
+export { EditBrowseSwitch, TapNotice } from './components/EditBrowseSwitch.jsx';
 export { SendDialog } from './components/SendDialog.jsx';
 export { ImportChangeDialog } from './components/ImportChangeDialog.jsx';
 export {

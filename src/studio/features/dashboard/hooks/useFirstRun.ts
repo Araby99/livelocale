@@ -4,6 +4,9 @@ import { readPref, writePref } from '../../../share/browser.js';
 /** The catalogue keys of the three lines a first-time translator sees, in order. */
 export const FIRST_RUN_TIP_KEYS = ['tips.step1', 'tips.step2', 'tips.step3'] as const;
 
+/** The same lines on a touch device, where a tap replaces Alt+Click. */
+export const FIRST_RUN_TOUCH_TIP_KEYS = ['tips.step1_touch', 'tips.step2', 'tips.step3'] as const;
+
 /** First-visit tips and the optional translator name that the Send dialog reuses. */
 export function useFirstRun(enabled: boolean): {
   showTips: boolean;

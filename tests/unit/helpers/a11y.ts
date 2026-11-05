@@ -11,6 +11,7 @@ import { TokenModal } from '../../../src/studio/features/dashboard/components/To
 import { RepoPrompt } from '../../../src/studio/features/dashboard/components/RepoPrompt.js';
 import { Header } from '../../../src/studio/features/dashboard/components/Header.js';
 import { ThemeToggle } from '../../../src/studio/features/dashboard/components/ThemeToggle.js';
+import { EditBrowseSwitch } from '../../../src/studio/features/dashboard/components/EditBrowseSwitch.js';
 import type { Draft } from '../../../src/studio/transport/drafts.js';
 import type { ReviewRow } from '../../../src/studio/share/review.js';
 import type { ReviewState } from '../../../src/studio/features/dashboard/hooks/useReview.js';
@@ -74,7 +75,8 @@ export type FixtureName =
   | 'TokenModal'
   | 'RepoPrompt'
   | 'Header'
-  | 'ThemeToggle';
+  | 'ThemeToggle'
+  | 'EditBrowseSwitch';
 
 const draft = (o: Partial<Draft> = {}): Draft => ({
   scope: 'path:/',
@@ -173,6 +175,7 @@ export const FIXTURES: Record<FixtureName, () => React.ReactElement> = {
       onSend: () => {},
     }),
   ThemeToggle: () => h(ThemeToggle, { choice: 'dark', onChange: () => {} }),
+  EditBrowseSwitch: () => h(EditBrowseSwitch, { editMode: true, onChange: () => {} }),
 };
 
 /** Renders `FIXTURES[name]()` and returns its container. */
