@@ -180,12 +180,17 @@ export class DOMInterceptor {
   /**
    * Scrolls the first visible element with `key` to the centre and selects
    * it as a tap would. Returns false, selecting nothing, when no element with
-   * that key is visible or the interceptor is not running.
+   * that key is visible or the interceptor is not running. A key that is no
+   * longer visible (a carousel moved on with no DOM change the observer sees)
+   * reports the keys again, so the Studio's next try uses a fresh list.
    */
   selectKey(key: string): boolean {
     if (!this.active) return false;
     const el = this.findRenderedElement(key);
-    if (!el) return false;
+    if (!el) {
+      this.broadcastVisibleKeys();
+      return false;
+    }
     if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
     this.select(el, key);
     return true;

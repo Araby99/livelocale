@@ -256,6 +256,27 @@ describe('DOMInterceptor edit mode', () => {
     expect(onElementSelected).not.toHaveBeenCalled();
   });
 
+  it('selectKey on a key no longer visible reports the keys again, so the Studio can move on', () => {
+    vi.useFakeTimers();
+    try {
+      const onKeys = vi.fn();
+      const reporting = new DOMInterceptor(onElementSelected, onKeys, onUnkeyedTap);
+      document.body.innerHTML = `<span id="slide">${encodeKey('Slide 2', 'slides.two')}</span>`;
+      reporting.init();
+      vi.advanceTimersByTime(300);
+      onKeys.mockClear();
+      // A carousel moved on without a DOM change the observer would see.
+      layout(document.getElementById('slide')!, null);
+
+      expect(reporting.selectKey('slides.two')).toBe(false);
+      vi.advanceTimersByTime(300);
+      expect(onKeys).toHaveBeenCalledTimes(1);
+      reporting.destroy();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('revealKey(key, 400) scrolls by the overlap so the element ends above the inset; no scroll when already clear', () => {
     vi.spyOn(window, 'innerHeight', 'get').mockReturnValue(800);
     const scrollBy = vi.fn();
