@@ -1,0 +1,4 @@
+{
+  "prompt": "SOURCED, not generated. The frame at 3.5 s of the real phone hero recording site/media/hero/hero-phone.mp4, made by site/scripts/record-hero.mjs --phone: headless Chromium emulating a 390x844 touch phone, filming the real livelocale share Studio's phone layout on the fictional Tidewell stage site (site/stage, browsed as tidewell.example) and ending on the real public pull request https://github.com/Araby99/tidewell/pull/2. The touch ripple is the recorder's overlay; everything else is the product. Cut with ffmpeg-static by site/scripts/hero-frames.mjs, WebP q82, 780 px wide. Ships as the phone video poster (the phone LCP): the phone Studio with the headline fixed to \"Plans that grow with you\" and saved in the editor sheet.",
+  "createdAt": "2026-11-05T16:24:57.348Z"
+}
