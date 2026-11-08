@@ -7,7 +7,14 @@ import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
 import { runDoctor, formatFindings, hasFailures } from './doctor.js';
 import { runCheck, formatCheckReport } from './check.js';
-import { checkExitCode, checkSummaryLines, parseCheckArgs, type CheckArgs } from './check-cli.js';
+import {
+  checkErrorReport,
+  checkExitCode,
+  checkSummaryLines,
+  CHECK_COULD_NOT_RUN,
+  parseCheckArgs,
+  withCheckError,
+} from './check-cli.js';
 import {
   checkBuildArgs,
   checkPackArgs,
@@ -328,13 +335,32 @@ async function runDoctorCommand({ dir, localesPath, app, share, token }: DoctorA
   }
 }
 
-async function runCheckCommand(args: CheckArgs) {
-  const { dir, localesPath, sourceLocale, unused, strict, json, hardcoded, allow } = args;
+/**
+ * `livelocale check`. Exit 0 clean, 1 problems found, 2 could not run (bad command line, missing
+ * folder, missing locales, unknown --source, TypeScript missing for --hardcoded). With --json a
+ * run that could not start still prints a report, with an `error` field.
+ */
+async function runCheckCommand(argv: string[]) {
+  const json = argv.includes('--json');
+  const couldNotRun = (message: string, localesDir: string | null = null) => {
+    if (json) console.log(JSON.stringify(checkErrorReport(message, localesDir), null, 2));
+    else console.error(`❌ ${message}`);
+    process.exitCode = CHECK_COULD_NOT_RUN;
+  };
+
+  let parsed;
+  try {
+    parsed = parseCheckArgs(argv);
+  } catch (err: any) {
+    couldNotRun(err.message);
+    return;
+  }
+  const { dir, localesPath, sourceLocale, unused, strict, hardcoded, allow } = parsed;
 
   const projectDir = path.resolve(dir);
   if (!fs.existsSync(projectDir)) {
-    console.error(`Error: Directory "${dir}" does not exist.`);
-    process.exit(1);
+    couldNotRun(`Directory "${dir}" does not exist.`);
+    return;
   }
 
   let report;
@@ -349,14 +375,14 @@ async function runCheckCommand(args: CheckArgs) {
       allow,
     });
   } catch (err: any) {
-    console.error(`❌ ${err.message}`);
-    process.exit(1);
+    couldNotRun(err?.message ?? String(err), path.resolve(projectDir, localesPath ?? 'locales'));
+    return;
   }
 
   // exitCode, not exit(): exiting immediately can truncate a large report piped to another tool.
   process.exitCode = checkExitCode(report);
   if (json) {
-    console.log(JSON.stringify(report, null, 2));
+    console.log(JSON.stringify(withCheckError(report), null, 2));
     return;
   }
 
@@ -502,7 +528,7 @@ async function run() {
     case 'doctor':
       return runDoctorCommand(parseDoctorArgs(rest));
     case 'check':
-      return runCheckCommand(parseCheckArgs(rest));
+      return runCheckCommand(rest);
     case 'pack':
       return runPackCommand(args);
     case 'build':

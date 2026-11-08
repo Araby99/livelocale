@@ -292,6 +292,36 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(r.stderr).toContain('Unknown command "chek"');
   });
 
+  it('`check` exits 0 when clean, 1 on problems and 2 when it could not run', () => {
+    const dir = path.join(sandbox, 'check-exit-codes');
+    fs.mkdirSync(path.join(dir, 'locales'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'package.json'), '{"name":"check-exit-codes","private":true}');
+    fs.writeFileSync(path.join(dir, 'locales', 'en.json'), '{"hello":"Hi"}');
+    fs.writeFileSync(path.join(dir, 'locales', 'fr.json'), '{"hello":"Salut"}');
+    expect(runCli(pkgDir, dir, ['check', '--no-unused']).status).toBe(0);
+
+    fs.writeFileSync(path.join(dir, 'locales', 'fr.json'), '{}');
+    const problems = runCli(pkgDir, dir, ['check', '--no-unused', '--json']);
+    expect(problems.status).toBe(1);
+    expect('error' in JSON.parse(problems.stdout)).toBe(false);
+
+    for (const argv of [
+      ['check', '--locales', 'nope'],
+      ['check', '--source', 'de'],
+      ['check', 'missing-folder'],
+      ['check', '--strictt'],
+    ]) {
+      const human = runCli(pkgDir, dir, argv);
+      expect(human.status, argv.join(' ')).toBe(2);
+      expect(human.stderr).toMatch(/^❌ /);
+      const json = runCli(pkgDir, dir, [...argv, '--json']);
+      expect(json.status, `${argv.join(' ')} --json`).toBe(2);
+      const report = JSON.parse(json.stdout);
+      expect(report.error).toEqual(expect.any(String));
+      expect(report.issues).toEqual([]);
+    }
+  }, 60_000);
+
   it('should declare typescript as an optional peer dependency', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf-8'));
     expect(pkg.peerDependencies.typescript).toBe('>=4.7.0');

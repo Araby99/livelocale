@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { checkExitCode, checkSummaryLines, parseCheckArgs } from '../../src/codemod/check-cli.js';
+import {
+  CHECK_COULD_NOT_RUN,
+  checkErrorReport,
+  checkExitCode,
+  checkSummaryLines,
+  parseCheckArgs,
+  withCheckError,
+} from '../../src/codemod/check-cli.js';
 import { TYPESCRIPT_MISSING } from '../../src/codemod/hardcoded/load-typescript.js';
 
 describe('parseCheckArgs', () => {
@@ -94,4 +101,29 @@ describe('checkSummaryLines', () => {
     expect(
       checkSummaryLines({ ...base, issues: [fail, warn], setupProblems: [TYPESCRIPT_MISSING] })
     ).toEqual(['❌ 1 problem(s), 1 warning(s).', `❌ ${TYPESCRIPT_MISSING}`]));
+});
+
+describe('the --json report of a run that could not finish', () => {
+  it('is a full report with an error field', () =>
+    expect(checkErrorReport('Locales directory not found: /p/locales', '/p/locales')).toEqual({
+      error: 'Locales directory not found: /p/locales',
+      localesDir: '/p/locales',
+      sourceLocale: null,
+      locales: [],
+      codeKeyCount: 0,
+      issues: [],
+      setupProblems: ['Locales directory not found: /p/locales'],
+    }));
+
+  it('adds the error field when a setup problem stopped part of the check', () => {
+    const base = { localesDir: '', sourceLocale: 'en', locales: ['en'], codeKeyCount: 0 };
+    expect(withCheckError({ ...base, issues: [] })).toEqual({ ...base, issues: [] });
+    expect(withCheckError({ ...base, issues: [], setupProblems: [TYPESCRIPT_MISSING] })).toEqual({
+      ...base,
+      issues: [],
+      setupProblems: [TYPESCRIPT_MISSING],
+      error: TYPESCRIPT_MISSING,
+    });
+    expect(CHECK_COULD_NOT_RUN).toBe(2);
+  });
 });

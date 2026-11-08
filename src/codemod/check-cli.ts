@@ -31,7 +31,7 @@ export function parseCheckArgs(argv: string[]): CheckArgs {
 
 /** 2 when a check could not run (setup problem), else 1 on any failure, else 0. */
 export function checkExitCode(report: CheckReport): 0 | 1 | 2 {
-  if (report.setupProblems && report.setupProblems.length > 0) return 2;
+  if (report.setupProblems && report.setupProblems.length > 0) return CHECK_COULD_NOT_RUN;
   return hasCheckFailures(report) ? 1 : 0;
 }
 
@@ -48,4 +48,29 @@ export function checkSummaryLines(report: CheckReport): string[] {
   return [
     warns > 0 ? `✅ No problems, ${warns} warning(s) worth a look.` : `✅ Translations look good.`,
   ];
+}
+
+/** Exit code of a check that could not run: a bad command line or a setup problem. */
+export const CHECK_COULD_NOT_RUN = 2;
+
+/** The `--json` report of a check that stopped before it could check anything. */
+export function checkErrorReport(
+  error: string,
+  localesDir: string | null
+): CheckReport & { error: string } {
+  return {
+    error,
+    localesDir: localesDir ?? '',
+    sourceLocale: null,
+    locales: [],
+    codeKeyCount: 0,
+    issues: [],
+    setupProblems: [error],
+  };
+}
+
+/** The `--json` report, with an `error` field when a setup problem kept part of it from running. */
+export function withCheckError(report: CheckReport): CheckReport & { error?: string } {
+  const problems = report.setupProblems ?? [];
+  return problems.length > 0 ? { ...report, error: problems.join(' ') } : report;
 }
