@@ -219,6 +219,11 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
   }
 
   const locales = listLocales(localesDir);
+  if (locales.length === 0) {
+    throw new Error(
+      `No locale files found in ${localesDir}. Point --locales at the folder with en.json, ar.json, ...`
+    );
+  }
   const data = new Map(locales.map((l) => [l, readLocale(localesDir, l, projectDir, issues)]));
 
   const sourceLocale =

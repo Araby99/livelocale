@@ -45,6 +45,15 @@ describe('runCheck', () => {
     expect(hasCheckFailures(report)).toBe(false);
   });
 
+  it('cannot run on a locales folder with no locale files', async () => {
+    fs.mkdirSync(path.join(project, 'locales'));
+    write(project, 'locales/README.md', '# Translations');
+    write(project, 'app/page.tsx', `t('a')`);
+    await expect(runCheck({ projectDir: project })).rejects.toThrow(
+      `No locale files found in ${path.join(project, 'locales')}. Point --locales at the folder with en.json, ar.json, ...`
+    );
+  });
+
   it('runs outside development mode (CI)', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('LIVELOCALE', 'off');
