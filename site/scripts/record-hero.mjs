@@ -22,6 +22,10 @@
 // the editor and Send as bottom sheets). Taps show as a touch ripple (no cursor, no keycaps) and
 // there is no camera: the frame is the whole phone screen, encoded at 2x. It writes
 // hero-phone.{mp4,webm}, chapters-phone.json and poster-phone.webp (through hero-frames.mjs).
+// HERO_MP4_CRF (default 25) and HERO_WEBM_CRF (default 40) override the phone take's H.264 and VP9
+// quality: raise them for a smaller file, lower them for a sharper one (the desktop take keeps its
+// fixed 23 and 38). After a phone take, copy the starts in chapters-phone.json into the chips'
+// data-start-phone in site/index.html (a unit test checks they match).
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';

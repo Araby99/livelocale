@@ -217,9 +217,13 @@ request, recorded at the same phone size. Taps show as a touch ripple (no cursor
 there is no camera move; it is encoded at 780x1688. It writes `hero-phone.{mp4,webm}`,
 `chapters-phone.json` and `poster-phone.webp` (through `hero-frames.mjs`, at 3.5 s, the fix saved
 in the sheet). It is acted at 1/5 speed (`HERO_SLOW`); `HERO_MP4_CRF` and `HERO_WEBM_CRF` tune its
-file size. After a new phone take, copy the chapter starts from `chapters-phone.json` into the
-chips' `data-start-phone` in `index.html` (a unit test checks they match), and check
-`poster-phone.webp` still shows the saved fix.
+file size (defaults 25 and 40; higher is smaller). After a new phone take, copy the chapter starts
+from `chapters-phone.json` into the chips' `data-start-phone` in `index.html` by hand (the
+recorder does not edit the page; a unit test checks they match), and check `poster-phone.webp`
+still shows the saved fix. A chip's phone title is its `chapter-phone` span; where the title in
+`chapters-phone.json` is too long for a phone chip, the chip keeps it as a `chapter-wide
+chapter-full` span (read by screen readers on a phone too) and shows a short `aria-hidden`
+`chapter-phone` label ("Every language" for chapter 2).
 
 The page picks the take by viewport (`(max-width: 639px)` is the phone one) and swaps it, with its
 chapter times, when the viewport crosses that width. Autoplay is held
