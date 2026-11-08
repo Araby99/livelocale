@@ -14,6 +14,14 @@
 // (PR_URL, on the public demo repo) recorded the same way: its Conversation tab, a click on Files
 // changed, and a cut to the diffs. The loop seam dips to the stage colour and fades back into
 // frame 0. Output goes to site/media/hero/.
+//
+//   node site/scripts/record-hero.mjs --phone
+//
+// records the phone take instead: the same stage and pull request on an emulated phone (390x844,
+// DPR 3, touch, the Pixel 7's user agent), so the Studio shows its real phone layout (tap to edit,
+// the editor and Send as bottom sheets). Taps show as a touch ripple (no cursor, no keycaps) and
+// there is no camera: the frame is the whole phone screen, encoded at 2x. It writes
+// hero-phone.{mp4,webm}, chapters-phone.json and poster-phone.webp (through hero-frames.mjs).
 import { spawn, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
@@ -22,6 +30,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cutFrames } from './hero-frames.mjs';
 
 const SITE_DIR = fileURLToPath(new URL('..', import.meta.url));
 const ROOT_DIR = resolve(SITE_DIR, '..');
@@ -30,15 +39,35 @@ const OUT_DIR = join(SITE_DIR, 'media', 'hero');
 const require = createRequire(import.meta.url);
 const VITE_BIN = join(dirname(require.resolve('vite/package.json')), 'bin', 'vite.js');
 const FFMPEG = require('ffmpeg-static');
-const { chromium } = require(join(ROOT_DIR, 'node_modules', 'playwright'));
+const { chromium, devices } = require(join(ROOT_DIR, 'node_modules', 'playwright'));
 
-const VIEW = { width: 1600, height: 1000 };
-const DPR = Number(process.env.HERO_DPR ?? 2);
+const PHONE = process.argv.includes('--phone');
+const VIEW = PHONE ? { width: 390, height: 844 } : { width: 1600, height: 1000 };
+const DPR = Number(process.env.HERO_DPR ?? (PHONE ? 3 : 2));
+// The encoded frame: the desktop take at 1x after its camera crop, the phone take at 2x (no camera).
+const OUT = PHONE ? { width: VIEW.width * 2, height: VIEW.height * 2 } : VIEW;
+// What each take writes into site/media/hero/ (null: not written by that take).
+const OUTPUT = PHONE
+  ? {
+      mp4: 'hero-phone.mp4',
+      webm: 'hero-phone.webm',
+      chapters: 'chapters-phone.json',
+      poster: null,
+      contact: null,
+    }
+  : {
+      mp4: 'hero.mp4',
+      webm: 'hero.webm',
+      chapters: 'chapters.json',
+      poster: 'poster.png',
+      contact: 'contact.png',
+    };
 // Headless Chromium paints only about 8 screencast frames a second at DPR 2, so the take is acted
 // SLOW times slower than the video plays (CSS animations slowed to match through CDP) and the frame
 // timestamps are divided by SLOW again. The product's own JS timers are not slowed, so they run
-// SLOW times faster on screen (the "Saved!" flash is the only one that shows).
-const SLOW = Number(process.env.HERO_SLOW ?? 3);
+// SLOW times faster on screen (the "Saved!" flash is the only one that shows). The phone take,
+// at DPR 3, paints about 4.5 a second, so it is acted 5 times slower.
+const SLOW = Number(process.env.HERO_SLOW ?? (PHONE ? 5 : 3));
 const PORTS = [5170, 5171, 5172, 5173, 5174, 5175, 5176, 5177, 5178, 5179];
 // RFC 2606 reserves .example, so this host can never belong to a real company.
 const HOST = 'tidewell.example';
@@ -160,9 +189,9 @@ function serve(root) {
   });
 }
 
-// ─── overlay (cursor, ripple, keycap), injected into the top page only ───────
+// ─── overlay (cursor, ripple, keycap; or only a touch ripple), top page only ──
 
-const OVERLAY = (spot) => {
+const OVERLAY = ({ spot, touch }) => {
   if (window.top !== window) return;
   const install = () => {
     const root = document.createElement('div');
@@ -189,6 +218,14 @@ const OVERLAY = (spot) => {
           transition: opacity 160ms ease, scale 200ms cubic-bezier(.3,1.5,.6,1); }
         .rec-key.on { opacity: 1; scale: 1; }
         .rec-key.press { translate: -50% calc(-50% + 2px); box-shadow: 0 1px 0 #000, 0 6px 16px -8px rgba(0,0,0,.45); }
+        /* a fingertip: a soft disc where the finger lands, then a ring spreading from it */
+        .rec-touch { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+          border-radius: 50%; background: rgba(15, 23, 42, .28); border: 2px solid rgba(255,255,255,.85);
+          box-shadow: 0 0 0 1px rgba(15, 23, 42, .25);
+          animation: rec-touch 520ms cubic-bezier(.2,.7,.3,1) forwards; }
+        @keyframes rec-touch { 0% { transform: scale(.55); opacity: 0 } 18% { transform: scale(1); opacity: 1 }
+          60% { opacity: 1 } 100% { transform: scale(1.7); opacity: 0 } }
+        ${touch ? '.rec-key, .rec-cursor { display: none; }' : ''}
       </style>
       <div class="rec-key">Alt</div>
       <svg class="rec-cursor" viewBox="0 0 26 26"><path d="M3 2 L3 21.5 L8.2 16.6 L11.6 24.2 L15 22.7 L11.7 15.3 L18.8 15.1 Z"
@@ -212,11 +249,13 @@ const OVERLAY = (spot) => {
       down(pressKey) {
         cursor.classList.add('down');
         const ripple = document.createElement('div');
-        ripple.className = 'rec-ripple';
+        ripple.className = touch ? 'rec-touch' : 'rec-ripple';
         ripple.style.left = `${x}px`;
         ripple.style.top = `${y}px`;
         root.insertBefore(ripple, key);
-        setTimeout(() => ripple.remove(), 420);
+        if (touch)
+          ripple.addEventListener('animationend', () => ripple.remove()); // slowed too
+        else setTimeout(() => ripple.remove(), 420);
         if (pressKey) key.classList.add('press');
       },
       up() {
@@ -292,6 +331,20 @@ function actor(page) {
     async tap(ms = 90) {
       await overlay('down', false);
       await wait(ms);
+      await overlay('up');
+    },
+    /**
+     * A finger tap at (x, y) in page coordinates (the phone take): the touch ripple shows where
+     * it lands and a real touchstart/touchend goes to whatever is there, iframe included. With
+     * `real: false` only the ripple shows, for controls driven another way (a native select).
+     */
+    async touch(x, y, { real = true, hold = 90 } = {}) {
+      cx = x;
+      cy = y;
+      await overlay('move', x, y);
+      await overlay('down', false);
+      if (real) await page.touchscreen.tap(x, y);
+      await wait(hold);
       await overlay('up');
     },
     async altDown() {
@@ -407,9 +460,12 @@ function zoompan(keys) {
   const y = camTrack(keys, 'y');
   return (
     `zoompan=z='${VIEW.width}/(${w})':x='${DPR}*(${x})':y='${DPR}*(${y})'` +
-    `:d=1:fps=60:s=${VIEW.width}x${VIEW.height}`
+    `:d=1:fps=60:s=${OUT.width}x${OUT.height}`
   );
 }
+
+/** A shot's framing: its eased camera, or (no keys, the phone take) the whole screen scaled. */
+const framing = (keys) => (keys ? zoompan(keys) : `scale=${OUT.width}:${OUT.height}:flags=lanczos`);
 
 // ─── ffmpeg ──────────────────────────────────────────────────────────────────
 
@@ -420,7 +476,7 @@ function ffmpeg(args) {
   if (res.status !== 0) throw new Error(`ffmpeg ${args.slice(0, 12).join(' ')} ... failed`);
 }
 
-/** One shot: its VFR screencast frames -> CFR 60 -> its camera, as a near-lossless mp4. */
+/** One shot: its VFR screencast frames -> CFR 60 -> its framing, as a near-lossless mp4. */
 async function encodeShot({ frames, endTs, camKeys }, work, name) {
   const dir = join(work, name);
   await mkdir(dir, { recursive: true });
@@ -440,7 +496,7 @@ async function encodeShot({ frames, endTs, camKeys }, work, name) {
   const graphFile = join(dir, 'graph.txt');
   await writeFile(
     graphFile,
-    `[0:v]fps=60,settb=AVTB,setpts=PTS-STARTPTS,${zoompan(camKeys)},` +
+    `[0:v]fps=60,settb=AVTB,setpts=PTS-STARTPTS,${framing(camKeys)},` +
       `trim=duration=${duration.toFixed(3)},setpts=PTS-STARTPTS,setsar=1,format=yuv420p[v]`
   );
   const out = join(work, `${name}.mp4`);
@@ -495,7 +551,7 @@ async function encode(shots, work) {
   parts.push(
     `${label}trim=duration=${raw.toFixed(3)},setpts=PTS-STARTPTS,` +
       `fade=t=out:st=${(raw - DIP).toFixed(3)}:d=${DIP}:color=${DIP_COLOUR}[a]`,
-    `[${n}:v]scale=${VIEW.width}:${VIEW.height}:flags=lanczos,fps=60,trim=duration=${RISE},` +
+    `[${n}:v]scale=${OUT.width}:${OUT.height}:flags=lanczos,fps=60,trim=duration=${RISE},` +
       `setpts=PTS-STARTPTS,setsar=1,format=yuv420p,fade=t=in:st=0:d=${RISE}:color=${DIP_COLOUR}[b]`,
     `[a][b]concat=n=2:v=1:a=0[v]`
   );
@@ -524,8 +580,8 @@ async function encode(shots, work) {
   ]);
   const duration = raw + RISE;
 
-  const mp4 = join(OUT_DIR, 'hero.mp4');
-  const webm = join(OUT_DIR, 'hero.webm');
+  const mp4 = join(OUT_DIR, OUTPUT.mp4);
+  const webm = join(OUT_DIR, OUTPUT.webm);
   ffmpeg([
     '-i',
     master,
@@ -536,7 +592,7 @@ async function encode(shots, work) {
     '-tune',
     'animation',
     '-crf',
-    '23',
+    String(PHONE ? Number(process.env.HERO_MP4_CRF ?? 25) : 23),
     '-profile:v',
     'high',
     '-pix_fmt',
@@ -554,7 +610,7 @@ async function encode(shots, work) {
     '-b:v',
     '0',
     '-crf',
-    '38',
+    String(PHONE ? Number(process.env.HERO_WEBM_CRF ?? 40) : 38),
     '-row-mt',
     '1',
     '-deadline',
@@ -566,23 +622,24 @@ async function encode(shots, work) {
     '-an',
     webm,
   ]);
-  ffmpeg(['-i', master, '-frames:v', '1', join(OUT_DIR, 'poster.png')]);
+  if (OUTPUT.poster) ffmpeg(['-i', master, '-frames:v', '1', join(OUT_DIR, OUTPUT.poster)]);
 
   // contact sheet: 12 evenly spaced frames, 400 px wide, tiled 4x3
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; OUTPUT.contact && i < 12; i++) {
     const t = ((duration - 0.05) * i) / 11;
     const tile = join(work, `tile${String(i).padStart(2, '0')}.png`);
     ffmpeg(['-ss', t.toFixed(3), '-i', master, '-frames:v', '1', '-vf', 'scale=400:-2', tile]);
   }
-  ffmpeg([
-    '-i',
-    join(work, 'tile%02d.png'),
-    '-vf',
-    'tile=4x3:padding=6:margin=6:color=white',
-    '-frames:v',
-    '1',
-    join(OUT_DIR, 'contact.png'),
-  ]);
+  if (OUTPUT.contact)
+    ffmpeg([
+      '-i',
+      join(work, 'tile%02d.png'),
+      '-vf',
+      'tile=4x3:padding=6:margin=6:color=white',
+      '-frames:v',
+      '1',
+      join(OUT_DIR, OUTPUT.contact),
+    ]);
   // HERO_KEEP_MASTER=path copies the lossless-ish master out for frame-by-frame review.
   if (process.env.HERO_KEEP_MASTER) {
     await writeFile(process.env.HERO_KEEP_MASTER, await readFile(master));
@@ -592,24 +649,45 @@ async function encode(shots, work) {
 
 // ─── the pull request on GitHub ──────────────────────────────────────────────
 
-/** Records PR_URL: the Conversation tab, a click on Files changed, then the diffs (two shots). */
-async function recordPullRequest(browser) {
-  const context = await browser.newContext({
+/** The browser context a take films in: the desktop window, or the emulated phone (touch). */
+function contextOptions(extra = {}) {
+  return {
+    ...(PHONE ? { ...devices['Pixel 7'], screen: VIEW } : {}),
     viewport: VIEW,
     deviceScaleFactor: DPR,
     locale: 'en-US',
     timezoneId: 'UTC',
     colorScheme: 'light',
     reducedMotion: 'no-preference',
-    bypassCSP: true, // GitHub's CSP would block the overlay's inline <style>
-  });
+    ...extra,
+  };
+}
+
+/** Scrolls the page to `y` over `ms` of video time, eased, as a finger's swipe would settle. */
+async function scrollTo(page, y, ms) {
+  const from = await page.evaluate(() => window.scrollY);
+  const start = Date.now();
+  const total = ms * SLOW;
+  for (;;) {
+    const raw = Math.min(1, (Date.now() - start) / total);
+    const at = from + (y - from) * easeInOut(raw);
+    await page.evaluate((top) => window.scrollTo(0, top), at);
+    if (raw >= 1) break;
+    await sleep(8);
+  }
+}
+
+/** Records PR_URL: the Conversation tab, a click on Files changed, then the diffs (two shots). */
+async function recordPullRequest(browser) {
+  // GitHub's CSP would block the overlay's inline <style>
+  const context = await browser.newContext(contextOptions({ bypassCSP: true }));
   try {
-    await context.addInitScript(OVERLAY, KEY_SPOT);
+    await context.addInitScript(OVERLAY, { spot: KEY_SPOT, touch: PHONE });
     const files = await context.newPage();
     // Files changed loads first, off camera, so the cut after the click lands on a settled page.
     await files.goto(`${PR_URL}/files`, { waitUntil: 'load' });
     await files.locator('text=locales/en.json >> visible=true').first().waitFor();
-    await files.mouse.move(0, 0);
+    if (!PHONE) await files.mouse.move(0, 0);
     const page = await context.newPage();
     await page.goto(PR_URL, { waitUntil: 'load' });
     await page.getByText('wants to merge').first().waitFor();
@@ -617,45 +695,337 @@ async function recordPullRequest(browser) {
     await sleep(1200);
 
     const tab = page.getByRole('link', { name: /Files changed/ }).first();
+    // On a phone the tab strip runs off the right edge: it is scrolled to show Files changed
+    // before filming, as a thumb would have swiped it.
+    if (PHONE) {
+      await tab.evaluate((el) => {
+        for (let box = el.parentElement; box; box = box.parentElement) {
+          if (box.scrollWidth > box.clientWidth + 1) box.scrollLeft = box.scrollWidth;
+        }
+      });
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await sleep(300);
+    }
     const tabAt = centre(await tab.boundingBox());
     const me = actor(page);
-    await me.place(760, 640); // resting on the apply table
+    if (!PHONE) await me.place(760, 640); // resting on the apply table
     await sleep(300);
 
     const cast = await startScreencast(page);
-    await cast.until(0.55);
-    await me.move(tabAt.x + 6, tabAt.y + 4, 650);
-    await wait(120);
-    await me.overlay('down', false);
-    await wait(80);
-    await me.overlay('up');
-    await wait(140);
+    if (PHONE) {
+      await cast.until(1.1);
+      await me.touch(tabAt.x, tabAt.y, { real: false, hold: 120 });
+      await wait(260);
+    } else {
+      await cast.until(0.55);
+      await me.move(tabAt.x + 6, tabAt.y + 4, 650);
+      await wait(120);
+      await me.overlay('down', false);
+      await wait(80);
+      await me.overlay('up');
+      await wait(140);
+    }
     const convEnd = await cast.stop();
     const conversation = {
       frames: cast.frames,
       endTs: convEnd,
-      camKeys: [{ t: 0, ease: 0, box: CAM.prConversation }],
+      camKeys: PHONE ? null : [{ t: 0, ease: 0, box: CAM.prConversation }],
     };
 
     await files.bringToFront();
     await files.evaluate(() => document.fonts.ready);
     const me2 = actor(files);
-    await me2.place(tabAt.x + 6, tabAt.y + 4);
+    if (!PHONE) await me2.place(tabAt.x + 6, tabAt.y + 4);
     const cast2 = await startScreencast(files);
-    // the mouse stays where it clicked, then drifts down to the en.json change
-    await me2.move(tabAt.x + 40, tabAt.y + 470, 1100, 0.06);
-    await cast2.until(2.3);
+    if (PHONE) {
+      // a swipe down to the Arabic diff, then on to the English one
+      const top = (name) =>
+        files
+          .locator(`text=${name} >> visible=true`)
+          .first()
+          .evaluate((el) => el.getBoundingClientRect().top + window.scrollY);
+      const ar = await top('locales/ar.json');
+      const en = await top('locales/en.json');
+      await cast2.until(0.5);
+      await scrollTo(files, ar - 110, 700);
+      await cast2.until(2.4);
+      await scrollTo(files, en - 140, 800);
+      await cast2.until(4.6);
+    } else {
+      // the mouse stays where it clicked, then drifts down to the en.json change
+      await me2.move(tabAt.x + 40, tabAt.y + 470, 1100, 0.06);
+      await cast2.until(2.3);
+    }
     const filesEnd = await cast2.stop();
     const filesShot = {
       frames: cast2.frames,
       endTs: filesEnd,
-      camKeys: [{ t: 0, ease: 0, box: CAM.prFiles }],
+      camKeys: PHONE ? null : [{ t: 0, ease: 0, box: CAM.prFiles }],
     };
     const secs = (x) => (x.endTs - x.frames[0].ts) / SLOW;
     return { conversation, files: filesShot, seconds: secs(conversation) + secs(filesShot) };
   } finally {
     await context.close();
   }
+}
+
+// ─── the desktop storyboard ──────────────────────────────────────────────────
+
+/** The desktop take of the Studio: Alt+Click, the camera moves, the Send dialog. */
+async function desktopStudio({ page, app, appFrame, waitForApp }) {
+  const me = actor(page);
+  const h1Box = await app().locator('h1').boundingBox();
+  const h1 = centre(h1Box);
+  // parked just under the headline, so the typo is the first thing the eye meets
+  await me.place(h1.x + 70, h1Box.y + h1Box.height + 16);
+  await sleep(400);
+
+  const cast = await startScreencast(page);
+  const chapters = [];
+  const camKeys = [{ t: 0, ease: 0, box: CAM.full }];
+  const chapter = (title) => chapters.push({ title, start: Number(cast.now().toFixed(2)) });
+  const mark = (label) => console.log(`  ${cast.now().toFixed(2)} s  ${label}`);
+  const cam = (name, ms) => {
+    camKeys.push({ t: cast.now(), ease: ms / 1000, box: CAM[name] });
+    mark(`camera -> ${name}`);
+  };
+
+  // 0-2 s: English, with the typo. The camera pushes in on the preview and the editor at once.
+  await cast.until(0.25);
+  cam('edit', 1100);
+  await me.move(h1.x + 40, h1.y + 4, 380);
+  await cast.until(0.8);
+  await appFrame().evaluate(() => window.focus()); // Alt goes to the app, like a real user's
+  chapter('Alt+Click the text');
+  await me.altDown();
+  mark('alt down');
+
+  // 2-5 s: Alt+Click the headline; the editor shows key and value; type the fix; Save.
+  await cast.until(2.0);
+  mark('headline clicked');
+  await me.click();
+  await me.altUp();
+  const field = page.getByRole('textbox', { name: 'Translation' });
+  await page.waitForFunction(() =>
+    document.querySelector('textarea')?.value.includes('Plans that grows')
+  );
+  await wait(150);
+  const caret = await caretAfter(field, 'Plans that grows');
+  await me.move(caret.x + 1, caret.y, 400);
+  await me.click();
+  await wait(110);
+  await page.keyboard.press('Control+Shift+ArrowLeft');
+  await wait(160);
+  await me.type('grow', 85);
+  await wait(180);
+  const save = centre(await page.getByRole('button', { name: 'Save Changes' }).boundingBox());
+  await me.move(save.x, save.y, 400);
+  await wait(60);
+  await me.click();
+  await wait(320);
+  // the real Clear Selection link, so the editor is empty before the language changes
+  const clear = centre(await page.getByRole('button', { name: 'Clear Selection' }).boundingBox());
+  await me.move(clear.x, clear.y, 360);
+  await me.click();
+  await wait(120);
+
+  // 6-10 s: switch the locale to Arabic; the preview flips right to left.
+  chapter('Fix it in every language');
+  const select = page.locator('select').first();
+  const sel = centre(await select.boundingBox());
+  await me.move(sel.x, sel.y, 380);
+  await me.tap(300);
+  cam('full', 700);
+  await me.overlay('key', true, 'EN → AR'); // a recording annotation, like the cursor
+  const chipOn = cast.now();
+  await select.selectOption('ar');
+  await waitForApp('خطط تنمو معك');
+  mark('arabic loaded');
+  const flipped = cast.now();
+  await cast.until(chipOn + 0.6);
+  await me.overlay('key', false);
+  const cta = centre(await app().getByText('Start free trial').boundingBox());
+  await cast.until(flipped + 0.9);
+  cam('edit', 700);
+  await me.move(cta.x + 18, cta.y + 4, 480);
+  await appFrame().evaluate(() => window.focus());
+  await me.altDown();
+  await wait(380);
+  await me.click();
+  await me.altUp();
+  mark('cta clicked');
+  // hero.cta has no Arabic value, so the output starts empty; wait for the editor to open on it
+  await page.waitForFunction(() => document.querySelector('textarea'));
+  await wait(120);
+  const box = centre(await field.boundingBox());
+  await me.move(box.x + 120, box.y - 20, 380);
+  await me.click();
+  await page.keyboard.press('Control+A');
+  await wait(140);
+  await me.type('ابدأ تجربتك المجانية', 28, 8);
+  await wait(220);
+  const save2 = centre(await page.getByRole('button', { name: 'Save Changes' }).boundingBox());
+  await me.move(save2.x, save2.y, 420);
+  await me.click();
+  await wait(350);
+
+  // 11-15 s: open Send; the real Send dialog with the change link (2 changes). Hold it.
+  chapter('Get a pull request');
+  const send = centre(await page.getByRole('button', { name: /Send to developer/ }).boundingBox());
+  await me.move(send.x, send.y, 520);
+  await wait(60);
+  await me.click();
+  await page.getByRole('dialog').waitFor();
+  mark('send dialog open');
+  const opened = cast.now();
+  cam('send', 800);
+  const copy = await page
+    .getByRole('dialog')
+    .getByRole('button', { name: 'Copy link' })
+    .boundingBox();
+  // rest just below Copy link, off the diff rows
+  if (copy) await me.move(copy.x + copy.width / 2, copy.y + copy.height + 10, 560, 0.06);
+  const github = page.getByRole('dialog').getByRole('link', { name: 'Open on GitHub' });
+  const issueUrl = await github.getAttribute('href');
+  console.log(`  issue link the Studio built: ${issueUrl}`);
+  if (process.env.HERO_ISSUE_OUT) await writeFile(process.env.HERO_ISSUE_OUT, issueUrl);
+  // The real link and its real click handler (the batch is marked sent), but the new tab is not
+  // opened: headless and signed out, GitHub would only show its sign-in page. The issue that
+  // link pre-fills was filed once, by the maintainer, and is what PR_URL came from.
+  await page.evaluate(() =>
+    document.addEventListener(
+      'click',
+      (e) => e.target.closest?.('a[href^="https://github.com/"]') && e.preventDefault(),
+      true
+    )
+  );
+  await cast.until(opened + 1.25);
+  const gh = centre(await github.boundingBox());
+  await me.move(gh.x - 8, gh.y + 2, 520);
+  await wait(120);
+  await me.click();
+  mark('open on github clicked');
+  await wait(650);
+
+  const endTs = await cast.stop();
+  return { frames: cast.frames, endTs, camKeys, chapters };
+}
+
+// ─── the phone storyboard ────────────────────────────────────────────────────
+
+/**
+ * The phone take of the Studio: tap the headline, fix "grows" in the editor sheet and save;
+ * switch the locale chip to Arabic, tap the untranslated button and fill it in; tap Send · 2 and
+ * Open on GitHub in the Send sheet. Every gesture is a real tap on the emulated touch screen.
+ */
+async function phoneStudio({ page, app, waitForApp }) {
+  const me = actor(page);
+  const field = page.locator('#studio-translation-input');
+  const saveButton = page.locator('#studio-save-button');
+  /** Taps the middle of `locator` (optionally only showing the ripple). */
+  const tapOn = async (locator, options) => {
+    const c = centre(await locator.boundingBox());
+    await me.touch(c.x, c.y, options);
+  };
+  await page
+    .getByRole('radiogroup', { name: 'Tap mode' })
+    .getByRole('radio', { name: 'Edit' })
+    .waitFor({ state: 'attached' });
+
+  const cast = await startScreencast(page);
+  const chapters = [];
+  const chapter = (title) => chapters.push({ title, start: Number(cast.now().toFixed(2)) });
+  const mark = (label) => console.log(`  ${cast.now().toFixed(2)} s  ${label}`);
+
+  // 0-5 s: tap the headline; the compact editor sheet slides up; fix "grows"; save.
+  await cast.until(0.9);
+  chapter('Tap the text');
+  const h1 = centre(await app().locator('h1').boundingBox());
+  await me.touch(h1.x + 30, h1.y);
+  mark('headline tapped');
+  await page.waitForFunction(() =>
+    document.querySelector('#studio-translation-input')?.value.includes('Plans that grows')
+  );
+  await wait(700); // the sheet slides up and the page scrolls the headline above it
+  const caret = await caretAfter(field, 'Plans that grows');
+  await me.touch(caret.x, caret.y);
+  // the caret where the finger put it, just after "grows"
+  await field.evaluate((el) => {
+    const end = el.value.indexOf('grows') + 'grows'.length;
+    el.focus();
+    el.setSelectionRange(end, end);
+  });
+  await wait(350);
+  await page.keyboard.press('Backspace');
+  await page.waitForFunction(() =>
+    document.querySelector('#studio-translation-input')?.value.includes('Plans that grow with')
+  );
+  mark('typo fixed');
+  await wait(500);
+  await tapOn(saveButton);
+  await page.locator('[data-testid="save-success"]').waitFor();
+  mark('saved');
+  await wait(1100); // hold on the fixed headline in its amber outline
+
+  // close the sheet with a tap on the dimmed page above it
+  await me.touch(VIEW.width * 0.5, 150);
+  await page.locator('#studio-translation-input').waitFor({ state: 'detached' });
+  await wait(250);
+
+  // 6-11 s: the locale chip to Arabic; the page flips right to left; fill the empty button.
+  chapter('Fix it in every language');
+  const chip = page.getByRole('combobox', { name: 'Locale' });
+  await tapOn(chip, { real: false, hold: 160 });
+  await chip.selectOption('ar');
+  await waitForApp('خطط تنمو معك');
+  mark('arabic loaded');
+  await wait(1000);
+  await tapOn(app().getByText('Start free trial').first());
+  mark('cta tapped');
+  await field.waitFor();
+  await wait(700);
+  await tapOn(field);
+  // the field starts on the English text; select it so the Arabic replaces it
+  await field.evaluate((el) => {
+    el.focus();
+    el.select();
+  });
+  await wait(250);
+  await me.type('ابدأ تجربتك المجانية', 34, 10);
+  await wait(400);
+  await tapOn(saveButton);
+  await page.locator('[data-testid="save-success"]').waitFor();
+  mark('arabic saved');
+  await wait(900);
+
+  // 12-16 s: Send · 2; the Send sheet lists both changes; Open on GitHub.
+  chapter('Get a pull request');
+  await tapOn(page.locator('#studio-send-button'));
+  const sheet = page.getByRole('dialog', { name: 'Send to developer' });
+  await sheet.waitFor();
+  mark('send sheet open');
+  await wait(1700);
+  // As in the desktop take: the real link and its click handler, but no new tab (signed out,
+  // GitHub would only show its sign-in page); the pull request that follows came from that issue.
+  await page.evaluate(() =>
+    document.addEventListener(
+      'click',
+      (e) => e.target.closest?.('a[href^="https://github.com/"]') && e.preventDefault(),
+      true
+    )
+  );
+  const github = sheet.getByRole('link', { name: 'Open on GitHub' });
+  if (await github.isVisible()) {
+    console.log(`  issue link the Studio built: ${await github.getAttribute('href')}`);
+    await tapOn(github);
+    mark('open on github tapped');
+  } else {
+    console.log('  Open on GitHub is not in view in the Send sheet; ending on the change list');
+  }
+  await wait(700);
+
+  const endTs = await cast.stop();
+  return { frames: cast.frames, endTs, camKeys: null, chapters };
 }
 
 // ─── main ────────────────────────────────────────────────────────────────────
@@ -674,15 +1044,8 @@ async function main() {
   });
   const work = await mkdtemp(join(tmpdir(), 'livelocale-hero-'));
   try {
-    const context = await browser.newContext({
-      viewport: VIEW,
-      deviceScaleFactor: DPR,
-      locale: 'en-US',
-      timezoneId: 'UTC',
-      colorScheme: 'light',
-      reducedMotion: 'no-preference',
-    });
-    await context.addInitScript(OVERLAY, KEY_SPOT);
+    const context = await browser.newContext(contextOptions());
+    await context.addInitScript(OVERLAY, { spot: KEY_SPOT, touch: PHONE });
     const page = await context.newPage();
     await page.goto(`http://${HOST}/livelocale/index.html`);
 
@@ -701,144 +1064,8 @@ async function main() {
     await page.evaluate(() => document.fonts.ready);
     await sleep(250);
 
-    const me = actor(page);
-    const h1Box = await app().locator('h1').boundingBox();
-    const h1 = centre(h1Box);
-    // parked just under the headline, so the typo is the first thing the eye meets
-    await me.place(h1.x + 70, h1Box.y + h1Box.height + 16);
-    await sleep(400);
-
-    const cast = await startScreencast(page);
-    const chapters = [];
-    const camKeys = [{ t: 0, ease: 0, box: CAM.full }];
-    const chapter = (title) => chapters.push({ title, start: Number(cast.now().toFixed(2)) });
-    const mark = (label) => console.log(`  ${cast.now().toFixed(2)} s  ${label}`);
-    const cam = (name, ms) => {
-      camKeys.push({ t: cast.now(), ease: ms / 1000, box: CAM[name] });
-      mark(`camera -> ${name}`);
-    };
-
-    // 0-2 s: English, with the typo. The camera pushes in on the preview and the editor at once.
-    await cast.until(0.25);
-    cam('edit', 1100);
-    await me.move(h1.x + 40, h1.y + 4, 380);
-    await cast.until(0.8);
-    await appFrame().evaluate(() => window.focus()); // Alt goes to the app, like a real user's
-    chapter('Alt+Click the text');
-    await me.altDown();
-    mark('alt down');
-
-    // 2-5 s: Alt+Click the headline; the editor shows key and value; type the fix; Save.
-    await cast.until(2.0);
-    mark('headline clicked');
-    await me.click();
-    await me.altUp();
-    const field = page.getByRole('textbox', { name: 'Translation' });
-    await page.waitForFunction(() =>
-      document.querySelector('textarea')?.value.includes('Plans that grows')
-    );
-    await wait(150);
-    const caret = await caretAfter(field, 'Plans that grows');
-    await me.move(caret.x + 1, caret.y, 400);
-    await me.click();
-    await wait(110);
-    await page.keyboard.press('Control+Shift+ArrowLeft');
-    await wait(160);
-    await me.type('grow', 85);
-    await wait(180);
-    const save = centre(await page.getByRole('button', { name: 'Save Changes' }).boundingBox());
-    await me.move(save.x, save.y, 400);
-    await wait(60);
-    await me.click();
-    await wait(320);
-    // the real Clear Selection link, so the editor is empty before the language changes
-    const clear = centre(await page.getByRole('button', { name: 'Clear Selection' }).boundingBox());
-    await me.move(clear.x, clear.y, 360);
-    await me.click();
-    await wait(120);
-
-    // 6-10 s: switch the locale to Arabic; the preview flips right to left.
-    chapter('Fix it in every language');
-    const select = page.locator('select').first();
-    const sel = centre(await select.boundingBox());
-    await me.move(sel.x, sel.y, 380);
-    await me.tap(300);
-    cam('full', 700);
-    await me.overlay('key', true, 'EN → AR'); // a recording annotation, like the cursor
-    const chipOn = cast.now();
-    await select.selectOption('ar');
-    await waitForApp('خطط تنمو معك');
-    mark('arabic loaded');
-    const flipped = cast.now();
-    await cast.until(chipOn + 0.6);
-    await me.overlay('key', false);
-    const cta = centre(await app().getByText('Start free trial').boundingBox());
-    await cast.until(flipped + 0.9);
-    cam('edit', 700);
-    await me.move(cta.x + 18, cta.y + 4, 480);
-    await appFrame().evaluate(() => window.focus());
-    await me.altDown();
-    await wait(380);
-    await me.click();
-    await me.altUp();
-    mark('cta clicked');
-    // hero.cta has no Arabic value, so the output starts empty; wait for the editor to open on it
-    await page.waitForFunction(() => document.querySelector('textarea'));
-    await wait(120);
-    const box = centre(await field.boundingBox());
-    await me.move(box.x + 120, box.y - 20, 380);
-    await me.click();
-    await page.keyboard.press('Control+A');
-    await wait(140);
-    await me.type('ابدأ تجربتك المجانية', 28, 8);
-    await wait(220);
-    const save2 = centre(await page.getByRole('button', { name: 'Save Changes' }).boundingBox());
-    await me.move(save2.x, save2.y, 420);
-    await me.click();
-    await wait(350);
-
-    // 11-15 s: open Send; the real Send dialog with the change link (2 changes). Hold it.
-    chapter('Get a pull request');
-    const send = centre(
-      await page.getByRole('button', { name: /Send to developer/ }).boundingBox()
-    );
-    await me.move(send.x, send.y, 520);
-    await wait(60);
-    await me.click();
-    await page.getByRole('dialog').waitFor();
-    mark('send dialog open');
-    const opened = cast.now();
-    cam('send', 800);
-    const copy = await page
-      .getByRole('dialog')
-      .getByRole('button', { name: 'Copy link' })
-      .boundingBox();
-    // rest just below Copy link, off the diff rows
-    if (copy) await me.move(copy.x + copy.width / 2, copy.y + copy.height + 10, 560, 0.06);
-    const github = page.getByRole('dialog').getByRole('link', { name: 'Open on GitHub' });
-    const issueUrl = await github.getAttribute('href');
-    console.log(`  issue link the Studio built: ${issueUrl}`);
-    if (process.env.HERO_ISSUE_OUT) await writeFile(process.env.HERO_ISSUE_OUT, issueUrl);
-    // The real link and its real click handler (the batch is marked sent), but the new tab is not
-    // opened: headless and signed out, GitHub would only show its sign-in page. The issue that
-    // link pre-fills was filed once, by the maintainer, and is what PR_URL came from.
-    await page.evaluate(() =>
-      document.addEventListener(
-        'click',
-        (e) => e.target.closest?.('a[href^="https://github.com/"]') && e.preventDefault(),
-        true
-      )
-    );
-    await cast.until(opened + 1.25);
-    const gh = centre(await github.boundingBox());
-    await me.move(gh.x - 8, gh.y + 2, 520);
-    await wait(120);
-    await me.click();
-    mark('open on github clicked');
-    await wait(650);
-
-    const endTs = await cast.stop();
-    const frames = cast.frames;
+    const take = await (PHONE ? phoneStudio : desktopStudio)({ page, app, appFrame, waitForApp });
+    const { frames, endTs, camKeys, chapters } = take;
     const seconds = (endTs - frames[0].ts) / SLOW;
     console.log(
       `captured ${frames.length} frames over ${seconds.toFixed(2)} s of video ` +
@@ -846,7 +1073,6 @@ async function main() {
     );
 
     const pr = await recordPullRequest(browser);
-    const studioSeconds = seconds;
 
     if (process.env.HERO_NO_ENCODE) return; // timing runs while tuning the storyboard
     const { duration } = await encode(
@@ -857,12 +1083,15 @@ async function main() {
       ],
       work
     );
-    console.log(`studio ${studioSeconds.toFixed(2)} s, pull request ${pr.seconds.toFixed(2)} s`);
+    console.log(`studio ${seconds.toFixed(2)} s, pull request ${pr.seconds.toFixed(2)} s`);
     await writeFile(
-      join(OUT_DIR, 'chapters.json'),
+      join(OUT_DIR, OUTPUT.chapters),
       `${JSON.stringify({ duration: Number(duration.toFixed(2)), chapters }, null, 2)}\n`
     );
-    for (const f of ['hero.mp4', 'hero.webm', 'poster.png', 'contact.png', 'chapters.json']) {
+    // the phone poster is cut from the shipping video, with its provenance sidecar
+    if (PHONE) cutFrames(['poster-phone.webp']);
+    const written = [...Object.values(OUTPUT), ...(PHONE ? ['poster-phone.webp'] : [])];
+    for (const f of written.filter(Boolean)) {
       const { size } = await stat(join(OUT_DIR, f));
       console.log(`${f.padEnd(14)} ${(size / 1024).toFixed(0).padStart(6)} KiB`);
     }

@@ -1,8 +1,10 @@
-// Cuts the landing page's stills out of the hero recording and writes each one's provenance
-// sidecar (<name>.json). The posters come from the two shipping cuts (hero-cuts.mjs), so each
-// matches its video pixel for pixel; the story frames come from the master take (hero.mp4, made by
-// record-hero.mjs from the Tidewell stage site). Nothing here is drawn or generated; every pixel is
-// from the take. Run after hero-cuts.mjs: node site/scripts/hero-frames.mjs
+// Cuts the landing page's stills out of the hero recordings and writes each one's provenance
+// sidecar (<name>.json). Each poster comes from the video it stands in for (the wide cut from
+// hero-cuts.mjs, or the phone take), so it matches that video pixel for pixel; the story frames
+// come from the master take (hero.mp4, made by record-hero.mjs from the Tidewell stage site).
+// Nothing here is drawn or generated; every pixel is from a take. Run after hero-cuts.mjs:
+// node site/scripts/hero-frames.mjs [still names...] (all of them by default). The phone take
+// (record-hero.mjs --phone) cuts its own poster through cutFrames(['poster-phone.webp']).
 import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -11,6 +13,9 @@ import { fileURLToPath } from 'node:url';
 const require = createRequire(import.meta.url);
 const FFMPEG = require('ffmpeg-static');
 const HERO = fileURLToPath(new URL('../media/hero/', import.meta.url));
+
+const PHONE_TAKE =
+  "the real phone hero recording site/media/hero/hero-phone.mp4, made by site/scripts/record-hero.mjs --phone: headless Chromium emulating a 390x844 touch phone, filming the real livelocale share Studio's phone layout on the fictional Tidewell stage site (site/stage, browsed as tidewell.example) and ending on the real public pull request https://github.com/Araby99/tidewell/pull/2. The touch ripple is the recorder's overlay; everything else is the product.";
 
 const TAKE =
   "the real hero recording site/media/hero/hero.mp4, made by site/scripts/record-hero.mjs: headless Chromium filming the real livelocale share Studio on the fictional Tidewell stage site (site/stage, browsed as tidewell.example) and ending on the real public pull request https://github.com/Araby99/tidewell/pull/2. Cursor, click ripple and keycaps are the recorder's overlay; everything else is the product.";
@@ -26,11 +31,11 @@ export const FRAMES = {
     width: 1200,
     use: 'the wide video poster (the desktop LCP): the headline already fixed to "Plans that grow with you", the editor holding the fix',
   },
-  'poster-narrow.webp': {
-    from: 'hero-narrow.mp4',
+  'poster-phone.webp': {
+    from: 'hero-phone.mp4',
     at: 3.5,
-    width: 720,
-    use: 'the narrow video poster (the phone LCP): the fixed headline over the editor holding the fix',
+    width: 780,
+    use: 'the phone video poster (the phone LCP): the phone Studio with the headline fixed to "Plans that grow with you" and saved in the editor sheet',
   },
   'frames/open-link.webp': {
     from: 'hero.mp4',
@@ -60,10 +65,15 @@ export const FRAMES = {
   },
 };
 
-/** Writes one WebP still and its provenance sidecar per entry of FRAMES into site/media/hero/. */
-export function cutFrames() {
+/**
+ * Writes one WebP still and its provenance sidecar per entry of FRAMES (or only those named) into
+ * site/media/hero/.
+ */
+export function cutFrames(names = Object.keys(FRAMES)) {
   mkdirSync(`${HERO}frames`, { recursive: true });
-  for (const [name, { from, at, width, crop, use }] of Object.entries(FRAMES)) {
+  for (const name of names) {
+    if (!FRAMES[name]) throw new Error(`no still named ${name}`);
+    const { from, at, width, crop, use } = FRAMES[name];
     const filter = [crop, `scale=${width}:-2`].filter(Boolean).join(',');
     const run = spawnSync(
       FFMPEG,
@@ -78,7 +88,9 @@ export function cutFrames() {
     const source =
       from === 'hero.mp4'
         ? `${TAKE}`
-        : `${TAKE} This still is from site/media/hero/${from}, the shipping cut site/scripts/hero-cuts.mjs makes from that recording.`;
+        : from === 'hero-phone.mp4'
+          ? PHONE_TAKE
+          : `${TAKE} This still is from site/media/hero/${from}, the shipping cut site/scripts/hero-cuts.mjs makes from that recording.`;
     const prompt = `SOURCED, not generated. The frame at ${at} s of ${source} Cut with ffmpeg-static by site/scripts/hero-frames.mjs${crop ? ` (${crop})` : ''}, WebP q82, ${width} px wide. Ships as ${use}.`;
     writeFileSync(
       `${HERO}${name}.json`,
@@ -88,6 +100,9 @@ export function cutFrames() {
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  cutFrames();
-  console.log(`cut ${Object.keys(FRAMES).length} stills`);
+  const names = process.argv.slice(2);
+  cutFrames(names.length > 0 ? names : undefined);
+  console.log(
+    `cut ${names.length > 0 ? names.join(', ') : `${Object.keys(FRAMES).length} stills`}`
+  );
 }

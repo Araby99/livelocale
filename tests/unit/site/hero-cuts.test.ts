@@ -1,46 +1,39 @@
 // @vitest-environment node
 import { spawnSync } from 'node:child_process';
+import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
-import { SEAM, filterGraph } from '../../../site/scripts/hero-cuts.mjs';
+import { CUTS, filterGraph } from '../../../site/scripts/hero-cuts.mjs';
 
 const FFMPEG = createRequire(`${process.cwd()}/site/package.json`)('ffmpeg-static') as string;
-const PAGE_OUT = 280; // the page pane's height in the narrow cut, as hero-cuts.mjs sets it
 
-it('pads a Surface seam under the page in every stacked shot of the narrow cut', () => {
-  const graph = filterGraph('narrow');
-  const seams = graph.match(/pad=720:286:0:0:color=0x16181D/g) ?? [];
-  expect(SEAM).toBeGreaterThanOrEqual(4);
-  expect(PAGE_OUT + SEAM).toBe(286);
-  // full, edit, full-ar, edit and the loop seam's full: five stacked shots.
-  expect(seams).toHaveLength(5);
-  expect(graph).toContain(`crop=720:${900 - PAGE_OUT - SEAM}:0:0`);
+/** Width and height of a still or video, read by ffmpeg. */
+function size(file: string): [number, number] {
+  const run = spawnSync(FFMPEG, ['-hide_banner', '-i', file], { encoding: 'utf8' });
+  const m = /, (\d{2,5})x(\d{2,5})[, ]/.exec(run.stderr);
+  if (!m) throw new Error(`no size for ${file}`);
+  return [Number(m[1]), Number(m[2])];
+}
+
+it('cuts only the wide 2:1 version from the master; phones have their own take', () => {
+  expect(Object.keys(CUTS)).toEqual(['wide']);
+  const graph = filterGraph('wide');
+  // the Send dialog, the pull request and its files: scaled down whole and set on Surface
+  expect(graph.match(/pad=1600:800:160:0:color=0x16181D/g) ?? []).toHaveLength(3);
+  expect(graph).toContain('concat=n=8:v=1:a=0[out]');
 });
 
-it('shows that seam in the shipped narrow poster, between the page and the editor', () => {
-  const run = spawnSync(
-    FFMPEG,
-    [
-      '-v',
-      'error',
-      '-i',
-      'site/media/hero/poster-narrow.webp',
-      '-f',
-      'rawvideo',
-      '-pix_fmt',
-      'rgb24',
-      '-',
-    ],
-    { maxBuffer: 16 * 1024 * 1024 }
-  );
-  expect(run.status).toBe(0);
-  const px = run.stdout;
-  const width = 720;
-  // Sample the middle rows of the seam across the width, clear of WebP's edge blur.
-  for (const y of [PAGE_OUT + 2, PAGE_OUT + 3]) {
-    for (let x = 20; x < width - 20; x += 50) {
-      const i = (y * width + x) * 3;
-      const [r, g, b] = [px[i]!, px[i + 1]!, px[i + 2]!];
-      expect(Math.abs(r - 0x16) + Math.abs(g - 0x18) + Math.abs(b - 0x1d)).toBeLessThan(24);
-    }
-  }
+it('ships the phone take and its poster as a tall phone screen (390:844)', () => {
+  const [w, h] = size('site/media/hero/hero-phone.mp4');
+  expect(w / h).toBeCloseTo(390 / 844, 3);
+  expect(size('site/media/hero/hero-phone.webm')).toEqual([w, h]);
+  expect(size('site/media/hero/poster-phone.webp')).toEqual([w, h]);
+});
+
+it('records where the phone poster comes from', () => {
+  const sidecar = JSON.parse(fs.readFileSync('site/media/hero/poster-phone.webp.json', 'utf8')) as {
+    prompt: string;
+  };
+  expect(sidecar.prompt).toMatch(/^SOURCED, not generated\./);
+  expect(sidecar.prompt).toContain('hero-phone.mp4');
+  expect(sidecar.prompt).toContain('record-hero.mjs --phone');
 });
