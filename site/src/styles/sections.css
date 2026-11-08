@@ -76,7 +76,7 @@
 
 @media (min-width: 900px) {
   .hero-head {
-    gap: 16px;
+    gap: 12px;
   }
 
   /* The headline takes one line; the sentence and the proof sit beside the two actions. */
@@ -92,7 +92,7 @@
     align-items: center;
     /* 24px, not more: the sentence keeps two lines even where the buttons render wider (Linux). */
     column-gap: 24px;
-    row-gap: 6px;
+    row-gap: 4px;
   }
 
   .hero-lede {
@@ -623,6 +623,31 @@ html:not(.js) .doors-row {
 .hero-not strong {
   color: var(--paper);
   font-weight: 600;
+}
+
+/* The 900 px fold from 640 px up: the playing video, its chips, the pause button and the top of
+   the door switch fit a 1440 x 900 screen with about a lede line to spare, because Linux renders
+   the buttons wider and can wrap the sentence beside them onto a third line. */
+@media (min-width: 640px) {
+  .hero {
+    padding-top: 12px;
+  }
+
+  .demo {
+    margin-top: 16px;
+  }
+
+  .window-bar {
+    padding-block: 5px;
+  }
+
+  .demo-controls {
+    margin-top: 8px;
+  }
+
+  .doors-row {
+    margin-top: 8px;
+  }
 }
 
 /* ---------- The stories ---------- */
