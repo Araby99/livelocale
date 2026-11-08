@@ -1,0 +1,104 @@
+{
+  "generatedBy": "livelocale 0.12.1 (src/core/change-link.ts at tag v0.12.1)",
+  "links": [
+    {
+      "name": "repo-and-sha1-base",
+      "token": "lc1.eJyNjLEKAjEQRH9FXh0U2_0Ha4vjityykMNL9kiCIOK_S7SxdKqZ4c08uSPnQLXdEaJmO7XkO4GlxqIJIce1jBybDeRPEWhVEewzfiBcvIy6eB9HBAyZpi-QPNuxr30zAlfb1POPOyxRb8zz6w1nozgc",
+      "expected": {
+        "repo": "acme/shop",
+        "branch": "main",
+        "base": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "src": "en",
+        "by": "Mona",
+        "note": "",
+        "edits": [
+          {
+            "locale": "en",
+            "key": "home.title",
+            "from": "Welcome",
+            "to": "Welcome back",
+            "force": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "no-repo-empty-base",
+      "token": "lc1.eJwtyUEKwjAQQNGrhL8eBLc5iJvSxTSONNBOyyQWinh3Qd2-9-IgX4Up1MtMZtXqCJM2I4PQopCxL54_8q3_08jDwCMQika_2Lr3E_Hnsgi3rYelXb1aJGs9HfVujOP7A7RrI2o",
+      "expected": {
+        "branch": "main",
+        "base": "",
+        "src": "en",
+        "by": "",
+        "note": "",
+        "edits": [
+          {
+            "locale": "fr",
+            "key": "cart.empty",
+            "from": null,
+            "to": "Votre panier est vide",
+            "force": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "forced-edit-sha256-base",
+      "token": "lc1.eJyVjD0PgjAARP9Kc3OD4rcdHRycTByRoZQzNWJLoCpg_O8GDZOTyyX38vKeuEPFEhVLDwVtrhzV1peQyCrtjIVCxYK65mgSNT3WNaEwjifT2XyxXK11ZnKe_v2QqCsDBbo-2kLhoK-QcD70_e25YS6CpTCW5uJvQRhfttHRHWi8y0VxdowgQagk-VYGMyp1C4n9sML5B2ScygQ5f70NO22LT2HH0AWRDSBNX2-pRlik",
+      "expected": {
+        "repo": "acme/shop",
+        "branch": "release/2.x",
+        "base": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+        "src": "en",
+        "by": "Sam",
+        "note": "Fixed the checkout copy.\nSecond line.",
+        "edits": [
+          {
+            "locale": "en",
+            "key": "checkout.pay",
+            "from": "Pay",
+            "to": "Pay now",
+            "force": true
+          },
+          {
+            "locale": "de",
+            "key": "checkout.pay",
+            "from": "Bezahlen",
+            "to": "Jetzt bezahlen",
+            "force": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "rtl-and-non-ascii",
+      "token": "lc1.eJyNjL0KgmAUhm9F3vlQtH63Ig6f8oFFaqgEEQ6G_UdLczQ0WFCDREN3cs7sDXQJYdHS1Du9z_A8YwyhOoTYDCIoaC8w7cSPBiC4sQ49HwqB7oYN68RAwf1zICSxBwXzlkdQkEJWUsgShDBKm5hMueKSL_zgs8WlFDLj-_vwgys-yQoEA2Xb0DEIfhSYVtpN-wb0ka984hIEPspcCi5lbcmCb1_gjTUOdWAyOGSjp38b9WRR57M639X5_get52G7hONkL6Djgbs",
+      "expected": {
+        "repo": "acme/shop",
+        "branch": "main",
+        "base": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "src": "en",
+        "by": "ليلى",
+        "note": "مراجعة النص العربي",
+        "edits": [
+          {
+            "locale": "ar",
+            "key": "home.title",
+            "from": "مرحبا",
+            "to": "أهلاً وسهلاً، {name}",
+            "force": false
+          },
+          {
+            "locale": "ja",
+            "key": "home.title",
+            "from": "ようこそ",
+            "to": "ようこそ 🎉",
+            "force": false
+          }
+        ]
+      }
+    }
+  ],
+  "issueBody": "Hi, these are translation changes.\n\n```livelocale\nlc1.eJyNjLEKAjEQRH9FXh0U2_0Ha4vjityykMNL9kiCIOK_S7SxdKqZ4c08uSPnQLXdEaJmO7XkO4GlxqIJIce1jBybDeRPEWhVEewzfiBcvIy6eB9HBAyZpi-QPNuxr30zAlfb1POPOyxRb8zz6w1nozgc\n```\n\n\nThanks!",
+  "safeLink": "https://eur01.safelinks.protection.outlook.com/?url=https%3A%2F%2Facme.github.io%2Fshop%2Flivelocale%2Findex.html%23lc1.eJyNjLEKAjEQRH9FXh0U2_0Ha4vjityykMNL9kiCIOK_S7SxdKqZ4c08uSPnQLXdEaJmO7XkO4GlxqIJIce1jBybDeRPEWhVEewzfiBcvIy6eB9HBAyZpi-QPNuxr30zAlfb1POPOyxRb8zz6w1nozgc&data=05"
+}

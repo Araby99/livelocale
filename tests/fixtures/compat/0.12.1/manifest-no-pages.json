@@ -1,0 +1,12 @@
+{
+  "format": 1,
+  "defaultBranch": null,
+  "branch": null,
+  "base": null,
+  "localesPath": "locales",
+  "layout": "flat",
+  "sourceLocale": "en",
+  "locales": ["ar", "en"],
+  "basePath": "/",
+  "codeKeys": ["cart.empty", "home.title"]
+}

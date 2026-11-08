@@ -1,0 +1,14 @@
+{
+  "format": 1,
+  "repo": "acme/shop",
+  "defaultBranch": null,
+  "branch": "main",
+  "base": "17608736c737b8581f2329bfe0e6e50b798b1317",
+  "localesPath": "locales",
+  "layout": "flat",
+  "sourceLocale": "en",
+  "locales": ["ar", "en"],
+  "basePath": "/",
+  "codeKeys": ["cart.empty", "home.title"],
+  "pages": ["/", "/about/"]
+}
