@@ -16,6 +16,16 @@
         "files": ["src/studio/features/dashboard/components/TokenModal.tsx"],
         "createdAt": "2026-10-15T09:46:55.046Z",
         "reason": "maintainer decision: Connect button's disabled state pairs slate-500 text with slate-800 background (same pattern as the Save button); gray never renders on the indigo background"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "4px',",
+        "createdAt": "2026-11-08T12:34:09.539Z"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "sfmono-regular",
+        "createdAt": "2026-11-08T12:34:09.728Z"
       }
     ]
   }
