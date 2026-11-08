@@ -214,6 +214,26 @@ test('swaps the take and its chapters across the 640 px breakpoint and keeps pla
   await expect(chip).toHaveAttribute('aria-current', 'step');
 });
 
+test('shows the poster again when the breakpoint is crossed while paused', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./');
+  await page.getByRole('button', { name: /Get a pull request/ }).click();
+  await expect.poll(() => playing(page)).toBe(true);
+  await page.locator('[data-playback]').click();
+  await expect.poll(() => playing(page)).toBe(false);
+  await expect(page.locator('[data-demo]')).toHaveAttribute('data-started', '');
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect
+    .poll(() =>
+      video(page).evaluate((v: HTMLVideoElement) => v.currentSrc || v.querySelector('source')?.src)
+    )
+    .toMatch(/hero-wide-[\w-]+\.mp4$/);
+  await expect(page.locator('[data-demo]')).not.toHaveAttribute('data-started');
+  await expect(page.locator('[data-demo] .poster img')).toHaveCSS('opacity', '1');
+  await expect(page.locator('[data-playback]')).toHaveText('Play');
+});
+
 test('attaches mp4 then webm, plays, and pauses from the visible button @cross', async ({
   page,
 }) => {

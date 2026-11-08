@@ -211,6 +211,9 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, durations: Dem
     attach();
     seek(at - 0.01);
     sync();
+    // Paused, nothing loads (preload="none"), so the new take has no frame to show: bring back
+    // the poster (the <picture> already picks this viewport's) until it plays again.
+    if (video.paused) delete root.dataset.started;
   });
 
   reduced.addEventListener('change', () => {

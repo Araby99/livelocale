@@ -1,4 +1,4 @@
-// @vitest-environment node
+// @vitest-environment jsdom
 import * as fs from 'node:fs';
 import {
   PHONE_QUERY,
@@ -7,6 +7,7 @@ import {
   pickCut,
   readChapters,
   samePlace,
+  startDemoVideo,
 } from '../../../site/src/demo-video';
 import { doorFromHash } from '../../../site/src/doors';
 
@@ -110,4 +111,98 @@ it('ships the wide cut and the phone take in both formats, at hero size', () => 
 it('no longer ships the old narrow cut', () => {
   for (const file of ['hero-narrow.mp4', 'hero-narrow.webm', 'poster-narrow.webp'])
     expect(fs.existsSync(`site/media/hero/${file}`)).toBe(false);
+});
+
+describe('across the breakpoint', () => {
+  type Listener = () => void;
+  let phoneMatches: boolean;
+  let phoneListeners: Listener[];
+
+  /** The hero as the HTML has it, with the media calls stubbed (jsdom plays nothing). */
+  function mount() {
+    document.body.innerHTML = `
+      <figure data-demo>
+        <video muted loop playsinline preload="none"></video>
+        <button class="chapter" data-start="1" data-start-phone="2">1</button>
+        <button class="chapter" data-start="5" data-start-phone="4">2</button>
+        <button data-playback><span class="playback-label">Play</span></button>
+      </figure>`;
+    const root = document.querySelector<HTMLElement>('[data-demo]')!;
+    const video = root.querySelector('video')!;
+    let paused = true;
+    Object.defineProperty(video, 'paused', { get: () => paused });
+    video.play = vi.fn(() => {
+      paused = false;
+      video.dispatchEvent(new Event('play'));
+      return Promise.resolve();
+    });
+    video.pause = vi.fn(() => {
+      paused = true;
+      video.dispatchEvent(new Event('pause'));
+    });
+    video.load = vi.fn(() => {
+      // load() pauses a playing element (the spec's media element load algorithm)
+      if (!paused) video.pause();
+    });
+    startDemoVideo(
+      root,
+      { wide: { webm: 'w.webm', mp4: 'w.mp4' }, phone: { webm: 'p.webm', mp4: 'p.mp4' } },
+      { wide: 10, phone: 8 }
+    );
+    return { root, video, toggle: root.querySelector<HTMLButtonElement>('[data-playback]')! };
+  }
+
+  const cross = (phone: boolean) => {
+    phoneMatches = phone;
+    phoneListeners.forEach((l) => l());
+  };
+  const srcs = (video: HTMLVideoElement) =>
+    [...video.querySelectorAll('source')].map((s) => s.getAttribute('src'));
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    phoneMatches = false;
+    phoneListeners = [];
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      get matches() {
+        return query === PHONE_QUERY ? phoneMatches : false;
+      },
+      addEventListener: (_: string, l: Listener) => {
+        if (query === PHONE_QUERY) phoneListeners.push(l);
+      },
+    }));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+    document.body.innerHTML = '';
+  });
+
+  it('shows the poster again when the take changes while paused', () => {
+    const { root, video, toggle } = mount();
+    root.querySelector<HTMLButtonElement>('.chapter')!.click();
+    expect(video.paused).toBe(false);
+    expect(root.dataset.started).toBe('');
+    toggle.click(); // Pause: the frame on screen stays, the poster stays hidden
+    expect(video.paused).toBe(true);
+    expect(root.dataset.started).toBe('');
+
+    cross(true);
+    expect(srcs(video)).toEqual(['p.mp4', 'p.webm']);
+    expect(video.paused).toBe(true);
+    expect(root.dataset.started).toBeUndefined(); // nothing loads while paused: the poster shows
+
+    toggle.click(); // Play again: the new take plays and the poster fades
+    expect(video.paused).toBe(false);
+    expect(root.dataset.started).toBe('');
+  });
+
+  it('keeps playing, poster hidden, when the take changes while playing', () => {
+    const { root, video } = mount();
+    root.querySelectorAll<HTMLButtonElement>('.chapter')[1]!.click();
+    cross(true);
+    expect(srcs(video)).toEqual(['p.mp4', 'p.webm']);
+    expect(video.paused).toBe(false);
+    expect(root.dataset.started).toBe('');
+  });
 });
