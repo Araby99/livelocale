@@ -109,8 +109,26 @@ describe('parseApplyArgs', () => {
       ['a', 'b'],
       ['x', '--clipboard'],
       ['--github-event'],
+      [],
+      [''],
+      ['--pr'],
     ])
       expect(() => parseApplyArgs(argv)).toThrow(UsageError);
+  });
+
+  it('asks for the link when none is given', () => {
+    const message =
+      'Pass the change link, a file that holds it, "-" to read stdin, or --clipboard. ' +
+      '(cmd.exe cuts arguments at 8,191 characters; use --clipboard or a file for long links.)';
+    expect(() => parseApplyArgs([])).toThrow(message);
+    expect(() => parseApplyArgs(['--dry-run', '--source', 'en'])).toThrow(message);
+  });
+
+  it('needs no link with --clipboard or --github-event', () => {
+    expect(parseApplyArgs(['--clipboard']).clipboard).toBe(true);
+    expect(
+      parseApplyArgs(['--github-event', '--locales', 'locales', '--source', 'en']).githubEvent
+    ).toBe(true);
   });
 });
 
@@ -147,6 +165,13 @@ describe('runApplyCommand', () => {
     await runApplyCommand(['--github-event', '--locales', 'locales', '--source', 'en']);
     expect(process.exitCode).toBe(1);
     expect(error).toHaveBeenCalledWith('❌ boom');
+  });
+
+  it('exits 2 when no link is given', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await runApplyCommand([]);
+    expect(error).toHaveBeenCalledWith(expect.stringMatching(/^❌ Pass the change link, /));
+    expect(process.exitCode).toBe(2);
   });
 
   it('prints a damaged link as one error line and exits 1', async () => {

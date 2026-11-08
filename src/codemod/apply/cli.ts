@@ -4,7 +4,7 @@ import * as path from 'path';
 import { runGitHubEventApply } from './github-event.js';
 import { parseCommandArgs, splitList, UsageError, USAGE_EXIT_CODE } from '../cli-args.js';
 import { COMMAND_SPECS } from '../command-specs.js';
-import { readApplyInput } from './link-input.js';
+import { NO_INPUT_MESSAGE, readApplyInput } from './link-input.js';
 import { runLocalApply } from './local.js';
 
 export interface ApplyArgs {
@@ -55,6 +55,8 @@ export function parseApplyArgs(argv: string[]): ApplyArgs {
     if (args.locales === undefined || args.source === undefined) {
       throw new UsageError('--github-event needs --locales and --source.');
     }
+  } else if (!args.clipboard && (args.input === undefined || args.input === '')) {
+    throw new UsageError(NO_INPUT_MESSAGE);
   }
   return args;
 }

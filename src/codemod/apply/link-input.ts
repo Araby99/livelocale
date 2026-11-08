@@ -6,7 +6,8 @@ import * as path from 'path';
 export const MAX_APPLY_INPUT_BYTES = 1_048_576;
 
 const TOO_LARGE_MESSAGE = 'The input is larger than 1 MB.';
-const NO_INPUT_MESSAGE =
+/** What `apply` says when it gets no link, file, `-` or --clipboard. */
+export const NO_INPUT_MESSAGE =
   'Pass the change link, a file that holds it, "-" to read stdin, or --clipboard. ' +
   '(cmd.exe cuts arguments at 8,191 characters; use --clipboard or a file for long links.)';
 const NO_CLIPBOARD_MESSAGE =
