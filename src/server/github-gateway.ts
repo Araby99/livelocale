@@ -32,11 +32,16 @@ export interface GitHubGatewayConfig {
   token: string;
   /** Defaults to `https://api.github.com`; set for GitHub Enterprise Server. */
   apiBase?: string;
-  /** Injectable fetch for tests. */
+  /** The `fetch` to call the GitHub API with. Defaults to the global `fetch`. */
   fetchImpl?: typeof fetch;
 }
 
-/** A gateway that is both the translation store and the review workflow. */
+/**
+ * A gateway that is both the translation store and the review workflow.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export interface GitHubGateway extends MutationGateway, GitGateway {}
 
 interface ContentFile {
@@ -91,7 +96,11 @@ function mapCompareStatus(status: string): GitChangeStatus {
  * every save is a commit on `branch`, `commit` opens (or reuses) a pull
  * request to `baseBranch`, and `discard` resets the branch to base.
  *
- * Only paths under the locales directory are ever read or written.
+ * Only paths under the locales directory are ever read or written. Turn it on with the
+ * `github` option of `createLiveLocaleHandler`.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway {
   const rest = createGitHubRest(config);

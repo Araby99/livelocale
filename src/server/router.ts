@@ -6,6 +6,9 @@ import { isValidLocaleFormat } from '../core/validate.js';
  * Platform-agnostic port for translation file operations. The Next.js and
  * Vite adapters both depend on this narrow contract (DIP) instead of the
  * concrete FileMutator implementation.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export interface MutationGateway {
   updateLocaleKey(basePath: string, locale: string, key: string, value: string): Promise<void>;
@@ -20,12 +23,24 @@ export interface MutationGateway {
 
 export type GitChangeStatus = 'modified' | 'added' | 'deleted' | 'renamed';
 
+/**
+ * One changed file in `GitStatus`.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export interface GitChange {
   /** Path relative to the repository root, forward slashes. */
   path: string;
   status: GitChangeStatus;
 }
 
+/**
+ * What `?action=git` returns to the Studio.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export interface GitStatus {
   isRepo: boolean;
   branch: string | null;
@@ -39,6 +54,9 @@ export interface GitStatus {
 /**
  * Optional port for version-control operations scoped to the locales
  * directory. Implemented by `GitClient`; absent when git integration is off.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export interface GitGateway {
   status(localesPath: string): Promise<GitStatus>;
@@ -82,6 +100,12 @@ export interface MutationRouterOptions {
   authToken?: string;
 }
 
+/**
+ * The router `createMutationRouter` returns.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export interface MutationRouter {
   handle(request: RouterRequest): Promise<RouterResponse>;
 }
@@ -141,6 +165,9 @@ const json = (
  * Both the Next.js route handler and the Vite dev-server middleware are thin
  * adapters over this router, so validation, CORS, and error handling live in
  * exactly one place (OCP).
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export function createMutationRouter(
   mutator: MutationGateway,

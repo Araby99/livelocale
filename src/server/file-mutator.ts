@@ -24,6 +24,13 @@ class FileMutex {
   }
 }
 
+/**
+ * Options for `FileMutator`. `requireEnabled: false` skips the safety switches, which only
+ * the CLI may do.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export interface FileMutatorOptions {
   /** Refuse to run unless LiveLocale is enabled. Default true; only CLI tooling passes false. */
   requireEnabled?: boolean;
@@ -31,6 +38,13 @@ export interface FileMutatorOptions {
   quiet?: boolean;
 }
 
+/**
+ * The file system backend the route handler, the Vite plugin and the CLI write locale files
+ * through.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export class FileMutator {
   private fileLocks = new Map<string, FileMutex>();
   private readonly requireEnabled: boolean;

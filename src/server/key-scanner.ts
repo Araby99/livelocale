@@ -160,6 +160,12 @@ export interface KeyScannerOptions {
   requireEnabled?: boolean;
 }
 
+/**
+ * Finds the translation keys used in the source code.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export class KeyScanner {
   private fileCache = new Map<string, CachedFile<string[]>>();
   private gitignoreCache: CachedFile<GitignoreMatcher> | null = null;

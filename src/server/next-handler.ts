@@ -13,6 +13,11 @@ import {
 export interface HandlerConfig {
   /** Locales directory: absolute on disk, or repository-relative when `github` is set. */
   localesPath: string;
+  /**
+   * Origins the API accepts besides any `localhost` or `127.0.0.1` origin, which it always
+   * accepts, such as `https://studio.example.com`. Defaults to `http://localhost:3010` and
+   * `http://127.0.0.1:3010`. `LIVELOCALE_ALLOWED_ORIGINS` adds to the list.
+   */
   allowedOrigins?: string[];
   /**
    * Expose git status, commit, and discard for the locales directory to the

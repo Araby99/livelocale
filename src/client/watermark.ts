@@ -29,7 +29,12 @@ const ZW_RE = /[\u200B\u200C\u200D]/g;
 /** A complete watermark anywhere in a string: delimiter, whole bytes of bits, delimiter. */
 const WATERMARK_RE = /\u200C(?:[\u200B\u200D]{8})+\u200C/g;
 
-/** Encodes a translation key as an invisible watermark prefix on `text`. */
+/**
+ * Encodes a translation key as an invisible watermark prefix on `text`.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export function encodeKey(text: string, key: string): string {
   const bytes = new TextEncoder().encode(key);
   let bits = '';
@@ -52,6 +57,9 @@ export function encodeKey(text: string, key: string): string {
  * Returns `{ key, cleanText }` where `cleanText` is the original visible
  * text with the watermark stripped.  If no valid watermark is found,
  * returns `null`.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export function decodeKey(text: string): { key: string; cleanText: string } | null {
   if (!text.startsWith(DELIM)) return null;
@@ -92,6 +100,11 @@ export function decodeKey(text: string): { key: string; cleanText: string } | nu
  * ZWNJ (\u200C) and ZWSP (\u200B) are valid orthography in Persian, Urdu,
  * Thai, and other scripts — a blanket removal would silently corrupt real
  * translations. Only the decoded watermark prefix is removed.
+ *
+ * Use `unwrap`, which does the same for a string and also cleans arrays and objects.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export function stripWatermark(text: string): string {
   const decoded = decodeKey(text);
@@ -103,8 +116,8 @@ export function stripWatermark(text: string): string {
  * Aggressively removes every zero-width character from `text`.
  *
  * This also removes ZWNJ and ZWSP that Persian, Urdu and Thai text needs, so
- * prefer `removeWatermarks` for user-visible text and `stripWatermark` for
- * translation content.
+ * prefer `removeWatermarks` for user-visible text and `unwrap` for translation
+ * content.
  */
 export function sanitizeZeroWidth(text: string): string {
   return text.replace(ZW_RE, '');
@@ -128,7 +141,12 @@ export function containsWatermark(text: string): boolean {
 }
 
 /**
- * Returns true if `text` begins with a valid watermark prefix.
+ * Returns true if `text` begins with the watermark delimiter (U+200C). It does
+ * not check the rest of the watermark, so a Persian string that starts with a real
+ * ZWNJ also returns true.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export function hasWatermark(text: string): boolean {
   return text.startsWith(DELIM);

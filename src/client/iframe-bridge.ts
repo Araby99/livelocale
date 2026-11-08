@@ -1,3 +1,10 @@
+/**
+ * The messages the in-page client sends the Studio. The wire protocol is stable; this
+ * type is not, because new messages are added in minor releases.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export type ClientMessageType =
   | 'ELEMENT_SELECTED'
   | 'READY'
@@ -8,6 +15,13 @@ export type ClientMessageType =
   | 'LEAVING'
   | 'RENDERED_KEYS_CHANGED'
   | 'TAP_UNKEYED';
+
+/**
+ * The messages the Studio sends the in-page client.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export type StudioMessageType =
   | 'APPLY_PREVIEW'
   | 'COMMIT_PREVIEW'
@@ -94,7 +108,12 @@ export function resolveStudioOrigin(
   return remembered ?? DEFAULT_STUDIO_ORIGIN;
 }
 
-/** A key on the page with the text it shows now; the Studio infers the page locale from these. */
+/**
+ * A key on the page with the text it shows now; the Studio infers the page locale from these.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export interface VisibleText {
   key: string;
   text: string;
@@ -180,12 +199,24 @@ export function followNavigation(
   else loc.assign(href);
 }
 
+/**
+ * The ELEMENT_SELECTED payload.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export interface TranslationPayload {
   key: string;
   fallbackValue: string;
   currentValue: string;
 }
 
+/**
+ * The postMessage transport between the in-page client and the Studio.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export class IframeBridge {
   private allowedOrigin: string;
 

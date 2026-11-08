@@ -30,7 +30,10 @@ function mapStatus(xy: string): GitChangeStatus {
  * Thin wrapper over the `git` CLI, scoped to the locales directory. Every
  * command receives arguments as an array (no shell), and every path argument
  * is the locales directory relative to the repository root, so the Studio can
- * only ever stage, commit, or discard translation files.
+ * only ever stage, commit, or discard translation files. Turn it on with `git: true`.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export class GitClient implements GitGateway {
   private async git(cwd: string, args: string[]): Promise<string> {

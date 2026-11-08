@@ -48,8 +48,8 @@ function readNamespaceDir(dir: string): Record<string, any> {
 }
 
 /**
- * Loads a locale JSON file and returns a type-safe translation object that
- * is automatically watermarked in development (for zero-migration studio
+ * Loads a locale JSON file and returns its translation object (typed as
+ * `Record<string, any>`), which is automatically watermarked in development (for zero-migration studio
  * integration) and returned as-is in production.
  *
  * File parses are cached by mtime and size (see `core/json-cache.ts`), so

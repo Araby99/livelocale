@@ -69,6 +69,12 @@ function hasOwnText(el: Element): boolean {
   return false;
 }
 
+/**
+ * The in-page engine the client starts on its own inside the Studio.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
 export class DOMInterceptor {
   private onElementSelected: (payload: {
     key: string;
