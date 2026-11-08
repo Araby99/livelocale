@@ -1,5 +1,6 @@
 import * as path from 'path';
 import * as fs from 'fs';
+import type { Plugin } from 'vite';
 import { FileMutator } from './file-mutator.js';
 import { GitClient } from './git-client.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
@@ -58,7 +59,7 @@ const ROUTE = '/api/livelocale';
  *   plugins: [react(), liveLocaleVite({ localesPath: './src/locales' })],
  * });
  */
-export function liveLocaleVite(config: VitePluginConfig) {
+export function liveLocaleVite(config: VitePluginConfig): Plugin {
   const mutator = new FileMutator();
   const router = createMutationRouter(mutator, {
     localesPath: config.localesPath,
