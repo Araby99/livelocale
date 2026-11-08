@@ -236,7 +236,7 @@ A single centred column, 1000px of content plus a side gutter (16px, 32px from 6
 
 Steps are a numbered list. Below 900px each step stacks text over artefact with a 20px gap and 36px vertical padding; from 900px each is a 5:7 grid (text left, artefact right) with a 56px gap and 56px padding. The "works" section and the close reuse that same 5:7 split. Steps are separated by a 1px Rule, never by cards.
 
-Spacing runs on 4px steps (4, 8, 12, 16, 20, 24) inside components, with 36px and 56px as the step and split rhythm, and large section padding (72px to 120px) only at section starts and the close. Breakpoints: 420px (door labels shrink), 600px (gutter widens, code size steps up), 640px (video changes from the 4:5 phone cut to the 2:1 cut; chapter chips go from a three-column grid to a scrolling row), 900px (the 5:7 split and the one-line headline). The page works from 320px.
+Spacing runs on 4px steps (4, 8, 12, 16, 20, 24) inside components, with 36px and 56px as the step and split rhythm, and large section padding (72px to 120px) only at section starts and the close. Breakpoints: 420px (door labels shrink), 600px (gutter widens, code size steps up), 640px (video changes from the tall phone take in its phone frame to the 2:1 cut in the browser frame; chapter chips go from a three-column grid to a scrolling row), 900px (the 5:7 split and the one-line headline). The page works from 320px.
 
 ## Elevation & Depth
 
@@ -254,7 +254,7 @@ Flat and tonal. Depth is Night, then Surface, separated by 1px Rule hairlines; t
 
 ## Shapes
 
-Gently rounded rectangles in a short, consistent ladder: 3px for the smallest inline marks (diff signs, highlighted words, warning glyphs), 4px for inline code, locale chips and the focus ring, 8px for every button, chapter chip and door, 10px for content panels (diffs, code blocks, screenshots), and 12px for the outermost frames (the video window and the door track). Inner radius is always smaller than its container's. Borders are 1px solid in Rule or Edge; the only dashed line is Exit 1's 1.5px failure outline. Icons are inline SVG line icons on a 20px grid, 1.75 stroke, round caps and joins, sized at 1.15em and coloured by `currentColor`.
+Gently rounded rectangles in a short, consistent ladder: 3px for the smallest inline marks (diff signs, highlighted words, warning glyphs), 4px for inline code, locale chips and the focus ring, 8px for every button, chapter chip and door, 10px for content panels (diffs, code blocks, screenshots), and 12px for the outermost frames (the video window and the door track); the one exception is the phone frame the hero video takes on phones, 20px outside and 14px on its screen, because it stands for a phone. Inner radius is always smaller than its container's. Borders are 1px solid in Rule or Edge; the only dashed line is Exit 1's 1.5px failure outline. Icons are inline SVG line icons on a 20px grid, 1.75 stroke, round caps and joins, sized at 1.15em and coloured by `currentColor`.
 
 ## Components
 
@@ -296,7 +296,7 @@ Real pull-request diffs drawn in the brand: a Surface panel in IBM Plex Mono, a 
 
 ### The Product Window
 
-The hero video sits in one minimal browser frame: a Surface frame with a 12px radius, a centred Night address pill in Plex Mono 13px with the host in Comment and the path in Hunk, and the screen at 2:1 (4:5 on phones) on Night. A poster frame of the finished fix shows first and fades over 400ms once playback starts. A visible Play/Pause button with an Edge outline always sits beside the chapter chips.
+The hero video sits in one minimal browser frame: a Surface frame with a 12px radius, a centred Night address pill in Plex Mono 13px with the host in Comment and the path in Hunk, and the screen at 2:1 on Night. On phones (up to 639px) the video is a separate take of the phone Studio filmed on a phone screen (390:844), so the frame becomes a phone instead: no address bar (the Studio's own top bar is in the picture), a 6px Surface bezel with a 1px Rule border, 20px outer and 14px screen radius, centred, and the whole frame capped at 70% of the screen's height (its width follows) so the chapter chips and the door switch still show under it. The chips keep their three-column grid and show the phone take's titles ("Tap the text"). A poster frame of the finished fix shows first and fades over 400ms once playback starts. A visible Play/Pause button with an Edge outline always sits beside the chapter chips.
 
 ## Do's and Don'ts
 

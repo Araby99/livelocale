@@ -36,6 +36,11 @@ const LANDING: Record<string, (p: Page) => Promise<void>> = {
     await p.goto('./#fixer');
     await scrollThrough(p);
   },
+  'phone, the video framed as a phone': async (p) => {
+    await p.setViewportSize({ width: 390, height: 844 });
+    await p.goto('./');
+    await scrollThrough(p);
+  },
   'FAQ open': async (p) => {
     await p.goto('./');
     for (const s of await p.locator('#faq summary').all()) await s.click();

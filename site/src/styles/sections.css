@@ -258,8 +258,8 @@ html:not(.js) .cmd {
   color: var(--hunk);
 }
 
-/* The screen: the 2:1 cut, or the 4:5 phone cut (demo-video.ts picks the same way). The poster is
-   a frame of that cut with the fix already made; it fades once the video is playing. */
+/* The screen: the 2:1 cut, or the tall phone take (demo-video.ts picks the same way). The poster
+   is a frame of that take with the fix already made; it fades once the video is playing. */
 .screen {
   position: relative;
   aspect-ratio: 2 / 1;
@@ -283,9 +283,28 @@ html:not(.js) .cmd {
   opacity: 0;
 }
 
+/* On a phone the take is itself a phone screen (390:844, the phone Studio's own top bar in it),
+   so the frame turns into a phone: no address bar, a thin Surface bezel, a 20px outer and 14px
+   inner radius. The whole frame stays within 70% of the screen's height, so the chips and the
+   door switch still show under it; its width follows, centred in the column. */
 @media (max-width: 639px) {
+  /* 14px: the 6px bezel and the 1px border on each side */
+  .window {
+    width: min(100%, calc((70vh - 14px) * 390 / 844 + 14px));
+    width: min(100%, calc((70svh - 14px) * 390 / 844 + 14px));
+    margin-inline: auto;
+    padding: 6px;
+    border-radius: 20px;
+  }
+
+  .window-bar {
+    display: none;
+  }
+
   .screen {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 390 / 844;
+    overflow: hidden;
+    border-radius: 14px;
   }
 }
 
@@ -342,6 +361,20 @@ html:not(.js) .demo-controls {
 .chapter:hover {
   color: var(--paper);
   border-color: var(--edge);
+}
+
+.chapter-phone {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .chapter-wide {
+    display: none;
+  }
+
+  .chapter-phone {
+    display: inline;
+  }
 }
 
 .chapter-n {

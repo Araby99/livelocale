@@ -6,7 +6,7 @@
     <link
       rel="preload"
       as="image"
-      href="/media/hero/poster-narrow.webp"
+      href="/media/hero/poster-phone.webp"
       media="(max-width: 639px)"
       fetchpriority="high"
     />
@@ -71,7 +71,7 @@
     THESIS: The real product, filmed on a real site, opens the page; one switch under it picks whose story you read next. Refuses the category default of a headline next to a mockup and a grid of feature cards.
     OWN-WORLD: livelocale "hunk": Night #0C0D0F ground, Surface #16181D, Paper #E8E4D9 text, Comment #8C887D, Ghost #6E6B64 struck old text, Patch #FFB224 only as fills (the fix, the primary action, the selected door), Hunk #4FC3DC for keys/paths/locales/links, Exit 1 #FF5468 dashed outlines only, Exit 0 #6FD69A with a check glyph; Martian Mono display, IBM Plex Sans UI, IBM Plex Mono code, IBM Plex Sans Arabic. Depth by tone, no glows, no gradients, no purple.
     STORY: A developer sees livelocale fix text on a real site, flip it to Arabic, and end in a real pull request; believes it is real, free, no account; copies the install command or opens the live demo. The fixer sees they need no git.
-    FIRST VIEWPORT: Top bar (logo lockup, GitHub, Docs). One band: headline "Stop collecting screenshots." in Martian Mono ~56px on the left; on the right one sentence, two actions (copy npm install livelocale; a link to Get started; try the live demo) and "Free, MIT, no account, no server." Below, the column-wide framed hero video already playing (a 2:1 cut; 4:5 on a phone), three chapter chips synced to it and a visible pause button, all inside 900 px at 1440 wide; the two-door switch peeks under them.
+    FIRST VIEWPORT: Top bar (logo lockup, GitHub, Docs). One band: headline "Stop collecting screenshots." in Martian Mono ~56px on the left; on the right one sentence, two actions (copy npm install livelocale; a link to Get started; try the live demo) and "Free, MIT, no account, no server." Below, the column-wide framed hero video already playing (a 2:1 cut; on a phone, a tall phone-shaped take of the phone Studio, its frame capped at 70% of the screen's height and centred), three chapter chips synced to it and a visible pause button, all inside 900 px at 1440 wide; the two-door switch peeks under them.
     FORM: Two doors, candidate 7 of 7 on the ordered list (the roll's lead), locked by the owner; seed key c4e74c7c.
     FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
     -->
@@ -172,15 +172,15 @@
                 preload="none"
                 width="1600"
                 height="800"
-                aria-label="livelocale on the Tidewell pricing page: Alt+Click the headline, fix it, fix the Arabic, and get a pull request"
+                aria-label="livelocale on the Tidewell pricing page: pick the headline, fix it, fix the Arabic, and get a pull request"
                 aria-describedby="transcript-summary"
               ></video>
               <picture class="poster">
                 <source
                   media="(max-width: 639px)"
-                  srcset="/media/hero/poster-narrow.webp"
-                  width="720"
-                  height="900"
+                  srcset="/media/hero/poster-phone.webp"
+                  width="780"
+                  height="1688"
                 />
                 <img
                   src="/media/hero/poster.webp"
@@ -195,21 +195,24 @@
           <div class="demo-controls">
             <ol class="chapters" aria-label="Chapters">
               <li>
-                <button type="button" class="chapter" data-start="0.8">
+                <button type="button" class="chapter" data-start="0.8" data-start-phone="0.9">
                   <span class="chapter-n">1</span>
-                  <span class="chapter-title">Alt+Click the text</span>
+                  <span class="chapter-title"
+                    ><span class="chapter-wide">Alt+Click the text</span
+                    ><span class="chapter-phone">Tap the text</span></span
+                  >
                   <span class="chapter-bar" aria-hidden="true"></span>
                 </button>
               </li>
               <li>
-                <button type="button" class="chapter" data-start="5.21">
+                <button type="button" class="chapter" data-start="5.21" data-start-phone="4.29">
                   <span class="chapter-n">2</span>
                   <span class="chapter-title">Fix it in every language</span>
                   <span class="chapter-bar" aria-hidden="true"></span>
                 </button>
               </li>
               <li>
-                <button type="button" class="chapter" data-start="10.63">
+                <button type="button" class="chapter" data-start="10.63" data-start-phone="8.89">
                   <span class="chapter-n">3</span>
                   <span class="chapter-title">Get a pull request</span>
                   <span class="chapter-bar" aria-hidden="true"></span>
@@ -249,18 +252,18 @@
               typo: “Plans that grows with you”.
             </li>
             <li>
-              Holding Alt, the headline is clicked. The editor opens on the key
-              <code>hero.title</code>; “grows” is changed to “grow” and saved.
+              The headline is picked: Alt+Click on a computer, a tap on a phone. The editor opens on
+              the key <code>hero.title</code>; “grows” is changed to “grow” and saved.
             </li>
             <li>
               The locale is switched to Arabic and the page turns right to left. The “Start free
-              trial” button has no Arabic yet;
+              trial” button has no Arabic yet; it is picked the same way, and
               <span lang="ar" dir="rtl">ابدأ تجربتك المجانية</span>
               is typed and saved.
             </li>
             <li>
-              Send to developer: the name Lina is entered, and the dialog lists both changes and the
-              change link.
+              Send to developer: credited to Lina, it lists both changes and the change link, with
+              Open on GitHub.
             </li>
             <li>
               The real pull request #2 on GitHub, opened by the livelocale workflow, applies both

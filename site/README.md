@@ -197,19 +197,32 @@ Knobs: `HERO_NO_ENCODE=1` acts the take and prints the beat times only; `HERO_SL
 `HERO_Q` (screencast JPEG quality) trade capture fps against sharpness; `HERO_KEEP_MASTER=<file>`
 keeps the near-lossless master for frame-by-frame review.
 
-`hero.mp4` is the master; the page ships two cuts of it. After a new take, run
-`node site/scripts/hero-cuts.mjs` (pass `wide` or `narrow` to cut one), then
-`node site/scripts/hero-frames.mjs`:
+`hero.mp4` is the master; the page ships its wide cut on screens 640 px and up. After a new take,
+run `node site/scripts/hero-cuts.mjs`, then `node site/scripts/hero-frames.mjs`:
 
-- `hero-cuts.mjs` writes `hero-wide.{webm,mp4}` (2:1, desktop) and `hero-narrow.{webm,mp4}` (4:5,
-  phones) with ffmpeg-static. Each is a run of shots cut at the master's camera moves (`SHOTS`),
-  each shot with its own crop (`CUTS`), so the timing, and with it `chapters.json`, is unchanged. If
-  a new take moves the camera cuts or the Studio layout, update `SHOTS` and the crop boxes.
-- `hero-frames.mjs` cuts the stills: one WebP poster per cut (at 3.5 s, with the fix already on
-  screen, so the first paint shows it) and one frame per story step in `site/media/hero/frames/`.
-  It writes each still's provenance (the video and second it comes from) to a `.json` sidecar.
+- `hero-cuts.mjs` writes `hero-wide.{webm,mp4}` (2:1) with ffmpeg-static: a run of shots cut at the
+  master's camera moves (`SHOTS`), each shot with its own crop (`CUTS`), so the timing, and with it
+  `chapters.json`, is unchanged. If a new take moves the camera cuts or the Studio layout, update
+  `SHOTS` and the crop boxes.
+- `hero-frames.mjs` cuts the stills: the wide WebP poster (at 3.5 s, with the fix already on
+  screen, so the first paint shows it), the phone poster and one frame per story step in
+  `site/media/hero/frames/`. It writes each still's provenance (the video and second it comes
+  from) to a `.json` sidecar. Pass still names to cut only those.
 
-The page picks the cut by viewport (`(max-width: 639px)` is the narrow one). Autoplay is held
+Phones get their own take, filmed on a phone screen: `node site/scripts/record-hero.mjs --phone`
+plays the phone storyboard on the same stage at 390x844, DPR 3, with touch (the Pixel 7's user
+agent), so the share Studio shows its real phone layout: tap the headline, fix it in the editor
+sheet, switch the locale chip to Arabic, fill in the button, then Send · 2 and the same pull
+request, recorded at the same phone size. Taps show as a touch ripple (no cursor, no keycaps) and
+there is no camera move; it is encoded at 780x1688. It writes `hero-phone.{mp4,webm}`,
+`chapters-phone.json` and `poster-phone.webp` (through `hero-frames.mjs`, at 3.5 s, the fix saved
+in the sheet). It is acted at 1/5 speed (`HERO_SLOW`); `HERO_MP4_CRF` and `HERO_WEBM_CRF` tune its
+file size. After a new phone take, copy the chapter starts from `chapters-phone.json` into the
+chips' `data-start-phone` in `index.html` (a unit test checks they match), and check
+`poster-phone.webp` still shows the saved fix.
+
+The page picks the take by viewport (`(max-width: 639px)` is the phone one) and swaps it, with its
+chapter times, when the viewport crosses that width. Autoplay is held
 until about 2 s after the window has loaded and the page is idle, and the cut attaches only then and
 while the video is on screen, so the video's bytes never compete with the poster, the CSS and the
 headline font, and the poster (with the fix already on it) stays the largest paint. A chapter or

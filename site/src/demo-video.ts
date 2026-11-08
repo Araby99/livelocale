@@ -2,9 +2,11 @@
 // made). Autoplay is held until about 2 s after the window has loaded and the main thread is idle,
 // and the sources attach only then and while the video is on screen, so the video's bytes never
 // compete with the poster, the CSS and the headline font and the poster stays the page's largest
-// paint. A chapter or Play click attaches them and plays at once. A phone gets the narrow 4:5 cut,
-// anything wider the 2:1 cut. It pauses offscreen and in a hidden tab, never starts by itself
-// under prefers-reduced-motion, and keeps its chapter chips in step with the frame on screen.
+// paint. A chapter or Play click attaches them and plays at once. A phone gets the tall phone take
+// (the phone Studio, filmed on a phone screen) and its own chapter times; anything wider the 2:1
+// cut. Crossing the breakpoint swaps the take and the chapters, keeping the place in the story. It
+// pauses offscreen and in a hidden tab, never starts by itself under prefers-reduced-motion, and
+// keeps its chapter chips in step with the frame on screen.
 
 export interface DemoSources {
   webm: string;
@@ -13,18 +15,24 @@ export interface DemoSources {
 
 export interface DemoCuts {
   wide: DemoSources;
-  narrow: DemoSources;
+  phone: DemoSources;
+}
+
+/** Each take's length in seconds (the chapter chips carry each take's start times). */
+export interface DemoDurations {
+  wide: number;
+  phone: number;
 }
 
 /** How long after the window's load event autoplay waits (then for an idle moment). */
 const AUTOPLAY_HOLD_MS = 2000;
 
-/** The viewport the narrow cut is for; it matches the CSS that frames it at 4:5. */
-export const NARROW_QUERY = '(max-width: 639px)';
+/** The viewport the phone take is for; it matches the CSS that frames it as a phone screen. */
+export const PHONE_QUERY = '(max-width: 639px)';
 
-/** The cut for a viewport: the narrow one on a phone, the wide one anywhere else. */
-export function pickCut(cuts: DemoCuts, narrow: boolean): DemoSources {
-  return narrow ? cuts.narrow : cuts.wide;
+/** The take for a viewport: the phone one on a phone, the wide one anywhere else. */
+export function pickCut<T>(cuts: { wide: T; phone: T }, phone: boolean): T {
+  return phone ? cuts.phone : cuts.wide;
 }
 
 export interface Chapter {
@@ -53,17 +61,36 @@ export function readChapters(starts: readonly number[], duration: number): Chapt
   return starts.map((start, i) => ({ start, end: starts[i + 1] ?? duration }));
 }
 
-export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: number): void {
+/** The same place in another take: the same chapter, the same share of the way through it. */
+export function samePlace(from: readonly Chapter[], to: readonly Chapter[], t: number): number {
+  const i = chapterAt(from, t);
+  const target = to[i];
+  if (!target) return 0;
+  // before the first chapter starts, keep the offset from the start of the take
+  if (t < (from[0]?.start ?? 0)) return Math.min(t, target.start);
+  return target.start + chapterProgress(from, i, t) * (target.end - target.start);
+}
+
+export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, durations: DemoDurations): void {
   const video = root.querySelector<HTMLVideoElement>('video');
   const toggle = root.querySelector<HTMLButtonElement>('[data-playback]');
   const label = toggle?.querySelector<HTMLElement>('.playback-label');
   const chips = [...root.querySelectorAll<HTMLButtonElement>('.chapter')];
   if (!video || !toggle || !label) return;
 
-  const chapters = readChapters(
-    chips.map((chip) => Number(chip.dataset.start)),
-    duration
-  );
+  const takes = {
+    wide: readChapters(
+      chips.map((chip) => Number(chip.dataset.start)),
+      durations.wide
+    ),
+    phone: readChapters(
+      chips.map((chip) => Number(chip.dataset.startPhone ?? chip.dataset.start)),
+      durations.phone
+    ),
+  };
+  const phoneQuery = window.matchMedia(PHONE_QUERY);
+  let isPhone = phoneQuery.matches; // the take attached (or to attach) and its chapters
+  let chapters = pickCut(takes, isPhone);
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   let wanted = !reduced.matches; // what the visitor asked for: play, or stay still
   let attached = false;
@@ -84,7 +111,7 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: numb
   const attach = () => {
     if (attached) return;
     attached = true;
-    const sources = pickCut(cuts, window.matchMedia(NARROW_QUERY).matches);
+    const sources = pickCut(cuts, isPhone);
     // MP4 (H.264) first: every Safari and Chrome plays it, and it is the smaller cut here.
     for (const [src, type] of [
       [sources.mp4, 'video/mp4'],
@@ -167,6 +194,24 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, duration: numb
   video.addEventListener('seeked', () => paint(video.currentTime));
   video.addEventListener('play', render);
   video.addEventListener('pause', render);
+
+  // Across the breakpoint: the other take and its chapters, at the same place in the story.
+  phoneQuery.addEventListener('change', () => {
+    if (phoneQuery.matches === isPhone) return;
+    const from = chapters;
+    isPhone = phoneQuery.matches;
+    chapters = pickCut(takes, isPhone);
+    if (!attached) {
+      paint(0);
+      return;
+    }
+    const at = samePlace(from, chapters, video.currentTime);
+    video.querySelectorAll('source').forEach((source) => source.remove());
+    attached = false;
+    attach();
+    seek(at - 0.01);
+    sync();
+  });
 
   reduced.addEventListener('change', () => {
     if (reduced.matches) wanted = false;
