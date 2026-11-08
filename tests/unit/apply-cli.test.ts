@@ -5,6 +5,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { encodeChangeLink } from '../../src/core/change-link.js';
 import { parseApplyArgs, runApplyCommand } from '../../src/codemod/apply/cli.js';
+import { UsageError } from '../../src/codemod/cli-args.js';
 import { runGitHubEventApply } from '../../src/codemod/apply/github-event.js';
 
 vi.mock('../../src/codemod/apply/github-event.js', () => ({ runGitHubEventApply: vi.fn() }));
@@ -58,7 +59,17 @@ describe('parseApplyArgs', () => {
         'main,staging',
       ])
     ).toMatchObject({ githubEvent: true, branches: ['main', 'staging'] });
-    expect(parseApplyArgs(['x', '--branches', ' main , ,dev ']).branches).toEqual(['main', 'dev']);
+    expect(
+      parseApplyArgs([
+        '--github-event',
+        '--locales',
+        'l',
+        '--source',
+        'en',
+        '--branches',
+        ' main , ,dev ',
+      ]).branches
+    ).toEqual(['main', 'dev']);
   });
 
   it('rejects --github-event combinations in order', () => {
@@ -81,9 +92,25 @@ describe('parseApplyArgs', () => {
     expect(() => parseApplyArgs(['x', '--clipboard'])).toThrow(
       'Pass the link or --clipboard, not both.'
     );
-    expect(() => parseApplyArgs(['--bogus'])).toThrow('Unknown option "--bogus".');
+    expect(() => parseApplyArgs(['--bogus'])).toThrow(
+      'Unknown option --bogus for livelocale apply. Run livelocale --help to see its options.'
+    );
+    expect(() => parseApplyArgs(['x', '--branches', 'main'])).toThrow(
+      '--branches only works with --github-event.'
+    );
     expect(() => parseApplyArgs(['--dir'])).toThrow('--dir needs a value.');
     expect(() => parseApplyArgs(['a', 'b'])).toThrow('Pass one change link');
+  });
+
+  it('throws a UsageError for every command-line problem', () => {
+    for (const argv of [
+      ['--bogus'],
+      ['--dir'],
+      ['a', 'b'],
+      ['x', '--clipboard'],
+      ['--github-event'],
+    ])
+      expect(() => parseApplyArgs(argv)).toThrow(UsageError);
   });
 });
 

@@ -6,7 +6,6 @@ import * as path from 'path';
 import {
   CHECKOUT_ACTION,
   detectShareStack,
-  parseInitShareArgs,
   planInitShare,
   renderWorkflow,
   validateShareArgs,
@@ -419,46 +418,4 @@ describe('init --share edge cases', () => {
     expect(fs.existsSync(path.join(root, '.github', 'workflows', 'livelocale.yml'))).toBe(true);
     expect(fs.existsSync(path.join(outside, 'a', '.github'))).toBe(false);
   });
-});
-
-describe('parseInitShareArgs', () => {
-  it('reads every option', () =>
-    expect(
-      parseInitShareArgs([
-        '--share',
-        '--dir',
-        'app',
-        '--locales',
-        'src/locales',
-        '--source',
-        'ar',
-        '--branches',
-        'main, release',
-        '--overwrite',
-      ])
-    ).toEqual({
-      dir: 'app',
-      localesPath: 'src/locales',
-      sourceLocale: 'ar',
-      branches: ['main', 'release'],
-      overwrite: true,
-    }));
-
-  it('defaults to the current directory with nothing else set', () =>
-    expect(parseInitShareArgs(['--share'])).toEqual({
-      dir: '.',
-      localesPath: undefined,
-      sourceLocale: undefined,
-      branches: undefined,
-      overwrite: false,
-    }));
-
-  it.each([
-    [['--share', '--locales'], '--locales'],
-    [['--share', '--source', '--overwrite'], '--source'],
-    [['--share', '--dir'], '--dir'],
-    [['--share', '--branches', '--locales', 'x'], '--branches'],
-  ])('rejects a missing value in %j', (argv, flag) =>
-    expect(() => parseInitShareArgs(argv)).toThrow(`${flag} needs a value.`)
-  );
 });

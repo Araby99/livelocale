@@ -122,9 +122,9 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     expect(r.stdout).toContain('🔗 Open /livelocale/index.html on the deployed site.');
   });
 
-  it('should fail `pack` without an output folder', () => {
+  it('should fail `pack` without an output folder as a usage error', () => {
     const r = runCli(pkgDir, projectDir, ['pack']);
-    expect(r.status).toBe(1);
+    expect(r.status).toBe(2);
     expect(r.stderr).toContain('Usage: livelocale pack <outDir>');
   });
 
@@ -258,6 +258,38 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
         message: 'Not passed through a translation call.',
       },
     ]);
+  });
+
+  it('should print its version', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf-8'));
+    for (const argv of [['--version'], ['-v'], ['check', '--version']]) {
+      const r = runCli(pkgDir, projectDir, argv);
+      expect(r.status).toBe(0);
+      expect(r.stdout.trim()).toBe(pkg.version);
+    }
+  });
+
+  it.each([
+    ['migrate', '--dry-rn', '--dry-run'],
+    ['init', '--shar', '--share'],
+    ['studio', '--prot', '--port'],
+    ['doctor', '--locale', '--locales'],
+    ['check', '--strictt', '--strict'],
+    ['pack', '--no-injct', '--no-inject'],
+    ['build', '--previw', '--preview'],
+    ['apply', '--dryrun', '--dry-run'],
+  ])('`%s %s` is a usage error that suggests %s and exits 2', (command, typo, flag) => {
+    const r = runCli(pkgDir, projectDir, [command, typo]);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain(
+      `Unknown option ${typo} for livelocale ${command}. Did you mean ${flag}?`
+    );
+  });
+
+  it('exits 2 for an unknown command', () => {
+    const r = runCli(pkgDir, projectDir, ['chek']);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('Unknown command "chek"');
   });
 
   it('should declare typescript as an optional peer dependency', () => {

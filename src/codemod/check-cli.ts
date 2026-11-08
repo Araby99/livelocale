@@ -1,4 +1,6 @@
 import { hasCheckFailures, type CheckReport } from './check.js';
+import { folderArg, parseCommandArgs } from './cli-args.js';
+import { COMMAND_SPECS } from './command-specs.js';
 
 export interface CheckArgs {
   dir: string;
@@ -11,40 +13,19 @@ export interface CheckArgs {
   allow: string[];
 }
 
-/** Parses the `check` arguments; `argv` excludes the `check` word. */
+/** Parses the `check` arguments; `argv` excludes the `check` word. Throws `UsageError`. */
 export function parseCheckArgs(argv: string[]): CheckArgs {
+  const parsed = parseCommandArgs(COMMAND_SPECS.check, argv);
   const args: CheckArgs = {
-    dir: '.',
-    unused: true,
-    strict: false,
-    json: false,
-    hardcoded: false,
-    allow: [],
+    dir: folderArg(parsed),
+    unused: !parsed.flags.has('--no-unused'),
+    strict: parsed.flags.has('--strict'),
+    json: parsed.flags.has('--json'),
+    hardcoded: parsed.flags.has('--hardcoded'),
+    allow: parsed.lists['--allow'] ?? [],
   };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i];
-    if (arg === '--dir') {
-      args.dir = argv[++i] || '.';
-    } else if (arg === '--locales') {
-      args.localesPath = argv[++i];
-    } else if (arg === '--source') {
-      args.sourceLocale = argv[++i];
-    } else if (arg === '--no-unused') {
-      args.unused = false;
-    } else if (arg === '--strict') {
-      args.strict = true;
-    } else if (arg === '--json') {
-      args.json = true;
-    } else if (arg === '--hardcoded') {
-      args.hardcoded = true;
-    } else if (arg === '--allow') {
-      const word = argv[++i];
-      if (!word || word.startsWith('--')) throw new Error('--allow needs a word.');
-      args.allow.push(word);
-    } else if (arg && !arg.startsWith('--')) {
-      args.dir = arg;
-    }
-  }
+  if (parsed.values['--locales'] !== undefined) args.localesPath = parsed.values['--locales'];
+  if (parsed.values['--source'] !== undefined) args.sourceLocale = parsed.values['--source'];
   return args;
 }
 

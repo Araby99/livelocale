@@ -33,9 +33,33 @@ describe('parseCheckArgs', () => {
     }));
 
   it('rejects --allow without a word', () => {
-    expect(() => parseCheckArgs(['--allow'])).toThrow('--allow needs a word.');
-    expect(() => parseCheckArgs(['--allow', '--json'])).toThrow('--allow needs a word.');
+    expect(() => parseCheckArgs(['--allow'])).toThrow('--allow needs a value.');
+    expect(() => parseCheckArgs(['--allow', '--json'])).toThrow('--allow needs a value.');
   });
+
+  it('reads --dir, --locales, --source, --no-unused and --json', () =>
+    expect(
+      parseCheckArgs(['--dir', 'web', '--locales', 'l', '--source', 'ar', '--no-unused', '--json'])
+    ).toEqual({
+      dir: 'web',
+      localesPath: 'l',
+      sourceLocale: 'ar',
+      unused: false,
+      strict: false,
+      json: true,
+      hardcoded: false,
+      allow: [],
+    }));
+
+  it('rejects a mistyped flag instead of ignoring it', () =>
+    expect(() => parseCheckArgs(['--strictt'])).toThrow(
+      'Unknown option --strictt for livelocale check. Did you mean --strict?'
+    ));
+
+  it('rejects a second folder', () =>
+    expect(() => parseCheckArgs(['a', 'b'])).toThrow(
+      'Unexpected argument "b" for livelocale check.'
+    ));
 });
 
 describe('checkExitCode', () => {

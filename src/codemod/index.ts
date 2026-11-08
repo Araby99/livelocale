@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as net from 'net';
 import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
-import { runDoctor, formatFindings, hasFailures, normalizeAppUrl } from './doctor.js';
+import { runDoctor, formatFindings, hasFailures } from './doctor.js';
 import { runCheck, formatCheckReport } from './check.js';
 import { checkExitCode, checkSummaryLines, parseCheckArgs, type CheckArgs } from './check-cli.js';
 import {
@@ -18,121 +18,22 @@ import {
 } from '../server/pack.js';
 import { PackError } from '../server/pack-error.js';
 import { runApplyCommand } from './apply/cli.js';
-import { parseInitShareArgs, planInitShare, writePlannedFiles } from './init-share.js';
+import { planInitShare, writePlannedFiles } from './init-share.js';
 import { readOwnVersion } from '../server/module-dir.js';
-
-const DEFAULT_STUDIO_PORT = 3010;
-const DEFAULT_APP_ORIGIN = 'http://localhost:3000';
+import { UsageError, USAGE_EXIT_CODE } from './cli-args.js';
+import {
+  parseDoctorArgs,
+  parseInitArgs,
+  parseMigrateArgs,
+  parseStudioArgs,
+  type DoctorArgs,
+  type InitArgs,
+  type MigrateArgs,
+} from './command-args.js';
+import { helpText } from './help.js';
 
 function printHelp() {
-  console.log(`
-LiveLocale (livelocale) CLI
-
-Usage:
-  npx livelocale <command> [options]
-
-Commands:
-  migrate     Bulk migrate existing react-i18next translation usages to wrap them with wrapTranslationEngine automatically.
-  init        Initialize the API route handler inside a Next.js project automatically.
-  studio      Start the visual editing studio local web server.
-  doctor      Check the project for common integration problems (route, provider, middleware, CSP, locales).
-  check       Check translations for missing keys, placeholder drift, broken ICU syntax and unused keys (CI-friendly).
-  pack        Write the share Studio (livelocale/) into a built site folder and link every HTML page to it.
-  build       Run your build command, then pack its output (Next.js: packs into public/livelocale/ first).
-  apply       Apply a LiveLocale change link to your locale files (--pr opens a pull request)
-
-Options for migrate:
-  --dir <path>       Directory to scan (default: current directory)
-  --exclude <list>   Comma-separated list of directories to exclude (default: node_modules,.next,dist,.git)
-  --dry-run          Preview changes without writing them to disk
-
-Options for init:
-  --dir <path>       Target project directory (default: current directory)
-  --share            Set up the share link build and the GitHub workflow instead of the API route
-  --locales <path>   (--share) Locales directory relative to the project (default: detected)
-  --source <locale>  (--share) Source locale (default: en)
-  --branches <a,b>   (--share) Branches a change link may target (default: the default branch)
-  --overwrite        (--share) Replace an existing .github/workflows/livelocale.yml
-
-Options for studio:
-  --port <number>    Port to run the studio server on (default: ${DEFAULT_STUDIO_PORT})
-  --app <origin>     Origin of the app being edited (default: ${DEFAULT_APP_ORIGIN})
-                     Can also be changed at run time with ?app=<origin> on the Studio URL.
-
-Options for doctor:
-  --dir <path>       Project directory to inspect (default: current directory)
-  --locales <path>   Locales directory relative to the project (default: locales)
-  --app <url>        Also probe the running app or deployed site, e.g. http://localhost:3000
-                     or https://user.github.io/repo/ (a path is the app base)
-  --share            Run the share link probes even when livelocale/manifest.json is missing
-  --token <token>    Access token for a preview deployment (default: LIVELOCALE_TOKEN)
-
-Options for check:
-  --dir <path>       Project directory to scan (default: current directory)
-  --locales <path>   Locales directory relative to the project (default: locales)
-  --source <locale>  Locale the others are compared against (default: en, else the first locale)
-  --no-unused        Do not report keys that code never references
-  --strict           Treat warnings (unused keys, empty values, untranslated text) as failures
-  --hardcoded        Also find text never passed through translation (needs typescript) and
-                     translations left identical to the source or in the wrong script
-  --allow <word>     Word or phrase that never counts as hardcoded (repeatable; also read
-                     from livelocale.allow)
-  --json             Print the full report as JSON
-
-Options for pack:
-  pack <outDir>      Built site folder, relative to --dir (e.g. dist, build, out)
-  --dir <path>       Project directory (default: current directory)
-  --locales <path>   Locales directory relative to the project (default: locales)
-  --source <locale>  Source locale (default: en, else the first locale)
-  --base <path>      Site path the app is served from, e.g. /repo/ (default: detected, else /)
-  --expose-repo      Put the GitHub owner/repo into livelocale/manifest.json
-  --no-inject        Do not add the flag.js script to HTML files
-
-Options for build:
-  build [--preview] [--out <dir>] [pack options] -- <command...>
-  --preview          Run the command with LIVELOCALE=preview and NEXT_PUBLIC_LIVELOCALE=preview
-  --out <dir>        Build output folder (default: detected from dist/, build/, out/)
-
-Options for apply:
-  apply <link|file|->  The change link, a file that holds it, or - to read stdin
-  --clipboard        Read the change link from the clipboard instead
-  --pr               Commit the changes on a new branch and open a pull request
-  --dir <path>       Project directory (default: current directory)
-  --locales <path>   Locales directory relative to the project (default: locales)
-  --source <locale>  Source locale (default: en, else the first locale)
-  --force            Apply edits the translator saved with "Save anyway"
-  --dry-run          Show what would change without writing files
-  --github-event      Run inside the generated GitHub workflow; reads the link from the event file
-  --branches <a,b>    Branches a link may target (default: the repository's default branch)
-
-Global Options:
-  -h, --help         Show help information
-`);
-}
-
-function normalizeOriginArg(value: string, flag: string): string {
-  try {
-    const url = new URL(value);
-    if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad protocol');
-    return url.origin;
-  } catch {
-    console.error(
-      `Error: ${flag} must be an http(s) origin such as http://localhost:3001 (got "${value}").`
-    );
-    process.exit(1);
-  }
-}
-
-/** `doctor --app`: an http(s) URL whose path, when given, is the app base. */
-function normalizeAppArg(value: string): { origin: string; base: string } {
-  try {
-    return normalizeAppUrl(value);
-  } catch {
-    console.error(
-      `Error: --app must be an http(s) URL such as http://localhost:3000 or https://user.github.io/repo/ (got "${value}").`
-    );
-    process.exit(1);
-  }
+  console.log(helpText());
 }
 
 /**
@@ -299,30 +200,7 @@ export default handler;
   }
 }
 
-async function runMigrate(args: string[]) {
-  let dir = '.';
-  let excludes = ['node_modules', '.next', 'dist', '.git'];
-  let dryRun = false;
-
-  for (let i = 1; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--dir') {
-      dir = args[++i] || '.';
-    } else if (arg === '--exclude') {
-      const val = args[++i];
-      if (val) {
-        excludes = val.split(',').map((s) => s.trim());
-      }
-    } else if (arg === '--dry-run') {
-      dryRun = true;
-    } else {
-      // Positional dir arg if not prefixed
-      if (arg && !arg.startsWith('--')) {
-        dir = arg;
-      }
-    }
-  }
-
+async function runMigrate({ dir, excludes, dryRun }: MigrateArgs) {
   const absoluteDir = path.resolve(dir);
   if (!fs.existsSync(absoluteDir)) {
     console.error(`Error: Directory "${dir}" does not exist.`);
@@ -405,29 +283,7 @@ async function runMigrate(args: string[]) {
   console.log(`\n🎉 Done!`);
 }
 
-async function runDoctorCommand(args: string[]) {
-  let dir = '.';
-  let localesPath: string | undefined;
-  let app: { origin: string; base: string } | undefined;
-  let share = false;
-  let token: string | undefined;
-  for (let i = 1; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--dir') {
-      dir = args[++i] || '.';
-    } else if (arg === '--locales') {
-      localesPath = args[++i];
-    } else if (arg === '--app') {
-      app = normalizeAppArg(args[++i] || '');
-    } else if (arg === '--share') {
-      share = true;
-    } else if (arg === '--token') {
-      token = args[++i];
-    } else if (arg && !arg.startsWith('--')) {
-      dir = arg;
-    }
-  }
-
+async function runDoctorCommand({ dir, localesPath, app, share, token }: DoctorArgs) {
   const projectDir = path.resolve(dir);
   if (!fs.existsSync(projectDir)) {
     console.error(`Error: Directory "${dir}" does not exist.`);
@@ -472,15 +328,8 @@ async function runDoctorCommand(args: string[]) {
   }
 }
 
-async function runCheckCommand(args: string[]) {
-  let parsed: CheckArgs;
-  try {
-    parsed = parseCheckArgs(args.slice(1));
-  } catch (err: any) {
-    console.error(`Error: ${err.message}`);
-    process.exit(1);
-  }
-  const { dir, localesPath, sourceLocale, unused, strict, json, hardcoded, allow } = parsed;
+async function runCheckCommand(args: CheckArgs) {
+  const { dir, localesPath, sourceLocale, unused, strict, json, hardcoded, allow } = args;
 
   const projectDir = path.resolve(dir);
   if (!fs.existsSync(projectDir)) {
@@ -539,7 +388,7 @@ function printPackSummary(result: PackResult, projectDir: string, warnings: stri
 
 async function runPackCommand(args: string[]) {
   try {
-    const options = parseShareArgs(args.slice(1));
+    const options = parseShareArgs(args.slice(1), 'pack');
     checkPackArgs(options);
     const projectDir = path.resolve(options.dir);
     const result = await packOutput({
@@ -555,13 +404,13 @@ async function runPackCommand(args: string[]) {
   } catch (err) {
     if (!(err instanceof PackError)) throw err;
     console.error(`❌ ${err.message}`);
-    process.exitCode = 1;
+    process.exitCode = err.code === 'USAGE' ? USAGE_EXIT_CODE : 1;
   }
 }
 
 async function runBuildCli(args: string[]) {
   try {
-    const options = parseShareArgs(args.slice(1));
+    const options = parseShareArgs(args.slice(1), 'build');
     checkBuildArgs(options);
     const projectDir = path.resolve(options.dir);
     const result = await runBuildCommand({
@@ -583,20 +432,12 @@ async function runBuildCli(args: string[]) {
   } catch (err) {
     if (!(err instanceof PackError)) throw err;
     console.error(`❌ ${err.message}`);
-    process.exitCode = 1;
+    process.exitCode = err.code === 'USAGE' ? USAGE_EXIT_CODE : 1;
   }
 }
 
-async function runInitShareCommand(args: string[]) {
-  let parsed;
-  try {
-    parsed = parseInitShareArgs(args.slice(1));
-  } catch (err: any) {
-    console.error(`❌ ${err.message}`);
-    process.exitCode = 1;
-    return;
-  }
-  const { dir, localesPath, sourceLocale, branches, overwrite } = parsed;
+async function runInitShareCommand(args: Extract<InitArgs, { share: true }>) {
+  const { dir, localesPath, sourceLocale, branches, overwrite } = args;
 
   const projectDir = path.resolve(dir);
   if (!fs.existsSync(projectDir)) {
@@ -629,85 +470,66 @@ async function runInitShareCommand(args: string[]) {
   }
 }
 
+const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack', 'build', 'apply'];
+
 async function run() {
   const args = process.argv.slice(2);
+  // Global flags count only before `--`: `build -- next build -h` passes -h to the build.
+  const end = args.indexOf('--');
+  const own = end === -1 ? args : args.slice(0, end);
 
-  if (args.includes('--help') || args.includes('-h') || args[0] === 'help') {
+  if (own.includes('--help') || own.includes('-h') || args[0] === 'help') {
     printHelp();
-    process.exit(0);
+    return;
+  }
+  if (own.includes('--version') || own.includes('-v')) {
+    console.log(readOwnVersion());
+    return;
   }
 
-  const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack', 'build', 'apply'];
-  if (!args[0] || !COMMANDS.includes(args[0])) {
-    console.error(`Unknown command: "${args[0]}". Expected one of: ${COMMANDS.join(', ')}.`);
+  const [command, ...rest] = args;
+  if (command === undefined) {
     printHelp();
-    process.exit(1);
+    throw new UsageError(
+      'Missing command. Run livelocale <command>, for example livelocale check.'
+    );
+  }
+  if (!COMMANDS.includes(command)) {
+    throw new UsageError(`Unknown command "${command}". Expected one of: ${COMMANDS.join(', ')}.`);
   }
 
-  if (args[0] === 'doctor') {
-    await runDoctorCommand(args);
-    return;
-  }
-
-  if (args[0] === 'check') {
-    await runCheckCommand(args);
-    return;
-  }
-
-  if (args[0] === 'pack') {
-    await runPackCommand(args);
-    return;
-  }
-
-  if (args[0] === 'build') {
-    await runBuildCli(args);
-    return;
-  }
-
-  if (args[0] === 'apply') {
-    await runApplyCommand(args.slice(1));
-    return;
-  }
-
-  if (args[0] === 'init' && args.includes('--share')) {
-    await runInitShareCommand(args);
-    return;
-  }
-
-  if (args[0] === 'init') {
-    let dir = '.';
-    for (let i = 1; i < args.length; i++) {
-      const arg = args[i];
-      if (arg === '--dir') {
-        dir = args[++i] || '.';
-      } else if (arg && !arg.startsWith('--')) {
-        dir = arg;
-      }
+  switch (command) {
+    case 'doctor':
+      return runDoctorCommand(parseDoctorArgs(rest));
+    case 'check':
+      return runCheckCommand(parseCheckArgs(rest));
+    case 'pack':
+      return runPackCommand(args);
+    case 'build':
+      return runBuildCli(args);
+    case 'apply':
+      return runApplyCommand(rest);
+    case 'init': {
+      const init = parseInitArgs(rest);
+      if (init.share) return runInitShareCommand(init);
+      runInit(init.dir);
+      return;
     }
-    runInit(dir);
-    process.exit(0);
-  }
-
-  if (args[0] === 'studio') {
-    let port = DEFAULT_STUDIO_PORT;
-    let appOrigin = DEFAULT_APP_ORIGIN;
-    for (let i = 1; i < args.length; i++) {
-      const arg = args[i];
-      if (arg === '--port') {
-        const val = parseInt(args[++i] || String(DEFAULT_STUDIO_PORT), 10);
-        if (!isNaN(val)) port = val;
-      } else if (arg === '--app') {
-        appOrigin = normalizeOriginArg(args[++i] || '', '--app');
-      }
+    case 'studio': {
+      const { port, appOrigin } = parseStudioArgs(rest);
+      return runStudio(port, appOrigin);
     }
-    await runStudio(port, appOrigin);
-    return;
+    default:
+      return runMigrate(parseMigrateArgs(rest));
   }
-
-  await runMigrate(args);
 }
 
 run().catch((err: any) => {
+  if (err instanceof UsageError) {
+    console.error(`❌ ${err.message}`);
+    process.exitCode = USAGE_EXIT_CODE;
+    return;
+  }
   console.error(`❌ ${err?.message || err}`);
   process.exit(1);
 });

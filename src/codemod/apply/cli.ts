@@ -2,7 +2,9 @@
 
 import * as path from 'path';
 import { runGitHubEventApply } from './github-event.js';
-import { ApplyInputError, readApplyInput } from './link-input.js';
+import { parseCommandArgs, splitList, UsageError, USAGE_EXIT_CODE } from '../cli-args.js';
+import { COMMAND_SPECS } from '../command-specs.js';
+import { readApplyInput } from './link-input.js';
 import { runLocalApply } from './local.js';
 
 export interface ApplyArgs {
@@ -18,74 +20,40 @@ export interface ApplyArgs {
   branches?: string[];
 }
 
-const VALUE_OPTIONS = { '--dir': 'dir', '--locales': 'locales', '--source': 'source' } as const;
-const FLAG_OPTIONS = {
-  '--clipboard': 'clipboard',
-  '--pr': 'pr',
-  '--force': 'force',
-  '--dry-run': 'dryRun',
-  '--github-event': 'githubEvent',
-} as const;
-
-/** Parses the arguments after `apply`. Throws `ApplyInputError` on bad combinations. */
+/** Parses the arguments after `apply`. Throws `UsageError` on anything it cannot take. */
 export function parseApplyArgs(argv: string[]): ApplyArgs {
+  const parsed = parseCommandArgs(COMMAND_SPECS.apply, argv);
+  if (parsed.positionals.length > 1) throw new UsageError('Pass one change link, file or "-".');
+  const branches = parsed.values['--branches'];
   const args: ApplyArgs = {
-    input: undefined,
-    clipboard: false,
-    pr: false,
-    force: false,
-    dryRun: false,
-    dir: '.',
-    locales: undefined,
-    source: undefined,
-    githubEvent: false,
-    branches: undefined,
+    input: parsed.positionals[0],
+    clipboard: parsed.flags.has('--clipboard'),
+    pr: parsed.flags.has('--pr'),
+    force: parsed.flags.has('--force'),
+    dryRun: parsed.flags.has('--dry-run'),
+    dir: parsed.values['--dir'] ?? '.',
+    locales: parsed.values['--locales'],
+    source: parsed.values['--source'],
+    githubEvent: parsed.flags.has('--github-event'),
+    branches: branches === undefined ? undefined : splitList(branches),
   };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]!;
-    if (arg === '--branches') {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith('--')) {
-        throw new ApplyInputError(`${arg} needs a value.`);
-      }
-      args.branches = value
-        .split(',')
-        .map((branch) => branch.trim())
-        .filter(Boolean);
-      i++;
-    } else if (Object.prototype.hasOwnProperty.call(VALUE_OPTIONS, arg)) {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith('--')) {
-        throw new ApplyInputError(`${arg} needs a value.`);
-      }
-      args[VALUE_OPTIONS[arg as keyof typeof VALUE_OPTIONS]] = value;
-      i++;
-    } else if (Object.prototype.hasOwnProperty.call(FLAG_OPTIONS, arg)) {
-      args[FLAG_OPTIONS[arg as keyof typeof FLAG_OPTIONS]] = true;
-    } else if (arg.startsWith('-') && arg !== '-') {
-      throw new ApplyInputError(`Unknown option "${arg}".`);
-    } else if (args.input !== undefined) {
-      throw new ApplyInputError('Pass one change link, file or "-".');
-    } else {
-      args.input = arg;
-    }
-  }
   if (args.clipboard && args.input !== undefined) {
-    throw new ApplyInputError('Pass the link or --clipboard, not both.');
+    throw new UsageError('Pass the link or --clipboard, not both.');
+  }
+  if (args.branches !== undefined && !args.githubEvent) {
+    throw new UsageError('--branches only works with --github-event.');
   }
   if (args.githubEvent) {
     if (args.force) {
-      throw new ApplyInputError(
+      throw new UsageError(
         '--force is not allowed with --github-event; a maintainer comments `/livelocale apply --force`.'
       );
     }
     if (args.input !== undefined) {
-      throw new ApplyInputError(
-        '--github-event reads the link from the event file; do not pass one.'
-      );
+      throw new UsageError('--github-event reads the link from the event file; do not pass one.');
     }
     if (args.locales === undefined || args.source === undefined) {
-      throw new ApplyInputError('--github-event needs --locales and --source.');
+      throw new UsageError('--github-event needs --locales and --source.');
     }
   }
   return args;
@@ -122,6 +90,6 @@ export async function runApplyCommand(argv: string[]): Promise<void> {
     process.exitCode = result.exitCode;
   } catch (err) {
     console.error(`❌ ${err instanceof Error ? err.message : String(err)}`);
-    process.exitCode = 1;
+    process.exitCode = err instanceof UsageError ? USAGE_EXIT_CODE : 1;
   }
 }

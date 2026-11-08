@@ -43,7 +43,12 @@ describe('parseShareArgs', () => {
     }));
 
   it('rejects unknown options and missing values', () => {
-    expect(() => parseShareArgs(['--bogus'])).toThrow('Unknown option "--bogus".');
+    expect(() => parseShareArgs(['--bogus'])).toThrow(
+      'Unknown option --bogus for livelocale pack. Run livelocale --help to see its options.'
+    );
+    expect(() => parseShareArgs(['--previw'], 'build')).toThrow(
+      'Unknown option --previw for livelocale build. Did you mean --preview?'
+    );
     expect(() => parseShareArgs(['--locales'])).toThrow('--locales needs a value.');
   });
 

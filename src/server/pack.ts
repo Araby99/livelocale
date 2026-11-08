@@ -20,6 +20,8 @@ import { detectBuildTarget, findExportBlockingRoute, outputCandidates } from './
 import { KeyScanner } from './key-scanner.js';
 import { moduleDir } from './module-dir.js';
 import { PackError } from './pack-error.js';
+import { parseCommandArgs, UsageError } from '../codemod/cli-args.js';
+import { COMMAND_SPECS } from '../codemod/command-specs.js';
 import {
   basePathOf,
   flagSrcFor,
@@ -425,58 +427,32 @@ export interface ShareCliArgs {
   command: string[];
 }
 
-const VALUE_OPTIONS = {
-  '--dir': 'dir',
-  '--locales': 'locales',
-  '--source': 'source',
-  '--base': 'base',
-  '--out': 'out',
-} as const;
-
 /**
  * Parses `pack`/`build` arguments (`argv` excludes the command name). Tokens after the first
  * `--` go to `command` verbatim. Throws `PackError('USAGE')` for an unknown option or a
  * missing value.
  */
-export function parseShareArgs(argv: string[]): ShareCliArgs {
-  const args: ShareCliArgs = {
-    positional: [],
-    dir: '.',
-    locales: undefined,
-    source: undefined,
-    base: undefined,
-    out: undefined,
-    exposeRepo: false,
-    inject: true,
-    preview: false,
-    command: [],
-  };
-  for (let i = 0; i < argv.length; i++) {
-    const arg = argv[i]!;
-    if (arg === '--') {
-      args.command = argv.slice(i + 1);
-      break;
-    }
-    if (Object.prototype.hasOwnProperty.call(VALUE_OPTIONS, arg)) {
-      const value = argv[i + 1];
-      if (value === undefined || value.startsWith('--')) {
-        throw new PackError('USAGE', `${arg} needs a value.`);
-      }
-      args[VALUE_OPTIONS[arg as keyof typeof VALUE_OPTIONS]] = value;
-      i++;
-    } else if (arg === '--expose-repo') {
-      args.exposeRepo = true;
-    } else if (arg === '--no-inject') {
-      args.inject = false;
-    } else if (arg === '--preview') {
-      args.preview = true;
-    } else if (arg.startsWith('-') && arg !== '-') {
-      throw new PackError('USAGE', `Unknown option "${arg}".`);
-    } else {
-      args.positional.push(arg);
-    }
+export function parseShareArgs(argv: string[], command: 'pack' | 'build' = 'pack'): ShareCliArgs {
+  let parsed;
+  try {
+    parsed = parseCommandArgs({ ...COMMAND_SPECS.pack, command }, argv);
+  } catch (err) {
+    if (err instanceof UsageError) throw new PackError('USAGE', err.message);
+    throw err;
   }
-  return args;
+  const { values, flags } = parsed;
+  return {
+    positional: parsed.positionals,
+    dir: values['--dir'] ?? '.',
+    locales: values['--locales'],
+    source: values['--source'],
+    base: values['--base'],
+    out: values['--out'],
+    exposeRepo: flags.has('--expose-repo'),
+    inject: !flags.has('--no-inject'),
+    preview: flags.has('--preview'),
+    command: parsed.rest,
+  };
 }
 
 export const PACK_USAGE = 'Usage: livelocale pack <outDir> [options]';
