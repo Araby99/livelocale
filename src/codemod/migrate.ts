@@ -71,13 +71,13 @@ export async function runMigrate(
           const result = await convert(content, fullPath);
 
           if (result.modified) {
-            migratedCount++;
             if (dryRun) {
               console.log(`[DRY RUN] Would migrate: ${relativePath}`);
             } else {
               fs.writeFileSync(fullPath, result.code, 'utf8');
               console.log(`✅ Migrated: ${relativePath}`);
             }
+            migratedCount++;
           }
         } catch (err: any) {
           failed.push(relativePath);

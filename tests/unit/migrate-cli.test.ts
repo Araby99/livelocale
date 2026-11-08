@@ -50,6 +50,26 @@ describe('runMigrate', () => {
     expect(out).toContain('bad.tsx');
   });
 
+  it('counts a file whose write failed as failed, not as migrated', async () => {
+    const logs: string[] = [];
+    vi.spyOn(console, 'log').mockImplementation((...args) => logs.push(args.join(' ')));
+    const errors: string[] = [];
+    vi.spyOn(console, 'error').mockImplementation((...args) => errors.push(args.join(' ')));
+    const dir = project({ 'a.tsx': 'a', 'blocked.tsx': 'b' });
+    // Turns blocked.tsx into a folder after reading it, so writing the result fails.
+    const blocking: MigrateTransform = async (code, file) => {
+      if (file.endsWith('blocked.tsx')) {
+        fs.rmSync(file);
+        fs.mkdirSync(file);
+      }
+      return transform(code, file);
+    };
+
+    expect(await runMigrate({ dir, excludes: [], dryRun: false }, blocking)).toBe(1);
+    expect(logs.join('\n')).toContain('Migrated: 1 files');
+    expect(errors.join('\n')).toContain('blocked.tsx');
+  });
+
   it('exits 1 in a dry run with a failing file, and writes nothing', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => {});
     vi.spyOn(console, 'error').mockImplementation(() => {});
