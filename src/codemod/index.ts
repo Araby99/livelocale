@@ -35,9 +35,9 @@ import {
   parseStudioArgs,
   type DoctorArgs,
   type InitArgs,
-  type MigrateArgs,
 } from './command-args.js';
 import { helpText } from './help.js';
+import { runMigrate } from './migrate.js';
 
 function printHelp() {
   console.log(helpText());
@@ -205,89 +205,6 @@ export default handler;
     console.error(`❌ Failed to write route handler: ${err.message}`);
     process.exit(1);
   }
-}
-
-async function runMigrate({ dir, excludes, dryRun }: MigrateArgs) {
-  const absoluteDir = path.resolve(dir);
-  if (!fs.existsSync(absoluteDir)) {
-    console.error(`Error: Directory "${dir}" does not exist.`);
-    process.exit(1);
-  }
-
-  // The codemod depends on the optional `typescript` peer; load it only here.
-  let transformReactI18next: typeof import('./transform.js').transformReactI18next;
-  try {
-    const transform = await import('./transform.js');
-    await transform.loadTypeScript();
-    transformReactI18next = transform.transformReactI18next;
-  } catch (err: any) {
-    console.error(`❌ ${err.message}`);
-    process.exit(1);
-  }
-
-  console.log(`\n🚀 Starting migration scanner...`);
-  console.log(`📁 Target: ${absoluteDir}`);
-  console.log(`🚫 Excluded: ${excludes.join(', ')}`);
-  if (dryRun) {
-    console.log(`🧪 Mode: DRY RUN (no files will be modified)`);
-  }
-  console.log('--------------------------------------------------');
-
-  let scannedCount = 0;
-  let migratedCount = 0;
-
-  async function walk(currentDir: string) {
-    const files = fs.readdirSync(currentDir, { withFileTypes: true });
-
-    for (const file of files) {
-      const fullPath = path.join(currentDir, file.name);
-
-      if (file.isDirectory()) {
-        if (excludes.includes(file.name)) {
-          continue;
-        }
-        await walk(fullPath);
-      } else if (file.isFile()) {
-        const ext = path.extname(file.name);
-        if (['.js', '.jsx', '.ts', '.tsx'].includes(ext)) {
-          scannedCount++;
-          try {
-            const content = fs.readFileSync(fullPath, 'utf8');
-            const result = await transformReactI18next(content, fullPath);
-
-            if (result.modified) {
-              migratedCount++;
-              const relativePath = path.relative(absoluteDir, fullPath);
-              if (dryRun) {
-                console.log(`[DRY RUN] Would migrate: ${relativePath}`);
-              } else {
-                fs.writeFileSync(fullPath, result.code, 'utf8');
-                console.log(`✅ Migrated: ${relativePath}`);
-              }
-            }
-          } catch (err: any) {
-            console.error(`❌ Error processing file ${fullPath}:`, err.message);
-          }
-        }
-      }
-    }
-  }
-
-  try {
-    await walk(absoluteDir);
-  } catch (err: any) {
-    console.error(`❌ Walk error:`, err.message);
-  }
-
-  console.log('--------------------------------------------------');
-  console.log(`📊 Summary:`);
-  console.log(`   Scanned:  ${scannedCount} files`);
-  if (dryRun) {
-    console.log(`   Would migrate: ${migratedCount} files`);
-  } else {
-    console.log(`   Migrated: ${migratedCount} files`);
-  }
-  console.log(`\n🎉 Done!`);
 }
 
 async function runDoctorCommand({ dir, localesPath, app, share, token }: DoctorArgs) {
@@ -546,7 +463,8 @@ async function run() {
       return runStudio(port, appOrigin);
     }
     default:
-      return runMigrate(parseMigrateArgs(rest));
+      process.exitCode = await runMigrate(parseMigrateArgs(rest));
+      return;
   }
 }
 
