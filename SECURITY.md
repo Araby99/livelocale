@@ -6,8 +6,8 @@ Security fixes land in the latest minor release only. Upgrade to it to get them.
 
 | Version | Supported |
 | ------- | --------- |
-| 0.12.x  | Yes       |
-| < 0.12  | No        |
+| 1.x     | Yes       |
+| < 1.0   | No        |
 
 ## Reporting a vulnerability
 

@@ -1,6 +1,6 @@
 {
   "name": "livelocale",
-  "version": "0.12.1",
+  "version": "1.0.0",
   "description": "The editing and review layer on top of next-intl or react-i18next. Your team fixes text on the real site; you get a JSON edit in git or a pull request. A CI check catches missing translations.",
   "license": "MIT",
   "author": "Araby99",

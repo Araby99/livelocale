@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-08
+
+1.0.0 is the first stable release. From here on livelocale follows semantic versioning: the documented imports, options, CLI commands, flags and exit codes, environment variables, the files `init` writes, and the share-link formats (`lc1.` change links, `manifest.json` format 1, `flag.js`) change incompatibly only in a new major version. Change links already sent and share folders already deployed keep working. Nothing documented was removed or renamed. The breaking changes below are about how the CLI treats a wrong command line and which exit code it returns, plus one type; a project whose scripts use only documented flags needs no change. Exports that no docs page uses, such as `FileMutator`, `KeyScanner`, `createMutationRouter`, `IframeBridge`, `encodeKey` and `stripWatermark`, are now marked internal: they still work, but semver does not cover them. The [Versioning and stability](https://livelocale.js.org/docs/reference/stability.html) page lists what is covered, the deprecation policy, and the versions CI tests.
+
+### Major Changes
+
+- **Breaking** (what to do when upgrading from 0.12)
+  - Every command rejects an unknown flag with exit code 2 and names the closest known flag (`Unknown option --strictt for livelocale check. Did you mean --strict?`). Up to 0.12, `check`, `doctor`, `migrate`, `init` and `studio` ignored it, so a typo could turn a CI check off. Run your scripts and CI steps once and fix or remove any flag the error names. Write values after a space (`--dir app`, not `--dir=app`).
+  - Flags that do not go together, a missing value, and an argument a command does not take exit 2: `apply --branches` without `--github-event`; `init --share my-app` (use `init --share --dir my-app`); `init --locales`, `--source`, `--branches` or `--overwrite` without `--share`; a folder given both as an argument and as `--dir`; a `studio --port` that is not a port number. Fix the command line the error names.
+  - Usage errors that exited 1 now exit 2: an unknown or missing command (`livelocale` with no command still prints the help), a bad `--app` on `studio` or `doctor`, `apply` with no link, file, `-` or `--clipboard`, and the `pack`, `build` and `apply` command-line errors. A script that tests for exactly 1 should test for non-zero.
+  - `livelocale check` exits 2 whenever it could not run: a missing project folder, a missing locales folder, an unknown `--source`, or a wrong command line (it was 1, the same as "found problems"; `--hardcoded` without TypeScript already exited 2). A locales folder that holds no locale files (no `{locale}.json` and no `*.json` inside a `{locale}/` folder) also exits 2 (`No locale files found in <dir>. Point --locales at the folder with en.json, ar.json, ...`, then any JSON files it skipped because their name is not a locale, such as `en_US.json`); it printed "Translations look good" and exited 0, so a wrong `--locales` passed CI. 1 still means "found problems" and 0 "clean". With `--json` it now prints a report with an `error` field instead of only a message on stderr. If your CI treats 1 and 2 differently, 2 means the check never ran.
+  - `livelocale migrate` exits 1 when any file failed to convert (it exited 0). It still converts the other files and lists the failed ones.
+  - `liveLocaleVite()` is typed as Vite's `Plugin`, not as its own object with every internal hook. `plugins: [liveLocaleVite(...)]` is unchanged. Code that calls the plugin's hooks by hand needs a cast.
+
 ### Minor Changes
 
 - **Added**
   - Share links work on phones and tablets. A switch at the bottom picks **Edit** (tap any text to fix it; the site is frozen, so a tap on a link selects its text instead of following it) or **Browse** (the site works as usual). On a phone the Studio shows a thin top bar with the language and **Send · N**, the editor slides up from the bottom and stays above the keyboard, **Next missing** walks the untranslated text you can see on the page, and **Share link…** sends the change link through the phone's share menu. Desktop behaviour is unchanged.
+  - `livelocale --version` (or `-v`). `--help` and `--version` stop at `--`, so `livelocale build -- next build -h` passes `-h` to your build, and are never read as a flag's value: `check -v` prints the version, `check --source -v` is a usage error (`--source needs a value.`). Node.js 18 stays the minimum, and CI now runs the built package on Node 18: the CLI and an import and a require of every entry point.
 - **Changed**
   - The Studio's interface is English only. The Arabic translation of the Studio and its language switch in the header are removed. Arabic and other right-to-left sites still edit and preview right to left: pick their locale in the **Locale** menu and the site under the Studio flips.
 
