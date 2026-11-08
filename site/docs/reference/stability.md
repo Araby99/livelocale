@@ -5,7 +5,7 @@ description: What livelocale's semver promise covers from 1.0 on, what stays int
 
 # Versioning and stability
 
-livelocale follows [Semantic Versioning](https://semver.org/). From 1.0 on, a minor or patch release never removes or renames anything on this page, and never changes what it does in a way that breaks a working setup. Only a new major version (2.0) can. New options, commands, flags and exports can arrive in any minor release.
+livelocale follows Semantic Versioning (semver). From 1.0 on, a minor or patch release never removes or renames anything on this page, and never changes what it does in a way that breaks a working setup. Only a new major version (2.0) can. New options, commands, flags and exports can arrive in any minor release.
 
 ## What the promise covers
 
