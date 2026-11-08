@@ -79,8 +79,8 @@ Options for apply:
   --source <locale>  Source locale (default: en, else the first locale)
   --force            Apply edits the translator saved with "Save anyway"
   --dry-run          Show what would change without writing files
-  --github-event      Run inside the generated GitHub workflow; reads the link from the event file
-  --branches <a,b>    Branches a link may target (default: the repository's default branch)
+  --github-event     Run inside the generated GitHub workflow; reads the link from the event file
+  --branches <a,b>   Branches a link may target (default: the repository's default branch)
 
 Global Options:
   -h, --help         Show help information
@@ -90,9 +90,10 @@ Exit codes:
   0  Success.
   1  The command ran and found problems, or could not finish: check found a problem, doctor
      found a blocking problem, migrate could not convert a file, apply or pack could not finish.
-  2  Usage error: an unknown option, a missing value, an argument the command does not take,
-     or options that do not go together. check also exits 2 when it could not run (missing
-     folder, no locales folder, unknown --source, TypeScript missing for --hardcoded).
+  2  Usage error: an unknown or missing command, an unknown option, a missing value, an argument
+     the command does not take, or options that do not go together. check also exits 2 when it
+     could not run (missing folder, no locales folder or no locale files in it, unknown --source,
+     TypeScript missing for --hardcoded).
   build exits with your build command's own code once it has started it.
 `;
 }

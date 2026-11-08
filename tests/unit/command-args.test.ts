@@ -40,6 +40,14 @@ describe('every documented flag is accepted, and only those', () => {
     ));
 
   it('lists --version among the global options', () => expect(helpText()).toMatch(/--version/));
+
+  it('starts every flag description in the same column', () => {
+    const columns = helpText()
+      .split('\n')
+      .filter((line) => /^  -/.test(line))
+      .map((line) => [line, line.search(/(?<=\S {2,})\S/)] as const);
+    expect(columns.filter(([, column]) => column !== 21)).toEqual([]);
+  });
 });
 
 describe('a mistyped flag is a usage error on every command', () => {
