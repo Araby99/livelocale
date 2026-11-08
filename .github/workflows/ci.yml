@@ -59,3 +59,38 @@ jobs:
 
       - name: Run E2E Tests
         run: npm run test:e2e
+
+  # Node 18 is the engines floor. The dev tooling needs Node 20 or later, so this job installs and
+  # builds on Node 20, then switches to Node 18 and runs only the built package: the CLI and an
+  # ESM import and a CJS require of every entry point (scripts/runtime-smoke.mjs).
+  node18-runtime:
+    name: Node 18 runtime smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js 20 for the build
+        uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Root Dependencies
+        run: npm ci
+
+      - name: Build Library & Studio
+        run: npm run build
+
+      - name: Switch to Node.js 18
+        uses: actions/setup-node@v7
+        with:
+          node-version: 18
+
+      - name: Confirm Node.js 18
+        run: node -e "if (!process.version.startsWith('v18.')) { console.error(process.version); process.exit(1); }"
+
+      - name: Run the built package on Node.js 18
+        run: node scripts/runtime-smoke.mjs
