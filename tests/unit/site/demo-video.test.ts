@@ -26,12 +26,16 @@ function chips() {
     ),
   ].map((m) => {
     const body = m[3]!;
-    const wide = /class="chapter-wide">([^<]+)</.exec(body)?.[1];
+    const wide = /class="chapter-wide(?: chapter-full)?">([^<]+)</.exec(body)?.[1];
+    // a full title (chapter-full) stays the accessible name on a phone; its short label is only seen
+    const full = /class="chapter-wide chapter-full">/.test(body);
+    const short = /class="chapter-phone" aria-hidden="true">([^<]+)</.exec(body)?.[1];
     const narrow = /class="chapter-phone">([^<]+)</.exec(body)?.[1];
     const both = /class="chapter-title">([^<]+)</.exec(body)?.[1];
     return {
       wide: { title: wide ?? both, start: Number(m[1]) },
-      phone: { title: narrow ?? both, start: Number(m[2]) },
+      phone: { title: full ? wide : (narrow ?? both), start: Number(m[2]) },
+      label: short ?? narrow ?? both,
     };
   });
 }
@@ -41,6 +45,20 @@ it("keeps the chips in step with the recorder's chapters, for both takes", () =>
   expect(found).toHaveLength(3);
   expect(found.map((c) => c.wide)).toEqual(recorded.chapters);
   expect(found.map((c) => c.phone)).toEqual(phone.chapters);
+});
+
+it('shows a short label on a phone where a full title would wrap, keeping the full one as the name', () => {
+  expect(chips().map((c) => c.label)).toEqual([
+    'Tap the text',
+    'Every language',
+    'Get a pull request',
+  ]);
+  const css = fs.readFileSync('site/src/styles/sections.css', 'utf8');
+  const phoneRules = css.slice(css.indexOf('.chapter-wide.chapter-full {'));
+  expect(phoneRules).toMatch(
+    /^\.chapter-wide\.chapter-full \{\s+display: inline;\s+position: absolute;/
+  );
+  expect(phoneRules).toContain('clip-path: inset(50%);');
 });
 
 it('titles the phone chapters for a phone', () => {

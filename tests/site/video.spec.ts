@@ -98,11 +98,18 @@ test('fits the playing video, its chips and the pause button in a 1440 x 900 scr
   expect((await page.locator('.doors').boundingBox())!.y).toBeLessThan(900);
 });
 
-/** Each chip's visible title. */
+/** Each chip's visible title (not the text kept only for screen readers). */
 const chipTitles = (page: Page) =>
-  page
-    .locator('.chapter .chapter-title')
-    .evaluateAll((els) => els.map((el) => (el as HTMLElement).innerText.trim()));
+  page.locator('.chapter .chapter-title').evaluateAll((els) =>
+    els.map((el) => {
+      const parts = [...el.querySelectorAll<HTMLElement>('span')];
+      if (parts.length === 0) return (el as HTMLElement).innerText.trim();
+      return parts
+        .filter((part) => part.getBoundingClientRect().width > 1)
+        .map((part) => part.textContent!.trim())
+        .join('');
+    })
+  );
 
 test('plays the tall phone take on a phone and the wide 2:1 cut on a desktop', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
@@ -110,11 +117,19 @@ test('plays the tall phone take on a phone and the wide 2:1 cut on a desktop', a
   await expect
     .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentSrc), afterHold)
     .toMatch(/hero-phone-[\w-]+\.mp4$/);
-  expect(await chipTitles(page)).toEqual([
-    'Tap the text',
-    'Fix it in every language',
-    'Get a pull request',
-  ]);
+  expect(await chipTitles(page)).toEqual(['Tap the text', 'Every language', 'Get a pull request']);
+  // the short label is only seen: a screen reader still hears the full title
+  await expect(page.locator('.chapter').nth(1)).toHaveAccessibleName(
+    /^2\s*Fix it in every language$/
+  );
+  // and it fits the chip in two lines at 390 px, as the others do
+  for (const label of await page.locator('.chapter-title').all()) {
+    const { height, line } = await label.evaluate((el) => ({
+      height: el.getBoundingClientRect().height,
+      line: parseFloat(getComputedStyle(el).lineHeight),
+    }));
+    expect(height).toBeLessThanOrEqual(2 * line + 1);
+  }
   await expect(page.getByRole('button', { name: /Tap the text/ })).toBeVisible();
   await expect(page.getByRole('button', { name: /Alt\+Click/ })).toHaveCount(0);
   const phone = (await page.locator('[data-demo] .screen').boundingBox())!;
