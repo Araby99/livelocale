@@ -138,9 +138,9 @@ jobs:
       - run: npx livelocale check --hardcoded
 ```
 
-Exit codes: **0** no problem, **1** a problem was found, **2** a check could not run (`--hardcoded` without `typescript`; fix with `npm install -D typescript`). Problems: invalid JSON, broken ICU, a key missing from a locale, placeholder drift, and with `--hardcoded` JSX text or user-facing attributes (`alt`, `title`, `placeholder`, `aria-label`, `label`) that never went through translation. Warnings (empty values, unused keys, `untranslated`, `wrong-script`) do not fail the run unless `--strict` is passed.
+Exit codes: **0** no problem, **1** a problem was found, **2** the check could not run (a mistyped flag, a missing locales folder, an unknown `--source`, or `--hardcoded` without `typescript`; fix the last with `npm install -D typescript`). Every livelocale command exits 2 on an unknown flag. Problems: invalid JSON, broken ICU, a key missing from a locale, placeholder drift, and with `--hardcoded` JSX text or user-facing attributes (`alt`, `title`, `placeholder`, `aria-label`, `label`) that never went through translation. Warnings (empty values, unused keys, `untranslated`, `wrong-script`) do not fail the run unless `--strict` is passed.
 
-Other flags: `--locales <path>`, `--source <locale>`, `--no-unused` (keys built at run time look unused), `--allow <word>` (repeatable), `--json` (same exit code).
+Other flags: `--locales <path>`, `--source <locale>`, `--no-unused` (keys built at run time look unused), `--allow <word>` (repeatable), `--json` (same exit code; when the check could not run, the report has an `error` field).
 
 Opt-outs, when a finding is intended:
 

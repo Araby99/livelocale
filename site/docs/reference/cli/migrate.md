@@ -11,7 +11,7 @@ description: The livelocale migrate command. Scans your source and wraps existin
 npx livelocale migrate [--dir <path>] [--exclude <list>] [--dry-run]
 ```
 
-It reads every `.js`, `.jsx`, `.ts` and `.tsx` file under the folder, prints each file it migrates, then a summary of how many files it scanned and migrated. `migrate` needs the `typescript` package to parse your source. It is an optional dependency, so JavaScript-only projects are not forced to install it; `init` and `studio` never need it.
+It reads every `.js`, `.jsx`, `.ts` and `.tsx` file under the folder, prints each file it migrates, then a summary of how many files it scanned and migrated. When a file fails to convert, `migrate` still converts the others, lists the failed files and exits with code 1. A mistyped flag exits with code 2 before any file is read. `migrate` needs the `typescript` package to parse your source. It is an optional dependency, so JavaScript-only projects are not forced to install it; `init` and `studio` never need it.
 
 ## Flags
 

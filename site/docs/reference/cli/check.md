@@ -27,7 +27,7 @@ Code references resolve namespaces the same way the Studio does, an object acces
 
 ```
 
-**Exit codes.** 0 when there is no problem, 1 when there is one, and 2 when a check could not run (`--hardcoded` without `typescript` installed).
+**Exit codes.** 0 when there is no problem, 1 when there is at least one, and 2 when the check could not run: a wrong command line (such as a mistyped flag), a project folder or locales folder that does not exist, a `--source` locale that is not there, or `--hardcoded` without `typescript` installed. A CI step can tell "the translations need work" (1) from "the check never ran" (2).
 
 ## Flags
 
@@ -91,4 +91,4 @@ A word or phrase that never counts as hardcoded, for this run, on top of the wor
 
 Off by default.
 
-Prints the full report as JSON, for other tools. The exit code is the same.
+Prints the full report as JSON, for other tools. The exit code is the same. When the check could not run, it still prints a report, with no issues and an `error` field that says why.

@@ -19,10 +19,10 @@ The Studio is served from the installed package. If something already answers on
 
 `--port <number>`, default: `3010`.
 
-The port the Studio itself listens on, at `http://localhost:<port>`.
+The port the Studio itself listens on, at `http://localhost:<port>`. Anything but a whole number from 1 to 65535 exits with code 2.
 
 ### `--app`
 
 `--app <origin>`, default: `http://localhost:3000`.
 
-The origin of the app being edited. It must be an http or https origin such as `http://localhost:3001`; anything else exits with code 1. You can also change it at run time with `?app=<origin>` on the Studio URL.
+The origin of the app being edited. It must be an http or https origin such as `http://localhost:3001`; anything else exits with code 2. You can also change it at run time with `?app=<origin>` on the Studio URL.

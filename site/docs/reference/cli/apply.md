@@ -18,7 +18,7 @@ The input is the change link itself (or the Studio link that carries it), a file
 
 ```
 
-The summary lists each edit's locale, key and status (applied, already done, conflict, needs `--force` or rejected) and never prints translation values. The exit code is 0 when every edit was applied or already done, and 1 when any edit is a conflict, needs `--force` or was rejected, or when the link cannot be read.
+The summary lists each edit's locale, key and status (applied, already done, conflict, needs `--force` or rejected) and never prints translation values. The exit code is 0 when every edit was applied or already done, and 1 when any edit is a conflict, needs `--force` or was rejected, or when the link cannot be read. A wrong command line (an unknown flag, a link and `--clipboard` together, two links) exits with code 2.
 
 ## Flags
 
@@ -83,4 +83,4 @@ npx --yes livelocale@<version> apply --github-event --locales <path> --source <l
 
 `--branches <a,b>`, with `--github-event`. Default: the repository's default branch.
 
-The branches a link may target, comma-separated. A link made from any other branch targets the default branch, and the comment says so.
+The branches a link may target, comma-separated. Without `--github-event` it is a usage error (exit code 2). A link made from any other branch targets the default branch, and the comment says so.

@@ -26,4 +26,32 @@ The `livelocale` command line has eight commands. Run any of them with `npx live
 
 ```
 
-A command that is not one of the eight prints the help and exits with code 1.
+`--version` (or `-v`) prints the installed version. `--help` and `--version` work after any command too.
+
+## Usage errors
+
+Every command checks its command line before it does anything. An unknown flag, a flag without its value, an argument the command does not take, or flags that do not go together stop the command with one line on stderr and exit code 2. Nothing is read or written. When a known flag is close to what you typed, the message names it:
+
+```text
+$ npx livelocale check --strictt
+❌ Unknown option --strictt for livelocale check. Did you mean --strict?
+```
+
+Put a flag's value after a space: `--dir app`, not `--dir=app`. Everything after `--` belongs to the command `build` runs and is not checked. A command that is not one of the eight is a usage error too.
+
+Up to 0.12, `check`, `doctor`, `migrate`, `init` and `studio` ignored a flag they did not know, so a typo such as `check --strictt` quietly turned a CI check off.
+
+## Exit codes
+
+| Command                   | 0                                                       | 1                                                                                                                                                | 2                                                                                                                                           |
+| ------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`check`](./check.md)     | No problem (warnings alone pass, unless `--strict`).    | It found at least one problem.                                                                                                                   | It could not run: a usage error, a missing project or locales folder, an unknown `--source`, or `--hardcoded` without `typescript`.         |
+| [`doctor`](./doctor.md)   | No blocking problem (warnings alone pass).              | A blocking problem, or the folder does not exist.                                                                                                | Usage error, including an `--app` that is not an http(s) URL.                                                                               |
+| [`migrate`](./migrate.md) | Every file was converted or needed nothing.             | A file failed to convert (the others are still converted and the failed ones are listed), the folder does not exist, or `typescript` is missing. | Usage error.                                                                                                                                |
+| [`init`](./init.md)       | The files were written.                                 | The folder does not exist, a file could not be written, or `--share` stopped (for example no locales folder found).                              | Usage error, including `--share` with a plain folder argument, or `--locales`, `--source`, `--branches` or `--overwrite` without `--share`. |
+| [`studio`](./studio.md)   | Runs until you stop it.                                 | The port is taken, or the Studio files are missing.                                                                                              | Usage error, including a `--port` that is not a port number or an `--app` that is not an http(s) origin.                                    |
+| [`apply`](./apply.md)     | Every edit was applied or already done.                 | An edit is a conflict, needs `--force` or was rejected; the link cannot be read; or the GitHub workflow run failed.                              | Usage error, including `--branches` without `--github-event` and the `--github-event` combinations on its page.                             |
+| [`pack`](./pack.md)       | The share folder was written.                           | It could not pack, for example the output or locales folder does not exist.                                                                      | Usage error, including a missing or second `<outDir>`.                                                                                      |
+| [`build`](./build.md)     | Your build command's exit code, once it has started it. | Packing after the build could not finish.                                                                                                        | Usage error, found before your build command starts.                                                                                        |
+
+These codes are part of the [stable contract](../stability.md): a 1.x release does not change what they mean. The exact wording of the messages is not.

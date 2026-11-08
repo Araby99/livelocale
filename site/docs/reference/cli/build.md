@@ -11,7 +11,7 @@ description: The livelocale build command. Runs your build command, then packs i
 npx livelocale build [--preview] [--out <dir>] [pack options] -- <command...>
 ```
 
-Everything after `--` is your build command, run in the project folder. `build` exits with that command's exit code.
+Everything after `--` is your build command, run in the project folder, untouched: `livelocale build -- next build -h` passes `-h` to Next. `build` exits with that command's exit code. A wrong `build` command line exits with code 2 before your command starts.
 
 - **Next.js** projects are packed into `public/livelocale/` before the build runs, so Next copies it into the output. HTML is never injected. Without `--preview`, `build` warns that the pages have no watermarks, and it warns when `public/livelocale/` is not in `.gitignore`. A static export (`output: 'export'`) stops before building when `app/api/livelocale/route.*` exports POST, because export mode only allows GET route handlers; the share link does not need that route.
 - **Other stacks** are packed after a successful build, as [`pack`](./pack.md) does. When the command fails, nothing is packed.

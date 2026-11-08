@@ -16,7 +16,7 @@ The agent loads the skill when you ask it to add livelocale, set up share links,
 - **Picks the stack** from your `package.json` and config files: Next.js App Router, Vite + React, or share links on a static host, and finds your locale folder.
 - **Follows the setup steps** of [Next.js](../start/nextjs.md), [Vite + React](../start/vite.md) or [Any static host](../start/static-host.md): install, `LiveLocaleProvider`, `init` or the Vite plugin, wrapping `t`, `init --share`.
 - **Checks each step** with `npx livelocale doctor` and `npx livelocale check`, instead of declaring it done.
-- **Adds the CI check** from [Catch untranslated text in CI](./ci-check.md): `npx livelocale check --hardcoded`, its exit codes (0, 1, and 2 without `typescript`) and the opt-outs.
+- **Adds the CI check** from [Catch untranslated text in CI](./ci-check.md): `npx livelocale check --hardcoded`, its exit codes (0 clean, 1 problems, 2 could not run) and the opt-outs.
 - **Fixes setup problems** from the doctor's output and a troubleshooting table of the symptoms these pages list.
 
 It never changes a repository setting for you. The one GitHub setting share links need, **Allow GitHub Actions to create and approve pull requests**, stays your click.

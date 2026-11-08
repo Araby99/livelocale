@@ -11,7 +11,7 @@ description: The livelocale doctor command. Checks the route, provider, middlewa
 npx livelocale doctor [--dir <path>] [--locales <path>] [--app <url>] [--share] [--token <token>]
 ```
 
-It checks the mutation route handler, the `LiveLocaleProvider` mount, middleware matchers, frame-blocking headers in `next.config` and the locale JSON. It exits with code 1 on a blocking problem, so it can also run in CI; warnings alone exit 0.
+It checks the mutation route handler, the `LiveLocaleProvider` mount, middleware matchers, frame-blocking headers in `next.config` and the locale JSON. It exits with code 1 on a blocking problem, so it can also run in CI; warnings alone exit 0. A mistyped flag, or an `--app` that is not an http(s) URL, exits with code 2 before anything runs.
 
 ```cli doctor-next
 

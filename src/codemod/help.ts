@@ -85,5 +85,14 @@ Options for apply:
 Global Options:
   -h, --help         Show help information
   -v, --version      Print the livelocale version
+
+Exit codes:
+  0  Success.
+  1  The command ran and found problems, or could not finish: check found a problem, doctor
+     found a blocking problem, migrate could not convert a file, apply or pack could not finish.
+  2  Usage error: an unknown option, a missing value, an argument the command does not take,
+     or options that do not go together. check also exits 2 when it could not run (missing
+     folder, no locales folder, unknown --source, TypeScript missing for --hardcoded).
+  build exits with your build command's own code once it has started it.
 `;
 }

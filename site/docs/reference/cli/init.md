@@ -38,11 +38,11 @@ A Vite app does not use `init`: add `liveLocaleVite(...)` from `livelocale/vite`
 
 `--dir <path>`, default: the current directory.
 
-The project folder. After plain `init`, a bare folder name works too (`npx livelocale init my-app`). `init` exits with code 1 when the folder does not exist.
+The project folder. After plain `init`, a bare folder name works too (`npx livelocale init my-app`); with `--share`, pass it as `--dir my-app` (a bare folder name is a usage error, exit code 2). `init` exits with code 1 when the folder does not exist.
 
 ### `--share`
 
-Sets up the share link build and the GitHub workflow instead of the API route. It detects your stack, makes the build change below, and prints every file it creates, updates, leaves unchanged or skips, then what is left for you to do.
+Sets up the share link build and the GitHub workflow instead of the API route. `--locales`, `--source`, `--branches` and `--overwrite` work only with `--share`; without it they are a usage error (exit code 2). It detects your stack, makes the build change below, and prints every file it creates, updates, leaves unchanged or skips, then what is left for you to do.
 
 | Stack                      | Build change                                                                                                                                                                                                                                                                                                                                                             |
 | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
