@@ -148,14 +148,27 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, durations: Dem
     sync();
   });
 
-  const seek = (start: number) => {
-    const go = () => {
-      video.currentTime = start + 0.01; // past the previous chapter's last frame
-      paint(video.currentTime);
-    };
-    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) go();
-    else video.addEventListener('loadedmetadata', go, { once: true });
+  // A seek asked for before the attached take has its metadata (a chip clicked on a slow load)
+  // waits here, in the attached take's time, until loadedmetadata. One target, not a queue of
+  // listeners: a later chip click replaces it, and a take swap carries it over (the element
+  // still reports 0 then), so neither an old take's seek nor a stale 0 lands on the new take.
+  let pending: number | null = null;
+  const go = (t: number) => {
+    pending = null;
+    video.currentTime = t;
+    paint(video.currentTime);
   };
+  /** Where the story is: the seek still waiting, else the frame on screen. */
+  const place = () => pending ?? video.currentTime;
+  const seekTo = (t: number) => {
+    if (video.readyState >= HTMLMediaElement.HAVE_METADATA) go(t);
+    else pending = t;
+  };
+  video.addEventListener('loadedmetadata', () => {
+    if (pending !== null) go(pending);
+  });
+  // past the previous chapter's last frame
+  const seek = (start: number) => seekTo(start + 0.01);
 
   chips.forEach((chip, i) =>
     chip.addEventListener('click', () => {
@@ -205,11 +218,11 @@ export function startDemoVideo(root: HTMLElement, cuts: DemoCuts, durations: Dem
       paint(0);
       return;
     }
-    const at = samePlace(from, chapters, video.currentTime);
+    const at = samePlace(from, chapters, place());
     video.querySelectorAll('source').forEach((source) => source.remove());
     attached = false;
     attach();
-    seek(at - 0.01);
+    seekTo(at);
     sync();
     // Paused, nothing loads (preload="none"), so the new take has no frame to show: bring back
     // the poster (the <picture> already picks this viewport's) until it plays again.

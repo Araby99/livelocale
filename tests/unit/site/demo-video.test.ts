@@ -148,7 +148,16 @@ describe('across the breakpoint', () => {
     const root = document.querySelector<HTMLElement>('[data-demo]')!;
     const video = root.querySelector('video')!;
     let paused = true;
+    let time = 0;
+    let ready = 0; // HAVE_NOTHING until a test says the metadata has loaded
     Object.defineProperty(video, 'paused', { get: () => paused });
+    Object.defineProperty(video, 'readyState', { get: () => ready });
+    Object.defineProperty(video, 'currentTime', {
+      get: () => time,
+      set: (t: number) => {
+        time = t;
+      },
+    });
     video.play = vi.fn(() => {
       paused = false;
       video.dispatchEvent(new Event('play'));
@@ -159,15 +168,28 @@ describe('across the breakpoint', () => {
       video.dispatchEvent(new Event('pause'));
     });
     video.load = vi.fn(() => {
-      // load() pauses a playing element (the spec's media element load algorithm)
+      // load() pauses a playing element and forgets the old take (the media element load
+      // algorithm): no metadata, back to 0
       if (!paused) video.pause();
+      ready = 0;
+      time = 0;
     });
     startDemoVideo(
       root,
       { wide: { webm: 'w.webm', mp4: 'w.mp4' }, phone: { webm: 'p.webm', mp4: 'p.mp4' } },
       { wide: 10, phone: 8 }
     );
-    return { root, video, toggle: root.querySelector<HTMLButtonElement>('[data-playback]')! };
+    /** The attached take's metadata arrives, as the browser fires it. */
+    const metadata = () => {
+      ready = 1;
+      video.dispatchEvent(new Event('loadedmetadata'));
+    };
+    return {
+      root,
+      video,
+      metadata,
+      toggle: root.querySelector<HTMLButtonElement>('[data-playback]')!,
+    };
   }
 
   const cross = (phone: boolean) => {
@@ -222,5 +244,45 @@ describe('across the breakpoint', () => {
     expect(srcs(video)).toEqual(['p.mp4', 'p.webm']);
     expect(video.paused).toBe(false);
     expect(root.dataset.started).toBe('');
+  });
+
+  // On a slow load the chip's seek is still waiting for metadata when the breakpoint is crossed:
+  // the swap must carry that chapter over, not the 0 the unloaded element reports.
+  it('keeps a chapter picked before the take loaded when the take changes', () => {
+    const { root, video, metadata } = mount();
+    root.querySelectorAll<HTMLButtonElement>('.chapter')[1]!.click(); // wide chapter 2, at 5
+    expect(video.currentTime).toBe(0); // no metadata yet: the seek waits
+    cross(true);
+    metadata(); // the phone take's metadata
+    // phone chapter 2 (4 to 8), the same share of the way in as 5.01 is through 5 to 10
+    expect(video.currentTime).toBeCloseTo(4.008, 5);
+    expect(root.querySelectorAll('.chapter')[1]!.getAttribute('aria-current')).toBe('step');
+  });
+
+  it('applies a waiting seek once, not again on a later load', () => {
+    const { root, video, metadata } = mount();
+    root.querySelectorAll<HTMLButtonElement>('.chapter')[1]!.click();
+    metadata();
+    expect(video.currentTime).toBeCloseTo(5.01, 5);
+    video.currentTime = 1.5; // played on, looped back to chapter 1
+    cross(true);
+    metadata();
+    expect(video.currentTime).toBeCloseTo(
+      samePlace(
+        [
+          { start: 1, end: 5 },
+          { start: 5, end: 10 },
+        ],
+        [
+          { start: 2, end: 4 },
+          { start: 4, end: 8 },
+        ],
+        1.5
+      ),
+      5
+    );
+    video.currentTime = 6;
+    video.dispatchEvent(new Event('loadedmetadata')); // a stray later event moves nothing
+    expect(video.currentTime).toBe(6);
   });
 });

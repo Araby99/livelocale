@@ -229,6 +229,30 @@ test('swaps the take and its chapters across the 640 px breakpoint and keeps pla
   await expect(chip).toHaveAttribute('aria-current', 'step');
 });
 
+// On a slow load the chip's seek still waits for the phone take's metadata when the breakpoint is
+// crossed (the element reports 0 then): the wide take must start at the chip's chapter, not at 0.
+test('keeps the chapter when the breakpoint is crossed before the take has loaded', async ({
+  page,
+}) => {
+  await page.route(/\.(mp4|webm)(\?|$)/, async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    await route.continue().catch(() => {}); // the swap aborts the phone take's request
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('./');
+  const chip = page.getByRole('button', { name: /Get a pull request/ });
+  await chip.click();
+  expect(await video(page).evaluate((v: HTMLVideoElement) => v.readyState)).toBe(0);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await video(page).scrollIntoViewIfNeeded();
+  const wideStart = Number(await chip.getAttribute('data-start'));
+  await expect
+    .poll(() => video(page).evaluate((v: HTMLVideoElement) => v.currentTime))
+    .toBeGreaterThanOrEqual(wideStart);
+  await expect.poll(() => playing(page)).toBe(true);
+  await expect(chip).toHaveAttribute('aria-current', 'step');
+});
+
 test('shows the poster again when the breakpoint is crossed while paused', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto('./');
