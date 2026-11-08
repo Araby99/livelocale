@@ -54,6 +54,42 @@ describe('runCheck', () => {
     );
   });
 
+  it('cannot run when the locale folders hold no JSON file', async () => {
+    fs.mkdirSync(path.join(project, 'locales/en'), { recursive: true });
+    write(project, 'locales/en/notes.txt', 'todo');
+    write(project, 'app/page.tsx', `t('a')`);
+    await expect(runCheck({ projectDir: project })).rejects.toThrow(
+      `No locale files found in ${path.join(project, 'locales')}.`
+    );
+  });
+
+  it('names the JSON files it skipped for a name that is not a locale', async () => {
+    write(project, 'locales/en_US.json', { a: 'A' });
+    write(project, 'locales/messages/en.json', { a: 'A' });
+    write(project, 'app/page.tsx', `t('a')`);
+    await expect(runCheck({ projectDir: project })).rejects.toThrow(
+      'Skipped en_US.json, messages/: a locale name looks like en, ar or pt-BR.'
+    );
+  });
+
+  it('runs when one locale has files and another has an empty folder', async () => {
+    write(project, 'locales/en.json', { a: 'A' });
+    fs.mkdirSync(path.join(project, 'locales/ar'), { recursive: true });
+    write(project, 'app/page.tsx', `t('a')`);
+    const report = await runCheck({ projectDir: project });
+    expect(report.locales).toEqual(['ar', 'en']);
+    expect(report.issues.some((i) => i.locale === 'ar' && i.key === 'a')).toBe(true);
+  });
+
+  it('reads per-locale namespace folders', async () => {
+    write(project, 'locales/en/common.json', { a: 'A' });
+    write(project, 'locales/ar/common.json', { a: 'B' });
+    write(project, 'app/page.tsx', `t('common.a')`);
+    const report = await runCheck({ projectDir: project });
+    expect(report.locales).toEqual(['ar', 'en']);
+    expect(report.issues).toEqual([]);
+  });
+
   it('runs outside development mode (CI)', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('LIVELOCALE', 'off');

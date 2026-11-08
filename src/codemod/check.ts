@@ -120,6 +120,35 @@ function listLocales(localesDir: string): string[] {
   return Array.from(locales).sort();
 }
 
+/** True when `locale` has a file to read: its `{locale}.json`, or a `*.json` inside `{locale}/`. */
+function hasLocaleFile(localesDir: string, locale: string): boolean {
+  const dir = path.join(localesDir, locale);
+  if (fs.existsSync(dir) && fs.statSync(dir).isDirectory()) {
+    return fs.readdirSync(dir).some((file) => file.endsWith('.json'));
+  }
+  return fs.existsSync(path.join(localesDir, `${locale}.json`));
+}
+
+/** The error for a locales folder with no locale file, naming JSON entries skipped for their name. */
+function noLocaleFilesError(localesDir: string): Error {
+  const skipped: string[] = [];
+  for (const item of fs.readdirSync(localesDir, { withFileTypes: true })) {
+    if (item.isDirectory() && !item.name.startsWith('.') && !LOCALE_RE.test(item.name)) {
+      skipped.push(`${item.name}/`);
+    } else if (item.isFile() && item.name.endsWith('.json')) {
+      if (!LOCALE_RE.test(path.basename(item.name, '.json'))) skipped.push(item.name);
+    }
+  }
+  skipped.sort();
+  const hint =
+    skipped.length === 0
+      ? ''
+      : ` Skipped ${skipped.slice(0, 3).join(', ')}${skipped.length > 3 ? ', ...' : ''}: a locale name looks like en, ar or pt-BR.`;
+  return new Error(
+    `No locale files found in ${localesDir}. Point --locales at the folder with en.json, ar.json, ...${hint}`
+  );
+}
+
 function flatten(obj: unknown, prefix: string, file: string, data: LocaleData): void {
   if (!obj || typeof obj !== 'object' || Array.isArray(obj)) return;
   for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
@@ -219,10 +248,8 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
   }
 
   const locales = listLocales(localesDir);
-  if (locales.length === 0) {
-    throw new Error(
-      `No locale files found in ${localesDir}. Point --locales at the folder with en.json, ar.json, ...`
-    );
+  if (!locales.some((locale) => hasLocaleFile(localesDir, locale))) {
+    throw noLocaleFilesError(localesDir);
   }
   const data = new Map(locales.map((l) => [l, readLocale(localesDir, l, projectDir, issues)]));
 

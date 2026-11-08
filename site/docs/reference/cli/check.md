@@ -27,7 +27,7 @@ Code references resolve namespaces the same way the Studio does, an object acces
 
 ```
 
-**Exit codes.** 0 when there is no problem, 1 when there is at least one, and 2 when the check could not run: a wrong command line (such as a mistyped flag), a project folder or locales folder that does not exist, a locales folder with no locale files in it (`No locale files found in <dir>. Point --locales at the folder with en.json, ar.json, ...`), a `--source` locale that is not there, or `--hardcoded` without `typescript` installed. A CI step can tell "the translations need work" (1) from "the check never ran" (2).
+**Exit codes.** 0 when there is no problem, 1 when there is at least one, and 2 when the check could not run: a wrong command line (such as a mistyped flag), a project folder or locales folder that does not exist, a locales folder with no locale files in it, that is no `{locale}.json` and no `*.json` inside a `{locale}/` folder (`No locale files found in <dir>. Point --locales at the folder with en.json, ar.json, ...`, followed by the JSON files and folders it skipped because their name is not a locale, such as `en_US.json`), a `--source` locale that is not there, or `--hardcoded` without `typescript` installed. A CI step can tell "the translations need work" (1) from "the check never ran" (2).
 
 ## Flags
 
