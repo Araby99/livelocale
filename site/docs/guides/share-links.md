@@ -85,7 +85,7 @@ Without it the workflow still commits the branch, but GitHub refuses to let it o
 
 ## What the person fixing text does
 
-1. Open the share link in any browser, on a computer or a phone. There is no sign-up, no password and nothing to install. If the site has its own login, sign in as usual.
+1. Open the share link in a current Chrome, Edge, Firefox or Safari, on a computer or a phone. There is no sign-up, no password and nothing to install. If the site has its own login, sign in as usual.
 2. On the first visit, read the three tips and, optionally, type a name to be credited in the pull request.
 3. Check the language shown at the top. It is detected from the page text; change it if it is wrong.
 4. Hold **Alt** (Option on Mac) and click the wrong text; on a phone or a tablet, tap it while the switch at the bottom is on **Edit** ([on a phone](./studio.md#on-a-phone)). The editor shows the source text, the current translation, the placeholders that must stay, and one field per plural form.

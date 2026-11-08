@@ -65,6 +65,7 @@ export const SIDEBAR: SidebarGroup[] = [
       { text: 'migrate', link: '/reference/cli/migrate' },
       { text: 'Configuration', link: '/reference/configuration' },
       { text: 'Environment variables', link: '/reference/environment' },
+      { text: 'Versioning and stability', link: '/reference/stability' },
       { text: 'Changelog', link: '/reference/changelog' },
     ],
   },

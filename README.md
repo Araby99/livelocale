@@ -97,6 +97,20 @@ npx livelocale studio
 Open `http://localhost:3010`, hold Alt (Option on a Mac), click a line of text and press
 **Save Changes**. `git diff locales/` shows the fix.
 
+## Supported versions
+
+| Needs                                     | Tested in CI      |
+| ----------------------------------------- | ----------------- |
+| Node.js 18 or later                       | Node.js 20 and 24 |
+| Next.js 13 or later                       | Next.js 16        |
+| React 18 or later                         | React 18          |
+| Vite 5 or later                           | Vite 8            |
+| TypeScript 4.7 to 6 (`check --hardcoded`) | TypeScript 5      |
+
+From 1.0 on, livelocale follows semantic versioning, and share links people already sent keep
+working in newer versions. [Versioning and stability](https://livelocale.js.org/docs/reference/stability.html)
+lists what that covers and what is internal.
+
 ## Docs
 
 - [Get started](https://livelocale.js.org/docs/): Next.js, Vite + React, or any static host.
@@ -104,6 +118,7 @@ Open `http://localhost:3010`, hold Alt (Option on a Mac), click a line of text a
 - [Share links](https://livelocale.js.org/docs/guides/share-links.html): fixes from the deployed site, no account and no install.
 - [Catch untranslated text in CI](https://livelocale.js.org/docs/guides/ci-check.html): missing keys, placeholder drift and hardcoded text.
 - [CLI reference](https://livelocale.js.org/docs/reference/cli/index.html): every command and flag.
+- [Versioning and stability](https://livelocale.js.org/docs/reference/stability.html): what semver covers, and the versions CI tests.
 
 ## Contributing
 
