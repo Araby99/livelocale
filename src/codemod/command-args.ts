@@ -1,10 +1,24 @@
 /** Parsers of the commands that have no module of their own: `migrate`, `init`, `studio`, `doctor`. */
 
 import { normalizeAppUrl } from './doctor.js';
-import { folderArg, parseCommandArgs, splitList, UsageError } from './cli-args.js';
+import {
+  folderArg,
+  parseCommandArgs,
+  splitList,
+  UsageError,
+  type CommandSpec,
+} from './cli-args.js';
 import { COMMAND_SPECS } from './command-specs.js';
 
 export { COMMAND_SPECS };
+
+/** The option spec of a command word (`build` shares `pack`'s), or undefined for an unknown one. */
+export function commandSpec(command: string | undefined): CommandSpec | undefined {
+  const name = command === 'build' ? 'pack' : command;
+  return name !== undefined && Object.prototype.hasOwnProperty.call(COMMAND_SPECS, name)
+    ? COMMAND_SPECS[name as keyof typeof COMMAND_SPECS]
+    : undefined;
+}
 
 export const DEFAULT_STUDIO_PORT = 3010;
 export const DEFAULT_APP_ORIGIN = 'http://localhost:3000';

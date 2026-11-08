@@ -27,8 +27,9 @@ import { PackError } from '../server/pack-error.js';
 import { runApplyCommand } from './apply/cli.js';
 import { planInitShare, writePlannedFiles } from './init-share.js';
 import { readOwnVersion } from '../server/module-dir.js';
-import { UsageError, USAGE_EXIT_CODE } from './cli-args.js';
+import { findGlobalOption, UsageError, USAGE_EXIT_CODE } from './cli-args.js';
 import {
+  commandSpec,
   parseDoctorArgs,
   parseInitArgs,
   parseMigrateArgs,
@@ -417,15 +418,14 @@ const COMMANDS = ['migrate', 'init', 'studio', 'doctor', 'check', 'pack', 'build
 
 async function run() {
   const args = process.argv.slice(2);
-  // Global flags count only before `--`: `build -- next build -h` passes -h to the build.
-  const end = args.indexOf('--');
-  const own = end === -1 ? args : args.slice(0, end);
-
-  if (own.includes('--help') || own.includes('-h') || args[0] === 'help') {
+  // Global flags count only before `--` (`build -- next build -h` passes -h to the build) and
+  // never as an option's value (`check --source -v` is a missing value).
+  const global = args[0] === 'help' ? 'help' : findGlobalOption(args, commandSpec(args[0]));
+  if (global === 'help') {
     printHelp();
     return;
   }
-  if (own.includes('--version') || own.includes('-v')) {
+  if (global === 'version') {
     console.log(readOwnVersion());
     return;
   }

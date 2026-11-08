@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
 import {
+  findGlobalOption,
   parseCommandArgs,
   suggestOption,
   UsageError,
@@ -74,6 +75,15 @@ describe('parseCommandArgs', () => {
     );
   });
 
+  it('never takes a global short option as a value', () => {
+    expect(usageMessage(() => parseCommandArgs(CHECK, ['--source', '-v']))).toBe(
+      '--source needs a value.'
+    );
+    expect(usageMessage(() => parseCommandArgs(CHECK, ['--locales', '-h']))).toBe(
+      '--locales needs a value.'
+    );
+  });
+
   it('rejects more positionals than the command takes', () => {
     expect(usageMessage(() => parseCommandArgs(CHECK, ['a', 'b']))).toBe(
       'Unexpected argument "b" for livelocale check.'
@@ -99,6 +109,34 @@ describe('parseCommandArgs', () => {
       'livelocale check takes nothing after --.'
     );
   });
+});
+
+describe('findGlobalOption', () => {
+  it('finds --help, -h, --version and -v anywhere a value cannot go', () => {
+    expect(findGlobalOption(['--help'])).toBe('help');
+    expect(findGlobalOption(['-v'])).toBe('version');
+    expect(findGlobalOption(['check', '-h'], CHECK)).toBe('help');
+    expect(findGlobalOption(['check', '-v'], CHECK)).toBe('version');
+    expect(findGlobalOption(['check', '--strict', '--version'], CHECK)).toBe('version');
+    expect(findGlobalOption(['chek', '--help'])).toBe('help');
+  });
+
+  it('lets help win over version', () =>
+    expect(findGlobalOption(['check', '-v', '-h'], CHECK)).toBe('help'));
+
+  it('skips the value of an option that takes one', () => {
+    expect(findGlobalOption(['check', '--source', '-v'], CHECK)).toBeUndefined();
+    expect(findGlobalOption(['check', '--allow', '--help'], CHECK)).toBeUndefined();
+    expect(findGlobalOption(['check', '--source', '-v', '-h'], CHECK)).toBe('help');
+  });
+
+  it('ignores everything after --', () =>
+    expect(
+      findGlobalOption(['build', '--', 'next', 'build', '-h'], { command: 'build', rest: true })
+    ).toBeUndefined());
+
+  it('finds nothing in a plain command line', () =>
+    expect(findGlobalOption(['check', '--strict', 'app'], CHECK)).toBeUndefined());
 });
 
 describe('suggestOption', () => {

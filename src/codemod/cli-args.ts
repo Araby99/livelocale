@@ -39,6 +39,9 @@ export interface ParsedArgs {
   rest: string[];
 }
 
+/** The global short options, `-h` and `-v`; never taken as an option's value. */
+const GLOBAL_SHORT = new Set(['-h', '-v']);
+
 /** Every option a command knows, in spec order. */
 export function knownOptions(spec: CommandSpec): string[] {
   return [...(spec.values ?? []), ...(spec.repeatable ?? []), ...(spec.flags ?? [])];
@@ -110,7 +113,9 @@ export function parseCommandArgs(spec: CommandSpec, argv: readonly string[]): Pa
     }
     if (values.has(arg) || repeatable.has(arg)) {
       const value = argv[i + 1];
-      if (value === undefined || value.startsWith('--')) {
+      // A long option or a global short one is never a value: `--source -v` is a missing value,
+      // not locale "-v". Other single-dash words stay values (`--base -x`).
+      if (value === undefined || value.startsWith('--') || GLOBAL_SHORT.has(value)) {
         throw new UsageError(`${arg} needs a value.`);
       }
       i++;
@@ -127,6 +132,28 @@ export function parseCommandArgs(spec: CommandSpec, argv: readonly string[]): Pa
     }
   }
   return parsed;
+}
+
+/**
+ * The global option on a command line, if any: `help` for --help/-h, `version` for --version/-v,
+ * help first when both are there. `args` is the whole command line, command word included; with
+ * the command's spec, the word after an option that takes a value is skipped, so
+ * `check --source -v` stays a usage error instead of printing the version. Stops at `--`.
+ */
+export function findGlobalOption(
+  args: readonly string[],
+  spec?: CommandSpec
+): 'help' | 'version' | undefined {
+  const takesValue = new Set([...(spec?.values ?? []), ...(spec?.repeatable ?? [])]);
+  let found: 'help' | 'version' | undefined;
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]!;
+    if (arg === '--') break;
+    if (takesValue.has(arg)) i++;
+    else if (arg === '--help' || arg === '-h') return 'help';
+    else if (arg === '--version' || arg === '-v') found = 'version';
+  }
+  return found;
 }
 
 /** Splits a comma-separated option value, trimming each item and dropping empty ones. */
