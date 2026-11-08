@@ -6,8 +6,11 @@ import { runSampleCheck } from '../../../site/scripts/hardcoded-report.mjs';
 
 const CLI = 'dist/codemod/index.js';
 const hasBuild = fs.existsSync(CLI);
+// Each test spawns the built CLI, which loads TypeScript for --hardcoded: a few seconds on a busy
+// machine. The 5s default timed out once while the full suite ran in parallel.
+const CLI_TIMEOUT = { timeout: 20_000 };
 
-it.skipIf(!hasBuild)('finds exactly the two planted strings in the CI sample', () => {
+it.skipIf(!hasBuild)('finds exactly the two planted strings in the CI sample', CLI_TIMEOUT, () => {
   const { report, output, status } = runSampleCheck({ cli: CLI, sampleDir: 'site/sample' });
   const issues = (report as { issues: Array<{ kind: string; key?: string; text?: string }> })
     .issues;
@@ -20,7 +23,7 @@ it.skipIf(!hasBuild)('finds exactly the two planted strings in the CI sample', (
   expect(output).not.toContain(path.resolve('site/sample'));
 });
 
-it.skipIf(!hasBuild)('rejects a run that finds nothing or cannot run', () => {
+it.skipIf(!hasBuild)('rejects a run that finds nothing or cannot run', CLI_TIMEOUT, () => {
   const clean = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-site-'));
   fs.mkdirSync(path.join(clean, 'locales'));
   fs.writeFileSync(path.join(clean, 'locales/en.json'), '{"a":"Hello"}');

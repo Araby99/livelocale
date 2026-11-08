@@ -286,6 +286,33 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     );
   });
 
+  it('treats -v and -h as global only where a value cannot go', () => {
+    const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf-8'));
+    const version = runCli(pkgDir, projectDir, ['check', '-v']);
+    expect(version.status).toBe(0);
+    expect(version.stdout.trim()).toBe(pkg.version);
+
+    for (const flag of ['-v', '-h']) {
+      const r = runCli(pkgDir, projectDir, ['check', '--source', flag]);
+      expect(r.status, flag).toBe(2);
+      expect(r.stdout).toBe('');
+      expect(r.stderr).toContain('--source needs a value.');
+    }
+  });
+
+  it('prints help and exits 2 without a command', () => {
+    const r = runCli(pkgDir, projectDir, []);
+    expect(r.status).toBe(2);
+    expect(r.stdout).toContain('Usage:');
+    expect(r.stderr).toContain('Missing command.');
+  });
+
+  it('exits 2 for `apply` without a link', () => {
+    const r = runCli(pkgDir, projectDir, ['apply']);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toContain('❌ Pass the change link, a file that holds it');
+  });
+
   it('exits 2 for an unknown command', () => {
     const r = runCli(pkgDir, projectDir, ['chek']);
     expect(r.status).toBe(2);
@@ -298,6 +325,7 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     fs.writeFileSync(path.join(dir, 'package.json'), '{"name":"check-exit-codes","private":true}');
     fs.writeFileSync(path.join(dir, 'locales', 'en.json'), '{"hello":"Hi"}');
     fs.writeFileSync(path.join(dir, 'locales', 'fr.json'), '{"hello":"Salut"}');
+    fs.mkdirSync(path.join(dir, 'empty-locales'));
     expect(runCli(pkgDir, dir, ['check', '--no-unused']).status).toBe(0);
 
     fs.writeFileSync(path.join(dir, 'locales', 'fr.json'), '{}');
@@ -307,6 +335,7 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
 
     for (const argv of [
       ['check', '--locales', 'nope'],
+      ['check', '--locales', 'empty-locales'],
       ['check', '--source', 'de'],
       ['check', 'missing-folder'],
       ['check', '--strictt'],
@@ -320,7 +349,13 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
       expect(report.error).toEqual(expect.any(String));
       expect(report.issues).toEqual([]);
     }
-  }, 60_000);
+
+    const empty = runCli(pkgDir, dir, ['check', '--locales', 'empty-locales']);
+    expect(empty.stdout).not.toContain('Translations look good');
+    expect(empty.stderr).toContain(
+      `No locale files found in ${path.join(dir, 'empty-locales')}. Point --locales at the folder with en.json, ar.json, ...`
+    );
+  }, 90_000);
 
   it('should declare typescript as an optional peer dependency', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(pkgDir, 'package.json'), 'utf-8'));
