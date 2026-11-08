@@ -135,6 +135,17 @@ describe('findGlobalOption', () => {
       findGlobalOption(['build', '--', 'next', 'build', '-h'], { command: 'build', rest: true })
     ).toBeUndefined());
 
+  it('never takes -- as an option value', () => {
+    const PACK = { command: 'pack', values: ['--base'], rest: true };
+    expect(
+      findGlobalOption(['build', '--base', '--', 'next', 'build', '-h'], PACK)
+    ).toBeUndefined();
+    expect(findGlobalOption(['build', '--base', '/', '--', 'next', '-v'], PACK)).toBeUndefined();
+  });
+
+  it('still finds a global option after a flag that takes no value', () =>
+    expect(findGlobalOption(['check', '--json', '-v'], CHECK)).toBe('version'));
+
   it('finds nothing in a plain command line', () =>
     expect(findGlobalOption(['check', '--strict', 'app'], CHECK)).toBeUndefined());
 });

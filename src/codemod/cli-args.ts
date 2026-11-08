@@ -149,8 +149,11 @@ export function findGlobalOption(
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
     if (arg === '--') break;
-    if (takesValue.has(arg)) i++;
-    else if (arg === '--help' || arg === '-h') return 'help';
+    // `--` is never a value (the parser stops there too): `build --base -- next build -h` keeps
+    // the -h for the build.
+    if (takesValue.has(arg)) {
+      if (args[i + 1] !== '--') i++;
+    } else if (arg === '--help' || arg === '-h') return 'help';
     else if (arg === '--version' || arg === '-v') found = 'version';
   }
   return found;

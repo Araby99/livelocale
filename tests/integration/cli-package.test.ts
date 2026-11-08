@@ -300,6 +300,13 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     }
   });
 
+  it('keeps -h after `--` for the build even when an option before it lacks its value', () => {
+    const r = runCli(pkgDir, projectDir, ['build', '--base', '--', 'node', '-h']);
+    expect(r.status).toBe(2);
+    expect(r.stdout).not.toContain('Usage:');
+    expect(r.stderr).toContain('--base needs a value.');
+  });
+
   it('prints help and exits 2 without a command', () => {
     const r = runCli(pkgDir, projectDir, []);
     expect(r.status).toBe(2);
