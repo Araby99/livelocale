@@ -57,6 +57,10 @@ function App() {
         </a>
       </nav>
       <p id="cta">{t('home.cta')}</p>
+      {/* Literal text before the translation in one text node, as Astro renders `© {t.x}`. */}
+      <p id="copyright">{`© 2026 ${t('home.copyright')}`}</p>
+      {/* A rich-text value rendered as HTML, as Astro's set:html does. */}
+      <p id="rich" dangerouslySetInnerHTML={{ __html: t('home.rich') }} />
       {/* A closed menu: its text is on the page but not visible. */}
       <ul id="closed-menu" hidden>
         <li>{t('home.menu_item')}</li>

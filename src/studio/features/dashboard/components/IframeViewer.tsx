@@ -5,6 +5,7 @@ import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import type { PageNavigation } from '../hooks/usePageNavigation.js';
 import { AddressBar } from './AddressBar.js';
 import { ConnectionDiagnosisNote, withCode } from './ConnectionDiagnosis.js';
+import { frameSrc } from '../../../page-address.js';
 
 /** How long the Studio waits for the app's bridge before suggesting causes. */
 export const SLOW_CONNECTION_MS = 8000;
@@ -12,7 +13,10 @@ export const SLOW_CONNECTION_MS = 8000;
 interface IframeViewerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
   appOrigin: string;
-  /** The URL the preview loads: the app origin, or the folder above a static Studio. */
+  /**
+   * The URL the preview loads first: the `?app=` URL with its path, the app origin, or the
+   * folder above a static Studio.
+   */
   appUrl: string;
   connectionStatus: ConnectionStatus;
   /** The address field and Reload, wired to the preview by usePageNavigation. */
@@ -147,7 +151,7 @@ export const IframeViewer = ({
         <iframe
           id="app-preview-iframe"
           ref={iframeRef}
-          src={`${appUrl}?livelocale-origin=${encodeURIComponent(window.location.origin)}`}
+          src={frameSrc(appUrl, appOrigin, window.location.origin)}
           className="w-full h-full border-none bg-white"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
         />

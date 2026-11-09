@@ -127,7 +127,9 @@ visitors who open the site directly stay `off`.
 bit of the UTF-8 key is U+200B (0) or U+200C (1). `decodeKey` reverses it and returns
 `{ key, cleanText }`. The prefix position is deliberate: right-side truncation keeps it intact.
 
-`stripWatermark` removes only a valid prefix. `sanitizeZeroWidth` removes every zero-width
+`stripWatermark` removes only a valid prefix. `findWatermarks` (internal) finds every watermark
+wherever it sits in a string: on a page, literal text or template whitespace often comes before a
+translation in the same text node (`© 2026 {t.copy}` in Astro). `sanitizeZeroWidth` removes every zero-width
 character and is used solely for clipboard and form input, because ZWNJ and ZWSP are legitimate
 orthography in Persian, Urdu, Thai, and others.
 
@@ -241,10 +243,11 @@ incremental (per-file mtime and size cache), honour the root `.gitignore` throug
 `core/gitignore.ts`, and skip declaration files and files over 1 MB.
 `new FileMutator({ requireEnabled: false })` skips the enablement check, like `KeyScanner`, for CLI tools that write outside development, such as `livelocale apply`.
 
-### 7. Client runtime (`src/client/dom-interceptor.ts`, `iframe-bridge.ts`, `index.ts`)
+### 7. Client runtime (`src/client/dom-interceptor.ts`, `iframe-bridge.ts`, `preview.ts`, `index.ts`)
 
 `DOMInterceptor` walks text nodes on init and on every mutation, tags parents with
-`data-i18n-key` and `data-i18n-template`, draws a fixed-position highlight overlay (moved with a
+`data-i18n-key` and `data-i18n-template` from the first watermark in each node (`keyed-text.ts`:
+a watermark marks the text up to the next watermark or the node's end; text before it is the page's), draws a fixed-position highlight overlay (moved with a
 `transform`), intercepts Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
 watermarks never leave the page. `JUMP_TO_KEY`, sent for a key picked in the Studio's Keys list,
 scrolls the first visible element with that key into view and outlines it, and `KEY_JUMPED` answers
@@ -256,10 +259,20 @@ in a build made with `LIVELOCALE=preview`, or in a production build when `flag.j
 page is framed by a same-origin Studio under its `livelocale/` folder (the share link). It
 resolves the Studio origin in this order: a readable same-origin parent (a Studio served from the same host), the
 `livelocale-origin` query parameter (remembered for the tab), the origin remembered for the tab,
-then `http://localhost:3010`. `APPLY_PREVIEW` swaps the visible text after the
-watermark and remembers the original; `CLEAR_SELECTION` restores it; `COMMIT_PREVIEW` applies a
-saved value and forgets the original so it stays. Re-applying an unchanged value is a no-op, so
-the Studio can resend saved values without triggering mutation loops. Right after each
+then `http://localhost:3010`. `APPLY_PREVIEW` (`preview.ts`) swaps the text a watermark marks,
+keeping literal page text around it, and remembers the original; `CLEAR_SELECTION` restores it;
+`COMMIT_PREVIEW` applies a saved value and forgets the original so it stays (a rich value keeps
+it, so the page's own nodes can still be put back). Both may carry `source`, the value the page
+shows (the Studio sends it on every preview, resend, undo and review overlay; the client also
+remembers the last value saved per key): with it, the literal text after a plain translation is
+kept, and a rich-text value (rendered with `set:html`) is matched to the run of nodes it fills.
+A value with markup is rendered as markup only in such an element, parsed in an inert `<template>`
+and limited to inline tags and safe attributes; the original nodes are put back on restore. A
+plain `source`, a `source` with tags outside that list (next-intl `<link>`), or nodes React or
+Vue rendered (next-intl `t.rich`) always mean a text-only preview, so framework-owned nodes are
+never taken out of the page.
+Re-applying an unchanged value is a no-op, so the Studio can resend saved values without
+triggering mutation loops. Right after each
 `VISIBLE_KEYS_CHANGED`, the client reports up to 100 visible key/text pairs
 (`VISIBLE_TEXTS_CHANGED`) so the Studio can infer the page locale before the first click.
 
@@ -280,7 +293,8 @@ a LiveLocale manifest, the Studio runs in static mode: the app is the folder abo
 `?app=` is ignored, and `api.ts` is switched to the static transport, which keeps drafts in
 IndexedDB (in memory, with a warning, when IndexedDB is unavailable) instead of using the HTTP API.
 Anything else resolves the origin from `?app=`, then the CLI-injected config, then build-time
-`VITE_APP_ORIGIN`, then `http://localhost:3000`. A Studio under `/livelocale/` without a usable
+`VITE_APP_ORIGIN`, then `http://localhost:3000`; a path in `?app=` (or in `--app`, injected as
+`appUrl`) is only the page the preview opens first (`resolveAppTarget`). A Studio under `/livelocale/` without a usable
 manifest stays in server mode with the setup problem `STATIC_MANIFEST_MISSING`, which names the
 fix, and renders no app preview (`isAppPreviewBlocked`), so it never silently points at localhost.
 In preview and static mode the app keeps serving the text it was built with, so `useStudio` resends the

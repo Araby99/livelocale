@@ -1,10 +1,10 @@
 import type { ShareManifest } from '../core/share-manifest.js';
-import { resolveAppOrigin, STATIC_MANIFEST_MISSING } from './config.js';
+import { resolveAppTarget, STATIC_MANIFEST_MISSING } from './config.js';
 import type { StaticTransport } from './transport/static.js';
 
 declare global {
   interface Window {
-    __LIVELOCALE_CONFIG__?: { appOrigin?: string };
+    __LIVELOCALE_CONFIG__?: { appOrigin?: string; appUrl?: string };
   }
 }
 
@@ -42,12 +42,13 @@ export function resetStudioRuntime(): void {
 export function getStudioRuntime(): StudioRuntime {
   if (current) return current;
   const hasWindow = typeof window !== 'undefined';
-  const appOrigin = resolveAppOrigin({
+  const { appOrigin, appUrl } = resolveAppTarget({
     search: hasWindow ? window.location.search : undefined,
     injected: hasWindow ? window.__LIVELOCALE_CONFIG__?.appOrigin : undefined,
+    injectedUrl: hasWindow ? window.__LIVELOCALE_CONFIG__?.appUrl : undefined,
     buildTime: (import.meta as any).env?.VITE_APP_ORIGIN,
   });
-  return { kind: 'server', appOrigin, appUrl: appOrigin, problems: [] };
+  return { kind: 'server', appOrigin, appUrl, problems: [] };
 }
 
 /** Origin of the application under edit, used for postMessage checks and the API. */
@@ -55,7 +56,10 @@ export function getAppOrigin(): string {
   return getStudioRuntime().appOrigin;
 }
 
-/** URL the preview iframe loads: the origin on server stacks, the folder above the Studio when static. */
+/**
+ * URL the preview iframe loads first: on server stacks the `?app=` (or `--app`) URL, path
+ * included, else the origin; the folder above the Studio when static.
+ */
 export function getAppUrl(): string {
   return getStudioRuntime().appUrl;
 }

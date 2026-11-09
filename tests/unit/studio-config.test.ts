@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   resolveAppOrigin,
+  resolveAppTarget,
   resolveStaticAppUrl,
   detectStudioRuntime,
   STATIC_MANIFEST_MISSING,
@@ -44,6 +45,63 @@ describe('resolveAppOrigin', () => {
       resolveAppOrigin({ search: '?app=javascript:alert(1)', injected: 'http://localhost:4000' })
     ).toBe('http://localhost:4000');
     expect(resolveAppOrigin({ injected: 'not a url' })).toBe('http://localhost:3000');
+  });
+});
+
+describe('resolveAppTarget', () => {
+  it('opens the path of ?app= while trusting only its origin', () => {
+    expect(resolveAppTarget({ search: '?app=http://localhost:4400/ar/' })).toEqual({
+      appOrigin: 'http://localhost:4400',
+      appUrl: 'http://localhost:4400/ar/',
+    });
+  });
+
+  it('keeps the query and hash of ?app= and drops user names and passwords', () => {
+    expect(
+      resolveAppTarget({
+        search: '?app=' + encodeURIComponent('http://u:p@localhost:4400/ar/x?a=1#top'),
+      })
+    ).toEqual({ appOrigin: 'http://localhost:4400', appUrl: 'http://localhost:4400/ar/x?a=1#top' });
+  });
+
+  it('opens the origin itself for ?app= at the root', () => {
+    expect(resolveAppTarget({ search: '?app=http://localhost:4400/' })).toEqual({
+      appOrigin: 'http://localhost:4400',
+      appUrl: 'http://localhost:4400',
+    });
+  });
+
+  it('opens the injected --app page only on the injected origin', () => {
+    expect(
+      resolveAppTarget({
+        injected: 'http://localhost:4321',
+        injectedUrl: 'http://localhost:4321/ar/',
+      })
+    ).toEqual({ appOrigin: 'http://localhost:4321', appUrl: 'http://localhost:4321/ar/' });
+    expect(
+      resolveAppTarget({ injected: 'http://localhost:4321', injectedUrl: 'http://evil.test/ar/' })
+    ).toEqual({ appOrigin: 'http://localhost:4321', appUrl: 'http://localhost:4321' });
+  });
+
+  it('never takes a page from a value that is not an http(s) URL', () => {
+    expect(resolveAppTarget({ search: '?app=javascript:alert(1)' })).toEqual({
+      appOrigin: 'http://localhost:3000',
+      appUrl: 'http://localhost:3000',
+    });
+  });
+
+  it('gives the server runtime the ?app= page', async () => {
+    const rt = await detectStudioRuntime({
+      href: 'http://localhost:3010/',
+      search: '?app=http://localhost:4400/ar/',
+      fetch: async () => new Response('', { status: 404 }),
+    });
+    expect(rt).toEqual({
+      kind: 'server',
+      appOrigin: 'http://localhost:4400',
+      appUrl: 'http://localhost:4400/ar/',
+      problems: [],
+    });
   });
 });
 

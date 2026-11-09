@@ -40,7 +40,8 @@ export function createDraftActions(deps: DraftActionDeps) {
       const value = found.state === 'string' ? found.value : (d.from ?? '');
       if (d.locale === deps.locale) {
         deps.updateLocaleDataCache(d.key, value);
-        deps.sendToIframe('COMMIT_PREVIEW', { key: d.key, value });
+        // The page shows the draft until now.
+        deps.sendToIframe('COMMIT_PREVIEW', { key: d.key, value, source: d.to });
       }
     } catch (err: any) {
       deps.setError(err?.message || t('errors.undo_failed'));

@@ -2,10 +2,14 @@
  * Runtime resolution of the origin of the application being edited.
  *
  * Precedence (first valid wins):
- *   1. `?app=<origin>` query parameter on the Studio URL
+ *   1. `?app=<url>` query parameter on the Studio URL
  *   2. `window.__LIVELOCALE_CONFIG__.appOrigin`, injected by `livelocale studio --app`
  *   3. `VITE_APP_ORIGIN` baked in at Studio build time
  *   4. `http://localhost:3000`
+ *
+ * The origin is what the Studio trusts (postMessage checks, the API). A path in
+ * `?app=` (or in `--app`, injected as `appUrl`) only picks the page the preview
+ * opens first, such as `?app=http://localhost:4321/ar/`.
  */
 import {
   parseShareManifest,
@@ -21,6 +25,8 @@ export interface AppOriginSources {
   search?: string;
   /** Value injected by the CLI into the served index.html. */
   injected?: unknown;
+  /** The full `--app` URL injected by the CLI, path included; used only with `injected`'s origin. */
+  injectedUrl?: unknown;
   /** Value compiled in by Vite from `VITE_APP_ORIGIN`. */
   buildTime?: unknown;
 }
@@ -37,22 +43,61 @@ export function normalizeOrigin(value: unknown): string | null {
   }
 }
 
-export function resolveAppOrigin(sources: AppOriginSources): string {
-  let fromQuery: string | null = null;
-  if (sources.search) {
-    try {
-      fromQuery = new URLSearchParams(sources.search).get('app');
-    } catch {
-      fromQuery = null;
-    }
+/**
+ * The first page to open for an http(s) app URL: its origin, path, query and
+ * hash, without any user name or password. A URL at `/` with nothing after it
+ * gives the bare origin. Null when `value` is not an http(s) URL.
+ */
+export function normalizeAppUrl(value: unknown): string | null {
+  if (typeof value !== 'string' || value.trim() === '') return null;
+  try {
+    const url = new URL(value.trim());
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null;
+    if (url.pathname === '/' && url.search === '' && url.hash === '') return url.origin;
+    return url.origin + url.pathname + url.search + url.hash;
+  } catch {
+    return null;
+  }
+}
+
+function queryApp(search: string | undefined): string | null {
+  if (!search) return null;
+  try {
+    return new URLSearchParams(search).get('app');
+  } catch {
+    return null;
+  }
+}
+
+/** The app being edited: the origin the Studio trusts and the URL the preview opens first. */
+export interface AppTarget {
+  appOrigin: string;
+  appUrl: string;
+}
+
+/**
+ * Resolves the app origin with the precedence above, and the page to open: the
+ * path of the same source when it has one (`?app=http://localhost:4321/ar/`
+ * opens `/ar/`), else the origin's root.
+ */
+export function resolveAppTarget(sources: AppOriginSources): AppTarget {
+  const fromQuery = queryApp(sources.search);
+  const queryOrigin = normalizeOrigin(fromQuery);
+  if (queryOrigin !== null) return { appOrigin: queryOrigin, appUrl: normalizeAppUrl(fromQuery)! };
+
+  const injectedOrigin = normalizeOrigin(sources.injected);
+  if (injectedOrigin !== null) {
+    const injectedUrl = normalizeAppUrl(sources.injectedUrl);
+    const sameOrigin = injectedUrl !== null && normalizeOrigin(injectedUrl) === injectedOrigin;
+    return { appOrigin: injectedOrigin, appUrl: sameOrigin ? injectedUrl : injectedOrigin };
   }
 
-  return (
-    normalizeOrigin(fromQuery) ??
-    normalizeOrigin(sources.injected) ??
-    normalizeOrigin(sources.buildTime) ??
-    DEFAULT_APP_ORIGIN
-  );
+  const appOrigin = normalizeOrigin(sources.buildTime) ?? DEFAULT_APP_ORIGIN;
+  return { appOrigin, appUrl: appOrigin };
+}
+
+export function resolveAppOrigin(sources: AppOriginSources): string {
+  return resolveAppTarget(sources).appOrigin;
 }
 
 /** Shown when a Studio under `/livelocale/` finds no usable share manifest next to it. */
@@ -98,8 +143,8 @@ async function probeManifest(
  */
 export async function detectStudioRuntime(sources: RuntimeSources): Promise<DetectedRuntime> {
   const server = (problems: string[]): DetectedRuntime => {
-    const appOrigin = resolveAppOrigin(sources);
-    return { kind: 'server', appOrigin, appUrl: appOrigin, problems };
+    const { appOrigin, appUrl } = resolveAppTarget(sources);
+    return { kind: 'server', appOrigin, appUrl, problems };
   };
   if (normalizeOrigin(sources.injected) !== null) return server([]);
 

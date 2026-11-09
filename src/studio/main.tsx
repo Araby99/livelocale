@@ -27,6 +27,7 @@ startStudio({
   href: location.href,
   search: location.search,
   injected: window.__LIVELOCALE_CONFIG__?.appOrigin,
+  injectedUrl: window.__LIVELOCALE_CONFIG__?.appUrl,
   buildTime: (import.meta as any).env?.VITE_APP_ORIGIN,
   fetch: window.fetch.bind(window),
   indexedDB: window.indexedDB,

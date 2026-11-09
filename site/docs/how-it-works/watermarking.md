@@ -35,7 +35,7 @@ A [browser test](https://github.com/Araby99/livelocale/blob/main/tests/e2e/water
 
 `LiveLocaleProvider` (on Astro, the integration, through `startLiveLocale()`) loads the in-page client in the browser while livelocale is on, and the client starts only when the page is framed, inside the Studio. Then:
 
-1. **It scans the page.** It walks every text node, decodes a watermark at the start of one, and sets `data-i18n-key` (and `data-i18n-template`, the visible text) on the text's parent element. A `MutationObserver` does the same for text rendered later, so client navigation and streamed content are picked up.
+1. **It scans the page.** It walks every text node, decodes the first watermark in it, and sets `data-i18n-key` (and `data-i18n-template`, the visible text) on the text's parent element. The watermark need not start the node: Astro keeps template whitespace and literal text, such as `© 2026 ` before `{t.copyright}`, in the same text node. A `MutationObserver` does the same for text rendered later, so client navigation and streamed content are picked up.
 2. **It leaves the text alone.** The text nodes keep their watermark, because changing them would break React's hydration.
 3. **It outlines what you point at.** Hovering a marked element shows a dashed outline labelled `Alt+Click to edit` with the key; holding Alt makes the outline solid.
 4. **Alt+Click selects it.** A click with Alt held on a marked element, or inside one, is stopped before your app sees it, and the key and its current text go to the Studio, which opens the key in the editor. A click without Alt reaches your app as usual, so links and buttons keep working.

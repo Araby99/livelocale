@@ -9,7 +9,7 @@ import {
   type VisibleText,
 } from '../../../../client/iframe-bridge.js';
 import { localeFromUrl } from '../../../locale-inference.js';
-import { urlLocaleOptions } from '../../../runtime.js';
+import { getStudioRuntime, urlLocaleOptions } from '../../../runtime.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 export interface ConnectionHandlers {
@@ -57,12 +57,27 @@ const toKeyJump = (payload: unknown): Omit<KeyJumpAnswer, 'seq'> | null => {
 };
 
 /**
+ * The app path the preview opens first, shown until the client reports one: the path of a
+ * `?app=` URL such as `http://localhost:4321/ar/` on a server stack, else `/`.
+ */
+function initialPath(): string {
+  const runtime = getStudioRuntime();
+  if (runtime.kind !== 'server') return '/';
+  try {
+    const url = new URL(runtime.appUrl);
+    return url.pathname + url.search + url.hash;
+  } catch {
+    return '/';
+  }
+}
+
+/**
  * Owns the iframe bridge: connection status, message listener with origin
  * validation, and outbound commands to the embedded app preview.
  */
 export const useConnection = (handlers: ConnectionHandlers) => {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('connecting');
-  const [currentPath, setCurrentPath] = useState<string>('/');
+  const [currentPath, setCurrentPath] = useState<string>(initialPath);
   const [visibleKeys, setVisibleKeys] = useState<string[] | null>(null);
   // True while the document in the frame has a live client at `currentPath`.
   const [locationKnown, setLocationKnown] = useState(false);
