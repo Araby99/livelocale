@@ -1,6 +1,6 @@
 import { readdirSync, statSync } from 'fs';
 import { join } from 'path';
-import { wrapTranslationEngine } from '../client/wrap.js';
+import { resolveTranslations, wrapTranslationEngine } from '../client/wrap.js';
 import { deepMerge } from '../core/deep-merge.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
 import { readJsonCached } from '../core/json-cache.js';
@@ -21,10 +21,19 @@ export interface CreateTranslationsOptions {
 
   /**
    * Locale to use when the requested locale is unsupported or its file is
-   * missing.
+   * missing, and for keys the requested locale does not have.
    * @default `'en'`
    */
   fallbackLocale?: string;
+
+  /**
+   * Return a plain object instead of a Proxy, with every key of the locale and of its
+   * fallback filled in. Use it to JSON-serialize the translations or pass them as props
+   * to a client component. While LiveLocale is on, its strings carry the same watermarks
+   * a read through the Proxy gives.
+   * @default `false`
+   */
+  plain?: boolean;
 }
 
 function isDirectory(p: string): boolean {
@@ -33,6 +42,10 @@ function isDirectory(p: string): boolean {
   } catch {
     return false;
   }
+}
+
+function isRecord(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null;
 }
 
 /** Reads every `*.json` in `dir` into `{ [namespace]: data }`, skipping unparsable files. */
@@ -47,13 +60,128 @@ function readNamespaceDir(dir: string): Record<string, any> {
   return out;
 }
 
+/** Reads `<dir>/<locale>/*.json`, or else `<dir>/<locale>.json`. `undefined` when neither can be read. */
+function readLocale(dir: string, locale: string): Record<string, any> | undefined {
+  const localePath = join(dir, locale);
+  if (isDirectory(localePath)) {
+    try {
+      return readNamespaceDir(localePath);
+    } catch {}
+  }
+  try {
+    return readJsonCached(join(dir, `${locale}.json`));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Merged subtrees, keyed by the parsed objects `readJsonCached` hands out. An unchanged
+ * file keeps its object, so a steady-state render reuses the merge; an edited file gets a
+ * new object and the old entry is garbage collected.
+ */
+const mergeCache = new WeakMap<object, WeakMap<object, Record<string, any>>>();
+
+function mergeCached(record: Record<string, any>, fallback: Record<string, any>) {
+  let byFallback = mergeCache.get(record);
+  if (!byFallback) {
+    byFallback = new WeakMap();
+    mergeCache.set(record, byFallback);
+  }
+  let merged = byFallback.get(fallback);
+  if (!merged) {
+    merged = resolveTranslations(record, { fallback, watermark: false });
+    byFallback.set(fallback, merged);
+  }
+  return merged;
+}
+
+/**
+ * `data` with the keys it lacks taken from `fallback`, as a plain object. The top level is
+ * merged per key so a folder layout, whose namespace record is rebuilt on every call, still
+ * hits the cache for each namespace file.
+ */
+function fillFromFallback(
+  data: Record<string, any>,
+  fallback: Record<string, any> | undefined
+): Record<string, any> {
+  if (!isRecord(fallback) || !isRecord(data) || data === fallback) return data;
+  if (Array.isArray(data) || Array.isArray(fallback)) return mergeCached(data, fallback);
+
+  const out: Record<string, any> = {};
+  for (const key of new Set([...Object.keys(data), ...Object.keys(fallback)])) {
+    const own = data[key];
+    const fb = fallback[key];
+    if (isRecord(own) && isRecord(fb) && own !== fb) out[key] = mergeCached(own, fb);
+    else out[key] = own !== undefined ? own : fb;
+  }
+  return out;
+}
+
+/**
+ * Merges every locale but `locale` into one dictionary, with `fallbackLocale` winning over
+ * the others whatever their order in the folder.
+ */
+function readOtherLocales(
+  localesDir: string,
+  locale: string,
+  fallbackLocale: string
+): Record<string, any> {
+  let others: Record<string, any> = {};
+  let preferred: Record<string, any> | undefined;
+  try {
+    for (const entry of readdirSync(localesDir)) {
+      if (entry.startsWith('.') || entry === locale) continue;
+      const entryPath = join(localesDir, entry);
+
+      let name: string;
+      let content: Record<string, any>;
+      if (isDirectory(entryPath)) {
+        name = entry;
+        try {
+          content = readNamespaceDir(entryPath);
+        } catch {
+          continue;
+        }
+      } else if (entry.endsWith('.json')) {
+        name = entry.slice(0, -5);
+        if (name === locale) continue;
+        try {
+          content = readJsonCached(entryPath);
+        } catch {
+          continue;
+        }
+      } else {
+        continue;
+      }
+
+      if (name === fallbackLocale) {
+        preferred = preferred ? deepMerge(preferred, content) : content;
+      } else {
+        others = deepMerge(others, content);
+      }
+    }
+  } catch {}
+
+  return preferred
+    ? resolveTranslations(preferred, { fallback: others, watermark: false })
+    : others;
+}
+
 /**
  * Loads a locale JSON file and returns its translation object (typed as
- * `Record<string, any>`), which is automatically watermarked in development (for zero-migration studio
- * integration) and returned as-is in production.
+ * `Record<string, any>`). Keys the locale does not have take the `fallbackLocale` value
+ * in every mode.
  *
- * File parses are cached by mtime and size (see `core/json-cache.ts`), so
- * repeated server renders cost one `stat` per file instead of a read and parse.
+ * While LiveLocale is on, the object is a Proxy that watermarks every string (for
+ * zero-migration Studio integration), and keys missing from both locales fall back to the
+ * other locales, so untranslated text still renders and stays editable. While it is off,
+ * the result is a plain object: the locale merged over `fallbackLocale`. With
+ * `plain: true` it is a plain object in every mode.
+ *
+ * File parses are cached by mtime and size (see `core/json-cache.ts`), and so is the
+ * production merge, so repeated server renders cost one `stat` per file instead of a read,
+ * a parse and a merge.
  *
  * This is the recommended entry-point for Server Components — no manual
  * `wrapTranslationEngine` call needed.
@@ -80,61 +208,29 @@ export function createTranslations(
     localesDir = join(process.cwd(), 'locales'),
     supportedLocales = ['en'],
     fallbackLocale = 'en',
+    plain = false,
   } = options;
 
   // SECURITY: reject locales not in the allow-list to prevent path traversal
   const safeLocale = supportedLocales.includes(locale) ? locale : fallbackLocale;
 
-  const loadFlatFile = (dir: string, loc: string, fallback: string): Record<string, any> => {
-    try {
-      return readJsonCached(join(dir, `${loc}.json`));
-    } catch {
-      try {
-        return readJsonCached(join(dir, `${fallback}.json`));
-      } catch {
-        return {};
-      }
-    }
-  };
+  const data =
+    readLocale(localesDir, safeLocale) ??
+    (safeLocale === fallbackLocale ? undefined : readLocale(localesDir, fallbackLocale)) ??
+    {};
 
-  const localePath = join(localesDir, safeLocale);
-  let data: Record<string, any> = {};
-
-  if (isDirectory(localePath)) {
-    try {
-      data = readNamespaceDir(localePath);
-    } catch {
-      data = loadFlatFile(localesDir, safeLocale, fallbackLocale);
-    }
-  } else {
-    data = loadFlatFile(localesDir, safeLocale, fallbackLocale);
+  // Production: fill missing keys from the fallback locale only, as a plain object.
+  if (!isLiveLocaleEnabled()) {
+    if (safeLocale === fallbackLocale) return data;
+    return fillFromFallback(data, readLocale(localesDir, fallbackLocale));
   }
 
   // In development, merge every other locale into a fallback dictionary so
   // untranslated keys still render (and stay editable) in the Studio.
-  let fallbackData: Record<string, any> = {};
-  if (isLiveLocaleEnabled()) {
-    try {
-      for (const entry of readdirSync(localesDir)) {
-        if (entry.startsWith('.') || entry === safeLocale) continue;
-        const entryPath = join(localesDir, entry);
+  const fallbackData = readOtherLocales(localesDir, safeLocale, fallbackLocale);
 
-        if (isDirectory(entryPath)) {
-          try {
-            const namespaces = readNamespaceDir(entryPath);
-            for (const ns of Object.keys(namespaces)) {
-              fallbackData[ns] = deepMerge(fallbackData[ns] || {}, namespaces[ns]);
-            }
-          } catch {}
-        } else if (entry.endsWith('.json')) {
-          if (entry.slice(0, -5) === safeLocale) continue;
-          try {
-            fallbackData = deepMerge(fallbackData, readJsonCached(entryPath));
-          } catch {}
-        }
-      }
-    } catch {}
+  if (plain) {
+    return resolveTranslations(data, { fallback: fallbackData, watermark: true });
   }
-
   return wrapTranslationEngine(data, { fallback: fallbackData });
 }

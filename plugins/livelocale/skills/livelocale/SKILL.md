@@ -66,7 +66,7 @@ Docs: https://livelocale.js.org/docs/start/nextjs.html
    It writes `app/api/livelocale/route.ts` (or the `src/app/` or Pages Router `pages/api/livelocale.ts` file). The route reads `./locales`; if the files live elsewhere, change `localesPath` in that file.
 
 4. Wrap the translations. Only wrapped strings carry the invisible watermark the Studio clicks on.
-   - Server Components: `createTranslations(locale, { supportedLocales: ['en', 'ar'], localesDir: './locales' })` from `livelocale/server`, then read `t.home?.title`.
+   - Server Components: `createTranslations(locale, { supportedLocales: ['en', 'ar'], localesDir: './locales' })` from `livelocale/server`, then read `t.home?.title`. A key missing from the locale takes the `fallbackLocale` text (`en` by default), in development and in production. To pass the translations as props to a client component or `JSON.stringify` them, add `plain: true`: without it, development returns a Proxy that fills missing keys only when read.
    - react-i18next: `const t = wrapTranslationEngine(rawT, { keyPrefix: 'auth' })` from `livelocale/client`, where `rawT` comes from `useTranslation('auth')`. The `keyPrefix` must match the namespace.
    - next-intl: `wrapNextIntl(useTranslations('home'), 'home')` from `livelocale/client`.
    - Many existing react-i18next call sites: `npx livelocale migrate --dry-run`, then `npx livelocale migrate` (needs `typescript` installed).

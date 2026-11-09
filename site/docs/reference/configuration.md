@@ -61,7 +61,7 @@ export default defineConfig({
 });
 ```
 
-The Vite plugin. On the dev server it serves the mutation API at `/api/livelocale`, puts every locale's strings into the page so missing keys still render, and copies the server's `LIVELOCALE` value into the page so the client bundle runs in the same mode. In `vite build` it does nothing unless `share: true` is set, and it never packs an SSR or library build.
+The Vite plugin. On the dev server it serves the mutation API at `/api/livelocale`, puts every locale's strings into the page so missing keys still render (the `sourceLocale` text wins over the other locales), and copies the server's `LIVELOCALE` value into the page so the client bundle runs in the same mode. In `vite build` it does nothing unless `share: true` is set, and it never packs an SSR or library build.
 
 | Option         | Type      | Default                                  | What it does                                                                                                                                                    |
 | -------------- | --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,7 +70,7 @@ The Vite plugin. On the dev server it serves the mutation API at `/api/livelocal
 | `authToken`    | `string`  | `LIVELOCALE_TOKEN`                       | A bearer token every request except the CORS preflight must carry.                                                                                              |
 | `share`        | `boolean` | `false`                                  | Writes the share Studio, `manifest.json`, the locale files and `flag.js` into `<outDir>/livelocale/` on `vite build`, and links `flag.js` from every HTML page. |
 | `exposeRepo`   | `boolean` | `false`                                  | Puts the GitHub `owner/repo` into the published manifest. Leave it off for a private repository.                                                                |
-| `sourceLocale` | `string`  | `en` when present, else the first locale | The source locale written into the manifest.                                                                                                                    |
+| `sourceLocale` | `string`  | `en` when present, else the first locale | The source locale written into the manifest. On the dev server, its text wins in the strings put into the page for missing keys.                                |
 | `shareBase`    | `string`  | Vite `base`                              | The site path the HTML is served from. Set it when `base` is a full URL, or when the HTML is served from a path other than `base`.                              |
 
 The plugin has no `allowedOrigins` option. A Studio away from `localhost` is allowed through `LIVELOCALE_ALLOWED_ORIGINS`.
@@ -84,15 +84,31 @@ const t = createTranslations(locale, { supportedLocales: ['en', 'ar', 'es'] });
 return <h1>{t.home?.title}</h1>;
 ```
 
-Loads one locale for a Server Component and returns it as an object. While livelocale is on, every string in it carries its watermark, and keys missing from this locale fall back to the other locales' text, so they still render and stay editable. While it is off, the object is returned as it was read.
+Loads one locale for a Server Component and returns it as an object. A key missing from this locale takes its text from `fallbackLocale`, in development and in production.
+
+While livelocale is on, every string in it carries its watermark. A key missing from both locales takes the text of another locale, so it still renders and stays editable in the Studio. `fallbackLocale` always wins over the other locales.
+
+While it is off, the result is a plain object: the locale merged over `fallbackLocale`, with no watermarks. The merge is cached until a file changes. An array in the locale is kept as it is, so a list the translator shortened stays short.
 
 It reads `<localesDir>/<locale>.json`, or every `.json` file in `<localesDir>/<locale>/` as one namespace each.
 
-| Option             | Type       | Default                         | What it does                                                                                                               |
-| ------------------ | ---------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `localesDir`       | `string`   | `locales` under `process.cwd()` | The locales folder.                                                                                                        |
-| `supportedLocales` | `string[]` | `['en']`                        | The locales it accepts. Any other locale gets `fallbackLocale`, so a request cannot reach a file outside the folder.       |
-| `fallbackLocale`   | `string`   | `'en'`                          | The locale it loads when the requested one is not supported or its file is missing. With neither file, the result is `{}`. |
+| Option             | Type       | Default                         | What it does                                                                                                                                                      |
+| ------------------ | ---------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `localesDir`       | `string`   | `locales` under `process.cwd()` | The locales folder.                                                                                                                                               |
+| `supportedLocales` | `string[]` | `['en']`                        | The locales it accepts. Any other locale gets `fallbackLocale`, so a request cannot reach a file outside the folder.                                              |
+| `fallbackLocale`   | `string`   | `'en'`                          | The locale it loads when the requested one is not supported or its file is missing, and the locale missing keys come from. With neither file, the result is `{}`. |
+| `plain`            | `boolean`  | `false`                         | Returns a plain object with every key filled in, instead of a Proxy. Use it to pass the translations as props or to `JSON.stringify` them.                        |
+
+### Passing translations to a client component
+
+While livelocale is on, the object is a Proxy. It fills a missing key only when your code reads it, so `JSON.stringify` and the props of a client component, such as a React island in Astro, get only the keys the locale has. Pass `plain: true` to get every key:
+
+```tsx
+const t = createTranslations(locale, { supportedLocales: ['en', 'ar'], plain: true });
+return <Header labels={t.header} />;
+```
+
+Its strings carry the same watermarks a read through the Proxy gives, so the Studio still finds them. In production it is the same plain object as without `plain`.
 
 ## `wrapTranslationEngine` and `wrapNextIntl`
 
@@ -108,10 +124,12 @@ const t = wrapTranslationEngine(rawT, { keyPrefix: 'auth' });
 
 Both are exported from `livelocale/client` and `livelocale/server`.
 
-| Option      | Type                  | Default | What it does                                                                                                                                       |
-| ----------- | --------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `keyPrefix` | `string`              | none    | A dot-separated prefix put before every key, so `t('title')` on the `home` namespace is watermarked as `home.title`, the path in your locale file. |
-| `fallback`  | `Record<string, any>` | none    | Text used when a key is missing. Without it, in the browser, the wrapper uses the strings the Vite plugin put into the page.                       |
+| Option      | Type                  | Default | What it does                                                                                                                                         |
+| ----------- | --------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keyPrefix` | `string`              | none    | A dot-separated prefix put before every key, so `t('title')` on the `home` namespace is watermarked as `home.title`, the path in your locale file.   |
+| `fallback`  | `Record<string, any>` | none    | Text used when a key is missing, while livelocale is on. Without it, in the browser, the wrapper uses the strings the Vite plugin put into the page. |
+
+While livelocale is off, `wrapTranslationEngine` returns `engine` itself, so `fallback` is not used. Production text then comes from your engine alone: give it a fallback of its own, such as `fallbackLng` in i18next. `createTranslations` already merges `fallbackLocale` in production.
 
 ## `LiveLocaleProvider`
 

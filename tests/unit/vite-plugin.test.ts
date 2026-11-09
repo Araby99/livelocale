@@ -395,7 +395,7 @@ describe('liveLocaleVite plugin', () => {
   it('should inject merged fallback translations in development mode', () => {
     fs.writeFileSync(
       path.join(tmpDir, 'es.json'),
-      JSON.stringify({ greeting: 'Hola', page: { title: 'Título' } })
+      JSON.stringify({ welcome: 'Hola', page: { title: 'Título' } })
     );
 
     const html = '<html><head><title>Test</title></head><body></body></html>';
@@ -407,10 +407,47 @@ describe('liveLocaleVite plugin', () => {
     expect(result).toContain('</head>');
   });
 
+  function injectedFallback(result: string): Record<string, any> {
+    const match = /window\.__livelocale_fallback__ = (.*);<\/script>/.exec(result);
+    return JSON.parse(match![1]!);
+  }
+
+  it('should prefer en over locales listed after it in the injected fallback', () => {
+    fs.writeFileSync(path.join(tmpDir, 'en.json'), JSON.stringify({ greeting: 'Hello' }));
+    fs.writeFileSync(
+      path.join(tmpDir, 'zz.json'),
+      JSON.stringify({ greeting: 'Zz', onlyZz: 'Zz only' })
+    );
+
+    const fallback = injectedFallback((plugin as any).transformIndexHtml('<head></head>'));
+
+    expect(fallback.greeting).toBe('Hello');
+    expect(fallback.onlyZz).toBe('Zz only');
+  });
+
+  it('should prefer en in the injected fallback for a folder layout', () => {
+    fs.mkdirSync(path.join(tmpDir, 'en'));
+    fs.mkdirSync(path.join(tmpDir, 'zz'));
+    fs.writeFileSync(path.join(tmpDir, 'en', 'common.json'), JSON.stringify({ title: 'Home' }));
+    fs.writeFileSync(path.join(tmpDir, 'zz', 'common.json'), JSON.stringify({ title: 'Zz' }));
+
+    const fallback = injectedFallback((plugin as any).transformIndexHtml('<head></head>'));
+
+    expect(fallback.common.title).toBe('Home');
+  });
+
+  it('should prefer sourceLocale in the injected fallback when it is set', () => {
+    fs.writeFileSync(path.join(tmpDir, 'aa.json'), JSON.stringify({ greeting: 'Aa' }));
+    fs.writeFileSync(path.join(tmpDir, 'en.json'), JSON.stringify({ greeting: 'Hello' }));
+    const custom = liveLocaleVite({ localesPath: tmpDir, sourceLocale: 'aa' }) as any;
+
+    expect(injectedFallback(custom.transformIndexHtml('<head></head>')).greeting).toBe('Aa');
+  });
+
   it('should escape script-breaking sequences in injected fallback data (XSS)', () => {
     fs.writeFileSync(
       path.join(tmpDir, 'es.json'),
-      JSON.stringify({ greeting: '</script><script>alert(1)</script>' })
+      JSON.stringify({ motto: '</script><script>alert(1)</script>' })
     );
 
     const html = '<html><head><title>Test</title></head><body></body></html>';

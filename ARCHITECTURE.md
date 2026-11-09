@@ -135,16 +135,20 @@ orthography in Persian, Urdu, Thai, and others.
 otherwise. Property reads of strings are encoded with the full dotted path; function calls (`t('x')`)
 encode the result with `keyPrefix + '.' + x`. FormatJS-style descriptor objects (`{ id }`) are
 supported. `options.fallback` supplies values from other locales for missing keys so untranslated
-text is still visible and editable. `wrapNextIntl` is a thin alias for `next-intl` users.
+text is still visible and editable. It is not read in production, where the engine is returned
+as-is (a documented, stable promise), so production fallback is the engine's own job. `wrapNextIntl` is a thin alias for `next-intl` users.
 
 This file has no `'use client'` directive on purpose so it can be imported by Server Components.
 
 ### 3. Server-side loader (`src/server/translations.ts`)
 
 `createTranslations(locale, options)` reads `locales/{locale}.json` or the namespaced folder
-`locales/{locale}/*.json`, builds a fallback dictionary from every other locale in development,
-and returns the wrapped object. Parses are cached by `core/json-cache.ts` keyed on mtime and size, so
-steady-state renders cost one `stat` per file.
+`locales/{locale}/*.json`. In development it builds a fallback dictionary from every other locale,
+with `fallbackLocale` winning over the rest, and returns the wrapped object. In production it
+returns a plain object: the locale merged over `fallbackLocale`, the merge cached per parsed file
+object. `plain: true` returns `resolveTranslations` (in `wrap.ts`) instead of the Proxy: the same
+values a Proxy read gives, every key filled in, safe to serialize. Parses are cached by
+`core/json-cache.ts` keyed on mtime and size, so steady-state renders cost one `stat` per file.
 
 ### 3a. Plural structure (`src/core/icu-plural.ts`)
 
