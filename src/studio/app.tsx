@@ -204,6 +204,17 @@ export const App = () => {
     [selectKeyDirectly, keyJump.request]
   );
 
+  // Cancelling the language picker or the unsaved-changes prompt abandons a pending pick,
+  // so its jump must not fire on a later selection of the same key.
+  const cancelLocalePickAndJump = useCallback(() => {
+    keyJump.cancel();
+    cancelLocalePick();
+  }, [cancelLocalePick, keyJump.cancel]);
+  const cancelDiscardAndJump = useCallback(() => {
+    keyJump.cancel();
+    cancelDiscard();
+  }, [cancelDiscard, keyJump.cancel]);
+
   // A pick made from the keyboard lands in the editor, so typing goes straight into the
   // translation. The frame lets the new selection and the opened drawer render first.
   const focusEditor = useCallback(() => {
@@ -369,7 +380,7 @@ export const App = () => {
       <LocalePicker
         candidates={localePickerCandidates}
         onChoose={chooseTargetLocale}
-        onCancel={cancelLocalePick}
+        onCancel={cancelLocalePickAndJump}
       />
     </>
   );
@@ -379,7 +390,7 @@ export const App = () => {
     <ConfirmModal
       showConfirmModal={showConfirmModal}
       onConfirm={confirmDiscard}
-      onCancel={cancelDiscard}
+      onCancel={cancelDiscardAndJump}
     />
   );
 

@@ -21,8 +21,8 @@ export interface KeyJumpParams {
 
 /**
  * Takes the page to a key picked from the Keys list. The jump waits until the pick completes,
- * so it follows a required language pick or an unsaved-changes prompt, and is dropped when the
- * pick is cancelled. When the page answers that it does not show the key, `note` says so
+ * so it follows a required language pick or an unsaved-changes prompt. It is dropped when the
+ * pick is cancelled (`cancel`) or a different selection lands first. When the page answers that it does not show the key, `note` says so
  * until the next pick or page.
  *
  * Only the current page is searched. Taking the person to another page that has the key
@@ -48,6 +48,12 @@ export const useKeyJump = ({
     requestedRef.current = key;
   }, []);
 
+  // The pick was abandoned (the unsaved-changes prompt or the language picker was cancelled),
+  // so a later selection of the same key, such as a tap on the page, must not jump.
+  const cancel = useCallback(() => {
+    requestedRef.current = null;
+  }, []);
+
   useEffect(() => {
     setNote(null);
     sentRef.current = null;
@@ -71,6 +77,7 @@ export const useKeyJump = ({
 
   return {
     request,
+    cancel,
     note: note !== null && note.key === selectedKey ? note.note : null,
   };
 };

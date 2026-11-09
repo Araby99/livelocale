@@ -123,12 +123,23 @@ describe('useKeyJump', () => {
     expect(params.jump).toHaveBeenCalledWith('home.title');
   });
 
-  it('drops a request whose pick was cancelled', () => {
+  it('drops a request when a different selection lands first', () => {
     const params = base();
     const { result, rerender } = renderJump(params);
     act(() => result.current.request('home.title'));
     // The person kept editing and Alt+Clicked other text instead.
     rerender({ ...params, selectedKey: 'home.cta', selectionCount: 1 });
+    rerender({ ...params, selectedKey: 'home.title', selectionCount: 2 });
+    expect(params.jump).not.toHaveBeenCalled();
+  });
+
+  it('drops a request whose pick was cancelled, so a later tap on that key does not jump', () => {
+    const params = base();
+    const { result, rerender } = renderJump({ ...params, selectedKey: 'a.b', selectionCount: 1 });
+    act(() => result.current.request('home.title'));
+    // The unsaved-changes prompt or the language picker is cancelled: no selection lands.
+    act(() => result.current.cancel());
+    // Later the person taps or Alt+Clicks that same key on the page.
     rerender({ ...params, selectedKey: 'home.title', selectionCount: 2 });
     expect(params.jump).not.toHaveBeenCalled();
   });
