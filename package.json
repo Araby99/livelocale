@@ -75,8 +75,22 @@
       "import": "./dist/astro/middleware.js",
       "require": "./dist/astro/middleware.cjs"
     },
+    "./strip": {
+      "types": "./dist/strip/index.d.ts",
+      "import": "./dist/strip/index.js",
+      "require": "./dist/strip/index.cjs"
+    },
     "./package.json": "./package.json"
   },
+  "sideEffects": [
+    "./dist/client/**",
+    "./dist/server/**",
+    "./dist/react/**",
+    "./dist/vite/**",
+    "./dist/astro/**",
+    "./dist/codemod/**",
+    "./dist/studio/**"
+  ],
   "files": [
     "dist"
   ],
