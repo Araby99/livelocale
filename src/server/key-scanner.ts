@@ -27,7 +27,8 @@ const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs',
 /** Files above this size are almost certainly bundles or fixtures, not components. */
 export const MAX_SOURCE_BYTES = 1_000_000;
 
-const PROP_RE = /\bt(?:\??\.[a-zA-Z0-9_]+)+/g;
+/** Property reads hang off a translator name: `t.home.title`, `t?.nav?.home`. */
+const PROP_CHAIN = String.raw`(?:\??\.[a-zA-Z0-9_]+)+`;
 const IGNORE_PROPS = new Set([
   'toString',
   'length',
@@ -107,10 +108,59 @@ function namespaceBindings(content: string): Map<string, string> {
   return map;
 }
 
-/** Extracts translation key references from one source file's text. */
-export function extractKeys(content: string): string[] {
-  const keys = new Set<string>();
+/**
+ * Maps names bound to one namespace of `createTranslations` to that namespace:
+ *   const t = createTranslations(locale, { namespace: 'home' })
+ * Property reads on them (`t.hero.title`) are keys under the namespace (`home.hero.title`).
+ */
+function objectBindings(content: string): Map<string, string> {
+  const map = new Map<string, string>();
+  const re = new RegExp(
+    DECL +
+      String.raw`(?<name>\w+)\s*=\s*(?:await\s+)?createTranslations\([^;]*?\bnamespace:\s*` +
+      STR,
+    'g'
+  );
+  for (const m of content.matchAll(re)) {
+    const namespace = stringArg(m);
+    if (namespace && KEY_SHAPE.test(namespace)) map.set(m.groups!['name']!, namespace);
+  }
+  return map;
+}
+
+/**
+ * The key references in source files, apart by how they are written:
+ * - `calls`: string arguments of a translator call, `t('home.title')`. A string argument is
+ *   meant as a key, so a call key no locale has is reported as missing.
+ * - `props`: property reads, `t.home.title`. Any variable named `t` matches (a DOM element in
+ *   a plain script, the `t.me` of a Telegram link), so `resolveCodeKeys` keeps a property
+ *   read only when the locales know its first segment.
+ * - `scoped`: the property reads of a file that also passes plain names as string
+ *   arguments, such as the `'home'` of `i18n(Astro, 'home')`, with those names. When one of
+ *   them is a namespace, its reads are looked up in that namespace first.
+ */
+export interface KeyReferences {
+  calls: string[];
+  props: string[];
+  scoped: ScopedReads[];
+}
+
+/** Property reads of the files that pass the same `hints` as string arguments. */
+export interface ScopedReads {
+  hints: string[];
+  props: string[];
+}
+
+/** A plain name passed as a string argument: `f('home')`, `i18n(Astro, 'home', x)`. */
+const NAME_ARG_RE = /[(,]\s*(['"\x60])([A-Za-z][\w-]*)\1\s*(?=[),])/g;
+
+/** Extracts the translation key references from one source file's text, calls and property reads apart. */
+export function extractKeyReferences(content: string): KeyReferences {
+  const calls = new Set<string>();
+  const props = new Set<string>();
+  const unscoped = new Set<string>();
   const bindings = namespaceBindings(content);
+  const objects = objectBindings(content);
   const translators = new Set<string>(['t', ...bindings.keys()]);
 
   for (const name of translators) {
@@ -119,24 +169,174 @@ export function extractKeys(content: string): string[] {
     for (const m of content.matchAll(callRe)) {
       const key = stringArg(m);
       if (!key || key.includes('${') || !KEY_SHAPE.test(key)) continue;
-      keys.add(prefix ? `${prefix}.${key}` : key);
+      calls.add(prefix ? `${prefix}.${key}` : key);
     }
   }
 
-  let match: RegExpExecArray | null;
-  PROP_RE.lastIndex = 0;
-  while ((match = PROP_RE.exec(content)) !== null) {
-    const clean = match[0].replace(/\bt/, '').replace(/\?/g, '');
-    const segments = clean
-      .split('.')
-      .map((seg) => seg.trim())
-      .filter(Boolean);
-    if (segments.length > 0 && !segments.some((seg) => IGNORE_PROPS.has(seg))) {
-      keys.add(segments.join('.'));
+  // `const t = common.footer` makes `t` a part of some object: `t.eggLabel` is then also
+  // read as `footer.eggLabel`, which `resolveCodeKeys` finds under the `common` namespace.
+  const aliasRe = new RegExp(
+    DECL + String.raw`t\s*=\s*[A-Za-z_$][\w$]*(?<path>` + PROP_CHAIN + String.raw`)\s*(?:;|$)`,
+    'gm'
+  );
+  const aliases = new Set<string>();
+  for (const m of content.matchAll(aliasRe)) {
+    aliases.add(m.groups!['path']!.replace(/\?/g, '').slice(1));
+  }
+
+  // `const { t: common } = i18n(Astro, 'common')` renames `t`: `common.cta.title` is a read
+  // like `t.cta.title`. A renamed `t` of a hook with a namespace is a function, read above.
+  const renamed = new Set<string>();
+  for (const m of content.matchAll(/\{[^{}]*?\bt\s*:\s*(\w+)[^{}]*\}\s*=/g)) {
+    if (!bindings.has(m[1]!)) renamed.add(m[1]!);
+  }
+
+  // `t` reads unprefixed unless a `createTranslations` namespace binds it; another name is
+  // read only when such a binding names it, or when it renames `t`.
+  for (const name of new Set(['t', ...renamed, ...objects.keys()])) {
+    const prefix = objects.get(name) ?? '';
+    const alsoUnder = name === 't' && !prefix ? aliases : new Set<string>();
+    const propRe = new RegExp(String.raw`\b` + name + PROP_CHAIN, 'g');
+    for (const m of content.matchAll(propRe)) {
+      const segments = m[0]
+        .slice(name.length)
+        .replace(/\?/g, '')
+        .split('.')
+        .map((seg) => seg.trim())
+        .filter(Boolean);
+      // A helper or a method (`t.rich`, `t.items.map`) ends the key: what comes before it
+      // is still read.
+      const end = segments.findIndex((seg) => IGNORE_PROPS.has(seg));
+      const key = (end === -1 ? segments : segments.slice(0, end)).join('.');
+      if (prefix) {
+        props.add(key ? `${prefix}.${key}` : prefix);
+      } else if (key) {
+        unscoped.add(key);
+        for (const path of alsoUnder) unscoped.add(`${path}.${key}`);
+      }
     }
   }
 
+  const hints = new Set<string>();
+  if (unscoped.size > 0) {
+    for (const m of content.matchAll(NAME_ARG_RE)) hints.add(m[2]!);
+  }
+  const scoped: ScopedReads[] = [];
+  if (hints.size > 0) scoped.push({ hints: [...hints].sort(), props: [...unscoped].sort() });
+  else for (const key of unscoped) props.add(key);
+
+  return { calls: Array.from(calls).sort(), props: Array.from(props).sort(), scoped };
+}
+
+/** Every key reference, as written: calls, property reads and scoped reads together. */
+export function allReferencedKeys(refs: KeyReferences): string[] {
+  const keys = new Set<string>([...refs.calls, ...refs.props]);
+  for (const group of refs.scoped) for (const key of group.props) keys.add(key);
   return Array.from(keys).sort();
+}
+
+/** Extracts translation key references from one source file's text. */
+export function extractKeys(content: string): string[] {
+  return allReferencedKeys(extractKeyReferences(content));
+}
+
+/** What the locales hold, for `resolveCodeKeys`. */
+export interface LocaleKeyIndex {
+  /**
+   * `'leaf'` when some locale has a value at `key` (a string, a number, an array, or an
+   * i18next plural family), `'branch'` when it has an object there, else `undefined`.
+   */
+  kind(key: string): 'leaf' | 'branch' | undefined;
+  /**
+   * The namespaces of a folder layout (`<locale>/<namespace>.json`), whose top-level keys
+   * are namespaces. Empty for a flat `<locale>.json` layout.
+   */
+  namespaces: ReadonlySet<string>;
+}
+
+/**
+ * Turns the code references into the locale keys they reach, for `check`:
+ *
+ * - A key a locale has stays as it is.
+ * - In a folder layout, a key is also read relative to a namespace, as
+ *   `createTranslations(locale)[ns]` or a helper around it gives: `hero.title` reaches
+ *   `home.hero.title` in every namespace that has `hero.title`. This holds when the first
+ *   segment is itself a namespace too: `t.pricing.cta` on the `home` namespace reaches
+ *   `home.pricing.cta`, and `pricing.cta` when a `pricing` namespace has `cta`. Code does
+ *   not say which object `t` is, so the key counts for each place that has it.
+ * - A property read in a file that passes a namespace name as a string argument
+ *   (`i18n(Astro, 'home')`) is read in that namespace when it has the first segment:
+ *   `t.hero.title` is `home.hero.title` there, and is missing when `home.hero` lacks
+ *   `title`, whatever other namespaces hold.
+ * - A property read past a value (`t.items.slice`, `t.title.length`) is a read of that value.
+ * - A property read whose first segment no locale knows, as a key, a namespace or a key
+ *   under a namespace, is not a translation (`t.getAttribute` on a DOM element) and is
+ *   dropped. An unknown segment further down is a typo and stays: `t.hero.titel`.
+ * - A call key no locale has stays, so `check` reports it as missing.
+ */
+export function resolveCodeKeys(refs: KeyReferences, index: LocaleKeyIndex): string[] {
+  const out = new Set<string>();
+
+  /** Where `key` is: itself, or under each namespace that has it. */
+  const locateAnywhere = (key: string): string[] => {
+    const found: string[] = index.kind(key) ? [key] : [];
+    for (const ns of index.namespaces) {
+      if (index.kind(`${ns}.${key}`)) found.push(`${ns}.${key}`);
+    }
+    return found;
+  };
+
+  /**
+   * Follows a property read one segment at a time with `locate`. Returns `false` when not
+   * even the first segment is found; otherwise adds the keys it reaches, or the missing key
+   * (`missing` names it from where the last segment was found).
+   */
+  const walk = (
+    key: string,
+    locate: (key: string) => string[],
+    missing: (found: string[], rest: string) => string[]
+  ): boolean => {
+    const segments = key.split('.');
+    let found: string[] = [];
+    for (let len = 1; len <= segments.length; len++) {
+      const next = locate(segments.slice(0, len).join('.'));
+      if (next.length === 0) {
+        if (len === 1) return false;
+        for (const k of missing(found, segments.slice(len - 1).join('.'))) out.add(k);
+        return true;
+      }
+      found = next;
+      if (len === segments.length || found.every((k) => index.kind(k) === 'leaf')) break;
+    }
+    for (const k of found) out.add(k);
+    return true;
+  };
+
+  for (const key of refs.calls) {
+    const found = locateAnywhere(key);
+    if (found.length === 0) out.add(key);
+    for (const k of found) out.add(k);
+  }
+
+  const calls = new Set(refs.calls);
+  const asWritten = (key: string) => () => [key];
+  for (const key of refs.props) {
+    if (!calls.has(key)) walk(key, locateAnywhere, asWritten(key));
+  }
+
+  for (const group of refs.scoped) {
+    const namespaces = group.hints.filter((hint) => index.namespaces.has(hint));
+    const locateIn = (key: string) =>
+      namespaces.map((ns) => `${ns}.${key}`).filter((k) => index.kind(k));
+    const underFound = (found: string[], rest: string) => found.map((k) => `${k}.${rest}`);
+    for (const key of group.props) {
+      if (calls.has(key)) continue;
+      if (namespaces.length > 0 && walk(key, locateIn, underFound)) continue;
+      walk(key, locateAnywhere, asWritten(key));
+    }
+  }
+
+  return Array.from(out).sort();
 }
 
 interface CachedFile<T> {
@@ -170,7 +370,7 @@ export interface KeyScannerOptions {
  * release. See https://livelocale.js.org/docs/reference/stability.html
  */
 export class KeyScanner {
-  private fileCache = new Map<string, CachedFile<string[]>>();
+  private fileCache = new Map<string, CachedFile<KeyReferences>>();
   private gitignoreCache: CachedFile<GitignoreMatcher> | null = null;
   private readonly requireEnabled: boolean;
 
@@ -220,12 +420,36 @@ export class KeyScanner {
 
   /** Scans every source file under `projectRoot` for translation key references. */
   async scanSourceKeys(projectRoot: string): Promise<string[]> {
+    return allReferencedKeys(await this.scanSourceReferences(projectRoot));
+  }
+
+  /**
+   * Scans every source file under `projectRoot` for translation key references, calls and
+   * property reads apart (see `KeyReferences`).
+   */
+  async scanSourceReferences(projectRoot: string): Promise<KeyReferences> {
     this.assertEnabled();
 
     projectRoot = path.resolve(projectRoot);
     const gitignore = await this.loadGitignore(projectRoot);
-    const keysSet = new Set<string>();
+    const calls = new Set<string>();
+    const props = new Set<string>();
+    // Files that pass the same names share one group.
+    const scoped = new Map<string, { hints: string[]; props: Set<string> }>();
     const seen = new Set<string>();
+    const collect = (refs: KeyReferences) => {
+      for (const k of refs.calls) calls.add(k);
+      for (const k of refs.props) props.add(k);
+      for (const group of refs.scoped) {
+        const id = group.hints.join(',');
+        let target = scoped.get(id);
+        if (!target) {
+          target = { hints: group.hints, props: new Set() };
+          scoped.set(id, target);
+        }
+        for (const k of group.props) target.props.add(k);
+      }
+    };
 
     const toRel = (fullPath: string) =>
       path.relative(projectRoot, fullPath).split(path.sep).join('/');
@@ -264,15 +488,15 @@ export class KeyScanner {
         seen.add(fullPath);
         const cached = this.fileCache.get(fullPath);
         if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
-          for (const k of cached.value) keysSet.add(k);
+          collect(cached.value);
           continue;
         }
 
         try {
           const content = await fs.readFile(fullPath, 'utf-8');
-          const keys = extractKeys(content);
-          this.fileCache.set(fullPath, { mtimeMs: stat.mtimeMs, size: stat.size, value: keys });
-          for (const k of keys) keysSet.add(k);
+          const refs = extractKeyReferences(content);
+          this.fileCache.set(fullPath, { mtimeMs: stat.mtimeMs, size: stat.size, value: refs });
+          collect(refs);
         } catch {}
       }
     };
@@ -284,7 +508,14 @@ export class KeyScanner {
       if (!seen.has(cachedPath)) this.fileCache.delete(cachedPath);
     }
 
-    return Array.from(keysSet).sort();
+    return {
+      calls: Array.from(calls).sort(),
+      props: Array.from(props).sort(),
+      scoped: [...scoped.values()].map((group) => ({
+        hints: group.hints,
+        props: Array.from(group.props).sort(),
+      })),
+    };
   }
 
   /**

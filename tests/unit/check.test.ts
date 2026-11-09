@@ -200,6 +200,97 @@ describe('runCheck', () => {
     expect(keysOf(issues, 'missing-from-code')).toEqual(['ar:auth.logout', 'en:auth.logout']);
   });
 
+  describe('a t scoped to one namespace (folder layout)', () => {
+    beforeEach(() => {
+      write(project, 'locales/en/home.json', {
+        hero: { title: 'Hi', lead: 'Lead' },
+        features: { title: 'Features' },
+        items: ['a', 'b'],
+      });
+      write(project, 'locales/en/common.json', { footer: { note: 'Note' }, cta: { go: 'Go' } });
+      write(project, 'locales/en/features.json', { title: 'All features' });
+      write(project, 'locales/ar/home.json', {
+        hero: { title: 'مرحبا', lead: 'مقدمة' },
+        features: { title: 'ميزات' },
+        items: ['أ'],
+      });
+      write(project, 'locales/ar/common.json', { footer: { note: 'ملاحظة' }, cta: { go: 'اذهب' } });
+      write(project, 'locales/ar/features.json', { title: 'كل الميزات' });
+    });
+
+    it('resolves t.hero.title from a helper that returns one namespace', async () => {
+      write(
+        project,
+        'src/pages/index.astro',
+        `---\nconst { t } = i18n(Astro, 'home');\nconst c = getT('common', locale);\n---\n<h1>{t.hero.title}</h1><p>{t.hero.lead}</p><h2>{t.features.title}</h2>{t.items.map((i) => <li>{i}</li>)}`
+      );
+      write(
+        project,
+        'src/components/Footer.astro',
+        `---\nconst { t: common } = i18n(Astro, 'common');\nconst t = common.footer;\n---\n<p>{t.note}</p><a>{common.cta.go}</a>`
+      );
+      write(
+        project,
+        'src/components/Island.jsx',
+        `export default ({ t }) => <p>{t.hero.lead}</p>;`
+      );
+      const { issues } = await runCheck({ projectDir: project });
+      expect(keysOf(issues, 'missing-from-code')).toEqual([]);
+      // features.title is the only key nothing reads: t.features.title is home's section.
+      expect(keysOf(issues, 'unused')).toEqual(['en:features.title']);
+    });
+
+    it('reports a key the named namespace lacks, under that namespace', async () => {
+      write(
+        project,
+        'src/pages/index.astro',
+        `---\nconst { t } = i18n(Astro, 'home');\n---\n<h1>{t.hero.titel}</h1><p>{t.hero.subtitle}</p>`
+      );
+      const { issues } = await runCheck({ projectDir: project, unused: false });
+      expect(keysOf(issues, 'missing-from-code')).toEqual([
+        'ar:home.hero.subtitle',
+        'ar:home.hero.titel',
+        'en:home.hero.subtitle',
+        'en:home.hero.titel',
+      ]);
+    });
+
+    it('reports a key one locale lacks with its full path', async () => {
+      write(project, 'locales/ar/home.json', { hero: { title: 'مرحبا' } });
+      write(project, 'src/Island.jsx', `export default ({ t }) => <p>{t.hero.lead}</p>;`);
+      const { issues } = await runCheck({ projectDir: project, unused: false });
+      expect(keysOf(issues, 'missing-from-code')).toEqual(['ar:home.hero.lead']);
+    });
+
+    it('reads a createTranslations namespace option', async () => {
+      write(
+        project,
+        'src/page.astro',
+        `---\nconst t = createTranslations(locale, { namespace: 'home', plain: true });\n---\n<h1>{t.hero.title}</h1><p>{t.hero.nope}</p>`
+      );
+      const { issues } = await runCheck({ projectDir: project, unused: false });
+      expect(keysOf(issues, 'missing-from-code')).toEqual([
+        'ar:home.hero.nope',
+        'en:home.hero.nope',
+      ]);
+    });
+  });
+
+  it('ignores property reads on a t that is not a translation', async () => {
+    write(project, 'locales/en.json', { hero: { title: 'Hi' } });
+    write(
+      project,
+      'src/scripts/main.js',
+      `document.querySelectorAll('[data-tab]').forEach((t) => {
+        t.getAttribute('data-tab'); t.classList.toggle('on');
+      });
+      const link = 'https://t.me/wolvy';`
+    );
+    write(project, 'src/page.tsx', `t.hero.title; t.hero.titel; t('call.missing');`);
+    const { issues } = await runCheck({ projectDir: project });
+    expect(keysOf(issues, 'missing-from-code')).toEqual(['en:call.missing', 'en:hero.titel']);
+  });
+
   it('throws when the locales directory is missing', async () => {
     await expect(runCheck({ projectDir: project })).rejects.toThrow(/Locales directory not found/);
   });
