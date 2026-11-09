@@ -144,6 +144,29 @@ export const en = {
   'viewer.cause_provider':
     '{provider} is not mounted, or LiveLocale is off in the app (preview builds need {env}).',
   'viewer.run_doctor': 'Run {command} to check.',
+  'viewer.slow_title_more': 'Other usual causes:',
+  'viewer.diag_checking': 'Checking what the app answers...',
+  'viewer.check_again': 'Check again',
+  'viewer.diag_unreachable': 'Nothing is answering at {origin}.',
+  'viewer.diag_unreachable_hint':
+    'Start the app, or open the Studio with the address the app runs at.',
+  'viewer.diag_timeout': 'The app at {origin} did not answer within {seconds} seconds.',
+  'viewer.diag_page_status': 'The app answered {status} at {path}.',
+  'viewer.diag_server_error': "The error is in the app's terminal or server logs.",
+  'viewer.diag_page_404': 'That page does not exist: open another one in the address bar.',
+  'viewer.diag_page_auth': 'The page needs a sign-in that the preview does not have.',
+  'viewer.diag_api_status': 'The page loaded, but {api} answered {status}.',
+  'viewer.diag_api_404':
+    'The LiveLocale route or integration is missing: run {command} and restart the app.',
+  'viewer.diag_login': 'The app redirects to {host}, which looks like a sign-in wall.',
+  'viewer.diag_login_hint': 'Let the Studio through it, or turn it off for this deployment.',
+  'viewer.diag_framing': 'The app forbids framing: it sends {header}.',
+  'viewer.diag_framing_hint': 'Allow {studio} in that header.',
+  'viewer.diag_client_missing': 'The page loaded, but the LiveLocale client did not start in it.',
+  'viewer.diag_client_hint':
+    'Check that {provider} or the Astro or Vite integration is in the page, and that LiveLocale is on.',
+  'viewer.diag_unknown': 'Something answers at {origin}, but this Studio cannot read its status.',
+  'viewer.diag_unknown_hint': 'Open {url} in a tab to see what it shows.',
   'viewer.preview_blocked':
     'The app preview is unavailable until the setup problem above is fixed.',
   'empty.title': 'Select an Element',

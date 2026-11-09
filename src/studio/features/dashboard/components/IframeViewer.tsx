@@ -1,23 +1,13 @@
-import React, { useEffect, useState, type ReactNode } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ConnectionStatus } from '../types/index.js';
+import type { ConnectionDiagnosis } from '../../../../core/app-probe.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import type { PageNavigation } from '../hooks/usePageNavigation.js';
 import { AddressBar } from './AddressBar.js';
+import { ConnectionDiagnosisNote, withCode } from './ConnectionDiagnosis.js';
 
 /** How long the Studio waits for the app's bridge before suggesting causes. */
 export const SLOW_CONNECTION_MS = 8000;
-
-/**
- * A catalogue sentence with code in it: each `{name}` placeholder of `template` becomes the
- * matching node, so commands and origins keep their own left-to-right, monospace element.
- */
-function withCode(template: string, code: Readonly<Record<string, ReactNode>>): ReactNode[] {
-  return template
-    .split(/\{(\w+)\}/)
-    .map((part, i) =>
-      i % 2 === 0 ? part : <React.Fragment key={part}>{code[part] ?? `{${part}}`}</React.Fragment>
-    );
-}
 
 interface IframeViewerProps {
   iframeRef: React.RefObject<HTMLIFrameElement>;
@@ -29,6 +19,11 @@ interface IframeViewerProps {
   navigation: PageNavigation;
   /** Shows the address and status bar above the frame; the phone moves it into its menu. */
   toolbar?: boolean;
+  /**
+   * Asks the app what it answers, once the connection is slow. Without it the help lists only
+   * the usual causes.
+   */
+  diagnose?: () => Promise<ConnectionDiagnosis | null>;
 }
 
 export const IframeViewer = ({
@@ -38,6 +33,7 @@ export const IframeViewer = ({
   connectionStatus,
   navigation,
   toolbar = true,
+  diagnose,
 }: IframeViewerProps) => {
   const { t } = useStudioText();
   // The browser never tells the parent page why a frame stayed blank (a CSP
@@ -49,6 +45,34 @@ export const IframeViewer = ({
     const timer = setTimeout(() => setIsSlow(true), SLOW_CONNECTION_MS);
     return () => clearTimeout(timer);
   }, [connectionStatus]);
+
+  // What the app answered, asked once the connection is slow and again on Check again.
+  const [diagnosis, setDiagnosis] = useState<ConnectionDiagnosis | null>(null);
+  const [checking, setChecking] = useState(false);
+  const checkSeq = useRef(0);
+  const check = useCallback(() => {
+    if (!diagnose) return;
+    const seq = ++checkSeq.current;
+    setChecking(true);
+    diagnose()
+      .catch(() => null)
+      .then((found) => {
+        if (seq !== checkSeq.current) return;
+        setDiagnosis(found);
+        setChecking(false);
+      });
+  }, [diagnose]);
+  useEffect(() => {
+    if (isSlow) {
+      check();
+      return;
+    }
+    // A late answer must not show once the frame connected.
+    checkSeq.current++;
+    setDiagnosis(null);
+    setChecking(false);
+  }, [isSlow, check]);
+  const diagnosed = checking || diagnosis !== null;
 
   return (
     <div
@@ -146,7 +170,15 @@ export const IframeViewer = ({
                 data-testid="slow-connection-help"
                 className="max-w-md mx-6 mt-2 rounded-xl border border-line bg-raised p-4 text-start text-xs text-fg"
               >
-                <p className="font-semibold text-fg">{t('viewer.slow_title')}</p>
+                <ConnectionDiagnosisNote
+                  diagnosis={diagnosis}
+                  checking={checking}
+                  appUrl={appUrl}
+                  onCheckAgain={check}
+                />
+                <p className={diagnosed ? 'text-fg-muted' : 'font-semibold text-fg'}>
+                  {t(diagnosed ? 'viewer.slow_title_more' : 'viewer.slow_title')}
+                </p>
                 <ul className="mt-2 space-y-1.5 list-disc ps-4">
                   <li>
                     {withCode(t('viewer.cause_not_running'), {

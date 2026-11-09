@@ -10,6 +10,7 @@ import { SetupProblems } from '../../src/studio/features/dashboard/components/Se
 import { englishText } from '../../src/studio/i18n/catalogue.js';
 import { STATIC_MANIFEST_MISSING } from '../../src/studio/config.js';
 import type { PageNavigation } from '../../src/studio/features/dashboard/hooks/usePageNavigation.js';
+import type { ConnectionDiagnosis } from '../../src/core/app-probe.js';
 
 const navigationStub = (overrides: Partial<PageNavigation> = {}): PageNavigation => ({
   path: '/',
@@ -99,6 +100,114 @@ describe('IframeViewer slow-connection help', () => {
   it('keeps the English status words', () => {
     renderViewer('connecting');
     expect(screen.getByTestId('connection-status').textContent).toBe('CONNECTING');
+  });
+});
+
+describe('IframeViewer connection diagnosis', () => {
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
+
+  const renderDiagnosed = (
+    diagnose: () => Promise<ConnectionDiagnosis | null>,
+    connectionStatus: 'connecting' | 'connected' = 'connecting'
+  ) =>
+    render(
+      <IframeViewer
+        iframeRef={React.createRef<HTMLIFrameElement>()}
+        appOrigin="http://localhost:3000"
+        appUrl="http://localhost:3000"
+        connectionStatus={connectionStatus}
+        navigation={navigationStub()}
+        diagnose={diagnose}
+      />
+    );
+
+  const becomeSlow = async () => {
+    await act(async () => {
+      vi.advanceTimersByTime(SLOW_CONNECTION_MS);
+    });
+  };
+
+  it('asks the app only once the connection is slow, then says what it answered', async () => {
+    vi.useFakeTimers();
+    const diagnose = vi.fn(async (): Promise<ConnectionDiagnosis> => ({
+      kind: 'page-status',
+      status: 500,
+      path: '/en',
+    }));
+    renderDiagnosed(diagnose);
+    expect(diagnose).not.toHaveBeenCalled();
+    await becomeSlow();
+    expect(diagnose).toHaveBeenCalledTimes(1);
+    const note = screen.getByTestId('connection-diagnosis');
+    expect(note.getAttribute('data-kind')).toBe('page-status');
+    expect(note.textContent).toContain('The app answered 500 at /en.');
+    expect(note.textContent).toContain(englishText('viewer.diag_server_error'));
+    // The usual causes stay, below the finding.
+    const help = screen.getByTestId('slow-connection-help');
+    expect(help.textContent).toContain(englishText('viewer.slow_title_more'));
+    expect(help.textContent).toContain('frame-ancestors');
+  });
+
+  it.each<[ConnectionDiagnosis, string]>([
+    [
+      { kind: 'unreachable', origin: 'http://localhost:3000' },
+      'Nothing is answering at http://localhost:3000.',
+    ],
+    [{ kind: 'api-status', status: 404 }, 'The page loaded, but /api/livelocale answered 404.'],
+    [{ kind: 'framing', header: 'X-Frame-Options: DENY' }, 'it sends X-Frame-Options: DENY.'],
+    [{ kind: 'login-redirect', host: 'vercel.com' }, 'The app redirects to vercel.com'],
+    [{ kind: 'client-missing' }, englishText('viewer.diag_client_missing')],
+    [{ kind: 'status-unknown', origin: 'http://localhost:3000' }, 'cannot read its status'],
+  ])('describes %o', async (diagnosis, text) => {
+    vi.useFakeTimers();
+    renderDiagnosed(async () => diagnosis);
+    await becomeSlow();
+    expect(screen.getByTestId('connection-diagnosis').textContent).toContain(text);
+  });
+
+  it('checks again on request and shows the new answer', async () => {
+    vi.useFakeTimers();
+    const answers: ConnectionDiagnosis[] = [
+      { kind: 'unreachable', origin: 'http://localhost:3000' },
+      { kind: 'page-status', status: 502, path: '/' },
+    ];
+    const diagnose = vi.fn(async () => answers.shift()!);
+    renderDiagnosed(diagnose);
+    await becomeSlow();
+    expect(screen.getByTestId('connection-diagnosis').getAttribute('data-kind')).toBe(
+      'unreachable'
+    );
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('connection-check-again'));
+    });
+    expect(diagnose).toHaveBeenCalledTimes(2);
+    expect(screen.getByTestId('connection-diagnosis').textContent).toContain(
+      'The app answered 502 at /.'
+    );
+  });
+
+  it('shows only the usual causes when the check finds nothing or fails', async () => {
+    vi.useFakeTimers();
+    renderDiagnosed(async () => {
+      throw new Error('offline');
+    });
+    await becomeSlow();
+    expect(screen.queryByTestId('connection-diagnosis')).toBeNull();
+    expect(screen.getByTestId('slow-connection-help').textContent).toContain(
+      englishText('viewer.slow_title')
+    );
+  });
+
+  it('says it is checking while the probe runs', async () => {
+    vi.useFakeTimers();
+    renderDiagnosed(() => new Promise(() => {}));
+    await becomeSlow();
+    const note = screen.getByTestId('connection-diagnosis');
+    expect(note.getAttribute('data-kind')).toBe('checking');
+    expect(note.textContent).toContain(englishText('viewer.diag_checking'));
   });
 });
 

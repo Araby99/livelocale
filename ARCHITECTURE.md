@@ -284,12 +284,19 @@ session's saved values (`COMMIT_PREVIEW`, newest wins per key) whenever the page
 navigates, or its visible keys change. Setup problems render in `SetupProblems`: the runtime's own
 problems from start-up, shown before any connection, followed by those from `?action=info` once
 connected; `IframeViewer` lists likely causes when the bridge has not answered in eight
-seconds, because a blocked frame is only reported in the browser console.
+seconds, because a blocked frame is only reported in the browser console. At that point it also
+asks what the app answers (`src/studio/connection-probe.ts`): a share link reads the framed page's
+status on its own origin; under `livelocale studio` the server's `/__livelocale/app-status` probes
+the page and `?action=info` and reports status, a redirect to another host and frame-blocking
+headers; any other Studio sees only whether something answered. `diagnoseConnection`
+(`src/core/app-probe.ts`) turns that into the one finding shown above the usual causes.
 
 ### 9. CLI (`src/codemod`)
 
 `init` writes a route file matching the detected router and language. `studio` serves
-`dist/studio` through `createStudioServer`, injecting the app origin into `index.html`. `migrate`
+`dist/studio` through `createStudioServer`, injecting the app origin into `index.html`, and answers
+`/__livelocale/app-status` for the Studio's connection help: GET requests to paths on that origin
+only, no credentials, a five-second timeout, and only to same-origin callers on a local host name. `migrate`
 lazily imports the TypeScript-based codemod so the other commands work in JavaScript-only projects.
 `doctor` (`src/codemod/doctor.ts`) runs static checks on the project tree and, with `--app`, live
 HTTP probes; it returns structured findings so the CLI output and the tests share one source. With
@@ -356,6 +363,7 @@ tag first in each HTML file Vite emits (and skips the dev fallback data), and `w
 | Body size cap                         | next-handler, node-body, vite-plugin        |
 | Change-link size caps                 | core/change-link, core/change-link-node     |
 | Path containment                      | core/safe-path, file-mutator, studio-server |
+| App probe limited to the app origin   | core/app-probe, studio-server               |
 | Prototype pollution                   | core/validate, file-mutator                 |
 | Atomic writes                         | file-mutator                                |
 | Script injection escaping             | page-script, studio-server                  |
