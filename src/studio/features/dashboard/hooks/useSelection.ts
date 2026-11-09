@@ -98,7 +98,7 @@ export const useSelection = ({
   // the page shows it (a fallback), so markup the page renders is never lost.
   const editorValue = useCallback(
     (el: SelectedElement) =>
-      editorValueFor(localeData[el.key], el.currentValue, [enLocaleData[el.key]]),
+      editorValueFor(localeData[el.key], el.currentValue, [enLocaleData[el.key]], el.fallbackValue),
     [localeData, enLocaleData]
   );
 

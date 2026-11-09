@@ -134,6 +134,44 @@ describe('DOMInterceptor with a watermark inside a text node', () => {
     );
   });
 
+  // Browsers collapse the template whitespace; jsdom has no innerText at all.
+  const collapsedInnerText = (el: HTMLElement) =>
+    Object.defineProperty(el, 'innerText', {
+      get: () => (el.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      configurable: true,
+    });
+
+  it('sends only the title of a headline followed by a literal cursor span', () => {
+    const h1 = document.createElement('h1');
+    h1.append(
+      document.createTextNode(
+        '\n  ' + encodeKey('Advanced protection.', 'home.hero.title') + '\n  '
+      ),
+      Object.assign(document.createElement('span'), { textContent: '_' })
+    );
+    document.body.appendChild(h1);
+    interceptor.init();
+    collapsedInnerText(h1);
+    altClick(h1);
+    expect(onElementSelected).toHaveBeenCalledWith({
+      key: 'home.hero.title',
+      fallbackValue: 'Advanced protection.',
+      currentValue: 'Advanced protection.',
+    });
+  });
+
+  it('sends only the label of a link followed by an arrow glyph', () => {
+    const a = document.createElement('a');
+    a.innerHTML = encodeKey('Read more', 'cta.more') + ' <span aria-hidden="true">→</span>';
+    document.body.appendChild(a);
+    interceptor.init();
+    collapsedInnerText(a);
+    altClick(a);
+    expect(onElementSelected).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'cta.more', currentValue: 'Read more' })
+    );
+  });
+
   it('never keys a script holding watermarked JSON', () => {
     const script = document.createElement('script');
     script.type = 'application/ld+json';

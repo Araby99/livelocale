@@ -59,6 +59,8 @@ describe('createDraftActions.undoDraft', () => {
     expect(deps.sendToIframe).toHaveBeenCalledWith('COMMIT_PREVIEW', {
       key: 'home.title',
       value: 'مرحبا',
+      // The draft the page shows until now, so literal text after it is kept.
+      source: 'أهلا',
     });
     expect(deps.setError).toHaveBeenCalledWith(null);
     expect(vi.mocked(deps.setIsUndoing).mock.calls).toEqual([[true], [false]]);
@@ -70,6 +72,7 @@ describe('createDraftActions.undoDraft', () => {
     expect(deps.sendToIframe).toHaveBeenCalledWith('COMMIT_PREVIEW', {
       key: 'home.gone',
       value: 'Old',
+      source: 'أهلا',
     });
   });
 

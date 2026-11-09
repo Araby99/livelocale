@@ -15,7 +15,10 @@
  * text. When the evidence says the element renders the value as HTML, the
  * preview replaces that whole run of nodes with the value parsed as markup,
  * keeping only a small set of inline tags and safe attributes. Otherwise the
- * value is shown as plain text, as the page would show it.
+ * value is shown as plain text, as the page would show it. Nodes a framework
+ * renders itself (React or Vue elements and text, such as next-intl's
+ * `t.rich` output) are never taken out: only `set:html` and
+ * `dangerouslySetInnerHTML` content, which no framework tracks node by node.
  */
 import { containsWatermark, removeWatermarks } from './watermark.js';
 import { inInertParent, keyedSegments, segmentText } from './keyed-text.js';
@@ -34,6 +37,8 @@ interface Entry {
   removed: Node[];
   /** Nodes a rich preview put after the node. */
   inserted: Node[];
+  /** The value a rich preview shows now: the stored value as far as the page is concerned. */
+  richValue?: string;
   /** The node's text after the last render, to notice the app changing it. */
   rendered: string;
   previews: Map<string, PreviewValue>;
@@ -47,9 +52,18 @@ interface Desired {
   /** True when the siblings after the node are replaced by `insert`. */
   rich: boolean;
   insert: Node[];
+  /** The value rendered as markup, when `rich`. */
+  richValue?: string;
 }
 
 const entries = new Map<Text, Entry>();
+
+/**
+ * The last value saved on this page for each key. After a save the page shows
+ * it as its own text, so it tells where that translation ends in a node the
+ * next time the key is previewed, even when the Studio sends no `source`.
+ */
+const committedValues = new Map<string, string>();
 
 // ─── Markup ────────────────────────────────────────────────────────────────
 
@@ -110,6 +124,27 @@ const MARKUP_RE = /<\/?[a-z][^<>]*>/i;
 
 function hasMarkup(text: string): boolean {
   return MARKUP_RE.test(text);
+}
+
+/** Whether every tag in `text` is one a preview may render (no `<link>` or other rich-text tag names). */
+function onlyAllowedTags(text: string): boolean {
+  for (const match of text.matchAll(/<\/?([a-z][\w-]*)[^<>]*>/gi)) {
+    if (!ALLOWED_TAGS.has(match[1]!.toLowerCase())) return false;
+  }
+  return true;
+}
+
+/** Expando prefixes React and Vue put on the DOM nodes they render and keep track of. */
+const FRAMEWORK_KEY_PREFIXES = ['__reactFiber$', '__reactProps$', '__reactInternalInstance$'];
+const FRAMEWORK_KEYS = ['__vnode', '__vueParentComponent'];
+
+/** Whether a framework rendered `node` itself and expects to find it where it put it. */
+function frameworkOwned(node: Node): boolean {
+  for (const key of Object.keys(node)) {
+    if (FRAMEWORK_KEYS.includes(key)) return true;
+    if (FRAMEWORK_KEY_PREFIXES.some((prefix) => key.startsWith(prefix))) return true;
+  }
+  return false;
 }
 
 function isSafeHref(href: string): boolean {
@@ -173,8 +208,8 @@ function normalize(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
 
-/** Whether every element in `nodes`, at any depth, is an allowed inline tag. */
-function onlyInline(nodes: readonly Node[]): boolean {
+/** Whether every element in `nodes`, at any depth, is an inline tag a rich-text value may use. */
+export function onlyInline(nodes: readonly Node[]): boolean {
   return nodes.every((node) => {
     if (node.nodeType !== Node.ELEMENT_NODE) return true;
     const el = node as Element;
@@ -186,35 +221,61 @@ function onlyInline(nodes: readonly Node[]): boolean {
  * Whether the translation in `segText` runs on through `siblings` (the nodes
  * after its text node, up to the element's end) because the element renders it
  * as HTML. Never when the page shows literal tags (an escaped `{t.x}`), when a
- * sibling holds another translation, or a sibling is not inline markup. Then
- * either the stored value has markup and shows exactly the text found there,
- * or the typed value has markup and markup follows the text node.
+ * sibling holds another translation, a sibling is not inline markup, or a
+ * framework rendered the nodes (next-intl `t.rich`). When the stored value is
+ * known it decides: it must use only allowed tags and show exactly the text
+ * found there; a plain stored value means the page renders text. Only without
+ * a stored value (a draft sent again after a reload) does markup in the typed
+ * value, followed on the page by markup, count.
  */
-function isRichExtent(segText: string, siblings: readonly Node[], preview: PreviewValue): boolean {
+function isRichExtent(
+  node: Text,
+  segText: string,
+  siblings: readonly Node[],
+  preview: PreviewValue,
+  richValue: string | undefined
+): boolean {
   if (hasMarkup(segText)) return false;
-  if (siblings.some((node) => containsWatermark(node.textContent ?? ''))) return false;
+  if (siblings.some((each) => containsWatermark(each.textContent ?? ''))) return false;
   if (!onlyInline(siblings)) return false;
-  if (preview.source !== undefined && hasMarkup(preview.source)) {
-    const shown = segText + siblings.map((node) => node.textContent ?? '').join('');
-    if (normalize(markupText(preview.source)) === normalize(shown)) return true;
+  if (frameworkOwned(node) || siblings.some(frameworkOwned)) return false;
+  if (preview.source !== undefined) {
+    if (!hasMarkup(preview.source) || !onlyAllowedTags(preview.source)) return false;
+    // The Studio's stored value may be the one a rich preview put on the page.
+    if (
+      richValue !== undefined &&
+      normalize(markupText(preview.source)) === normalize(markupText(richValue))
+    )
+      return true;
+    const shown = segText + siblings.map((each) => each.textContent ?? '').join('');
+    return normalize(markupText(preview.source)) === normalize(shown);
   }
-  return hasMarkup(preview.value) && siblings.some((node) => node.nodeType === Node.ELEMENT_NODE);
+  return (
+    hasMarkup(preview.value) &&
+    onlyAllowedTags(preview.value) &&
+    siblings.some((each) => each.nodeType === Node.ELEMENT_NODE)
+  );
 }
 
 // ─── Rendering ─────────────────────────────────────────────────────────────
 
 /**
  * The page's own text after a plain translation in the same node, which the
- * preview keeps. When the stored value is known and the marked text starts
- * with it, everything after it (`{t.terms} · {t.privacy}`, `{t.more} →`).
+ * preview keeps. When the value the page shows is known (the stored value the
+ * Studio sends, or the last value saved here) and the marked text starts with
+ * it, everything after it (`{t.terms} · {t.privacy}`, `{t.more} →`).
  * Otherwise only the trailing whitespace (`{t.title}\n  <span>`): the rest
  * cannot be told apart from the translation.
  */
-function pageTextAfter(segText: string, preview: PreviewValue): string {
-  const source = preview.source === undefined ? '' : removeWatermarks(preview.source);
-  if (source !== '' && !hasMarkup(source) && segText.startsWith(source)) {
-    return segText.slice(source.length);
+function pageTextAfter(segText: string, key: string, preview: PreviewValue): string {
+  let best = -1;
+  for (const known of [preview.source, committedValues.get(key)]) {
+    if (known === undefined) continue;
+    const shown = removeWatermarks(known);
+    if (shown === '' || hasMarkup(shown) || !segText.startsWith(shown)) continue;
+    best = Math.max(best, shown.length);
   }
+  if (best >= 0) return segText.slice(best);
   return /\s*$/.exec(segText)![0];
 }
 
@@ -233,6 +294,7 @@ function desiredFor(node: Text, entry: Entry): Desired {
   let cursor = 0;
   let rich = false;
   let insert: Node[] = [];
+  let richValue: string | undefined;
   segments.forEach((segment, i) => {
     const preview = entry.previews.get(segment.key) ?? entry.committed.get(segment.key);
     if (!preview) return;
@@ -240,17 +302,21 @@ function desiredFor(node: Text, entry: Entry): Desired {
     text += original.slice(cursor, segment.end);
     cursor = segment.textEnd;
     const last = i === segments.length - 1;
-    if (last && isRichExtent(segText, originalSiblings(node, entry), preview)) {
+    if (
+      last &&
+      isRichExtent(node, segText, originalSiblings(node, entry), preview, entry.richValue)
+    ) {
       const nodes = sanitizeMarkup(preview.value);
       if (nodes[0]?.nodeType === Node.TEXT_NODE) text += nodes.shift()!.nodeValue ?? '';
       rich = true;
+      richValue = preview.value;
       insert = nodes;
     } else {
-      text += removeWatermarks(preview.value) + pageTextAfter(segText, preview);
+      text += removeWatermarks(preview.value) + pageTextAfter(segText, segment.key, preview);
     }
   });
   text += original.slice(cursor);
-  return { text, rich, insert };
+  return { text, rich, insert, richValue };
 }
 
 function sameNodes(a: readonly Node[], b: readonly Node[]): boolean {
@@ -271,6 +337,7 @@ function undoRich(node: Text, entry: Entry): void {
   insertAfter(node, entry.removed);
   entry.inserted = [];
   entry.removed = [];
+  entry.richValue = undefined;
 }
 
 /**
@@ -304,6 +371,8 @@ function render(node: Text, entry: Entry): void {
     if (node.nodeValue !== want.text) node.nodeValue = want.text;
   }
   entry.rendered = node.nodeValue ?? '';
+  entry.richValue =
+    entry.removed.length > 0 || entry.inserted.length > 0 ? want.richValue : undefined;
 }
 
 /** Puts `node` back the way the page had it, or as its saved values left it. */
@@ -338,8 +407,9 @@ function nodesFor(key: string): Text[] {
 function entryFor(node: Text): Entry {
   let entry = entries.get(node);
   if (entry && node.nodeValue !== entry.rendered) {
-    // The app rendered new text into the node: start over from what it shows now.
-    for (const each of entry.inserted) each.parentNode?.removeChild(each);
+    // The app rendered new text into the node: put its own siblings back, then
+    // start over from what it shows now.
+    undoRich(node, entry);
     entries.delete(node);
     entry = undefined;
   }
@@ -382,14 +452,17 @@ export function applyPreview(key: string, value: string, source?: string): void 
  */
 export function commitPreview(key: string, value: string, source?: string): void {
   applyPreview(key, value, source);
+  committedValues.set(key, value);
   for (const [node, entry] of entries) {
     const preview = entry.previews.get(key);
     if (!preview) continue;
     entry.previews.delete(key);
-    if (entry.previews.size === 0) {
+    const isRich = entry.removed.length > 0 || entry.inserted.length > 0;
+    if (entry.previews.size === 0 && !isRich) {
       // Nothing else to put back here: the page keeps the saved value as its own.
       entries.delete(node);
     } else {
+      // Kept while a rich value holds the page's own nodes, so they can be put back.
       entry.committed.set(key, preview);
     }
   }
@@ -403,4 +476,5 @@ export function restorePreviews(): void {
 /** Forgets every preview without touching the page (its `<body>` was replaced). */
 export function forgetPreviews(): void {
   entries.clear();
+  committedValues.clear();
 }

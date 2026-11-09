@@ -30,3 +30,32 @@ export function valuesToReapply(input: {
   }
   return values;
 }
+
+/**
+ * For each value `valuesToReapply` returns, the value the hosted build shows
+ * before it is re-applied: the oldest `previousValue` of this session's history
+ * (`preview`), or the draft's built value (`static`). Sent as the preview's
+ * `source`, it tells the page where the translation ends in a text node, so
+ * literal text after it (`{t.terms} · {t.privacy}`) is kept.
+ */
+export function builtValuesToReapply(input: {
+  mode: LiveLocaleMode | null;
+  locale: string;
+  localeConfirmed: boolean;
+  history: readonly HistoryEntry[];
+  drafts: readonly Draft[];
+}): Map<string, string> {
+  const { mode, locale, localeConfirmed, history, drafts } = input;
+  const values = new Map<string, string>();
+  if (mode === 'preview') {
+    // History is newest first: the last entry seen for a key is its oldest.
+    for (const entry of history) {
+      if (entry.locale === locale) values.set(entry.key, entry.previousValue);
+    }
+  } else if (mode === 'static' && localeConfirmed) {
+    for (const draft of drafts) {
+      if (draft.locale === locale && draft.from !== null) values.set(draft.key, draft.from);
+    }
+  }
+  return values;
+}

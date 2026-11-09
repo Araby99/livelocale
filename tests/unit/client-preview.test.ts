@@ -244,6 +244,98 @@ describe('live preview', () => {
     });
   });
 
+  describe('framework and literal siblings', () => {
+    function label(): { label: HTMLLabelElement; star: HTMLSpanElement } {
+      // `<label>{t('f.name')} <span>*</span></label>`: a plain value and the page's own marker.
+      const el = document.createElement('label');
+      const star = document.createElement('span');
+      star.textContent = '*';
+      el.append(document.createTextNode(encodeKey('Name', 'f.name') + ' '), star);
+      document.body.appendChild(el);
+      return { label: el, star };
+    }
+
+    it('shows typed tags as text when the stored value is plain, keeping a literal sibling', () => {
+      const { label: el, star } = label();
+      applyPreview('f.name', 'Press <Enter>', 'Name');
+      expect(star.isConnected).toBe(true);
+      expect(shown(el)).toBe('Press <Enter> *');
+      applyPreview('f.name', '<b>Full name</b>', 'Name');
+      expect(el.querySelector('b')).toBeNull();
+      expect(star.isConnected).toBe(true);
+    });
+
+    it('never detaches a literal sibling on commit', () => {
+      const { label: el, star } = label();
+      commitPreview('f.name', '<b>Full name</b>', 'Name');
+      restorePreviews();
+      expect(star.isConnected).toBe(true);
+      expect(shown(el)).toBe('<b>Full name</b> *');
+    });
+
+    it('keeps the template whitespace and cursor span of a headline when tags are typed', () => {
+      const h1 = document.createElement('h1');
+      const span = document.createElement('span');
+      span.textContent = '_';
+      h1.append(
+        document.createTextNode('\n  ' + encodeKey('Advanced', 'home.hero.title') + '\n  '),
+        span
+      );
+      document.body.appendChild(h1);
+      applyPreview('home.hero.title', '<b>x</b>', 'Advanced');
+      expect(span.isConnected).toBe(true);
+      expect(h1.firstChild!.nodeValue).toBe(
+        '\n  ' + encodeKey('<b>x</b>', 'home.hero.title') + '\n  '
+      );
+    });
+
+    it('never takes out the link of a next-intl t.rich message (custom tag in the source)', () => {
+      const p = document.createElement('p');
+      const a = document.createElement('a');
+      a.href = '/terms';
+      a.textContent = 'terms';
+      p.append(document.createTextNode(encodeKey('Accept the ', 'k')), a);
+      document.body.appendChild(p);
+
+      applyPreview('k', 'Accept the <link>conditions</link>', 'Accept the <link>terms</link>');
+      expect(a.isConnected).toBe(true);
+      commitPreview('k', 'Accept the <link>conditions</link>', 'Accept the <link>terms</link>');
+      restorePreviews();
+      expect(a.isConnected).toBe(true);
+      expect(p.lastChild).toBe(a);
+    });
+
+    it('never takes out nodes React rendered, even when the tags are allowed', () => {
+      const p = document.createElement('p');
+      const b = document.createElement('b');
+      b.textContent = 'terms';
+      // What React leaves on the nodes it renders (t.rich with a `b` tag).
+      (b as any)['__reactFiber$abc123'] = {};
+      p.append(document.createTextNode(encodeKey('Accept the ', 'k')), b);
+      document.body.appendChild(p);
+
+      commitPreview('k', 'Accept the <b>conditions</b>', 'Accept the <b>terms</b>');
+      expect(b.isConnected).toBe(true);
+      expect(p.querySelectorAll('b')).toHaveLength(1);
+    });
+
+    it('keeps the separators of a two-translation node when values are re-sent without a source', () => {
+      const p = document.createElement('p');
+      p.textContent = encodeKey('Terms', 'f.t') + ' · ' + encodeKey('Privacy', 'f.p') + ' →';
+      document.body.appendChild(p);
+
+      commitPreview('f.t', 'T2', 'Terms');
+      commitPreview('f.p', 'P2', 'Privacy');
+      expect(shown(p)).toBe('T2 · P2 →');
+      // A re-send after a navigation, or an undo, with no stored value.
+      commitPreview('f.t', 'T3');
+      commitPreview('f.p', 'P3');
+      expect(shown(p)).toBe('T3 · P3 →');
+      commitPreview('f.t', 'T3');
+      expect(shown(p)).toBe('T3 · P3 →');
+    });
+  });
+
   describe('sanitizeMarkup', () => {
     it('unwraps tags outside the allow-list and keeps their text', () => {
       const nodes = sanitizeMarkup('<div class="c"><strong class="k">a</strong><h2>b</h2></div>');

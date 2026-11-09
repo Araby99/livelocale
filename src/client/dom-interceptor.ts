@@ -19,6 +19,28 @@ import {
   type KeyJumpResult,
   type VisibleText,
 } from './iframe-bridge.js';
+import { onlyInline } from './preview.js';
+
+/** A letter or digit: text that reads as words rather than a glyph (`_`, `→`, `*`). */
+const WORDLIKE_RE = /[\p{L}\p{N}]/u;
+
+/**
+ * Whether the keyed text node `node` and everything after it in `element`
+ * look like one rich-text value rendered as HTML: the node is a direct child,
+ * the rest is inline markup holding words, and the translation does not end
+ * in a line break (template indentation before the page's own tag, as in
+ * `{t.title}\n  <span>_</span>`). A trailing tag holding only a glyph (a
+ * cursor, an arrow, a required `*`) is page decoration, not part of the value.
+ */
+function looksLikeRichRun(element: Element, node: Text, translated: string): boolean {
+  if (node.parentNode !== element) return false;
+  if (/\n\s*$/.test(translated)) return false;
+  const siblings: Node[] = [];
+  for (let next = node.nextSibling; next !== null; next = next.nextSibling) siblings.push(next);
+  if (!siblings.some((each) => each.nodeType === Node.ELEMENT_NODE)) return false;
+  if (!onlyInline(siblings)) return false;
+  return siblings.some((each) => WORDLIKE_RE.test(each.textContent ?? ''));
+}
 
 // Debounce helper: delays executing fn until after wait ms have elapsed
 // since the last call. Returns a cancel function.
@@ -590,12 +612,14 @@ export class DOMInterceptor {
   }
 
   /**
-   * The text of `key` in `element`, without watermarks. When the watermark
-   * starts the element's text and is its only one, that is the element's whole
-   * rendered text (`innerText`), as a rich-text value spread over a `<strong>`
-   * needs. When literal page text comes first (`Home / {t.crumb}`,
-   * `© 2026 {t.copy}`) or the element holds other translations too, it is only
-   * what the watermark marks in its text node.
+   * The text of `key` in `element`, without watermarks: what the watermark
+   * marks in its text node. Only when the element's content looks like one
+   * rich-text value spread over inline tags (`set:html` of
+   * `Encrypts… so <strong>only you</strong> can watch.`) is it the element's
+   * whole rendered text (`innerText`). Literal page text before the watermark
+   * (`Home / {t.crumb}`, `© 2026 {t.copy}`), other translations, and page
+   * markup after it (`{t.title}\n  <span>_</span>`, `{t.more} <span>→</span>`)
+   * never become part of the value.
    */
   private selectedText(element: HTMLElement, key: string): string {
     const node = findKeyedTextNode(element, key);
@@ -605,7 +629,7 @@ export class DOMInterceptor {
     const own = segmentText(raw, segment).trim();
     const leads = textBefore(element, node, segment.start).trim() === '';
     const alone = findWatermarks(element.textContent ?? '').length === 1;
-    if (!leads || !alone) return own;
+    if (!leads || !alone || !looksLikeRichRun(element, node, segmentText(raw, segment))) return own;
     return removeWatermarks(element.innerText || '').trim() || own;
   }
 

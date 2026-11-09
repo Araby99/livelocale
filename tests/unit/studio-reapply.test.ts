@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { valuesToReapply } from '../../src/studio/features/dashboard/hooks/reapply.js';
+import {
+  builtValuesToReapply,
+  valuesToReapply,
+} from '../../src/studio/features/dashboard/hooks/reapply.js';
 import type { HistoryEntry } from '../../src/studio/features/dashboard/hooks/useHistory.js';
 import type { Draft } from '../../src/studio/transport/drafts.js';
 
@@ -72,5 +75,50 @@ describe('valuesToReapply', () => {
       drafts: [draft({ to: 'B' })],
     });
     expect(result.size).toBe(0);
+  });
+});
+
+describe('builtValuesToReapply', () => {
+  it('preview: the value before this session, the oldest previousValue for a key', () => {
+    const entries: HistoryEntry[] = [
+      { ...entry('C', 3), previousValue: 'B' },
+      { ...entry('B', 2), previousValue: 'A' },
+      { ...entry('A', 1), previousValue: 'built' },
+      { ...entry('X', 0, 'en'), previousValue: 'other locale' },
+    ];
+    expect(
+      builtValuesToReapply({
+        mode: 'preview',
+        locale: 'ar',
+        localeConfirmed: true,
+        history: entries,
+        drafts: [],
+      })
+    ).toEqual(new Map([['home.title', 'built']]));
+  });
+
+  it("static: each draft's built value, none when the build lacks the key", () => {
+    const drafts = [draft({ from: 'مرحبا' }), draft({ key: 'home.new', from: null })];
+    expect(
+      builtValuesToReapply({
+        mode: 'static',
+        locale: 'ar',
+        localeConfirmed: true,
+        history: [],
+        drafts,
+      })
+    ).toEqual(new Map([['home.title', 'مرحبا']]));
+  });
+
+  it('development: nothing', () => {
+    expect(
+      builtValuesToReapply({
+        mode: 'development',
+        locale: 'ar',
+        localeConfirmed: true,
+        history,
+        drafts: [draft({})],
+      }).size
+    ).toBe(0);
   });
 });

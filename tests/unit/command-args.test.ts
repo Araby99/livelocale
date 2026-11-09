@@ -137,7 +137,7 @@ describe('parseStudioArgs', () => {
   );
   it('rejects a non-http --app', () =>
     expect(usage(() => parseStudioArgs(['--app', 'ftp://x']))).toMatch(
-      /^--app must be an http\(s\) origin/
+      /^--app must be an http\(s\) URL such as http:\/\/localhost:3001/
     ));
   it('takes no folder', () =>
     expect(usage(() => parseStudioArgs(['web']))).toBe(

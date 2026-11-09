@@ -129,6 +129,34 @@ describe('useSelection', () => {
     expect(result.current.inputValue).toBe('نص <strong>غني</strong>');
   });
 
+  it('prefills from the reference value when only the marked text matches it', () => {
+    const title = 'Advanced protection for your video content.';
+    const params = { ...makeParams(), localeData: {}, enLocaleData: { 'home.hero.title': title } };
+    const { result } = renderHook(() => useSelection(params));
+    // The page text holds the headline's literal cursor span as well.
+    act(() =>
+      result.current.selectElement({
+        key: 'home.hero.title',
+        fallbackValue: title,
+        currentValue: `${title} _`,
+      })
+    );
+    expect(result.current.inputValue).toBe(title);
+  });
+
+  it('prefills from the reference value when the marked text ends in a page separator', () => {
+    const params = { ...makeParams(), localeData: {}, enLocaleData: { 'footer.terms': 'Terms' } };
+    const { result } = renderHook(() => useSelection(params));
+    act(() =>
+      result.current.selectElement({
+        key: 'footer.terms',
+        fallbackValue: 'Terms ·',
+        currentValue: 'Terms ·',
+      })
+    );
+    expect(result.current.inputValue).toBe('Terms');
+  });
+
   it('keeps the page text when no stored value shows it', () => {
     const params = { ...makeParams(), localeData: {}, enLocaleData: { 'home.x': 'Other' } };
     const { result } = renderHook(() => useSelection(params));

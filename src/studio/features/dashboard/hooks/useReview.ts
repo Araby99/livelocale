@@ -198,7 +198,9 @@ export function useReview(p: UseReviewParams): {
     if (review === null || p.connectionStatus !== 'connected') return;
     for (const row of review.rows) {
       if (row.locale !== p.locale || row.status === 'invalid') continue;
-      p.sendToIframe('COMMIT_PREVIEW', { key: row.key, value: row.to });
+      // The value the target has now tells the page where the translation ends.
+      const source = row.current ?? row.from ?? undefined;
+      p.sendToIframe('COMMIT_PREVIEW', { key: row.key, value: row.to, source });
     }
   }, [review, p.connectionStatus, p.currentPath, p.visibleKeys, p.locale]);
 

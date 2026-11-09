@@ -33,8 +33,9 @@ Options for init:
 
 Options for studio:
   --port <number>    Port to run the studio server on (default: ${DEFAULT_STUDIO_PORT})
-  --app <origin>     Origin of the app being edited (default: ${DEFAULT_APP_ORIGIN})
-                     Can also be changed at run time with ?app=<origin> on the Studio URL.
+  --app <url>        URL of the app being edited (default: ${DEFAULT_APP_ORIGIN})
+                     A path, e.g. http://localhost:4321/ar/, is the page the preview opens.
+                     Can also be changed at run time with ?app=<url> on the Studio URL.
 
 Options for doctor:
   --dir <path>       Project directory to inspect (default: current directory)

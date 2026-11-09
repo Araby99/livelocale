@@ -98,7 +98,7 @@ export function parseStudioArgs(argv: string[]): StudioArgs {
       }
     } catch {
       throw new UsageError(
-        `--app must be an http(s) origin such as http://localhost:3001 (got "${app}").`
+        `--app must be an http(s) URL such as http://localhost:3001 (got "${app}").`
       );
     }
   }

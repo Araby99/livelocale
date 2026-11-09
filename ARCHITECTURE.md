@@ -261,11 +261,16 @@ resolves the Studio origin in this order: a readable same-origin parent (a Studi
 `livelocale-origin` query parameter (remembered for the tab), the origin remembered for the tab,
 then `http://localhost:3010`. `APPLY_PREVIEW` (`preview.ts`) swaps the text a watermark marks,
 keeping literal page text around it, and remembers the original; `CLEAR_SELECTION` restores it;
-`COMMIT_PREVIEW` applies a saved value and forgets the original so it stays. Both may carry
-`source`, the stored value the page shows: with it, the literal text after a plain translation is
+`COMMIT_PREVIEW` applies a saved value and forgets the original so it stays (a rich value keeps
+it, so the page's own nodes can still be put back). Both may carry `source`, the value the page
+shows (the Studio sends it on every preview, resend, undo and review overlay; the client also
+remembers the last value saved per key): with it, the literal text after a plain translation is
 kept, and a rich-text value (rendered with `set:html`) is matched to the run of nodes it fills.
 A value with markup is rendered as markup only in such an element, parsed in an inert `<template>`
-and limited to inline tags and safe attributes; the original nodes are put back on restore.
+and limited to inline tags and safe attributes; the original nodes are put back on restore. A
+plain `source`, a `source` with tags outside that list (next-intl `<link>`), or nodes React or
+Vue rendered (next-intl `t.rich`) always mean a text-only preview, so framework-owned nodes are
+never taken out of the page.
 Re-applying an unchanged value is a no-op, so the Studio can resend saved values without
 triggering mutation loops. Right after each
 `VISIBLE_KEYS_CHANGED`, the client reports up to 100 visible key/text pairs
