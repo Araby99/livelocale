@@ -18,7 +18,7 @@ livelocale writes to your locale files in two ways: a share link proposes edits 
 
 ## The dev server
 
-The mutation API is the route the Studio saves through: `/api/livelocale`, from `createLiveLocaleHandler` in the Next.js route `init` writes, or from `liveLocaleVite` on the Vite dev server. Both cap a request body at 1,000,000 bytes, then pass every request through the same checks, in this order:
+The mutation API is the route the Studio saves through: `/api/livelocale`, from `createLiveLocaleHandler` in the Next.js route `init` writes, or from `liveLocaleVite` on the Vite dev server, which the Astro integration adds to `astro dev`. Both cap a request body at 1,000,000 bytes, then pass every request through the same checks, in this order:
 
 1. **It runs only while livelocale is on.** Otherwise every request gets `403` with the reason, such as `NODE_ENV` not being `development` or the [kill switch](./safety-switches.md#kill-switch).
 2. **Preview mode needs a token.** In preview mode the API refuses every request until `LIVELOCALE_TOKEN` (or `authToken`) is set on the server.

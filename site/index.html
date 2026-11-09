@@ -20,7 +20,7 @@
     <title>livelocale: a review layer for next-intl or react-i18next</title>
     <meta
       name="description"
-      content="livelocale is a free layer on top of next-intl or react-i18next for React sites: your content people fix text on the real site, and you get a pull request."
+      content="livelocale is a free layer on top of next-intl or react-i18next for React and Astro: your content people fix text on the real site, and you get a pull request."
     />
     <link rel="canonical" href="%VITE_SITE_URL%" />
     <meta name="theme-color" content="#0C0D0F" />
@@ -32,7 +32,7 @@
     <meta property="og:title" content="livelocale: Stop collecting screenshots." />
     <meta
       property="og:description"
-      content="livelocale is a free layer on top of next-intl or react-i18next for React sites: your content people fix text on the real site, and you get a pull request."
+      content="livelocale is a free layer on top of next-intl or react-i18next for React and Astro: your content people fix text on the real site, and you get a pull request."
     />
     <meta property="og:url" content="%VITE_SITE_URL%" />
     <meta property="og:image" content="%VITE_SITE_URL%og-image.png" />
@@ -47,7 +47,7 @@
     <meta name="twitter:title" content="livelocale: Stop collecting screenshots." />
     <meta
       name="twitter:description"
-      content="livelocale is a free layer on top of next-intl or react-i18next for React sites: your content people fix text on the real site, and you get a pull request."
+      content="livelocale is a free layer on top of next-intl or react-i18next for React and Astro: your content people fix text on the real site, and you get a pull request."
     />
     <meta name="twitter:image" content="%VITE_SITE_URL%og-image.png" />
     <meta
@@ -295,9 +295,9 @@
                 <h3>Install it and run init</h3>
                 <p>
                   One dependency, with no dependencies of its own. <code>init</code> sets up a
-                  Next.js app; on Vite you add the plugin. <code>init --share</code> adds share
-                  links for any static host and, on GitHub, the workflow that turns them into pull
-                  requests.
+                  Next.js app; on Vite you add the plugin, on Astro the integration.
+                  <code>init --share</code> adds share links for any static host and, on GitHub, the
+                  workflow that turns them into pull requests.
                 </p>
               </div>
               <pre class="code step-art"><code><span class="c-prompt">$</span> npm i livelocale
@@ -410,7 +410,7 @@
                   before either ships.
                 </p>
                 <p class="step-note">
-                  It reads JSX only, not page metadata or text built at run time.
+                  It reads JSX and Astro templates, not page metadata or text built at run time.
                   <a href="docs/guides/ci-check.html#what-it-does-not-see">What it does not see</a>
                 </p>
               </div>
@@ -462,6 +462,10 @@
                   and
                   <span lang="ar" dir="rtl" class="ar-sample">ابدأ تجربتك المجانية</span> goes into
                   the button that had no Arabic yet.
+                </p>
+                <p class="step-note">
+                  Can’t find the text on the page? Search the Locale Directory and pick it: the page
+                  scrolls to the text and outlines it.
                 </p>
               </div>
               <figure class="step-art shot">
@@ -715,7 +719,7 @@
             <summary>Which i18n libraries does it work with?</summary>
             <p>
               Keep next-intl or react-i18next: wrap the <code>t</code> you already have with
-              <code>wrapTranslationEngine</code>. In Server Components,
+              <code>wrapTranslationEngine</code>. In Server Components and Astro pages,
               <code>createTranslations</code> loads your JSON locale files directly.
               <a href="docs/">Pick your stack in the docs</a>
             </p>
@@ -724,9 +728,9 @@
             <summary>Does it work with a static export?</summary>
             <p>
               Yes. For Next.js <code>output: 'export'</code>,
-              <code>livelocale build --preview -- next build</code> watermarks the pre-rendered pages
-              and packs the Studio into the build. Deploy that build to a staging location, not to
-              production.
+              <code>livelocale build --preview -- next build</code> watermarks the pre-rendered
+              pages and packs the Studio into the build (on Astro, <code>-- astro build</code>).
+              Deploy that build to a staging location, not to production.
               <a href="docs/reference/cli/build.html">Read the build reference</a>
             </p>
           </details>
@@ -764,6 +768,10 @@
               <dd>The Studio runs beside <code>vite</code>.</dd>
             </div>
             <div>
+              <dt>Astro</dt>
+              <dd>One line in <code>astro.config</code>, no React needed.</dd>
+            </div>
+            <div>
               <dt>Any static host</dt>
               <dd><code>init --share</code> adds share links to the build you already deploy.</dd>
             </div>
@@ -795,7 +803,8 @@
             </button>
             <p class="start-note">
               Run it in a Next.js app after <code>npm install livelocale</code>. On Vite, add the
-              plugin instead: <a href="docs/start/vite.html">Vite + React</a>.
+              plugin instead: <a href="docs/start/vite.html">Vite + React</a>. On Astro, add the
+              integration: <a href="docs/start/astro.html">Astro</a>.
             </p>
             <p class="start-links">
               <a href="docs/">Read the docs</a>

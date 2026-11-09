@@ -54,12 +54,12 @@ It exits 1 on a blocking problem, 0 when only warnings remain. Fix each marked l
 
 ## CI check
 
-| Symptom                                        | Fix                                                                                  |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Exit code 2 with `--hardcoded`                 | `npm install -D typescript`; the JSX scan uses the project's own copy.               |
-| "Locales directory not found"                  | The files are not in `locales`: `npx livelocale check --locales <path>`.             |
-| Keys built at run time reported unused         | They cannot be detected: review before deleting, or pass `--no-unused`.              |
-| A brand name reported as hardcoded             | Add it to `livelocale.allow`, or `--allow <word>` for one run.                       |
-| Vue, Svelte, Angular or HTML text is not found | Only JSX is scanned; text built at run time and object literals are not seen either. |
+| Symptom                                        | Fix                                                                                                       |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Exit code 2 with `--hardcoded`                 | `npm install -D typescript`; the JSX scan uses the project's own copy (`.astro` files need none).         |
+| "Locales directory not found"                  | The files are not in `locales`: `npx livelocale check --locales <path>`.                                  |
+| Keys built at run time reported unused         | They cannot be detected: review before deleting, or pass `--no-unused`.                                   |
+| A brand name reported as hardcoded             | Add it to `livelocale.allow`, or `--allow <word>` for one run.                                            |
+| Vue, Svelte, Angular or HTML text is not found | Only JSX and Astro templates are scanned; text built at run time and object literals are not seen either. |
 
 Full pages: https://livelocale.js.org/docs/guides/teams.html, https://livelocale.js.org/docs/guides/share-links.html#hosting-notes, https://livelocale.js.org/docs/guides/ci-check.html#what-it-does-not-see

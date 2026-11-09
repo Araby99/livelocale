@@ -140,7 +140,7 @@ jobs:
       - run: npx livelocale check --hardcoded
 ```
 
-The step fails when the command exits with code 1 (a problem) or 2 (the check could not run: a mistyped flag, a missing or empty locales folder, or `typescript` not installed for `--hardcoded`). A typo in a flag fails the job instead of turning the check off. Add `--strict` when warnings should fail the job too, and `--locales <path>` when your locale files are not in `locales`.
+The step fails when the command exits with code 1 (a problem) or 2 (the check could not run: a mistyped flag, a missing or empty locales folder, or `typescript` not installed for `--hardcoded` on JSX files). A typo in a flag fails the job instead of turning the check off. Add `--strict` when warnings should fail the job too, and `--locales <path>` when your locale files are not in `locales`.
 
 ## What it does not see
 

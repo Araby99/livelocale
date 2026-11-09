@@ -1,11 +1,11 @@
 ---
 name: livelocale
-description: Set up and use livelocale, the npm package that lets anyone fix a React site's text on the running site (Alt+Click in the Studio) and turns the fixes into locale-file edits or pull requests. Use when adding livelocale to a Next.js App Router, Vite + React, Astro or static-host project; when turning on share links (init --share, change links, the GitHub workflow); when adding npx livelocale check or check --hardcoded to CI; when fixing a livelocale setup that does not work (blank preview, no clickable text, 404 from the API, doctor failures); or when migrating from next-i18n-lens.
+description: Set up and use livelocale, the npm package that lets anyone fix a React or Astro site's text on the running site (Alt+Click in the Studio) and turns the fixes into locale-file edits or pull requests. Use when adding livelocale to a Next.js App Router, Vite + React, Astro or static-host project; when turning on share links (init --share, change links, the GitHub workflow); when adding npx livelocale check or check --hardcoded to CI; when fixing a livelocale setup that does not work (blank preview, no clickable text, 404 from the API, doctor failures); or when migrating from next-i18n-lens.
 ---
 
 # livelocale
 
-livelocale (npm `livelocale`, MIT, no runtime dependencies, Node.js 18 or later) adds a Studio to a React app: a person holds Alt, clicks wrong text on the real page, fixes it in any language, and the fix lands in the app's JSON locale files, or arrives as a pull request from a deployed site. `npx livelocale check` fails CI on missing keys, and `--hardcoded` also on text that never went through translation.
+livelocale (npm `livelocale`, MIT, no runtime dependencies, Node.js 18 or later) adds a Studio to a React or Astro site: a person holds Alt, clicks wrong text on the real page, fixes it in any language, and the fix lands in the app's JSON locale files, or arrives as a pull request from a deployed site. `npx livelocale check` fails CI on missing keys, and `--hardcoded` also on text that never went through translation.
 
 The docs are the source of truth; each step below links its page. Every docs page is also served as Markdown (same URL ending in `.md`), and all of them in one file at https://livelocale.js.org/llms-full.txt.
 
@@ -149,7 +149,7 @@ jobs:
       - run: npx livelocale check --hardcoded
 ```
 
-Exit codes: **0** no problem, **1** a problem was found, **2** the check could not run (a mistyped flag, a missing locales folder or one with no locale files, an unknown `--source`, or `--hardcoded` without `typescript`; fix the last with `npm install -D typescript`). Every livelocale command exits 2 on an unknown flag. Problems: invalid JSON, broken ICU, a key missing from a locale, placeholder drift, and with `--hardcoded` JSX text or user-facing attributes (`alt`, `title`, `placeholder`, `aria-label`, `label`) that never went through translation. Warnings (empty values, unused keys, `untranslated`, `wrong-script`) do not fail the run unless `--strict` is passed.
+Exit codes: **0** no problem, **1** a problem was found, **2** the check could not run (a mistyped flag, a missing locales folder or one with no locale files, an unknown `--source`, or `--hardcoded` on JSX files without `typescript`; fix the last with `npm install -D typescript`, which `.astro` files do not need). Every livelocale command exits 2 on an unknown flag. Problems: invalid JSON, broken ICU, a key missing from a locale, placeholder drift, and with `--hardcoded` JSX or Astro template text or user-facing attributes (`alt`, `title`, `placeholder`, `aria-label`, `label`) that never went through translation. Warnings (empty values, unused keys, `untranslated`, `wrong-script`) do not fail the run unless `--strict` is passed.
 
 Other flags: `--locales <path>`, `--source <locale>`, `--no-unused` (keys built at run time look unused), `--allow <word>` (repeatable), `--json` (same exit code; when the check could not run, the report has an `error` field).
 
@@ -157,6 +157,7 @@ Opt-outs, when a finding is intended:
 
 - `// livelocale-ignore-next-line`, or `{/* livelocale-ignore-next-line */}` inside JSX, on the line above the text or above the element that holds it.
 - `// livelocale-ignore-file` at the top of a file.
+- In an `.astro` template, `<!-- livelocale-ignore-next-line -->` and `<!-- livelocale-ignore-file -->` work too.
 - A `livelocale.allow` file at the project root: one word or phrase per line (brand names), `key:<dotted.key>` to exempt a key from `untranslated` and `wrong-script`, `#` for comments.
 
 Fix real findings by moving the text into the locale files and looking it up with `t`; use opt-outs only for text that is the same in every language. Do not add `--strict` unless the user asks: it turns warnings into failures.

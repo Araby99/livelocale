@@ -8,7 +8,7 @@ web
 
 ## Users
 
-- **Primary: the developer who ships a multi-language website** (Next.js, Vite, React, any static host). They are worn out by the localisation grind: before launch, a pile of screenshots of wrong copy with red circles from colleagues; on launch day, hardcoded or untranslated text and missing keys found in production, often in the language they don't read (Arabic, right to left). They install the package, wire it into the app and CI, and own the pull requests.
+- **Primary: the developer who ships a multi-language website** (Next.js, Vite, React, Astro, any static host). They are worn out by the localisation grind: before launch, a pile of screenshots of wrong copy with red circles from colleagues; on launch day, hardcoded or untranslated text and missing keys found in production, often in the language they don't read (Arabic, right to left). They install the package, wire it into the app and CI, and own the pull requests.
 - **Secondary: the people who fix the text** (copywriters, translators, content and product people, the client). They are not developers and have no git account. They open a share link, hold Alt, click the wrong text on the real site, fix it in any language, and press Send.
 - **First visitor of the landing page:** a skeptical developer arriving from Reddit, LinkedIn or a GitHub/npm link, deciding in seconds whether to try it. Success: they try it and install it.
 
@@ -26,14 +26,14 @@ livelocale lets anyone on a team fix a website's text on the website itself, in 
 
 ## Operating Context
 
-- Developer: `npm install livelocale` (a regular dependency), `npx livelocale init` (or `init --share` for share links on any static host), the dev Studio beside `next dev`/`vite`, `npx livelocale check --hardcoded` in GitHub Actions or any CI.
+- Developer: `npm install livelocale` (a regular dependency), `npx livelocale init` (or `init --share` for share links on any static host), the dev Studio beside `next dev`/`vite`/`astro dev`, `npx livelocale check --hardcoded` in GitHub Actions or any CI.
 - Share mode: `livelocale pack` builds a static share Studio; the fixer opens the link, edits, and sends a change link. On GitHub the generated workflow turns it into a pull request in one click; on other git hosts `npx livelocale apply "<link>" --pr`.
 - The Studio wraps the site in a preview panel with a keys directory and an editor side panel; it has light and dark themes and English/Arabic UI.
 
 ## Capabilities and Constraints
 
-- Supports Next.js, Vite, React (react-i18next, next-intl and similar JSON catalogues), static hosts; GitHub one-click pull requests; other git hosts via `apply --pr`.
-- Current release: 0.11.0 (npm `latest`), MIT, no runtime dependencies, Node ≥ 18.
+- Supports Next.js, Vite, React (react-i18next, next-intl and similar JSON catalogues), Astro (no React needed), static hosts; GitHub one-click pull requests; other git hosts via `apply --pr`.
+- Released on npm as `livelocale` (`latest`), MIT, no runtime dependencies, Node ≥ 18.
 - Nothing is ever sent anywhere from a public demo; the landing page makes no network requests to third parties and has no analytics or tracking.
 - The landing page lives in this repository under `site/`, is built with Vite to static files and deployed to GitHub Pages; the target domain is `livelocale.js.org` (claimed by a js.org pull request, owner action). It goes live only when the owner turns on `SITE_LIVE`.
 - Undecided: whether `npx livelocale theme` and a GitHub-annotations output format for `check` become features.
