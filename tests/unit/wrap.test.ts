@@ -2,7 +2,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { types } from 'util';
 import { resolveTranslations, wrapTranslationEngine, wrapNextIntl } from '../../src/client/wrap.js';
-import { decodeKey } from '../../src/client/watermark.js';
+import { decodeKey, unwrap } from '../../src/client/watermark.js';
 
 const { isProxy } = types;
 
@@ -245,5 +245,94 @@ describe('resolveTranslations', () => {
     });
     expect(plain.plural).toBe(fallback.plural);
     expect(resolveTranslations(record, { watermark: false })).toBe(record);
+  });
+});
+
+describe('wrapTranslationEngine enumeration', () => {
+  beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'development');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  // A namespace the locale has as an empty file, as in a half-translated site: every key of
+  // it comes from the fallback, and one of them is an array.
+  const record = { faq: {}, home: { title: 'Accueil', items: ['un'] }, count: 2 } as Record<
+    string,
+    any
+  >;
+  const fallback = {
+    faq: { title: 'FAQ', sections: [{ q: 'Why?', a: 'Because.' }] },
+    home: { title: 'Home', lead: 'Welcome', items: ['one', 'two'] },
+    count: 5,
+    extra: { note: 'Note' },
+  };
+  const proxy = () => wrapTranslationEngine(record, { fallback }) as Record<string, any>;
+  const plain = () => resolveTranslations(record, { fallback, watermark: true });
+  const production = () => resolveTranslations(record, { fallback, watermark: false });
+
+  it('lists the keys only the fallback has, as the plain and production objects do', () => {
+    expect(Object.keys(proxy())).toEqual(Object.keys(plain()));
+    expect(Object.keys(proxy().faq)).toEqual(['title', 'sections']);
+    expect(Object.keys(proxy().home)).toEqual(Object.keys(production().home));
+    expect(Object.keys(proxy()).sort()).toEqual(Object.keys(production()).sort());
+  });
+
+  it('finds an array that only the fallback has through Object.values', () => {
+    const sections = Object.values(proxy().faq).find(Array.isArray);
+    expect(sections).toBeDefined();
+    expect(Array.isArray(sections)).toBe(true);
+    expect(unwrap(sections)).toEqual(Object.values(production().faq).find(Array.isArray));
+  });
+
+  it('gives the same entries, values and spread as the plain object', () => {
+    expect(Object.entries(proxy().faq).map(([k]) => k)).toEqual(
+      Object.entries(plain().faq).map(([k]) => k)
+    );
+    expect(Object.values(proxy().home)[0]).toBe(Object.values(plain().home)[0]);
+    expect(unwrap({ ...proxy().faq })).toEqual({ ...production().faq });
+    expect(decodeKey({ ...proxy().faq }.title)).toEqual({ key: 'faq.title', cleanText: 'FAQ' });
+  });
+
+  it('answers `in` and hasOwnProperty for fallback keys', () => {
+    expect('sections' in proxy().faq).toBe(true);
+    expect('lead' in proxy().home).toBe(true);
+    expect('missing' in proxy().home).toBe(false);
+    expect(Object.prototype.hasOwnProperty.call(proxy().faq, 'title')).toBe(true);
+    expect(Object.getOwnPropertyDescriptor(proxy().faq, 'title')).toEqual({
+      value: proxy().faq.title,
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
+  });
+
+  it('serializes every key through JSON.stringify with the watermarks a read gives', () => {
+    expect(JSON.parse(JSON.stringify(proxy()))).toEqual(JSON.parse(JSON.stringify(plain())));
+  });
+
+  it('keeps the record array whole and still an array', () => {
+    const items = proxy().home.items;
+    expect(Array.isArray(items)).toBe(true);
+    expect(Object.keys(items)).toEqual(['0']);
+    expect(unwrap([...items])).toEqual(['un']);
+    expect(JSON.parse(JSON.stringify(proxy().home)).items).toHaveLength(1);
+  });
+
+  it('respects the Proxy invariants of a frozen record', () => {
+    const frozen = Object.freeze({ title: 'Accueil' });
+    const wrapped = wrapTranslationEngine(frozen, { fallback: { lead: 'Welcome' } }) as any;
+    expect(Object.keys(wrapped)).toEqual(['title']);
+    expect('lead' in wrapped).toBe(false);
+    expect(Object.getOwnPropertyDescriptor(wrapped, 'title')?.value).toBe('Accueil');
+  });
+
+  it('leaves a translation function as it is', () => {
+    const t = Object.assign((key: string) => key, { raw: () => 'raw' });
+    const wrapped = wrapTranslationEngine(t, { fallback: { title: 'Home' } });
+    expect(Object.keys(wrapped)).toEqual(['raw']);
+    expect(typeof wrapped).toBe('function');
   });
 });
