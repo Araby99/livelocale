@@ -61,6 +61,16 @@ describe('liveLocale() Astro integration', () => {
     expect(liveLocale({ localesPath: './locales' }).name).toBe('livelocale');
   });
 
+  it('uses only hooks that Astro 5, the oldest supported version, has', () => {
+    // Astro 5 is the documented floor: astro:config:setup (with updateConfig, injectScript
+    // 'page' and addMiddleware) and astro:build:done (with dir and logger) all exist there.
+    // A new hook here needs checking against Astro 5, or a major release to raise the floor.
+    expect(Object.keys(liveLocale({ localesPath: './locales' }).hooks).sort()).toEqual([
+      'astro:build:done',
+      'astro:config:setup',
+    ]);
+  });
+
   it('in astro dev adds the Vite plugin, the head middleware and the client script', () => {
     const { calls, plugins } = setup('dev');
     expect(plugins().map((p) => p.name)).toEqual(['livelocale', 'livelocale:astro-middleware']);

@@ -30,7 +30,7 @@ It worked when it prints its usage, starting with:
 ::: details Didn't work?
 
 - Run both commands in the folder that holds your site's `package.json`, so `npx` finds the copy npm just installed.
-- livelocale needs Node.js 18 or later. Astro 7 needs Node.js 22.
+- livelocale needs Node.js 18 or later, and works with Astro 5 or later. Astro 6 and 7 need Node.js 22.
 - Once `astro dev` runs with the integration (steps 2 and 3), `npx livelocale doctor --app http://localhost:4321` checks the setup for you.
 
 :::
@@ -208,6 +208,22 @@ integrations: [liveLocale({ localesPath: './locales', fallbackNamespaces: [] })]
 ```
 
 List a namespace that only browser code reads through `wrapTranslationEngine`, such as a `client:only` island: `fallbackNamespaces: ['checkout']`. If code in the browser reads a key from a namespace the page left out, the browser console names that namespace. The text shows what production shows, so it does not go blank without a warning.
+
+## Strip watermarks in an island
+
+When an island compares, measures or stores a translated string, clean it with `unwrap`, and import it from `livelocale/strip`:
+
+```tsx
+// src/components/Counter.tsx
+import { unwrap } from 'livelocale/strip';
+
+export default function Counter({ labels }: { labels: { yes: string } }) {
+  const isYes = (answer: string) => answer === unwrap(labels.yes);
+  // ...
+}
+```
+
+`livelocale/strip` holds only `unwrap`, `sanitizeZeroWidth` and `removeWatermarks`, with no side effects, so `astro build` ships these few functions. Imported from `livelocale/client`, the same `unwrap` brings the whole in-page client into the island's production chunk, because that entry starts the client when it loads. See [`unwrap`](../reference/configuration.md#unwrap).
 
 ## Preview builds and share links
 

@@ -16,13 +16,13 @@ In development every translated string starts with [invisible characters](./wate
 | A value saved from a form contains zero-width characters                    | the input guards were bypassed (custom components) | call `sanitizeZeroWidth` before submitting                    |
 
 ```ts
-import { unwrap, sanitizeZeroWidth } from 'livelocale/client';
+import { unwrap, sanitizeZeroWidth } from 'livelocale/strip';
 
 unwrap(t('yes')) === 'Yes';
 const clean = sanitizeZeroWidth(input.value);
 ```
 
-Both are exported from `livelocale/client` and `livelocale/server`.
+Both are exported from `livelocale/strip`, `livelocale/client` and `livelocale/server`. In browser code, import them from `livelocale/strip`: it has no side effects, so a production bundle gets only these helpers.
 
 - [`unwrap`](../reference/configuration.md#unwrap) is deep: it cleans strings inside arrays and plain objects, and never changes its input.
 - [`sanitizeZeroWidth`](../reference/configuration.md#sanitizezerowidth) removes every zero-width space, joiner and non-joiner, including the ones Persian, Urdu and Thai text needs. For text a person reads, `removeWatermarks` removes only complete watermarks and keeps the rest.

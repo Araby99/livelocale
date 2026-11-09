@@ -9,6 +9,8 @@ export default defineConfig({
     'codemod/index': 'src/codemod/index.ts',
     'astro/index': 'src/astro/index.ts',
     'astro/middleware': 'src/astro/middleware.ts',
+    // The watermark helpers alone: no client, no environment checks, no side effects.
+    'strip/index': 'src/strip/index.ts',
   },
   format: ['cjs', 'esm'],
   dts: true,
@@ -18,4 +20,3 @@ export default defineConfig({
   minify: false,
   external: ['next', 'react', 'react-dom', 'fs', 'path', 'typescript', 'vite', 'astro'],
 });
-

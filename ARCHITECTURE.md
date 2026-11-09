@@ -70,7 +70,7 @@ still open and still holds a change block.
 
 ## Packages and entry points
 
-The library ships one npm package with seven entry points (see `tsup.config.ts`):
+The library ships one npm package with eight entry points (see `tsup.config.ts`):
 
 | Entry                         | Source                      | Runs in                             | Purpose                                             |
 | ----------------------------- | --------------------------- | ----------------------------------- | --------------------------------------------------- |
@@ -80,6 +80,7 @@ The library ships one npm package with seven entry points (see `tsup.config.ts`)
 | `livelocale/vite`             | `src/server/vite-plugin.ts` | Node (Vite dev server and build)    | Mutation API as Vite middleware                     |
 | `livelocale/astro`            | `src/astro/index.ts`        | Node (Astro config hooks)           | Integration: Vite plugin, head, client              |
 | `livelocale/astro/middleware` | `src/astro/middleware.ts`   | Node (Astro dev and preview builds) | Puts the mode flag and fallback strings in `<head>` |
+| `livelocale/strip`            | `src/strip/index.ts`        | Anywhere (no side effects)          | `unwrap` and the zero-width helpers, nothing else   |
 | `npx livelocale` (bin)        | `src/codemod/index.ts`      | Node CLI                            | `init`, `studio`, `migrate`                         |
 
 The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and served by the CLI.

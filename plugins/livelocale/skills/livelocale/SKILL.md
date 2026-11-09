@@ -170,7 +170,7 @@ Fix real findings by moving the text into the locale files and looking it up wit
 - An auth middleware that redirects the API: exclude it, `matcher: ['/((?!api/livelocale).*)']`.
 - Studio away from `localhost` (Codespaces, Gitpod): set `LIVELOCALE_ALLOWED_ORIGINS` to the Studio origin in the app's dev process, then restart the dev server. See https://livelocale.js.org/docs/guides/teams.html
 - App on another port: `npx livelocale studio --app http://localhost:3001`; Studio port taken: `--port <number>`.
-- In development every wrapped string starts with invisible characters, so `t('yes') === 'Yes'` and length checks fail. Compare `unwrap(t('yes'))`, and pass form values through `sanitizeZeroWidth` before submitting; both come from `livelocale/client`. Tests that compare text run with `LIVELOCALE=off`. See https://livelocale.js.org/docs/how-it-works/watermark-pitfalls.html
+- In development every wrapped string starts with invisible characters, so `t('yes') === 'Yes'` and length checks fail. Compare `unwrap(t('yes'))`, and pass form values through `sanitizeZeroWidth` before submitting; both come from `livelocale/strip` (no side effects, so a production bundle gets only these helpers; `livelocale/client` also exports them but starts the client on import). Tests that compare text run with `LIVELOCALE=off`. See https://livelocale.js.org/docs/how-it-works/watermark-pitfalls.html
 - Never invent flags: the full list is in `npx livelocale --help` and https://livelocale.js.org/docs/reference/cli/
 
 More symptoms and the doctor line that names each one: [references/troubleshooting.md](references/troubleshooting.md).

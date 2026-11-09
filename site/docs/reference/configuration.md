@@ -14,6 +14,7 @@ livelocale has no config file. You configure it where you call it: the route han
 | `livelocale/react`  | `LiveLocaleProvider`                                                                                                                                                                    |
 | `livelocale/vite`   | `liveLocaleVite`                                                                                                                                                                        |
 | `livelocale/astro`  | `liveLocale` (the default export)                                                                                                                                                       |
+| `livelocale/strip`  | `unwrap`, `sanitizeZeroWidth`, `removeWatermarks`, with no side effects                                                                                                                 |
 
 ## `createLiveLocaleHandler`
 
@@ -218,22 +219,24 @@ The mode livelocale runs in, worked out from the environment on every call. `isL
 ## `unwrap`
 
 ```ts
-import { unwrap } from 'livelocale/client';
+import { unwrap } from 'livelocale/strip';
 
 unwrap(t('yes')) === 'Yes';
 ```
 
-Removes the watermark from a translated value, wherever a string is compared, measured or stored rather than shown. It is deep: strings inside arrays and plain objects are cleaned too, and its input is never changed. Exported from `livelocale/client` and `livelocale/server`.
+Removes the watermark from a translated value, wherever a string is compared, measured or stored rather than shown. It is deep: strings inside arrays and plain objects are cleaned too, and its input is never changed. Exported from `livelocale/strip`, `livelocale/client` and `livelocale/server`.
+
+In code that ships to the browser, import it from `livelocale/strip`. That entry holds only `unwrap`, `sanitizeZeroWidth` and `removeWatermarks` and has no side effects, so a production bundle gets these few functions. `livelocale/client` starts the in-page client when it is imported, so a bundler keeps all of it, with the mode and hosting-platform checks, even when you use only `unwrap`.
 
 ## `sanitizeZeroWidth`
 
 ```ts
-import { sanitizeZeroWidth } from 'livelocale/client';
+import { sanitizeZeroWidth } from 'livelocale/strip';
 
 const clean = sanitizeZeroWidth(input.value);
 ```
 
-Removes every zero-width space, joiner and non-joiner from a string, for a form value about to be submitted. It also removes the ones Persian, Urdu and Thai text needs, so for text a person reads, `removeWatermarks` removes only complete watermarks and keeps the rest. Exported from `livelocale/client` and `livelocale/server`.
+Removes every zero-width space, joiner and non-joiner from a string, for a form value about to be submitted. It also removes the ones Persian, Urdu and Thai text needs, so for text a person reads, `removeWatermarks` removes only complete watermarks and keeps the rest. Exported from `livelocale/strip`, `livelocale/client` and `livelocale/server`.
 
 ## `livelocale.allow`
 
