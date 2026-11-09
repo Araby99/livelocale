@@ -17,9 +17,11 @@ Start the Studio next to your app's dev server:
 npx livelocale studio --port 3010 --app http://localhost:3000
 ```
 
-Open `http://localhost:3010`. `--app` defaults to `http://localhost:3000`, and you can switch apps without restarting by opening `http://localhost:3010/?app=http://localhost:3001`. Every flag is on the [`studio` reference](../reference/cli/studio.md).
+Open `http://localhost:3010`. `--app` defaults to `http://localhost:3000`, and you can switch apps without restarting by opening `http://localhost:3010/?app=http://localhost:3001`. A path in `?app=` or `--app` picks the page the preview opens first: `?app=http://localhost:4321/ar/` opens `/ar/`. Every flag is on the [`studio` reference](../reference/cli/studio.md).
 
 Hold Alt and click any translated text in the preview to open its key in the editor, or pick the key from the **Locale Directory**, which searches keys and values and can show only the keys on the current page. The editor shows the key, the reference text and the translation. A key picked from the directory also scrolls the preview to its text and outlines it. If the text is in a closed menu or not on this page, the editor says so, and you can still edit it. Type the fix and press **Save Changes**. The **Locale** menu in the editor picks the language you edit.
+
+The preview shows your text as you type, and puts the page back when you leave the key without saving. Only the translation changes: literal text around it on the page, such as `© 2026 ` before a footer line or `Home / ` before a breadcrumb, stays. A value with markup that the page renders as HTML (Astro's `set:html`, React's `dangerouslySetInnerHTML`) previews as markup, with inline tags such as `<strong>`, `<em>` and `<a href>` only; scripts, styles and event handlers never reach the page. The editor starts from the stored value, markup included, so saving never drops a tag the page shows as formatting.
 
 ## Review and commit
 
