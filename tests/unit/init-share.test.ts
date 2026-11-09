@@ -282,6 +282,28 @@ describe('init --share', () => {
     );
   });
 
+  it('adds a build:preview script on Astro, never the Vite plugin change', async () => {
+    const astro = project({
+      'package.json': pkg({
+        dependencies: { astro: '^7.0.0', livelocale: '^1.0.0' },
+        devDependencies: { vite: '^8.0.0' },
+        scripts: { build: 'astro build' },
+      }),
+      'astro.config.mjs': 'export default {};\n',
+    });
+    expect(detectShareStack(astro)).toEqual({ stack: 'astro', evidence: 'Astro' });
+    const plan = await planInitShare({ projectDir: astro, version: '0.10.0', git });
+    expect(JSON.parse(fileOf(plan, 'package.json').content!).scripts).toEqual({
+      build: 'astro build',
+      'build:preview':
+        'livelocale build --preview --locales src/locales --source en -- astro build',
+    });
+    expect(plan.files.map((f) => f.path)).not.toContain('.gitignore');
+    expect(plan.notes).toContain(
+      'Use "npm run build:preview" as the build command of a staging deployment only: it watermarks every page\'s text.'
+    );
+  });
+
   it('gives the custom CI recipe for an unknown stack', async () => {
     const other = project({ 'package.json': pkg({}) });
     const plan = await planInitShare({ projectDir: other, version: '0.10.0', git });

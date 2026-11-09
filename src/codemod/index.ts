@@ -26,6 +26,7 @@ import {
 import { PackError } from '../server/pack-error.js';
 import { runApplyCommand } from './apply/cli.js';
 import { planInitShare, writePlannedFiles } from './init-share.js';
+import { astroInitSteps, isAstroProject } from './init-astro.js';
 import { readOwnVersion } from '../server/module-dir.js';
 import { findGlobalOption, UsageError, USAGE_EXIT_CODE } from './cli-args.js';
 import {
@@ -104,6 +105,12 @@ function runInit(projectDir: string) {
   if (!fs.existsSync(absoluteDir)) {
     console.error(`Error: Directory "${projectDir}" does not exist.`);
     process.exit(1);
+  }
+
+  // Astro has src/pages too: a Pages Router route written there would be an Astro endpoint.
+  if (isAstroProject(absoluteDir)) {
+    console.log(astroInitSteps());
+    return;
   }
 
   // 1. Detect TypeScript vs. JavaScript

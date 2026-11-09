@@ -95,6 +95,20 @@ describe('detectBuildTarget', () => {
     expect(config("shareBase: '/x/', database: '/y/'")).toEqual({ kind: 'vite', base: null });
   });
 
+  it('detects Astro from deps or config file, before Vite, with its base', () => {
+    expect(
+      detectBuildTarget(pkg({ dependencies: { astro: '^7.0.0' }, devDependencies: { vite: '^8' } }))
+    ).toEqual({ kind: 'astro', base: null });
+    expect(
+      detectBuildTarget(
+        write(
+          'astro.config.mjs',
+          "export default defineConfig({ base: '/docs', integrations: [liveLocale()] });\n"
+        )
+      )
+    ).toEqual({ kind: 'astro', base: '/docs' });
+  });
+
   it('falls back to other', () => {
     expect(detectBuildTarget(pkg({ dependencies: { react: '^18' } }))).toEqual({
       kind: 'other',
@@ -124,5 +138,6 @@ describe('outputCandidates', () => {
   it('orders output candidates', () => {
     expect(outputCandidates({ kind: 'cra', base: null })).toEqual(['build', 'dist', 'out']);
     expect(outputCandidates({ kind: 'vite', base: null })).toEqual(['dist', 'build', 'out']);
+    expect(outputCandidates({ kind: 'astro', base: null })).toEqual(['dist', 'build', 'out']);
   });
 });
