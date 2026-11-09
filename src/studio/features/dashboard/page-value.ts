@@ -1,7 +1,13 @@
 /** The text a stored value shows on the page: tags removed, common entities decoded. */
 function shownText(value: string): string {
-  return value
-    .replace(/<[^<>]*>/g, '')
+  // Repeat until nothing changes: one pass over `<scr<b>ipt>` would leave `<script>`.
+  let text = value;
+  let previous: string;
+  do {
+    previous = text;
+    text = text.replace(/<[^<>]*>/g, '');
+  } while (text !== previous);
+  return text
     .replace(/&nbsp;/g, ' ')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')

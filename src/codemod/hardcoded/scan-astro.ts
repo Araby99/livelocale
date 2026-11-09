@@ -1,4 +1,4 @@
-import type { AllowList } from './allow-list.js';
+import { escapeRegExp, type AllowList } from './allow-list.js';
 import { SKIPPED_ELEMENTS, TEXT_ATTRIBUTES, type HardcodedFinding } from './scan-jsx.js';
 import { isUserText, normalizeText, shortenText } from './text-filters.js';
 
@@ -170,7 +170,7 @@ function collectCandidates(text: string, from: number): Candidate[] {
       const lower = name.toLowerCase();
       if (selfClosing || VOID_ELEMENTS.has(lower)) continue;
       if (RAW_ELEMENTS.has(lower) || SKIPPED_ELEMENTS.has(name)) {
-        const closing = new RegExp(`</${name.replace(/[.]/g, '\\.')}\\s*>`, 'ig');
+        const closing = new RegExp(`</${escapeRegExp(name)}\\s*>`, 'ig');
         closing.lastIndex = i;
         const end = closing.exec(text);
         i = end ? end.index + end[0].length : text.length;

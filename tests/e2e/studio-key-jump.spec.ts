@@ -11,9 +11,9 @@ const note = (page: Page) => page.getByTestId('key-jump-note');
 
 /** The Keys list row for `key`; its name starts with the key and goes on with the value. */
 const keyRow = (page: Page, key: string) =>
-  page
-    .getByTestId('keys-directory')
-    .getByRole('button', { name: new RegExp(`^${key.replace(/\./g, '\\.')}\\b`) });
+  page.getByTestId('keys-directory').getByRole('button', {
+    name: new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`),
+  });
 
 /** Gets past the first-run tips, if they show, with a click or a tap. */
 async function dismissTips(page: Page, tap: boolean): Promise<void> {

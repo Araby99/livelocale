@@ -45,7 +45,7 @@ export function readAllowList(projectDir: string, extra: string[] = []): AllowLi
   return { words: sortWords([...parsed.words, ...extra]), keys: parsed.keys };
 }
 
-const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /** Replaces each allowed word or phrase (whole word, case-sensitive) with a space. */
 export function removeAllowed(text: string, allow: AllowList): string {
