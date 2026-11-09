@@ -5,15 +5,18 @@ import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders
 import { KeyScanner } from '../server/key-scanner.js';
 import { readAllowList } from './hardcoded/allow-list.js';
 import { isAstroFile, listComponentFiles } from './hardcoded/files.js';
-import { loadProjectTypeScript } from './hardcoded/load-typescript.js';
+import { loadProjectTypeScript, type ProjectTypeScript } from './hardcoded/load-typescript.js';
 import { findAstroHardcodedText } from './hardcoded/scan-astro.js';
-import { findHardcodedText, type TypeScriptModule } from './hardcoded/scan-jsx.js';
+import { findHardcodedText } from './hardcoded/scan-jsx.js';
 import {
   hasLetters,
   isMostlyLatin,
   isNonLatinLocale,
   primaryLanguage,
 } from './hardcoded/locale-script.js';
+
+/** A JSX element or fragment needs a `<` before a letter or `>`; a file without one has none. */
+const MAY_HOLD_JSX = /<[A-Za-z>]/;
 
 export type IssueKind =
   | 'invalid-json'
@@ -378,26 +381,28 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
   }
 
   if (allow) {
-    const files = await listComponentFiles(projectDir);
-    // TypeScript parses JSX only; an Astro-only project runs without it.
-    let ts: TypeScriptModule | null = null;
-    if (files.some((file) => !isAstroFile(file))) {
-      const loaded = await loadProjectTypeScript(projectDir);
-      if ('problem' in loaded) setupProblems = [loaded.problem];
-      else ts = loaded.ts;
-    }
-    for (const file of files) {
-      const astro = isAstroFile(file);
-      if (!astro && ts === null) continue;
+    // TypeScript is loaded only for a file that can hold JSX: .astro files have their own
+    // scanner, and a script with no `<` (astro.config.mjs) has nothing the JSX scan reports.
+    let loaded: ProjectTypeScript | null = null;
+    for (const file of await listComponentFiles(projectDir)) {
       let content: string;
       try {
         content = await fs.promises.readFile(path.join(projectDir, file), 'utf-8');
       } catch {
         continue;
       }
-      const findings = astro
-        ? findAstroHardcodedText(content, allow)
-        : findHardcodedText(ts!, content, file, allow);
+      let findings;
+      if (isAstroFile(file)) {
+        findings = findAstroHardcodedText(content, allow);
+      } else {
+        if (!MAY_HOLD_JSX.test(content)) continue;
+        loaded ??= await loadProjectTypeScript(projectDir);
+        if ('problem' in loaded) {
+          setupProblems = [loaded.problem];
+          continue;
+        }
+        findings = findHardcodedText(loaded.ts, content, file, allow);
+      }
       for (const finding of findings) {
         issues.push({
           kind: 'hardcoded',

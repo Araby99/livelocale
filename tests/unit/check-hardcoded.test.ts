@@ -223,6 +223,15 @@ describe('runCheck --hardcoded locale checks', () => {
     ]);
   });
 
+  it('needs no typescript for an Astro config file, which holds no JSX', async () => {
+    write(project, 'locales/en.json', {});
+    write(project, 'astro.config.mjs', 'export default { integrations: [] };\n');
+    write(project, 'src/pages/index.astro', '<p>Hardcoded line</p>');
+    const report = await runCheck({ projectDir: project, hardcoded: true });
+    expect('setupProblems' in report).toBe(false);
+    expect(report.issues.filter((i) => i.kind === 'hardcoded')).toHaveLength(1);
+  });
+
   it('still names the missing typescript when JSX files sit beside .astro files', async () => {
     write(project, 'locales/en.json', {});
     write(project, 'src/pages/index.astro', '<p>Hardcoded line</p>');
