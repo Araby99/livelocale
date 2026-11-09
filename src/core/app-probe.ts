@@ -73,15 +73,59 @@ export function probePath(url: URL): string {
   return url.pathname + (search ? `?${search}` : '');
 }
 
-/** True when frame-ancestors `source` lets `studioOrigin` frame a page of `appOrigin`. */
+/** The port a URL uses, filling in the scheme's default. */
+function portOf(url: URL): string {
+  if (url.port) return url.port;
+  return url.protocol === 'https:' ? '443' : url.protocol === 'http:' ? '80' : '';
+}
+
+/** True when a source scheme matches the Studio's, counting the http to https upgrade. */
+function schemeMatches(sourceScheme: string, studioScheme: string): boolean {
+  return sourceScheme === studioScheme || (sourceScheme === 'http:' && studioScheme === 'https:');
+}
+
+/**
+ * True when frame-ancestors `source` lets `studioOrigin` frame a page of `appOrigin`. A
+ * host-source is `[scheme://]host[:port][/path]`: a missing scheme takes the app page's, the
+ * host may start with `*.`, and the port may be `*`. A source this cannot parse counts as
+ * allowing, so the Studio never reports a block it is not sure of.
+ */
 function ancestorAllows(source: string, studioOrigin: string, appOrigin: string): boolean {
-  const value = source.replace(/^'|'$/g, '').toLowerCase();
+  const value = source.toLowerCase();
   if (value === '*') return true;
-  if (value === 'self') return studioOrigin === appOrigin;
-  const studio = new URL(studioOrigin);
-  if (value === studio.protocol) return true;
-  if (value.endsWith(':*')) return studioOrigin.startsWith(value.slice(0, -1));
-  return value.replace(/\/+$/, '') === studioOrigin;
+  if (value === "'self'") return studioOrigin === appOrigin;
+  // 'none' and other keywords never match an ancestor.
+  if (value.startsWith("'")) return false;
+  let studio: URL;
+  let app: URL;
+  try {
+    studio = new URL(studioOrigin);
+    app = new URL(appOrigin);
+  } catch {
+    return true;
+  }
+  if (/^[a-z][a-z0-9+.-]*:$/.test(value)) return schemeMatches(value, studio.protocol);
+  const match =
+    /^(?:([a-z][a-z0-9+.-]*:)\/\/)?(\*|(?:\*\.)?[a-z0-9.-]+|\[[0-9a-f:.]+\])(?::(\*|\d+))?(?:\/.*)?$/.exec(
+      value
+    );
+  if (!match) return true;
+  const [, scheme, host = '', port] = match;
+  if (!schemeMatches(scheme ?? app.protocol, studio.protocol)) return false;
+  const studioHost = studio.hostname.toLowerCase();
+  if (host !== '*') {
+    if (host.startsWith('*.')) {
+      if (!studioHost.endsWith(host.slice(1))) return false;
+    } else if (host !== studioHost) {
+      return false;
+    }
+  }
+  if (port === '*') return true;
+  const studioPort = portOf(studio);
+  if (port) return port === studioPort;
+  // No port: the source scheme's default port, with 80 also matching an upgraded 443.
+  const defaultPort = (scheme ?? app.protocol) === 'https:' ? '443' : '80';
+  return studioPort === defaultPort || (defaultPort === '80' && studioPort === '443');
 }
 
 /**

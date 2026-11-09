@@ -158,6 +158,13 @@ describe('IframeViewer connection diagnosis', () => {
     ],
     [{ kind: 'api-status', status: 404 }, 'The page loaded, but /api/livelocale answered 404.'],
     [{ kind: 'framing', header: 'X-Frame-Options: DENY' }, 'it sends X-Frame-Options: DENY.'],
+    [{ kind: 'framing', header: 'X-Frame-Options: SAMEORIGIN' }, 'Remove X-Frame-Options'],
+    [
+      { kind: 'framing', header: "Content-Security-Policy: frame-ancestors 'self'" },
+      'Allow http://localhost',
+    ],
+    [{ kind: 'api-status', status: 404 }, 'for Next.js run npx livelocale init'],
+    [{ kind: 'api-status', status: 404 }, 'for Vite or Astro add the plugin or integration'],
     [{ kind: 'login-redirect', host: 'vercel.com' }, 'The app redirects to vercel.com'],
     [{ kind: 'client-missing' }, englishText('viewer.diag_client_missing')],
     [{ kind: 'status-unknown', origin: 'http://localhost:3000' }, 'cannot read its status'],

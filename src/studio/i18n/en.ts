@@ -157,11 +157,13 @@ export const en = {
   'viewer.diag_page_auth': 'The page needs a sign-in that the preview does not have.',
   'viewer.diag_api_status': 'The page loaded, but {api} answered {status}.',
   'viewer.diag_api_404':
-    'The LiveLocale route or integration is missing: run {command} and restart the app.',
+    'The LiveLocale route or integration is missing: for Next.js run {command}; for Vite or Astro add the plugin or integration. Then restart the app.',
   'viewer.diag_login': 'The app redirects to {host}, which looks like a sign-in wall.',
   'viewer.diag_login_hint': 'Let the Studio through it, or turn it off for this deployment.',
   'viewer.diag_framing': 'The app forbids framing: it sends {header}.',
   'viewer.diag_framing_hint': 'Allow {studio} in that header.',
+  'viewer.diag_framing_xfo_hint':
+    'Remove X-Frame-Options while developing, or replace it with a Content-Security-Policy frame-ancestors that lists {studio}.',
   'viewer.diag_client_missing': 'The page loaded, but the LiveLocale client did not start in it.',
   'viewer.diag_client_hint':
     'Check that {provider} or the Astro or Vite integration is in the page, and that LiveLocale is on.',

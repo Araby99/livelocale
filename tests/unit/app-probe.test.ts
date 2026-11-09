@@ -131,6 +131,55 @@ describe('frameBlockOf', () => {
     ).toBeNull();
   });
 
+  it('reads host-sources without a scheme, with a wildcard host or a wildcard port', () => {
+    const csp = (value: string) => headers({ 'content-security-policy': value });
+    for (const value of [
+      "frame-ancestors 'self' localhost:*",
+      'frame-ancestors localhost:3010',
+      'frame-ancestors http:',
+      'frame-ancestors http://localhost:3010/',
+    ]) {
+      expect(frameBlockOf(csp(value), STUDIO, APP), value).toBeNull();
+    }
+    for (const value of [
+      'frame-ancestors http://*.localhost:*',
+      'frame-ancestors *.localhost:3010',
+    ]) {
+      expect(frameBlockOf(csp(value), 'http://studio.localhost:3010', APP), value).toBeNull();
+      // A wildcard host needs a subdomain.
+      expect(frameBlockOf(csp(value), STUDIO, APP), value).not.toBeNull();
+    }
+    const blocked = [
+      'frame-ancestors localhost:3333',
+      'frame-ancestors *.example.com',
+      'frame-ancestors https://localhost:3010',
+      'frame-ancestors localhost',
+      'frame-ancestors https:',
+    ];
+    for (const value of blocked) {
+      expect(frameBlockOf(csp(value), STUDIO, APP), value).toBe(
+        `Content-Security-Policy: ${value}`
+      );
+    }
+    // A scheme-less source takes the app page's scheme, and http upgrades to https.
+    expect(
+      frameBlockOf(csp('frame-ancestors localhost:3010'), 'https://localhost:3010', APP)
+    ).toBeNull();
+    expect(
+      frameBlockOf(csp('frame-ancestors localhost:3010'), STUDIO, 'https://localhost:3000')
+    ).not.toBeNull();
+  });
+
+  it('counts a frame-ancestors source it cannot parse as allowing', () => {
+    expect(
+      frameBlockOf(
+        headers({ 'content-security-policy': 'frame-ancestors ht%tp://??' }),
+        STUDIO,
+        APP
+      )
+    ).toBeNull();
+  });
+
   it('lets a page without frame headers be framed', () => {
     expect(frameBlockOf(headers({}), STUDIO, APP)).toBeNull();
   });

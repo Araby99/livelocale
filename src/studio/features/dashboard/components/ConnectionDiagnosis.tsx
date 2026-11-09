@@ -90,9 +90,16 @@ function describe(
     case 'framing':
       return {
         finding: withCode(t('viewer.diag_framing'), { header: <Code>{diagnosis.header}</Code> }),
-        hint: withCode(t('viewer.diag_framing_hint'), {
-          studio: <Code>{window.location.origin}</Code>,
-        }),
+        hint: withCode(
+          t(
+            /^x-frame-options:/i.test(diagnosis.header)
+              ? 'viewer.diag_framing_xfo_hint'
+              : 'viewer.diag_framing_hint'
+          ),
+          {
+            studio: <Code>{window.location.origin}</Code>,
+          }
+        ),
       };
     case 'client-missing':
       return {

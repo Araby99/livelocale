@@ -134,7 +134,7 @@ The Studio shows **Connecting to Project** until the LiveLocale client in the pa
 | Nothing is answering at `http://localhost:3000`                | The app is not running, or runs on another port: pass that port to `studio --app`.                                       |
 | The app answered **500** at `/en`                              | The page fails on the server: the error is in the app's terminal. A 404 means the page does not exist.                   |
 | The page loaded, but `/api/livelocale` answered **404**        | The route or the integration is missing: `npx livelocale init` for Next.js, the plugin or integration for Vite or Astro. |
-| The app forbids framing: it sends `X-Frame-Options: DENY`      | Allow the Studio origin in that header while developing.                                                                 |
+| The app forbids framing: it sends `X-Frame-Options: DENY`      | Remove `X-Frame-Options` while developing, or replace it with `frame-ancestors` that lists the Studio origin.            |
 | The page loaded, but the LiveLocale client did not start in it | `LiveLocaleProvider`, or the Astro or Vite integration, is not in the page, or LiveLocale is off.                        |
 
 **Check again** asks once more after a fix; reload the preview once the app answers. On a share link the Studio reads the page's status itself. A Studio served some other way than `npx livelocale studio` or a share link can only tell whether something answered, and says so. [`doctor --app`](../reference/cli/doctor.md) checks the same things from the command line.
