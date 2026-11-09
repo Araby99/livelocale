@@ -15,7 +15,7 @@ function steps(md: string): string[] {
     .map((step) => step.split(/^## /m)[0]!);
 }
 
-it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
+it.each(['start/nextjs.md', 'start/vite.md', 'start/astro.md', 'start/static-host.md'])(
   '%s shows what "it worked" looks like after every step',
   (file) => {
     const md = page(file);
@@ -39,7 +39,7 @@ it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
   }
 );
 
-it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
+it.each(['start/nextjs.md', 'start/vite.md', 'start/astro.md', 'start/static-host.md'])(
   '%s ends with the three next steps',
   (file) => {
     const md = page(file);
@@ -58,6 +58,11 @@ it.each(['start/nextjs.md', 'start/vite.md', 'start/static-host.md'])(
 it('opens the docs on the stack picker, not an overview', () => {
   const md = page('index.md');
   expect(md).toContain('<StackPicker');
-  for (const href of ['start/nextjs.html', 'start/vite.html', 'start/static-host.html'])
+  for (const href of [
+    'start/nextjs.html',
+    'start/vite.html',
+    'start/astro.html',
+    'start/static-host.html',
+  ])
     expect(md).toContain(href);
 });

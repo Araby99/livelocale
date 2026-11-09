@@ -73,7 +73,7 @@ Also finds text never passed through translation, and translations left identica
 | `untranslated`: a translation identical to the source locale                              | warning |
 | `wrong-script`: a translation mostly in Latin letters for a non-Latin locale (`ar`, `ja`) | warning |
 
-Each finding prints its file, line and column, and the source text shortened to 60 characters; translation values are never printed. The JSX scan uses your project's own `typescript` (`npm install -D typescript`); without it the other checks still run and the command exits with code 2. Without `--hardcoded`, `check` behaves as it did before the flag existed.
+Each finding prints its file, line and column, and the source text shortened to 60 characters; translation values are never printed. The JSX scan uses your project's own `typescript` (`npm install -D typescript`); without it the other checks still run and the command exits with code 2. `.astro` templates are scanned without `typescript`. The key scan reads `.astro` files too, frontmatter and template. Without `--hardcoded`, `check` behaves as it did before the flag existed.
 
 ```cli check-hardcoded
 

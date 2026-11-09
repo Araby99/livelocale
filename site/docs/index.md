@@ -16,6 +16,11 @@ const stacks = [
     href: './start/vite.html',
   },
   {
+    title: 'Astro',
+    text: 'Add the integration, load translations in the frontmatter, and fix text in the Studio beside astro dev. No React needed.',
+    href: './start/astro.html',
+  },
+  {
     title: 'Any static host (share links)',
     text: 'Ship the Studio inside your build; anyone fixes text on the deployed site and you get a pull request.',
     href: './start/static-host.html',
@@ -25,7 +30,7 @@ const stacks = [
 
 # Get started
 
-livelocale is a free, open-source layer on top of next-intl or react-i18next for React sites on Next.js, Vite or any static host. Anyone on your team holds Alt, clicks the wrong text on the running site and fixes it in any language, and you get each fix as an edit to your JSON locale files or as a pull request.
+livelocale is a free, open-source layer on top of next-intl or react-i18next for sites on Next.js, Vite, Astro or any static host. Anyone on your team holds Alt, clicks the wrong text on the running site and fixes it in any language, and you get each fix as an edit to your JSON locale files or as a pull request.
 
 It is not an i18n library: next-intl or react-i18next keeps routing, locale detection and formatting. It is built for teams whose content people review copy, for freelancers whose client does, and for any developer who only wants the [CI check](./guides/ci-check.html).
 
