@@ -2,7 +2,7 @@ import * as path from 'path';
 import { fileURLToPath } from 'url';
 import { getLiveLocaleMode } from '../core/env.js';
 import { liveLocaleVite, type VitePluginConfig } from '../server/vite-plugin.js';
-import { packOutput } from '../server/pack.js';
+import { packOutput, SHARE_BUILD_ENV } from '../server/pack.js';
 
 /** The options of `liveLocale()`: the same as `liveLocaleVite()`. */
 export type LiveLocaleAstroOptions = VitePluginConfig;
@@ -78,7 +78,8 @@ function middlewareModulePlugin(localesPath: string) {
  * In `astro dev` it adds the Vite plugin (the Studio's API at `/api/livelocale`), puts the
  * mode flag and the fallback dictionary in `<head>` of every page, and loads the in-page
  * client. In a preview build (`LIVELOCALE=preview astro build`) it does the same, and with
- * `share: true` it also packs the share Studio into the output. A normal `astro build` gets
+ * `share: true` it also packs the share Studio into the output. A share build (`share: true`
+ * or `livelocale build --preview`) loads only the client: the packed `flag.js` decides. A normal `astro build` gets
  * nothing: no flag, no dictionary, no client code.
  *
  * @example
@@ -107,10 +108,16 @@ export function liveLocale(options: LiveLocaleAstroOptions): LiveLocaleAstroInte
 
         // The share Studio is packed in astro:build:done, once the HTML exists; the Vite
         // plugin's own pack would run before Astro writes the pages.
-        const plugins: unknown[] = [middlewareModulePlugin(options.localesPath)];
-        if (dev) plugins.unshift(liveLocaleVite({ ...options, share: false }));
+        // A share build gets no inline flag and no fallback dictionary, as with the Vite
+        // plugin: the packed flag.js turns the client on only inside the share Studio, and an
+        // inline flag would turn it on for any page that frames the site.
+        const shareBuild =
+          preview && (options.share === true || process.env[SHARE_BUILD_ENV] === '1');
+        const plugins: unknown[] = [];
+        if (dev) plugins.push(liveLocaleVite({ ...options, share: false }));
+        if (!shareBuild) plugins.push(middlewareModulePlugin(options.localesPath));
         updateConfig({ vite: { plugins } });
-        addMiddleware({ entrypoint: MIDDLEWARE_ID, order: 'pre' });
+        if (!shareBuild) addMiddleware({ entrypoint: MIDDLEWARE_ID, order: 'pre' });
         injectScript('page', CLIENT_SCRIPT);
       },
 

@@ -82,5 +82,6 @@ export function pageHeadScripts(localesPath: string): string {
 
 /** Puts `scripts` right before `</head>`; returns `html` unchanged when it has no `</head>`. */
 export function injectIntoHead(html: string, scripts: string): string {
-  return scripts ? html.replace('</head>', `${scripts}</head>`) : html;
+  // A replacer function, so `$&`, `$'` and the like in translation values stay literal.
+  return scripts ? html.replace('</head>', () => `${scripts}</head>`) : html;
 }

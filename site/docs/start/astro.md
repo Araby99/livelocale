@@ -186,7 +186,7 @@ A normal `astro build` has no watermarks and no client. Astro renders the text a
 npx livelocale build --preview -- astro build
 ```
 
-It builds with `LIVELOCALE=preview`, then packs the share Studio into `dist/livelocale/`. `npx livelocale init --share` adds it to `package.json` as `build:preview`. See [Share links](../guides/share-links.md).
+It builds with `LIVELOCALE=preview`, then packs the share Studio into `dist/livelocale/`. Every page loads the client, but it starts only inside the share Studio: the packed `flag.js` decides, so another site that frames yours gets nothing. `npx livelocale init --share` adds it to `package.json` as `build:preview`. See [Share links](../guides/share-links.md).
 
 ## What next
 

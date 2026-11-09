@@ -90,6 +90,19 @@ describe('liveLocale() Astro integration', () => {
     expect(calls.injectScript).toHaveBeenCalledWith('page', CLIENT_SCRIPT);
   });
 
+  it.each([
+    ['share: true', { share: true }, ''],
+    ['livelocale build --preview', {}, '1'],
+  ])('in a share build (%s) loads only the client, with no inline flag', (_, opts, marker) => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('LIVELOCALE', 'preview');
+    vi.stubEnv('LIVELOCALE_SHARE_BUILD', marker);
+    const { calls, plugins } = setup('build', opts);
+    expect(plugins()).toEqual([]);
+    expect(calls.addMiddleware).not.toHaveBeenCalled();
+    expect(calls.injectScript).toHaveBeenCalledWith('page', CLIENT_SCRIPT);
+  });
+
   it.each<Command>(['preview', 'sync'])('adds nothing for astro %s', (command) => {
     const { calls } = setup(command);
     expect(calls.updateConfig).not.toHaveBeenCalled();

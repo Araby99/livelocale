@@ -81,6 +81,20 @@ describe('page head scripts', () => {
     );
   });
 
+  it('keeps $ patterns in translation values literal', () => {
+    fs.writeFileSync(
+      path.join(dir, 'en', 'home.json'),
+      JSON.stringify({ price: "Only $' today", x: 'a $& b', y: '$$ and $`' })
+    );
+    const page = '<html><head></head><body><script>x()</script></body></html>';
+    const html = injectIntoHead(page, pageHeadScripts(dir));
+    expect(html).toContain(`"price":"Only $' today"`);
+    expect(html).toContain('"x":"a $& b"');
+    expect(html).toContain('"y":"$$ and $`"');
+    expect(html.match(/<\/script>/g)).toHaveLength(3);
+    expect(html.endsWith('</head><body><script>x()</script></body></html>')).toBe(true);
+  });
+
   it('puts the scripts right before </head>', () => {
     expect(injectIntoHead(HTML, '<script>x</script>')).toBe(
       '<html><head><title>T</title><script>x</script></head><body></body></html>'

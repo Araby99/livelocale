@@ -564,6 +564,14 @@ export const spawnInherit: RunCommand = (command, args, { cwd, env }) =>
     child.on('close', (code) => resolve(code ?? 1));
   });
 
+/**
+ * Set on the build command's environment by `livelocale build --preview`, which links the
+ * gated `flag.js` into every page after the build. A host that would otherwise write its own
+ * inline flag (the Astro integration) leaves it out, so `flag.js` alone decides who gets the
+ * client.
+ */
+export const SHARE_BUILD_ENV = 'LIVELOCALE_SHARE_BUILD';
+
 export interface BuildCommandOptions extends Omit<PackOptions, 'outDir' | 'injectHtml'> {
   /** The build command and its arguments. */
   command: string[];
@@ -632,7 +640,7 @@ export async function runBuildCommand(options: BuildCommandOptions): Promise<Bui
   const target = detectBuildTarget(projectDir);
   const env = options.env ?? process.env;
   const childEnv = preview
-    ? { ...env, LIVELOCALE: 'preview', NEXT_PUBLIC_LIVELOCALE: 'preview' }
+    ? { ...env, LIVELOCALE: 'preview', NEXT_PUBLIC_LIVELOCALE: 'preview', [SHARE_BUILD_ENV]: '1' }
     : env;
   const runBuild = () => run(command[0]!, command.slice(1), { cwd: projectDir, env: childEnv });
 
