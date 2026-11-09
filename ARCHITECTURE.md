@@ -249,9 +249,12 @@ prefixes them with the namespace bound to that translator variable in the same f
 (`useTranslations('ns')`, `getTranslations`, `useTranslation('ns')`, `wrapNextIntl`,
 `wrapTranslationEngine({ keyPrefix })`, `createTranslations({ namespace })`), and merges them with keys present in the locale files.
 It keeps calls and property reads apart (`KeyReferences`), and groups the reads of a file that passes
-plain names as string arguments (`i18n(Astro, 'home')`) under those names. `check` turns them into
+plain names as string arguments to a call whose result it keeps (`const { t } = i18n(Astro, 'home')`) under those names.
+Reads in a file that gets `t` from a translation source (a `t` prop, a destructured or assigned helper
+result) are marked `translator`. `check` turns them into
 locale keys with `resolveCodeKeys`: in a folder layout a key is also read relative to each namespace
-(the file's own namespace first), a property read whose first segment no locale knows is dropped,
+(the file's own namespace first), a call key stays exactly as written, a property read whose first
+segment no locale knows is dropped unless it is a `translator` read (then it is reported),
 and a read past a value counts as that value. Scans are
 incremental (per-file mtime and size cache), honour the root `.gitignore` through
 `core/gitignore.ts`, and skip declaration files and files over 1 MB.

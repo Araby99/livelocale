@@ -274,6 +274,58 @@ describe('runCheck', () => {
         'en:home.hero.nope',
       ]);
     });
+
+    it('reads a namespace option in code without semicolons', async () => {
+      write(
+        project,
+        'src/page.ts',
+        `const t = createTranslations(locale, { plain: true })\nconst c = createTranslations(locale, { namespace: 'common', plain: true })\nexport const keys = [t.home.hero.title, t.home.hero.lead, t.home.features.title, t.home.items, t.features.title, c.footer.note, c.cta.go]\n`
+      );
+      const { issues } = await runCheck({ projectDir: project });
+      expect(keysOf(issues, 'missing-from-code')).toEqual([]);
+      expect(keysOf(issues, 'unused')).toEqual([]);
+    });
+
+    it('does not take a namespace from an unrelated string argument', async () => {
+      write(
+        project,
+        'src/Hero.jsx',
+        `export function Hero({ t }) {\n  const go = () => document.getElementById('common').scrollIntoView();\n  return <h1 onClick={go}>{t.cta.go}</h1>;\n}`
+      );
+      const { issues } = await runCheck({ projectDir: project, unused: false });
+      expect(keysOf(issues, 'missing-from-code')).toEqual([]);
+    });
+
+    it('checks a call key as written, not under a namespace', async () => {
+      write(project, 'src/Calls.jsx', `export function X({ t }) { return t('hero.title'); }`);
+      const { issues } = await runCheck({ projectDir: project, unused: false });
+      expect(keysOf(issues, 'missing-from-code')).toEqual(['ar:hero.title', 'en:hero.title']);
+    });
+
+    it('reports a top-level key an island reads on its t prop when no locale has it', async () => {
+      write(
+        project,
+        'src/components/Loadout.jsx',
+        `export default function Loadout({ t }) {\n  return <p title={t.switchLabel}>{t.guidez.standard}{t.hero.lead}</p>;\n}`
+      );
+      write(
+        project,
+        'src/pages/index.astro',
+        `---\nconst { t } = i18n(Astro, 'home');\n---\n<h1>{t.heroo}</h1><Loadout t={getT('common', locale)} />`
+      );
+      const { issues } = await runCheck({ projectDir: project, unused: false });
+      expect(keysOf(issues, 'missing-from-code')).toEqual(
+        [
+          'ar:guidez.standard',
+          'ar:switchLabel',
+          'en:guidez.standard',
+          'en:switchLabel',
+          // index.astro names two namespaces, so its unknown key is reported as written.
+          'ar:heroo',
+          'en:heroo',
+        ].sort()
+      );
+    });
   });
 
   it('ignores property reads on a t that is not a translation', async () => {

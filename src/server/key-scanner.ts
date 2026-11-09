@@ -117,7 +117,10 @@ function objectBindings(content: string): Map<string, string> {
   const map = new Map<string, string>();
   const re = new RegExp(
     DECL +
-      String.raw`(?<name>\w+)\s*=\s*(?:await\s+)?createTranslations\([^;]*?\bnamespace:\s*` +
+      String.raw`(?<name>\w+)\s*=\s*(?:await\s+)?createTranslations\(` +
+      // Only the call's own arguments (nested parentheses included), never past its closing
+      // `)`: in code without semicolons the next statement must stay out of reach.
+      String.raw`(?:[^()]|\((?:[^()]|\([^()]*\))*\))*?\bnamespace:\s*` +
       STR,
     'g'
   );
@@ -135,13 +138,18 @@ function objectBindings(content: string): Map<string, string> {
  * - `props`: property reads, `t.home.title`. Any variable named `t` matches (a DOM element in
  *   a plain script, the `t.me` of a Telegram link), so `resolveCodeKeys` keeps a property
  *   read only when the locales know its first segment.
- * - `scoped`: the property reads of a file that also passes plain names as string
- *   arguments, such as the `'home'` of `i18n(Astro, 'home')`, with those names. When one of
- *   them is a namespace, its reads are looked up in that namespace first.
+ * - `translatorProps`: property reads in a file that gets `t` from a translation source (see
+ *   `takesTranslations`). There, `t` is a translation object, so a read whose first segment
+ *   no locale knows is a missing key, not a DOM method.
+ * - `scoped`: the property reads of a file that passes plain names as string arguments to
+ *   a call whose result it keeps, such as the `'home'` of `const { t } = i18n(Astro, 'home')`
+ *   or `t={getT('home', locale)}`, with those names. When one of them is a namespace, its
+ *   reads are looked up in that namespace first.
  */
 export interface KeyReferences {
   calls: string[];
   props: string[];
+  translatorProps?: string[];
   scoped: ScopedReads[];
 }
 
@@ -149,19 +157,91 @@ export interface KeyReferences {
 export interface ScopedReads {
   hints: string[];
   props: string[];
+  /** The files get `t` from a translation source: see `KeyReferences.translatorProps`. */
+  translator?: boolean;
 }
 
 /** A plain name passed as a string argument: `f('home')`, `i18n(Astro, 'home', x)`. */
 const NAME_ARG_RE = /[(,]\s*(['"\x60])([A-Za-z][\w-]*)\1\s*(?=[),])/g;
 
+/**
+ * A call whose result is kept: `= f(`, `= await f(`, or a JSX attribute `={f(`. A member call
+ * such as `document.getElementById('pricing')` is not one, nor a comparison (`x === f(`).
+ */
+const BOUND_CALL_RE = /(?<![=!<>])=(?![=>])\s*\{?\s*(?:await\s+)?([A-Za-z_$][\w$]*)\s*\(/g;
+
+/**
+ * The arguments of the call whose `(` is at `open`, with the inside of nested parentheses
+ * left out, wrapped in parentheses again: `(Astro, 'home')`.
+ */
+function topLevelArguments(content: string, open: number): string {
+  let depth = 0;
+  let out = '';
+  for (let i = open; i < content.length; i++) {
+    const ch = content[i]!;
+    if (ch === '(') depth++;
+    else if (ch === ')') depth--;
+    if (depth === 1 || (depth === 0 && ch === ')') || (depth === 2 && ch === '(')) out += ch;
+    if (depth === 0) break;
+  }
+  return out;
+}
+
+/** The plain names passed as string arguments to `args` (from `topLevelArguments`). */
+function nameArguments(args: string): string[] {
+  return [...args.matchAll(NAME_ARG_RE)].map((m) => m[2]!);
+}
+
+/** Drops comments that start a line: `//` lines and block comments such as doc comments. */
+function withoutLineComments(content: string): string {
+  return content.replace(/^[ \t]*\/\*[\s\S]*?\*\//gm, '').replace(/^[ \t]*\/\/.*$/gm, '');
+}
+
+/** Another `t`: a parameter (`(t) =>`, `(t, i) =>`, `t =>`, `function (t)`) or a loop variable. */
+const OTHER_T_RES = [
+  /\bfunction\b[\w$\s]*\(\s*t\s*[,)]/,
+  /\(\s*t\s*(?:,[^()]*)?\)\s*=>/,
+  /(?<![\w$.])t\s*=>/,
+  /\bfor\s*\(\s*(?:var|let|const)\s+t\b/,
+];
+
+/**
+ * Whether a file gets `t` from a translation source, so `t` there is a translation object:
+ *   function Island({ t }) / ({ t = en, locale }) => / const { t, href } = i18n(Astro, 'home')
+ *   const t = createTranslations(locale, …) / const t = getT('home', locale)
+ * A `t` from anywhere else (`(t) => t.classList.toggle('on')`) may be anything.
+ */
+function takesTranslations(content: string, translators: ReadonlySet<string>): boolean {
+  // `t` in a destructuring pattern, alone or with a default, followed by `)` (parameters),
+  // `:` (a type) or `=` (a destructuring assignment). `{ t: x }` renames `t`: read apart.
+  const destructured =
+    /\{[^{}();]*?(?<![\w$.])t(?:\s*=\s*[^,{}();]+)?\s*(?:,[^{}();]*)?\}\s*(?:\)|:|=(?![=>]))/;
+  if (destructured.test(content)) return true;
+  const assigned = new RegExp(DECL + String.raw`t\s*=\s*(?:await\s+)?([A-Za-z_$][\w$]*)\s*\(`, 'g');
+  for (const m of content.matchAll(assigned)) {
+    const callee = m[1]!;
+    if (translators.has(callee)) continue;
+    if (callee === 'createTranslations') return true;
+    const open = m.index! + m[0].length - 1;
+    if (nameArguments(topLevelArguments(content, open)).length > 0) return true;
+  }
+  return false;
+}
+
 /** Extracts the translation key references from one source file's text, calls and property reads apart. */
 export function extractKeyReferences(content: string): KeyReferences {
   const calls = new Set<string>();
   const props = new Set<string>();
+  const translatorProps = new Set<string>();
+  // Unprefixed property reads: `strict` ones are reported when their first segment is unknown.
   const unscoped = new Set<string>();
+  const strict = new Set<string>();
   const bindings = namespaceBindings(content);
-  const objects = objectBindings(content);
   const translators = new Set<string>(['t', ...bindings.keys()]);
+  // Property reads and where `t` comes from are read without whole-line comments, so a usage
+  // example in a doc comment is not a read.
+  const code = withoutLineComments(content);
+  const objects = objectBindings(code);
 
   for (const name of translators) {
     const prefix = bindings.get(name) ?? '';
@@ -180,24 +260,34 @@ export function extractKeyReferences(content: string): KeyReferences {
     'gm'
   );
   const aliases = new Set<string>();
-  for (const m of content.matchAll(aliasRe)) {
+  for (const m of code.matchAll(aliasRe)) {
     aliases.add(m.groups!['path']!.replace(/\?/g, '').slice(1));
   }
 
   // `const { t: common } = i18n(Astro, 'common')` renames `t`: `common.cta.title` is a read
   // like `t.cta.title`. A renamed `t` of a hook with a namespace is a function, read above.
   const renamed = new Set<string>();
-  for (const m of content.matchAll(/\{[^{}]*?\bt\s*:\s*(\w+)[^{}]*\}\s*=/g)) {
+  for (const m of code.matchAll(/\{[^{}]*?\bt\s*:\s*(\w+)[^{}]*\}\s*=/g)) {
     if (!bindings.has(m[1]!)) renamed.add(m[1]!);
   }
+
+  // A renamed `t` or a `t` taken from part of it comes from a translation source too.
+  // A file that also binds another `t` (`tabs.forEach(function (t) { … })` in an inline
+  // script) may read either, so its `t` reads stay lenient.
+  const fromSource = renamed.size > 0 || takesTranslations(code, translators);
+  const otherT = OTHER_T_RES.some((re) => re.test(code));
 
   // `t` reads unprefixed unless a `createTranslations` namespace binds it; another name is
   // read only when such a binding names it, or when it renames `t`.
   for (const name of new Set(['t', ...renamed, ...objects.keys()])) {
     const prefix = objects.get(name) ?? '';
     const alsoUnder = name === 't' && !prefix ? aliases : new Set<string>();
-    const propRe = new RegExp(String.raw`\b` + name + PROP_CHAIN, 'g');
-    for (const m of content.matchAll(propRe)) {
+    // When `t` is part of another object, `t.x` itself may not be a key, so only its reads
+    // under that part (`footer.x`) are strict.
+    const strictHere = fromSource && alsoUnder.size === 0 && (name !== 't' || !otherT);
+    // Not the `t.me` of `https://t.me/…`.
+    const propRe = new RegExp(String.raw`(?<![/@])\b` + name + PROP_CHAIN, 'g');
+    for (const m of code.matchAll(propRe)) {
       const segments = m[0]
         .slice(name.length)
         .replace(/\?/g, '')
@@ -209,28 +299,49 @@ export function extractKeyReferences(content: string): KeyReferences {
       const end = segments.findIndex((seg) => IGNORE_PROPS.has(seg));
       const key = (end === -1 ? segments : segments.slice(0, end)).join('.');
       if (prefix) {
-        props.add(key ? `${prefix}.${key}` : prefix);
+        // The namespace is named, so every read on it is a key.
+        translatorProps.add(key ? `${prefix}.${key}` : prefix);
       } else if (key) {
-        unscoped.add(key);
-        for (const path of alsoUnder) unscoped.add(`${path}.${key}`);
+        (strictHere ? strict : unscoped).add(key);
+        for (const path of alsoUnder)
+          (fromSource && !otherT ? strict : unscoped).add(`${path}.${key}`);
       }
     }
   }
 
+  // Names passed to a call whose result the file keeps, other than a translator call.
   const hints = new Set<string>();
-  if (unscoped.size > 0) {
-    for (const m of content.matchAll(NAME_ARG_RE)) hints.add(m[2]!);
+  if (unscoped.size > 0 || strict.size > 0) {
+    for (const m of code.matchAll(BOUND_CALL_RE)) {
+      if (translators.has(m[1]!)) continue;
+      const open = m.index! + m[0].length - 1;
+      for (const name of nameArguments(topLevelArguments(content, open))) hints.add(name);
+    }
   }
   const scoped: ScopedReads[] = [];
-  if (hints.size > 0) scoped.push({ hints: [...hints].sort(), props: [...unscoped].sort() });
-  else for (const key of unscoped) props.add(key);
+  if (hints.size > 0) {
+    const sortedHints = [...hints].sort();
+    if (unscoped.size > 0) scoped.push({ hints: sortedHints, props: [...unscoped].sort() });
+    if (strict.size > 0) {
+      scoped.push({ hints: sortedHints, props: [...strict].sort(), translator: true });
+    }
+  } else {
+    for (const key of unscoped) props.add(key);
+    for (const key of strict) translatorProps.add(key);
+  }
 
-  return { calls: Array.from(calls).sort(), props: Array.from(props).sort(), scoped };
+  const refs: KeyReferences = {
+    calls: Array.from(calls).sort(),
+    props: Array.from(props).sort(),
+    scoped,
+  };
+  if (translatorProps.size > 0) refs.translatorProps = Array.from(translatorProps).sort();
+  return refs;
 }
 
 /** Every key reference, as written: calls, property reads and scoped reads together. */
 export function allReferencedKeys(refs: KeyReferences): string[] {
-  const keys = new Set<string>([...refs.calls, ...refs.props]);
+  const keys = new Set<string>([...refs.calls, ...refs.props, ...(refs.translatorProps ?? [])]);
   for (const group of refs.scoped) for (const key of group.props) keys.add(key);
   return Array.from(keys).sort();
 }
@@ -271,8 +382,10 @@ export interface LocaleKeyIndex {
  * - A property read past a value (`t.items.slice`, `t.title.length`) is a read of that value.
  * - A property read whose first segment no locale knows, as a key, a namespace or a key
  *   under a namespace, is not a translation (`t.getAttribute` on a DOM element) and is
- *   dropped. An unknown segment further down is a typo and stays: `t.hero.titel`.
- * - A call key no locale has stays, so `check` reports it as missing.
+ *   dropped, unless the file gets `t` from a translation source (`translatorProps`, or a
+ *   scoped group marked `translator`): there it stays, so `check` reports it as missing.
+ *   An unknown segment further down is a typo and stays: `t.hero.titel`.
+ * - A call key stays exactly as written, found or not.
  */
 export function resolveCodeKeys(refs: KeyReferences, index: LocaleKeyIndex): string[] {
   const out = new Set<string>();
@@ -312,16 +425,16 @@ export function resolveCodeKeys(refs: KeyReferences, index: LocaleKeyIndex): str
     return true;
   };
 
-  for (const key of refs.calls) {
-    const found = locateAnywhere(key);
-    if (found.length === 0) out.add(key);
-    for (const k of found) out.add(k);
-  }
+  // A call key is checked exactly as written (with its hook's namespace in front).
+  for (const key of refs.calls) out.add(key);
 
   const calls = new Set(refs.calls);
   const asWritten = (key: string) => () => [key];
   for (const key of refs.props) {
     if (!calls.has(key)) walk(key, locateAnywhere, asWritten(key));
+  }
+  for (const key of refs.translatorProps ?? []) {
+    if (!calls.has(key) && !walk(key, locateAnywhere, asWritten(key))) out.add(key);
   }
 
   for (const group of refs.scoped) {
@@ -332,7 +445,10 @@ export function resolveCodeKeys(refs: KeyReferences, index: LocaleKeyIndex): str
     for (const key of group.props) {
       if (calls.has(key)) continue;
       if (namespaces.length > 0 && walk(key, locateIn, underFound)) continue;
-      walk(key, locateAnywhere, asWritten(key));
+      if (walk(key, locateAnywhere, asWritten(key)) || !group.translator) continue;
+      // No locale knows the first segment of a read on a translation object: missing, in the
+      // file's namespace when it names exactly one.
+      out.add(namespaces.length === 1 ? `${namespaces[0]}.${key}` : key);
     }
   }
 
@@ -434,17 +550,20 @@ export class KeyScanner {
     const gitignore = await this.loadGitignore(projectRoot);
     const calls = new Set<string>();
     const props = new Set<string>();
-    // Files that pass the same names share one group.
-    const scoped = new Map<string, { hints: string[]; props: Set<string> }>();
+    const translatorProps = new Set<string>();
+    // Files that pass the same names share one group (apart for reads on a translation object).
+    const scoped = new Map<string, { hints: string[]; props: Set<string>; translator: boolean }>();
     const seen = new Set<string>();
     const collect = (refs: KeyReferences) => {
       for (const k of refs.calls) calls.add(k);
       for (const k of refs.props) props.add(k);
+      for (const k of refs.translatorProps ?? []) translatorProps.add(k);
       for (const group of refs.scoped) {
-        const id = group.hints.join(',');
+        const translator = group.translator === true;
+        const id = (translator ? '!' : '') + group.hints.join(',');
         let target = scoped.get(id);
         if (!target) {
-          target = { hints: group.hints, props: new Set() };
+          target = { hints: group.hints, props: new Set(), translator };
           scoped.set(id, target);
         }
         for (const k of group.props) target.props.add(k);
@@ -511,9 +630,11 @@ export class KeyScanner {
     return {
       calls: Array.from(calls).sort(),
       props: Array.from(props).sort(),
+      translatorProps: Array.from(translatorProps).sort(),
       scoped: [...scoped.values()].map((group) => ({
         hints: group.hints,
         props: Array.from(group.props).sort(),
+        ...(group.translator ? { translator: true } : {}),
       })),
     };
   }

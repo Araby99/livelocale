@@ -101,7 +101,16 @@ describe('extractKeyReferences', () => {
       const about = createTranslations(locale, { plain: true, namespace: "about" });
       <h1>{t.hero.title}</h1><p>{about.lead}</p>
     `);
-    expect(refs.props).toEqual(['about.lead', 'home.hero.title']);
+    expect(refs.translatorProps).toEqual(['about.lead', 'home.hero.title']);
+  });
+
+  it('keeps a createTranslations namespace to its own call in code without semicolons', () => {
+    const refs = extractKeyReferences(`
+      const t = createTranslations(locale, { plain: true })
+      const p = createTranslations(getLocale(Astro), { namespace: 'pricing', plain: true })
+      export const keys = [t.home.hero.title, p.plans.a]
+    `);
+    expect(refs.translatorProps).toEqual(['home.hero.title', 'pricing.plans.a']);
   });
 
   it('groups the reads of a file that passes names as string arguments', () => {
@@ -110,7 +119,51 @@ describe('extractKeyReferences', () => {
       <h1>{t.hero.title}</h1><a href={href('/pricing/')}>{t.cta}</a>
     `);
     expect(refs.props).toEqual([]);
-    expect(refs.scoped).toEqual([{ hints: ['home'], props: ['cta', 'hero.title'] }]);
+    expect(refs.scoped).toEqual([
+      { hints: ['home'], props: ['cta', 'hero.title'], translator: true },
+    ]);
+  });
+
+  it('takes names only from calls whose result is kept, not from member calls', () => {
+    const refs = extractKeyReferences(`
+      export function Hero({ t }) {
+        const go = () => document.getElementById('pricing').scrollIntoView();
+        el.classList.toggle('open', isOpen('menu'));
+        return <h1 onClick={go}>{t.hero.title}</h1>;
+      }
+    `);
+    expect(refs.scoped).toEqual([]);
+    expect(refs.translatorProps).toEqual(['hero.title']);
+    expect(
+      extractKeyReferences(`---
+const { t } = i18n(Astro, 'home');
+---
+<Loadout t={getT('loadout', locale)} /><p>{t.cta}</p>`).scoped
+    ).toEqual([{ hints: ['home', 'loadout'], props: ['cta'], translator: true }]);
+  });
+
+  it('tells a t from a translation source from any other t', () => {
+    const fromSource = [
+      `export default function Island({ t }) { return t.hero.title; }`,
+      `export default ({ t = en, locale = "en" }) => t.hero.title;`,
+      `function Logo({ opp, t }: Props) { return t.hero.title; }`,
+      `const { t } = Astro.props; t.hero.title;`,
+      `const t = createTranslations(locale, { plain: true }); t.hero.title;`,
+    ];
+    for (const code of fromSource) {
+      expect(extractKeyReferences(code).translatorProps, code).toEqual(['hero.title']);
+    }
+    const other = [
+      `document.querySelectorAll('a').forEach((t) => { t.hero.title; });`,
+      `items.forEach((t) => { t.hero.title })`,
+      `const t = document.querySelector('#x'); t.hero.title;`,
+      `const t = setTimeout(run, 100); t.hero.title;`,
+    ];
+    for (const code of other) {
+      const refs = extractKeyReferences(code);
+      expect(refs.translatorProps, code).toBeUndefined();
+      expect(refs.props, code).toEqual(['hero.title']);
+    }
   });
 
   it('reads a renamed t and a t taken from part of another object', () => {
@@ -119,8 +172,14 @@ describe('extractKeyReferences', () => {
       const t = common.footer;
       <a title={t.eggTitle}>{common.cta.startFree}</a>
     `);
+    // `t.eggTitle` itself may not be a key (`t` is part of `common`), so it is not strict.
     expect(refs.scoped).toEqual([
-      { hints: ['common'], props: ['cta.startFree', 'eggTitle', 'footer', 'footer.eggTitle'] },
+      { hints: ['common'], props: ['eggTitle'] },
+      {
+        hints: ['common'],
+        props: ['cta.startFree', 'footer', 'footer.eggTitle'],
+        translator: true,
+      },
     ]);
   });
 });
@@ -187,12 +246,32 @@ describe('resolveCodeKeys', () => {
     ]);
   });
 
-  it('keeps every call key, found or not', () => {
+  it('keeps every call key exactly as written, found or not', () => {
+    // A call key is not looked up under the namespaces: `hero.lead` stays `hero.lead`.
     expect(resolve({ calls: ['hero.lead', 'nope.key', 'flat.items'] })).toEqual([
       'flat.items',
-      'home.hero.lead',
+      'hero.lead',
       'nope.key',
     ]);
+  });
+
+  it('reports an unknown first segment read on a translation object', () => {
+    expect(resolve({ translatorProps: ['switchLabel', 'guidez.standard', 'hero.lead'] })).toEqual([
+      'guidez.standard',
+      'home.hero.lead',
+      'switchLabel',
+    ]);
+    // In the file's namespace when it names exactly one, as written when it names several.
+    expect(
+      resolve({ scoped: [{ hints: ['home'], props: ['heroo.title'], translator: true }] })
+    ).toEqual(['home.heroo.title']);
+    expect(
+      resolve({
+        scoped: [{ hints: ['about', 'home'], props: ['heroo.title'], translator: true }],
+      })
+    ).toEqual(['heroo.title']);
+    // Not on any other t.
+    expect(resolve({ scoped: [{ hints: ['home'], props: ['getAttribute'] }] })).toEqual([]);
   });
 
   it('reads scoped reads in the namespace the file names, and reports them missing there', () => {
