@@ -59,6 +59,7 @@ it.each([
       'Right-to-left sites',
       'Keyboard',
       'On a phone',
+      'When the preview does not connect',
     ],
   ],
   [

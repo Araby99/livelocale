@@ -12,6 +12,7 @@ const BROWSER_SAFE = [
   'src/core/share-manifest.ts',
   'src/core/page-path.ts',
   'src/core/flag-script.ts',
+  'src/core/app-probe.ts',
 ];
 
 it.each(BROWSER_SAFE)('%s stays browser-safe', (file) => {

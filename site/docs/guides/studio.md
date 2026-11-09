@@ -124,3 +124,17 @@ The editor slides up from the bottom as a sheet, with the key, the reference tex
 Drafts are kept in the phone's browser, which loses them more easily than a desktop: a private tab forgets them when it closes, and iOS clears the data of sites you have not opened for a while. Send your changes when you are done.
 
 On a tablet the Studio keeps its usual layout, with the same **Edit** and **Browse** switch for tapping. A desktop with a mouse never shows the switch.
+
+## When the preview does not connect
+
+The Studio shows **Connecting to Project** until the LiveLocale client in the page says hello. If that takes more than a few seconds, it asks the app what it answers and puts the finding first, above the usual causes:
+
+| The Studio says                                                | Where to look                                                                                                            |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| Nothing is answering at `http://localhost:3000`                | The app is not running, or runs on another port: pass that port to `studio --app`.                                       |
+| The app answered **500** at `/en`                              | The page fails on the server: the error is in the app's terminal. A 404 means the page does not exist.                   |
+| The page loaded, but `/api/livelocale` answered **404**        | The route or the integration is missing: `npx livelocale init` for Next.js, the plugin or integration for Vite or Astro. |
+| The app forbids framing: it sends `X-Frame-Options: DENY`      | Remove `X-Frame-Options` while developing, or replace it with `frame-ancestors` that lists the Studio origin.            |
+| The page loaded, but the LiveLocale client did not start in it | `LiveLocaleProvider`, or the Astro or Vite integration, is not in the page, or LiveLocale is off.                        |
+
+**Check again** asks once more after a fix; reload the preview once the app answers. On a share link the Studio reads the page's status itself. A Studio served some other way than `npx livelocale studio` or a share link can only tell whether something answered, and says so. [`doctor --app`](../reference/cli/doctor.md) checks the same things from the command line.

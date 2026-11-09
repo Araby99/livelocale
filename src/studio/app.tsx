@@ -33,7 +33,8 @@ import {
   type StudioPanel,
 } from './features/dashboard/index.js';
 import { TRANSLATION_INPUT_ID } from './features/dashboard/constants.js';
-import { isAppPreviewBlocked, isShareStudio } from './runtime.js';
+import { getStudioRuntime, isAppPreviewBlocked, isShareStudio } from './runtime.js';
+import { diagnoseAppConnection } from './connection-probe.js';
 import { useStudioText } from './i18n/StudioLanguage.js';
 
 // A row of the phone's More menu, at least 44px tall for a thumb.
@@ -229,6 +230,18 @@ export const App = () => {
     });
   }, []);
 
+  // Asks what the app answers at the page the frame is loading (see connection-probe.ts).
+  const diagnoseConnection = useCallback(
+    () =>
+      diagnoseAppConnection({
+        runtime: getStudioRuntime(),
+        frameUrl: iframeRef.current?.src || appUrl,
+        studioOrigin: window.location.origin,
+        fetch: window.fetch.bind(window),
+      }),
+    [iframeRef, appUrl]
+  );
+
   const viewer = (compact: boolean) =>
     /* A share-folder Studio without a usable manifest has no app to point at,
        so it shows only the setup problem above. */
@@ -247,6 +260,7 @@ export const App = () => {
         connectionStatus={connectionStatus}
         navigation={navigation}
         toolbar={!compact}
+        diagnose={diagnoseConnection}
       />
     );
 
