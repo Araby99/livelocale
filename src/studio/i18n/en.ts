@@ -178,6 +178,9 @@ export const en = {
   'editor.lang_custom': 'Custom',
   'editor.key': 'Translation Key',
   'editor.clear': 'Clear Selection',
+  'editor.not_on_page': 'This text is not on this page. You can still edit it here.',
+  'editor.hidden_on_page':
+    'This text is on this page but hidden right now, for example in a closed menu or another slide. You can still edit it here.',
   'editor.reference': 'Reference (Fallback Value)',
   'editor.reference_none': 'None',
   'editor.placeholders': 'Placeholders',

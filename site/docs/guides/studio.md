@@ -19,7 +19,7 @@ npx livelocale studio --port 3010 --app http://localhost:3000
 
 Open `http://localhost:3010`. `--app` defaults to `http://localhost:3000`, and you can switch apps without restarting by opening `http://localhost:3010/?app=http://localhost:3001`. Every flag is on the [`studio` reference](../reference/cli/studio.md).
 
-Hold Alt and click any translated text in the preview to open its key in the editor, or pick the key from the **Locale Directory**, which searches keys and values and can show only the keys on the current page. The editor shows the key, the reference text and the translation. Type the fix and press **Save Changes**. The **Locale** menu in the editor picks the language you edit.
+Hold Alt and click any translated text in the preview to open its key in the editor, or pick the key from the **Locale Directory**, which searches keys and values and can show only the keys on the current page. The editor shows the key, the reference text and the translation. A key picked from the directory also scrolls the preview to its text and outlines it. If the text is in a closed menu or not on this page, the editor says so, and you can still edit it. Type the fix and press **Save Changes**. The **Locale** menu in the editor picks the language you edit.
 
 ## Review and commit
 

@@ -5,6 +5,7 @@ import { EmptySelection } from './EmptySelection.jsx';
 import { LocaleManager } from './LocaleManager.jsx';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { getLocaleLabel } from '../locale-names.js';
+import type { KeyJumpNote } from '../hooks/useKeyJump.js';
 
 interface EditorPanelProps {
   selected: SelectedElement | null;
@@ -24,6 +25,8 @@ interface EditorPanelProps {
   onAddLocale: (newLocale: string) => Promise<void>;
   onRenameLocale: (oldLocale: string, newLocale: string) => Promise<void>;
   onDeleteLocale: (locale: string) => Promise<void>;
+  /** Said under the key when the text picked from the Keys list is not visible on this page. */
+  jumpNote?: KeyJumpNote | null;
   /** Width and flex classes; defaults to the fixed column width. */
   className?: string;
 }
@@ -50,6 +53,7 @@ export const EditorPanel = ({
   onAddLocale,
   onRenameLocale,
   onDeleteLocale,
+  jumpNote = null,
   className = 'w-[420px] shrink-0',
 }: EditorPanelProps) => {
   const { t } = useStudioText();
@@ -170,6 +174,7 @@ export const EditorPanel = ({
           onForceSave={onForceSave}
           onDismissWarning={onDismissWarning}
           onClear={onClear}
+          jumpNote={jumpNote}
         />
       ) : (
         <EmptySelection />

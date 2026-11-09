@@ -14,7 +14,8 @@ export type ClientMessageType =
   | 'LOCATION_CHANGED'
   | 'LEAVING'
   | 'RENDERED_KEYS_CHANGED'
-  | 'TAP_UNKEYED';
+  | 'TAP_UNKEYED'
+  | 'KEY_JUMPED';
 
 /**
  * The messages the Studio sends the in-page client.
@@ -29,13 +30,23 @@ export type StudioMessageType =
   | 'NAVIGATE'
   | 'SET_EDIT_MODE'
   | 'SELECT_KEY'
-  | 'REVEAL_KEY';
+  | 'REVEAL_KEY'
+  | 'JUMP_TO_KEY';
 
 /**
  * What this client can do beyond the original messages, sent in READY so the
  * Studio can hide controls an older client would ignore.
  */
-export const CLIENT_FEATURES = ['edit-mode'];
+export const CLIENT_FEATURES = ['edit-mode', 'key-jump'];
+
+/**
+ * What JUMP_TO_KEY found: the text is now in view (`shown`), it is on the page but not
+ * visible, such as in a closed menu or another slide (`hidden`), or the page has no text
+ * with that key (`absent`).
+ */
+export type KeyJumpResult = 'shown' | 'hidden' | 'absent';
+
+export const KEY_JUMP_RESULTS: readonly KeyJumpResult[] = ['shown', 'hidden', 'absent'];
 
 /** Where `livelocale studio` runs unless the Studio says otherwise. */
 export const DEFAULT_STUDIO_ORIGIN = 'http://localhost:3010';
@@ -284,6 +295,19 @@ export class IframeBridge {
           .slice(0, MAX_FEATURES);
       }
       payload = next;
+    }
+
+    if (type === 'KEY_JUMPED') {
+      // Only the key the Studio asked for and what was found; nothing else leaves the frame.
+      const { key, result } = (payload ?? {}) as { key?: unknown; result?: unknown };
+      if (
+        typeof key !== 'string' ||
+        !KEY_PATTERN.test(key) ||
+        !KEY_JUMP_RESULTS.includes(result as KeyJumpResult)
+      ) {
+        return;
+      }
+      payload = { key, result };
     }
 
     if (type === 'TAP_UNKEYED') {
