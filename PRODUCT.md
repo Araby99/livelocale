@@ -33,7 +33,7 @@ livelocale lets anyone on a team fix a website's text on the website itself, in 
 ## Capabilities and Constraints
 
 - Supports Next.js, Vite, React (react-i18next, next-intl and similar JSON catalogues), Astro (no React needed), static hosts; GitHub one-click pull requests; other git hosts via `apply --pr`.
-- Current release: 0.11.0 (npm `latest`), MIT, no runtime dependencies, Node ≥ 18.
+- Released on npm as `livelocale` (`latest`), MIT, no runtime dependencies, Node ≥ 18.
 - Nothing is ever sent anywhere from a public demo; the landing page makes no network requests to third parties and has no analytics or tracking.
 - The landing page lives in this repository under `site/`, is built with Vite to static files and deployed to GitHub Pages; the target domain is `livelocale.js.org` (claimed by a js.org pull request, owner action). It goes live only when the owner turns on `SITE_LIVE`.
 - Undecided: whether `npx livelocale theme` and a GitHub-annotations output format for `check` become features.

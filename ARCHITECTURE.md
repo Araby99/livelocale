@@ -308,7 +308,8 @@ second server can bind beside it. Commands set `process.exitCode` rather than ca
 `pack` parses its options with `parseShareArgs` and calls `packOutput` (§10), printing each
 `PackError` as one `❌` line with exit code 1. `build` (`runBuildCommand`) runs the user's build
 command through `spawnInherit` (on Windows one quoted command line through the shell) with
-`--preview` setting `LIVELOCALE` and `NEXT_PUBLIC_LIVELOCALE`. Next projects are packed into
+`--preview` setting `LIVELOCALE`, `NEXT_PUBLIC_LIVELOCALE` and `LIVELOCALE_SHARE_BUILD=1` (the Astro
+integration then leaves out its inline flag and middleware, so the packed `flag.js` decides). Next projects are packed into
 `public/` first without HTML injection (a static export with a POST route stops first with
 `NEXT_EXPORT_POST_ROUTE`); static stacks are packed after a zero exit, into `--out` or the first
 `outputCandidates` folder whose `index.html` was written by this build.
