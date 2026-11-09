@@ -23,6 +23,37 @@ npx livelocale check [--dir <path>] [--locales <path>] [--source <locale>] [--no
 
 Code references resolve namespaces the same way the Studio does, an object access such as `t.home` covers every key under `home`, and i18next plural families (`items_one`, `items_other`, …) count as one key.
 
+## How code keys are read
+
+`check` reads two kinds of reference: calls such as `t('home.title')`, and property reads such as `t.home.title`.
+
+- **Calls.** The string is a key. A key that no locale has is reported as missing. A namespace from `useTranslations('home')`, `useTranslation('home')`, `wrapNextIntl(t, 'home')` or `wrapTranslationEngine(t, { keyPrefix: 'home' })` goes in front of the key.
+- **Property reads.** Any variable named `t` matches, including a DOM element in a plain script and the `t.me` of a Telegram link. So a read only counts when some locale knows its first segment, as a key, a namespace, or a key inside a namespace. `t.getAttribute` and `t.classList.toggle` are skipped. `t.hero.titel` is still reported. A read past a value, such as `t.items.map(…)` or `t.title.length`, counts as a read of `items` or `title`.
+
+### A `t` that holds one namespace
+
+With one folder per locale (`locales/<locale>/<namespace>.json`), many sites pass around one namespace, not the whole locale:
+
+```astro
+---
+// src/i18n/index.ts: getT(ns, locale) = createTranslations(locale, { plain: true })[ns]
+const { t } = i18n(Astro, 'home');
+---
+<h1>{t.hero.title}</h1>
+<Hero client:load t={t.hero} />
+```
+
+`check` reads `t.hero.title` as `home.hero.title`:
+
+1. **In the file's namespace.** The file passes a namespace name as a string argument, such as `'home'` in `i18n(Astro, 'home')`. If that namespace has `hero`, the read belongs to it. `t.hero.title` is then reported missing when `home.hero` has no `title`, even if another namespace has `hero.title`.
+2. **Anywhere else.** Otherwise the key counts in every namespace that has it. An island that gets `t` or `t.hero` as a prop is read this way. If no namespace has the key, it is reported as missing.
+
+`const { t: common } = i18n(Astro, 'common')` and `const t = common.footer` are read too.
+
+For an explicit namespace, use the `namespace` option of [`createTranslations`](../configuration.md#createtranslations). `createTranslations(locale, { namespace: 'home', plain: true })` returns that namespace, and `check` reads `t.hero.title` on it as `home.hero.title`.
+
+**Unused keys.** When `check` cannot tell which namespace a read belongs to, the key counts as used in every namespace that has it. So `unused` never lists a key that code reads, but it can miss one: if `about.hero.title` is never read and a page reads `t.hero.title` with no namespace in reach, `about.hero.title` is not listed. Keys built at run time cannot be detected at all.
+
 ```cli check-missing
 
 ```

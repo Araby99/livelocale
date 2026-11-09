@@ -140,6 +140,12 @@ supported. `options.fallback` supplies values from other locales for missing key
 text is still visible and editable. It is not read in production, where the engine is returned
 as-is (a documented, stable promise), so production fallback is the engine's own job. `wrapNextIntl` is a thin alias for `next-intl` users.
 
+Without `options.fallback`, a read in the browser uses `window.__livelocale_fallback__`, which
+`src/server/page-script.ts` writes into `<head>` for both the Vite plugin (`transformIndexHtml`)
+and the Astro middleware. Nothing else reads it. With `fallbackNamespaces` set to a list, it holds
+only the namespaces watermarked in that page's HTML plus the listed ones, and the page sets
+`__livelocale_fallback_partial__`, so a read from a namespace left out warns once in the console.
+
 This file has no `'use client'` directive on purpose so it can be imported by Server Components.
 
 ### 3. Server-side loader (`src/server/translations.ts`)
@@ -149,7 +155,12 @@ This file has no `'use client'` directive on purpose so it can be imported by Se
 with `fallbackLocale` winning over the rest, and returns the wrapped object. In production it
 returns a plain object: the locale merged over `fallbackLocale`, the merge cached per parsed file
 object. `plain: true` returns `resolveTranslations` (in `wrap.ts`) instead of the Proxy: the same
-values a Proxy read gives, every key filled in, safe to serialize. Parses are cached by
+values a Proxy read gives, every key filled in, safe to serialize. `namespace` returns one
+top-level key (or dotted path) of the locale, wrapped or resolved with that key as `keyPrefix`,
+so watermarks keep the full path. The Proxy's `ownKeys`, `has` and `getOwnPropertyDescriptor`
+traps report fallback-only keys as configurable data properties (never for an array, a function
+or a non-extensible record, per the Proxy invariants), so enumeration matches the production
+object. Parses are cached by
 `core/json-cache.ts` keyed on mtime and size, so steady-state renders cost one `stat` per file.
 
 ### 3a. Plural structure (`src/core/icu-plural.ts`)
@@ -236,7 +247,12 @@ HMR read never sees a half-written file. The rewrite preserves the file's indent
 trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')`, `t.rich('…')` and `t.a.b` references in source files (`.astro` files read whole) with regexes,
 prefixes them with the namespace bound to that translator variable in the same file
 (`useTranslations('ns')`, `getTranslations`, `useTranslation('ns')`, `wrapNextIntl`,
-`wrapTranslationEngine({ keyPrefix })`), and merges them with keys present in the locale files. Scans are
+`wrapTranslationEngine({ keyPrefix })`, `createTranslations({ namespace })`), and merges them with keys present in the locale files.
+It keeps calls and property reads apart (`KeyReferences`), and groups the reads of a file that passes
+plain names as string arguments (`i18n(Astro, 'home')`) under those names. `check` turns them into
+locale keys with `resolveCodeKeys`: in a folder layout a key is also read relative to each namespace
+(the file's own namespace first), a property read whose first segment no locale knows is dropped,
+and a read past a value counts as that value. Scans are
 incremental (per-file mtime and size cache), honour the root `.gitignore` through
 `core/gitignore.ts`, and skip declaration files and files over 1 MB.
 `new FileMutator({ requireEnabled: false })` skips the enablement check, like `KeyScanner`, for CLI tools that write outside development, such as `livelocale apply`.
@@ -307,7 +323,8 @@ HTTP probes; it returns structured findings so the CLI output and the tests shar
 `--token` it also reads `?action=info` (mode, access problems), and it recognises redirects to a
 hosting login wall such as Vercel Deployment Protection. `check` (`src/codemod/check.ts`) is the
 read-only CI command: it reads locales the way the runtime does, scans source with
-`KeyScanner({ requireEnabled: false }).scanSourceKeys`, and reports missing keys, placeholder
+`KeyScanner({ requireEnabled: false }).scanSourceReferences` resolved by `resolveCodeKeys` against
+an index of every locale's keys and namespaces, and reports missing keys, placeholder
 drift against the source locale, ICU syntax errors, empty values and unused keys. `studio`
 refuses to start when something already answers on `localhost:<port>`, because on Windows a
 second server can bind beside it. Commands set `process.exitCode` rather than calling

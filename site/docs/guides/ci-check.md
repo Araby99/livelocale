@@ -39,7 +39,7 @@ When nothing is wrong, it says so and exits with code 0:
 
 ```
 
-Code references resolve namespaces the same way the Studio does, an object access such as `t.home` covers every key under `home`, and i18next plural families (`items_one`, `items_other`, …) count as one key, so Arabic's six forms against English's two are not reported. Keys built at run time (``t(`status.${s}`)``) cannot be detected, so review the unused-key list before deleting anything, or skip it with `--no-unused`. Every flag is on the [`check` reference](../reference/cli/check.md).
+Code references resolve namespaces the same way the Studio does, an object access such as `t.home` covers every key under `home`, and i18next plural families (`items_one`, `items_other`, …) count as one key, so Arabic's six forms against English's two are not reported. A `t` that holds one namespace works too. With `createTranslations(locale, { plain: true })[ns]`, or a helper around it such as `i18n(Astro, 'home')`, `t.hero.title` is read as `home.hero.title`. Property reads on a `t` that is not a translation, such as a DOM element in a plain script, are skipped. The [`check` reference](../reference/cli/check.md#how-code-keys-are-read) has the rules. Keys built at run time (``t(`status.${s}`)``) cannot be detected, so review the unused-key list before deleting anything, or skip it with `--no-unused`. Every flag is on the [`check` reference](../reference/cli/check.md).
 
 ## Find hardcoded text
 
