@@ -199,7 +199,6 @@ describe('resolveTranslations', () => {
       'home.title',
       'home.subtitle',
       'list.0',
-      'list.1',
       'count',
       'nothing',
       'plural.one',
@@ -209,6 +208,13 @@ describe('resolveTranslations', () => {
       expect(read(plain), path).toBe(read(proxy));
     }
     expect(Array.isArray(plain.list)).toBe(true);
+    expect(plain.list).toHaveLength(proxy.list.length);
+    expect([...plain.list]).toEqual([...proxy.list]);
+  });
+
+  it('should keep the record array whole, as the proxy length and iteration do', () => {
+    expect(resolveTranslations(record, { fallback, watermark: false }).list).toEqual(['un']);
+    expect(resolveTranslations({}, { fallback, watermark: false }).list).toEqual(['one', 'two']);
   });
 
   it('should keep every key and its watermark through JSON', () => {
@@ -218,7 +224,8 @@ describe('resolveTranslations', () => {
 
     expect(Object.keys(copy).sort()).toEqual(['count', 'home', 'list', 'nothing', 'plural']);
     expect(decodeKey(copy.home.subtitle)).toEqual({ key: 'home.subtitle', cleanText: 'Welcome' });
-    expect(decodeKey(copy.list[1])).toEqual({ key: 'list.1', cleanText: 'two' });
+    expect(copy.list).toHaveLength(1);
+    expect(decodeKey(copy.list[0])).toEqual({ key: 'list.0', cleanText: 'un' });
   });
 
   it('should look the fallback up under keyPrefix, like the proxy', () => {
@@ -231,7 +238,7 @@ describe('resolveTranslations', () => {
 
     expect(plain).toEqual({
       home: { title: 'Accueil', subtitle: 'Welcome' },
-      list: ['un', 'two'],
+      list: ['un'],
       count: 2,
       nothing: null,
       plural: { one: '# file', other: '# files' },

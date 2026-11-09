@@ -88,7 +88,7 @@ Loads one locale for a Server Component and returns it as an object. A key missi
 
 While livelocale is on, every string in it carries its watermark. A key missing from both locales takes the text of another locale, so it still renders and stays editable in the Studio. `fallbackLocale` always wins over the other locales.
 
-While it is off, the result is a plain object: the locale merged over `fallbackLocale`, with no watermarks. The merge is cached until a file changes.
+While it is off, the result is a plain object: the locale merged over `fallbackLocale`, with no watermarks. The merge is cached until a file changes. An array in the locale is kept as it is, so a list the translator shortened stays short.
 
 It reads `<localesDir>/<locale>.json`, or every `.json` file in `<localesDir>/<locale>/` as one namespace each.
 

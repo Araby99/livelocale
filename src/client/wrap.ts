@@ -99,7 +99,9 @@ function isContainer(value: unknown): value is Record<string, any> {
  * read through `wrapTranslationEngine(record, { keyPrefix, fallback })` gives: a key the
  * record lacks (`undefined`) takes the fallback's value at the same full key path, and a
  * record value, even `null` or `''`, wins. With `watermark`, every string is encoded with
- * its full key path, as the proxy does. Arrays stay arrays; other values pass through.
+ * its full key path, as the proxy does. A record array keeps its own length, as the proxy's
+ * `length` and iteration do: the fallback never adds items to it. Other values
+ * pass through.
  *
  * The result holds every key of the record and of the fallback, so it is safe to
  * JSON-serialize or pass as props. Without `watermark`, subtrees that need no merging are
@@ -128,8 +130,9 @@ function resolveNode(
   if (!watermark && !isContainer(fallbackNode)) return target;
 
   const keys = new Set(Object.keys(target));
-  // Fallback indices only extend an array, never turn it into an object.
-  if (isContainer(fallbackNode) && Array.isArray(fallbackNode) === Array.isArray(target)) {
+  // An array is kept whole, never extended or turned into an object by the fallback: the
+  // proxy takes `length` and iteration from the record's own array.
+  if (isContainer(fallbackNode) && !Array.isArray(fallbackNode) && !Array.isArray(target)) {
     for (const key of Object.keys(fallbackNode)) keys.add(key);
   }
 

@@ -297,6 +297,17 @@ describe('createTranslations fallback', () => {
       expect(t.b).toBe('');
     });
 
+    it('keeps a locale array whole, even when the fallback array is longer', () => {
+      mockLocales(LOCALES_DIR, {
+        'ar.json': json({ list: ['واحد', 'اثنان'] }),
+        'en.json': json({ list: ['one', 'two', 'three'], other: ['x'] }),
+      });
+      const t = createTranslations('ar', opts);
+
+      expect(t.list).toEqual(['واحد', 'اثنان']);
+      expect(t.other).toEqual(['x']);
+    });
+
     it('returns the fallback locale as read when it is the requested locale', () => {
       mockLocales(LOCALES_DIR, FLAT);
       expect(createTranslations('en', opts)).toEqual(JSON.parse(FLAT['en.json'] as string));
@@ -423,7 +434,8 @@ describe('createTranslations fallback', () => {
         expect(plain.items.one).toBe(proxy.items.one);
         expect(plain.items.other).toBe(proxy.items.other);
         expect(plain.list[0]).toBe(proxy.list[0]);
-        expect(plain.list[1]).toBe(proxy.list[1]);
+        expect(plain.list).toHaveLength(proxy.list.length);
+        expect([...plain.list]).toEqual([...proxy.list]);
         expect(plain.onlyFr).toBe(proxy.onlyFr);
         expect(plain.count).toBe(3);
         expect(plain.count).toBe(proxy.count);
@@ -431,7 +443,7 @@ describe('createTranslations fallback', () => {
         expect(plain.empty).toBeNull();
         expect(proxy.empty).toBeNull();
         expect(Array.isArray(plain.list)).toBe(true);
-        expect(plain.list).toHaveLength(2);
+        expect(plain.list).toHaveLength(1);
       });
 
       it('works with a folder layout', () => {
