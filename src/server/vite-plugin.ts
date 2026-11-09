@@ -171,7 +171,13 @@ export function liveLocaleVite(config: VitePluginConfig): Plugin {
       }
       try {
         const resolvedLocalesPath = path.resolve(config.localesPath);
-        const entries = fs.readdirSync(resolvedLocalesPath);
+        // Later entries win the merge, so the source locale goes last: a key missing from one
+        // locale then shows its source text, not whichever locale the folder lists last.
+        const preferred = config.sourceLocale ?? 'en';
+        const isPreferred = (entry: string) => entry === preferred || entry === `${preferred}.json`;
+        const entries = fs
+          .readdirSync(resolvedLocalesPath)
+          .sort((a, b) => Number(isPreferred(a)) - Number(isPreferred(b)));
         let fallbackData: Record<string, any> = {};
         for (const entry of entries) {
           if (entry.startsWith('.')) continue;

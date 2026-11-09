@@ -61,7 +61,7 @@ export default defineConfig({
 });
 ```
 
-The Vite plugin. On the dev server it serves the mutation API at `/api/livelocale`, puts every locale's strings into the page so missing keys still render, and copies the server's `LIVELOCALE` value into the page so the client bundle runs in the same mode. In `vite build` it does nothing unless `share: true` is set, and it never packs an SSR or library build.
+The Vite plugin. On the dev server it serves the mutation API at `/api/livelocale`, puts every locale's strings into the page so missing keys still render (the `sourceLocale` text wins over the other locales), and copies the server's `LIVELOCALE` value into the page so the client bundle runs in the same mode. In `vite build` it does nothing unless `share: true` is set, and it never packs an SSR or library build.
 
 | Option         | Type      | Default                                  | What it does                                                                                                                                                    |
 | -------------- | --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,7 +70,7 @@ The Vite plugin. On the dev server it serves the mutation API at `/api/livelocal
 | `authToken`    | `string`  | `LIVELOCALE_TOKEN`                       | A bearer token every request except the CORS preflight must carry.                                                                                              |
 | `share`        | `boolean` | `false`                                  | Writes the share Studio, `manifest.json`, the locale files and `flag.js` into `<outDir>/livelocale/` on `vite build`, and links `flag.js` from every HTML page. |
 | `exposeRepo`   | `boolean` | `false`                                  | Puts the GitHub `owner/repo` into the published manifest. Leave it off for a private repository.                                                                |
-| `sourceLocale` | `string`  | `en` when present, else the first locale | The source locale written into the manifest.                                                                                                                    |
+| `sourceLocale` | `string`  | `en` when present, else the first locale | The source locale written into the manifest. On the dev server, its text wins in the strings put into the page for missing keys.                                |
 | `shareBase`    | `string`  | Vite `base`                              | The site path the HTML is served from. Set it when `base` is a full URL, or when the HTML is served from a path other than `base`.                              |
 
 The plugin has no `allowedOrigins` option. A Studio away from `localhost` is allowed through `LIVELOCALE_ALLOWED_ORIGINS`.
