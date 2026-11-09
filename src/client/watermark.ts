@@ -94,6 +94,44 @@ export function decodeKey(text: string): { key: string; cleanText: string } | nu
 }
 
 /**
+ * One watermark found inside a string: the key it names, where it starts and
+ * where it ends (the index just past its closing delimiter).
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
+export interface WatermarkMatch {
+  key: string;
+  start: number;
+  end: number;
+}
+
+/**
+ * Every complete watermark in `text`, in order, wherever it occurs. Unlike
+ * `decodeKey`, the watermark need not start the string: a page often renders
+ * literal text before a translation in the same text node (`© 2026 {t.copy}`,
+ * `<a>Home</a> / {t.crumb}`, or template whitespace before `{t.title}`). A
+ * watermark naming an empty key is skipped, so two real ZWNJs in a row in
+ * Persian text never count as one.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
+export function findWatermarks(text: string): WatermarkMatch[] {
+  const found: WatermarkMatch[] = [];
+  if (!text.includes(DELIM)) return found;
+  const re = new RegExp(WATERMARK_RE.source, 'g');
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(text)) !== null) {
+    const decoded = decodeKey(match[0]);
+    if (decoded && decoded.key !== '') {
+      found.push({ key: decoded.key, start: match.index, end: match.index + match[0].length });
+    }
+  }
+  return found;
+}
+
+/**
  * Strips a valid watermark *prefix* from `text`, leaving any legitimate
  * zero-width characters inside the visible text untouched.
  *

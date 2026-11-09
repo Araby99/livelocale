@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { saveTranslation, ValidationError } from '../../../api.js';
 import { englishText, type StudioText } from '../../../i18n/catalogue.js';
+import { editorValueFor } from '../page-value.js';
 
 export interface SaveWarning {
   code: string;
@@ -80,9 +81,10 @@ export const useSelection = ({
     (value: string) => {
       setInputValue(value);
       setSaveWarning(null);
-      sendToIframe('APPLY_PREVIEW', { key: selected?.key, value });
+      // The stored value lets the page find a rich-text value's nodes and keep literal text.
+      sendToIframe('APPLY_PREVIEW', { key: selected?.key, value, source: selected?.currentValue });
     },
-    [sendToIframe, selected?.key]
+    [sendToIframe, selected?.key, selected?.currentValue]
   );
 
   // A pick reports the text on the page, which is the edited locale's text once the page
@@ -90,6 +92,14 @@ export const useSelection = ({
   const referenceFor = useCallback(
     (el: SelectedElement) => enLocaleData[el.key] ?? el.fallbackValue,
     [enLocaleData]
+  );
+
+  // The edited locale's stored value; without one, the page text, or the reference value when
+  // the page shows it (a fallback), so markup the page renders is never lost.
+  const editorValue = useCallback(
+    (el: SelectedElement) =>
+      editorValueFor(localeData[el.key], el.currentValue, [enLocaleData[el.key]]),
+    [localeData, enLocaleData]
   );
 
   const selectElement = useCallback(
@@ -101,7 +111,7 @@ export const useSelection = ({
         return;
       }
 
-      const rawValue = localeData[newElement.key] ?? newElement.currentValue;
+      const rawValue = editorValue(newElement);
 
       setSelected({
         ...newElement,
@@ -114,13 +124,13 @@ export const useSelection = ({
       setSaveWarning(null);
       setError(null);
     },
-    [hasUnsavedChanges, localeData, referenceFor, setError]
+    [hasUnsavedChanges, editorValue, referenceFor, setError]
   );
 
   // Expose trigger actions to handle Confirmation Modal choice
   const confirmDiscard = useCallback(() => {
     if (pendingElement) {
-      const rawValue = localeData[pendingElement.key] ?? pendingElement.currentValue;
+      const rawValue = editorValue(pendingElement);
       setSelected({
         ...pendingElement,
         fallbackValue: referenceFor(pendingElement),
@@ -138,7 +148,7 @@ export const useSelection = ({
     setShowConfirmModal(false);
     setIsSuccess(false);
     setError(null);
-  }, [pendingElement, localeData, referenceFor, sendToIframe, setError]);
+  }, [pendingElement, editorValue, referenceFor, sendToIframe, setError]);
 
   const cancelDiscard = useCallback(() => {
     setPendingElement(null);
@@ -214,7 +224,11 @@ export const useSelection = ({
       refreshKeysMetadata();
 
       // Keep the saved text on the page, then clear the selection highlight
-      sendToIframe('COMMIT_PREVIEW', { key: selected.key, value: inputValue });
+      sendToIframe('COMMIT_PREVIEW', {
+        key: selected.key,
+        value: inputValue,
+        source: previousValue,
+      });
       sendToIframe('CLEAR_SELECTION');
 
       // Clear saved indicator after 2 seconds (restart the timer on re-save)

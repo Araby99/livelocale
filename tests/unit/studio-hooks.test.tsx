@@ -83,7 +83,59 @@ describe('useSelection', () => {
     expect(params.sendToIframe).toHaveBeenCalledWith('APPLY_PREVIEW', {
       key: 'home.title',
       value: 'Bienvenue',
+      source: 'Welcome',
     });
+  });
+
+  it('prefills from the reference value, markup and all, when the page shows its fallback', () => {
+    const sub = 'Wolvy encrypts so <strong>only your audience</strong> can watch.';
+    const params = { ...makeParams(), localeData: {}, enLocaleData: { 'home.hero.sub': sub } };
+    const { result } = renderHook(() => useSelection(params));
+
+    // The Arabic file lacks the key, so the page shows the English text, without its tags.
+    act(() =>
+      result.current.selectElement({
+        key: 'home.hero.sub',
+        fallbackValue: 'Wolvy encrypts so',
+        currentValue: 'Wolvy encrypts so only your audience can watch.',
+      })
+    );
+    expect(result.current.inputValue).toBe(sub);
+    expect(result.current.selected?.currentValue).toBe(sub);
+    expect(result.current.hasUnsavedChanges).toBe(false);
+
+    act(() => result.current.handleInputChange('وولفي <strong>جمهورك</strong>'));
+    expect(params.sendToIframe).toHaveBeenLastCalledWith('APPLY_PREVIEW', {
+      key: 'home.hero.sub',
+      value: 'وولفي <strong>جمهورك</strong>',
+      source: sub,
+    });
+  });
+
+  it('prefills from the stored value of the edited locale over the page text', () => {
+    const params = {
+      ...makeParams(),
+      localeData: { 'home.hero.sub': 'نص <strong>غني</strong>' },
+      enLocaleData: { 'home.hero.sub': 'Rich <strong>text</strong>' },
+    };
+    const { result } = renderHook(() => useSelection(params));
+    act(() =>
+      result.current.selectElement({
+        key: 'home.hero.sub',
+        fallbackValue: 'x',
+        currentValue: 'نص غني',
+      })
+    );
+    expect(result.current.inputValue).toBe('نص <strong>غني</strong>');
+  });
+
+  it('keeps the page text when no stored value shows it', () => {
+    const params = { ...makeParams(), localeData: {}, enLocaleData: { 'home.x': 'Other' } };
+    const { result } = renderHook(() => useSelection(params));
+    act(() =>
+      result.current.selectElement({ key: 'home.x', fallbackValue: 'x', currentValue: 'On page' })
+    );
+    expect(result.current.inputValue).toBe('On page');
   });
 
   it('takes the reference from the source locale, not the text on the page', () => {
@@ -205,6 +257,7 @@ describe('useSelection', () => {
     expect(params.sendToIframe).toHaveBeenCalledWith('COMMIT_PREVIEW', {
       key: 'home.title',
       value: 'Bienvenue',
+      source: 'Welcome',
     });
     expect(sent.lastIndexOf('COMMIT_PREVIEW')).toBeLessThan(sent.lastIndexOf('CLEAR_SELECTION'));
     expect(params.setError).toHaveBeenLastCalledWith(null);
@@ -339,6 +392,21 @@ describe('useConnection', () => {
     await waitFor(() => expect(result.current.connectionStatus).toBe('connected'));
     expect(result.current.currentPath).toBe('/?locale=ar');
     expect(handlers.onLocaleDetected).toHaveBeenCalledWith('ar');
+  });
+
+  it('shows the path of the ?app= page until the client reports one', () => {
+    setStudioRuntime({
+      kind: 'server',
+      appOrigin: APP_ORIGIN,
+      appUrl: `${APP_ORIGIN}/ar/`,
+      problems: [],
+    });
+    try {
+      const { result } = renderHook(() => useConnection(makeHandlers()));
+      expect(result.current.currentPath).toBe('/ar/');
+    } finally {
+      resetStudioRuntime();
+    }
   });
 
   it('detects a locale from the first path segment', () => {

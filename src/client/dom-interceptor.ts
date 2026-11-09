@@ -1,10 +1,17 @@
 import {
-  decodeKey,
   stripWatermark,
   removeWatermarks,
   containsWatermark,
+  findWatermarks,
   WATERMARK_DELIMITER,
 } from './watermark.js';
+import {
+  findKeyedTextNode,
+  inInertParent,
+  keyedSegments,
+  segmentText,
+  textBefore,
+} from './keyed-text.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
 import {
   MAX_VISIBLE_TEXTS,
@@ -194,8 +201,10 @@ export class DOMInterceptor {
    * Returns one `{ key, text }` per translation key on the page, in document
    * order, with the text it shows now (watermark removed, trimmed, cut to
    * `MAX_VISIBLE_TEXT_LENGTH`). The first element carrying a key wins; its
-   * text is the first descendant text node whose watermark names that key.
-   * Elements without such a node, and blank texts, are skipped. At most
+   * text is what the watermark marks in the first descendant text node whose
+   * first watermark names that key: up to the next watermark or the node's
+   * end, without literal page text before it. Elements without such a node,
+   * and blank texts, are skipped. At most
    * `limit` entries are returned.
    */
   getVisibleTexts(limit: number = MAX_VISIBLE_TEXTS): VisibleText[] {
@@ -207,15 +216,13 @@ export class DOMInterceptor {
       const key = el.getAttribute('data-i18n-key');
       if (!key || seen.has(key)) continue;
       seen.add(key);
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
-      let node: Text | null;
-      while ((node = walker.nextNode() as Text | null) !== null) {
-        const decoded = decodeKey(node.nodeValue ?? '');
-        if (decoded?.key !== key) continue;
-        const text = decoded.cleanText.trim().slice(0, MAX_VISIBLE_TEXT_LENGTH);
-        if (text) texts.push({ key, text });
-        break;
-      }
+      const node = findKeyedTextNode(el, key);
+      if (!node) continue;
+      const raw = node.nodeValue ?? '';
+      const text = segmentText(raw, keyedSegments(raw)[0]!)
+        .trim()
+        .slice(0, MAX_VISIBLE_TEXT_LENGTH);
+      if (text) texts.push({ key, text });
     }
     return texts;
   }
@@ -570,9 +577,7 @@ export class DOMInterceptor {
   private select(element: HTMLElement, key: string): void {
     if (this.editMode) this.markPicked(element);
 
-    // Use innerText, stripping any invisible ZW chars before sending to studio
-    const rawText = element.innerText || '';
-    const cleanText = stripWatermark(rawText);
+    const cleanText = this.selectedText(element, key);
 
     const fallbackValue = element.getAttribute('data-i18n-template') || cleanText;
     const currentValue = cleanText;
@@ -582,6 +587,26 @@ export class DOMInterceptor {
       fallbackValue,
       currentValue,
     });
+  }
+
+  /**
+   * The text of `key` in `element`, without watermarks. When the watermark
+   * starts the element's text and is its only one, that is the element's whole
+   * rendered text (`innerText`), as a rich-text value spread over a `<strong>`
+   * needs. When literal page text comes first (`Home / {t.crumb}`,
+   * `© 2026 {t.copy}`) or the element holds other translations too, it is only
+   * what the watermark marks in its text node.
+   */
+  private selectedText(element: HTMLElement, key: string): string {
+    const node = findKeyedTextNode(element, key);
+    if (!node) return stripWatermark(element.innerText || '');
+    const raw = node.nodeValue ?? '';
+    const segment = keyedSegments(raw)[0]!;
+    const own = segmentText(raw, segment).trim();
+    const leads = textBefore(element, node, segment.start).trim() === '';
+    const alone = findWatermarks(element.textContent ?? '').length === 1;
+    if (!leads || !alone) return own;
+    return removeWatermarks(element.innerText || '').trim() || own;
   }
 
   // ─── Floating Overlay ────────────────────────────────────────────────────
@@ -705,8 +730,9 @@ export class DOMInterceptor {
   // ─── Phase 3: Watermark DOM Scanner ──────────────────────────────────────
 
   /**
-   * Walks all text nodes inside `root` and decodes any watermark prefix.
-   * When found, attaches data-i18n-key / data-i18n-template to the
+   * Walks all text nodes inside `root` and decodes the first watermark in
+   * each, wherever it sits in the node: literal text or template whitespace
+   * may come before it. When found, attaches data-i18n-key / data-i18n-template to the
    * immediate parent HTMLElement without mutating the text node itself
    * (hydration safety: RULE CLT-007).
    */
@@ -724,20 +750,20 @@ export class DOMInterceptor {
     const raw = node.nodeValue ?? '';
     if (!raw.includes(WATERMARK_DELIMITER)) return; // fast bail-out
 
-    const decoded = decodeKey(raw);
-    if (!decoded) return;
+    const segment = keyedSegments(raw)[0];
+    if (!segment) return;
 
     const parent = node.parentElement;
-    if (!parent) return;
+    if (!parent || inInertParent(node)) return;
 
     // RULE CLT-007: Do NOT strip the ZW chars from the text node –
     // doing so would break React's reconciliation / hydration tree.
     // Only annotate the parent element.
-    parent.setAttribute('data-i18n-key', decoded.key);
+    parent.setAttribute('data-i18n-key', segment.key);
 
     // Use the clean (visible) text as the fallback template if not already set
     if (!parent.hasAttribute('data-i18n-template')) {
-      parent.setAttribute('data-i18n-template', decoded.cleanText.trim());
+      parent.setAttribute('data-i18n-template', segmentText(raw, segment).trim());
     }
   }
 
