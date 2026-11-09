@@ -70,15 +70,17 @@ still open and still holds a change block.
 
 ## Packages and entry points
 
-The library ships one npm package with five entry points (see `tsup.config.ts`):
+The library ships one npm package with seven entry points (see `tsup.config.ts`):
 
-| Entry                  | Source                      | Runs in                          | Purpose                                     |
-| ---------------------- | --------------------------- | -------------------------------- | ------------------------------------------- |
-| `livelocale/server`    | `src/server/index.ts`       | Node (Next.js server)            | Route handler, loader, mutator, watermark   |
-| `livelocale/client`    | `src/client/index.ts`       | Browser                          | DOM scanner, bridge, auto-init              |
-| `livelocale/react`     | `src/react/index.tsx`       | Browser (React)                  | `LiveLocaleProvider` that lazy-loads client |
-| `livelocale/vite`      | `src/server/vite-plugin.ts` | Node (Vite dev server and build) | Mutation API as Vite middleware             |
-| `npx livelocale` (bin) | `src/codemod/index.ts`      | Node CLI                         | `init`, `studio`, `migrate`                 |
+| Entry                         | Source                      | Runs in                             | Purpose                                             |
+| ----------------------------- | --------------------------- | ----------------------------------- | --------------------------------------------------- |
+| `livelocale/server`           | `src/server/index.ts`       | Node (Next.js server)               | Route handler, loader, mutator, watermark           |
+| `livelocale/client`           | `src/client/index.ts`       | Browser                             | DOM scanner, bridge, `startLiveLocale`              |
+| `livelocale/react`            | `src/react/index.tsx`       | Browser (React)                     | `LiveLocaleProvider` that lazy-loads client         |
+| `livelocale/vite`             | `src/server/vite-plugin.ts` | Node (Vite dev server and build)    | Mutation API as Vite middleware                     |
+| `livelocale/astro`            | `src/astro/index.ts`        | Node (Astro config hooks)           | Integration: Vite plugin, head, client              |
+| `livelocale/astro/middleware` | `src/astro/middleware.ts`   | Node (Astro dev and preview builds) | Puts the mode flag and fallback strings in `<head>` |
+| `npx livelocale` (bin)        | `src/codemod/index.ts`      | Node CLI                            | `init`, `studio`, `migrate`                         |
 
 The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and served by the CLI.
 
@@ -352,7 +354,7 @@ tag first in each HTML file Vite emits (and skips the dev fallback data), and `w
 | Path containment                      | core/safe-path, file-mutator, studio-server |
 | Prototype pollution                   | core/validate, file-mutator                 |
 | Atomic writes                         | file-mutator                                |
-| Script injection escaping             | vite-plugin, studio-server                  |
+| Script injection escaping             | page-script, studio-server                  |
 | postMessage origin checks             | iframe-bridge, useConnection                |
 | Framed-only activation                | core/flag-script                            |
 | Edits re-validated on apply           | core/apply-plan, codemod/apply              |
