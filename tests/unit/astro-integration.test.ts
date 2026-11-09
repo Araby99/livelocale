@@ -12,6 +12,7 @@ import liveLocale, {
 } from '../../src/astro/index.js';
 import { createLiveLocaleMiddleware } from '../../src/astro/middleware.js';
 import { packOutput } from '../../src/server/pack.js';
+import { encodeKey } from '../../src/client/watermark.js';
 
 vi.mock('../../src/server/pack.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/server/pack.js')>()),
@@ -58,6 +59,16 @@ describe('liveLocale() Astro integration', () => {
     const mod = await import('../../src/astro/index.js');
     expect(mod.default).toBe(mod.liveLocale);
     expect(liveLocale({ localesPath: './locales' }).name).toBe('livelocale');
+  });
+
+  it('uses only hooks that Astro 5, the oldest supported version, has', () => {
+    // Astro 5 is the documented floor: astro:config:setup (with updateConfig, injectScript
+    // 'page' and addMiddleware) and astro:build:done (with dir and logger) all exist there.
+    // A new hook here needs checking against Astro 5, or a major release to raise the floor.
+    expect(Object.keys(liveLocale({ localesPath: './locales' }).hooks).sort()).toEqual([
+      'astro:build:done',
+      'astro:config:setup',
+    ]);
   });
 
   it('in astro dev adds the Vite plugin, the head middleware and the client script', () => {
@@ -119,6 +130,14 @@ describe('liveLocale() Astro integration', () => {
     expect(plugin.load(resolved)).toBe(
       "import { createLiveLocaleMiddleware } from 'livelocale/astro/middleware';\n" +
         'export const onRequest = createLiveLocaleMiddleware({"localesPath":"./src/locales"});'
+    );
+  });
+
+  it('bakes fallbackNamespaces into the middleware module', () => {
+    const { plugins } = setup('dev', { fallbackNamespaces: ['islands'] });
+    const plugin = plugins().find((p) => p.name === 'livelocale:astro-middleware');
+    expect(plugin.load(`\0${MIDDLEWARE_ID}`)).toContain(
+      'createLiveLocaleMiddleware({"localesPath":"./locales","fallbackNamespaces":["islands"]});'
     );
   });
 
@@ -206,6 +225,15 @@ describe('Astro head middleware', () => {
     fs.writeFileSync(path.join(localesPath, 'en', 'home.json'), JSON.stringify({ title: 'Saved' }));
     const html = await (await onRequest({}, async () => page())).text();
     expect(html).toContain('{"home":{"title":"Saved"}}');
+  });
+
+  it('with fallbackNamespaces, puts in only the namespaces the rendered page shows', async () => {
+    fs.writeFileSync(path.join(localesPath, 'en', 'about.json'), JSON.stringify({ title: 'A' }));
+    const onRequest = createLiveLocaleMiddleware({ localesPath, fallbackNamespaces: [] });
+    const body = `<html><head></head><body>${encodeKey('Hi', 'home.title')}</body></html>`;
+    const html = await (await onRequest({}, async () => page(body))).text();
+    expect(html).toContain('window.__livelocale_fallback__ = {"home":{"title":"Hi"}};');
+    expect(html).toContain('window.__livelocale_fallback_partial__ = true;');
   });
 
   it('leaves responses that are not HTML alone', async () => {

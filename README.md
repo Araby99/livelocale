@@ -99,14 +99,14 @@ Open `http://localhost:3010`, hold Alt (Option on a Mac), click a line of text a
 
 ## Supported versions
 
-| Needs                                     | Tested in CI                               |
-| ----------------------------------------- | ------------------------------------------ |
-| Node.js 18 or later                       | Node.js 20 and 24; the built package on 18 |
-| Next.js 13 or later                       | Next.js 16                                 |
-| React 18 or later                         | React 18                                   |
-| Vite 5 or later                           | Vite 8                                     |
-| Astro 7 or later                          | Astro 7 (unit tests and the playground)    |
-| TypeScript 4.7 to 6 (`check --hardcoded`) | TypeScript 5                               |
+| Needs                                     | Tested in CI                                                     |
+| ----------------------------------------- | ---------------------------------------------------------------- |
+| Node.js 18 or later                       | Node.js 20 and 24; the built package on 18                       |
+| Next.js 13 or later                       | Next.js 16                                                       |
+| React 18 or later                         | React 18                                                         |
+| Vite 5 or later                           | Vite 8                                                           |
+| Astro 5 or later                          | Astro 7 (unit tests and the playground); 5 and 6 checked by hand |
+| TypeScript 4.7 to 6 (`check --hardcoded`) | TypeScript 5                                                     |
 
 From 1.0 on, livelocale follows semantic versioning, and share links people already sent keep
 working in newer versions. [Versioning and stability](https://livelocale.js.org/docs/reference/stability.html)

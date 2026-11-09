@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
-const ENTRIES = ['.', './client', './server', './react', './vite'];
+const ENTRIES = ['.', './client', './server', './react', './vite', './strip'];
 /** Peers an entry imports at run time, linked into the sandbox from the repository. */
 const RUNTIME_PEERS = ['react'];
 

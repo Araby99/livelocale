@@ -1,6 +1,6 @@
 {
   "name": "livelocale",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Teaches your coding agent to add livelocale to a project, turn on share links, run check --hardcoded in CI and fix setup problems.",
   "author": {
     "name": "Araby99"

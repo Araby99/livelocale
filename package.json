@@ -1,6 +1,6 @@
 {
   "name": "livelocale",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "The editing and review layer on top of next-intl or react-i18next. Your team fixes text on the real site; you get a JSON edit in git or a pull request. A CI check catches missing translations.",
   "license": "MIT",
   "author": "Araby99",
@@ -75,8 +75,22 @@
       "import": "./dist/astro/middleware.js",
       "require": "./dist/astro/middleware.cjs"
     },
+    "./strip": {
+      "types": "./dist/strip/index.d.ts",
+      "import": "./dist/strip/index.js",
+      "require": "./dist/strip/index.cjs"
+    },
     "./package.json": "./package.json"
   },
+  "sideEffects": [
+    "./dist/client/**",
+    "./dist/server/**",
+    "./dist/react/**",
+    "./dist/vite/**",
+    "./dist/astro/**",
+    "./dist/codemod/**",
+    "./dist/studio/**"
+  ],
   "files": [
     "dist"
   ],

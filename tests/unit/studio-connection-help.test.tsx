@@ -103,6 +103,26 @@ describe('IframeViewer slow-connection help', () => {
   });
 });
 
+describe('IframeViewer first page', () => {
+  afterEach(() => cleanup());
+
+  it('opens the path of the app URL, with the Studio origin added to its query', () => {
+    const { container } = render(
+      <IframeViewer
+        iframeRef={React.createRef<HTMLIFrameElement>()}
+        appOrigin="http://localhost:4400"
+        appUrl="http://localhost:4400/ar/?a=1"
+        connectionStatus="connecting"
+        navigation={navigationStub()}
+      />
+    );
+    expect(container.querySelector('iframe')!.getAttribute('src')).toBe(
+      'http://localhost:4400/ar/?a=1&livelocale-origin=' +
+        encodeURIComponent(window.location.origin)
+    );
+  });
+});
+
 describe('IframeViewer connection diagnosis', () => {
   afterEach(() => {
     cleanup();

@@ -8,6 +8,7 @@ import {
   hasWatermark,
   unwrap,
   removeWatermarks,
+  findWatermarks,
 } from '../../src/client/watermark.js';
 
 // ─── Constants (mirrors watermark.ts internals) ───────────────────────────
@@ -269,5 +270,33 @@ describe('watermarks next to Arabic-script text', () => {
     expect(removeWatermarks(thai)).toBe(thai);
     expect(removeWatermarks(encodeKey(persian, 'fa.key'))).toBe(persian);
     expect(removeWatermarks('\u200C\u200C')).toBe('\u200C\u200C');
+  });
+});
+
+describe('findWatermarks', () => {
+  it('finds a watermark that does not start the text', () => {
+    const text = '© 2026 ' + encodeKey('Wolvy', 'footer.copyright');
+    expect(findWatermarks(text)).toEqual([
+      { key: 'footer.copyright', start: 7, end: text.length - 'Wolvy'.length },
+    ]);
+  });
+
+  it('finds every watermark, in order', () => {
+    const first = encodeKey('A ', 'k.a');
+    const text = '\n  ' + first + encodeKey('B', 'k.b');
+    const found = findWatermarks(text);
+    expect(found.map((m) => m.key)).toEqual(['k.a', 'k.b']);
+    expect(found[0]!.start).toBe(3);
+    expect(found[1]!.start).toBe(3 + first.length);
+  });
+
+  it('skips a real ZWNJ before a watermark and finds nothing in plain Persian text', () => {
+    expect(findWatermarks('می' + DELIM + 'خواهم')).toEqual([]);
+    expect(findWatermarks(DELIM + encodeKey('x', 'k')).map((m) => m.key)).toEqual(['k']);
+    expect(findWatermarks(DELIM + DELIM)).toEqual([]);
+  });
+
+  it('leaves decodeKey as it was: a watermark after other text is not a prefix', () => {
+    expect(decodeKey(' ' + encodeKey('x', 'k'))).toBeNull();
   });
 });

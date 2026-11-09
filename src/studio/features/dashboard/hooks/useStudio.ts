@@ -21,7 +21,7 @@ import { getStudioRuntime, getStaticTransport } from '../../../runtime.js';
 import { useAuth } from './useAuth.js';
 import { useDrafts } from './useDrafts.js';
 import { useUnsentGuard } from './useUnsentGuard.js';
-import { valuesToReapply } from './reapply.js';
+import { builtValuesToReapply, valuesToReapply } from './reapply.js';
 import { useTargetLocale } from './useTargetLocale.js';
 import type { VisibleText } from '../../../../client/iframe-bridge.js';
 import { createDraftActions } from './draftActions.js';
@@ -274,14 +274,18 @@ export const useStudio = () => {
   // or the saved drafts (static) for the current locale. Paused while a review is open.
   useEffect(() => {
     if (connectionStatus !== 'connected' || review !== null) return;
-    const values = valuesToReapply({
+    const input = {
       mode,
       locale,
       localeConfirmed: target.confirmed,
       history: history.entries,
       drafts: drafts.drafts,
-    });
-    values.forEach((value, key) => sendToIframe('COMMIT_PREVIEW', { key, value }));
+    };
+    // The built value tells the page where each translation ends, so its own text is kept.
+    const built = builtValuesToReapply(input);
+    valuesToReapply(input).forEach((value, key) =>
+      sendToIframe('COMMIT_PREVIEW', { key, value, source: built.get(key) })
+    );
   }, [
     mode,
     connectionStatus,
@@ -359,7 +363,11 @@ export const useStudio = () => {
       await saveTranslation(entry.locale, entry.key, entry.previousValue);
       if (entry.locale === locale) {
         updateLocaleDataCache(entry.key, entry.previousValue);
-        sendToIframe('COMMIT_PREVIEW', { key: entry.key, value: entry.previousValue });
+        sendToIframe('COMMIT_PREVIEW', {
+          key: entry.key,
+          value: entry.previousValue,
+          source: entry.nextValue,
+        });
       }
       history.remove(entry.id);
       await git.refresh();

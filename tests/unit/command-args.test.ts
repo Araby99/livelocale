@@ -123,6 +123,12 @@ describe('parseStudioArgs', () => {
     expect(parseStudioArgs(['--port', '3011', '--app', 'http://localhost:5173/x'])).toEqual({
       port: 3011,
       appOrigin: 'http://localhost:5173',
+      appUrl: 'http://localhost:5173/x',
+    }));
+  it('keeps no page for an --app at the root', () =>
+    expect(parseStudioArgs(['--app', 'http://localhost:4321/'])).toEqual({
+      port: 3010,
+      appOrigin: 'http://localhost:4321',
     }));
   it.each(['abc', '0', '70000', '30.5'])('rejects --port %s', (port) =>
     expect(usage(() => parseStudioArgs(['--port', port]))).toBe(
@@ -131,7 +137,7 @@ describe('parseStudioArgs', () => {
   );
   it('rejects a non-http --app', () =>
     expect(usage(() => parseStudioArgs(['--app', 'ftp://x']))).toMatch(
-      /^--app must be an http\(s\) origin/
+      /^--app must be an http\(s\) URL such as http:\/\/localhost:3001/
     ));
   it('takes no folder', () =>
     expect(usage(() => parseStudioArgs(['web']))).toBe(

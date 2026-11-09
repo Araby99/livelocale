@@ -42,6 +42,14 @@ describe('injectStudioConfig', () => {
     expect(out.indexOf('__LIVELOCALE_CONFIG__')).toBeLessThan(out.indexOf('</head>'));
   });
 
+  it('injects the page to open first when --app has a path', () => {
+    const out = injectStudioConfig(INDEX_HTML, {
+      appOrigin: 'http://localhost:4321',
+      appUrl: 'http://localhost:4321/ar/',
+    });
+    expect(out).toContain('"appUrl":"http://localhost:4321/ar/"');
+  });
+
   it('should escape "<" so config values cannot break out of the script tag', () => {
     const out = injectStudioConfig(INDEX_HTML, { appOrigin: '</script><script>alert(1)' });
     expect(out).not.toContain('</script><script>alert(1)');

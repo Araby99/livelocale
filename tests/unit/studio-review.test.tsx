@@ -178,7 +178,10 @@ describe('useReview', () => {
     await act(async () => {
       await result.current.openReview('lc1.abc');
     });
-    expect(previews(sendToIframe)).toEqual([{ key: 'home.title', value: 'أهلا' }]);
+    expect(previews(sendToIframe)).toEqual([
+      // The value the target has now tells the page where the translation ends.
+      { key: 'home.title', value: 'أهلا', source: 'مرحبا' },
+    ]);
   });
 
   it('re-applies the overlay after navigation', async () => {
@@ -188,7 +191,10 @@ describe('useReview', () => {
     });
     sendToIframe.mockClear();
     rerender({ ...initialProps, currentPath: '/about' });
-    expect(previews(sendToIframe)).toEqual([{ key: 'home.title', value: 'أهلا' }]);
+    expect(previews(sendToIframe)).toEqual([
+      // The value the target has now tells the page where the translation ends.
+      { key: 'home.title', value: 'أهلا', source: 'مرحبا' },
+    ]);
   });
 
   it('closing clears the hash and reloads the frame', async () => {
@@ -502,7 +508,11 @@ describe('useStudio in Review mode', () => {
     await waitFor(() => expect(result.current.drafts).toHaveLength(1));
     act(() => handlers().onLocaleDetected('ar'));
     await waitFor(() =>
-      expect(previews(sendToIframe)).toContainEqual({ key: 'home.title', value: 'مسودة' })
+      expect(previews(sendToIframe)).toContainEqual({
+        key: 'home.title',
+        value: 'مسودة',
+        source: 'مرحبا',
+      })
     );
 
     await act(async () => {
@@ -511,6 +521,9 @@ describe('useStudio in Review mode', () => {
     sendToIframe.mockClear();
     conn.state.currentPath = '/about';
     rerender();
-    expect(previews(sendToIframe)).toEqual([{ key: 'home.title', value: 'أهلا' }]);
+    expect(previews(sendToIframe)).toEqual([
+      // The value the target has now tells the page where the translation ends.
+      { key: 'home.title', value: 'أهلا', source: 'مرحبا' },
+    ]);
   });
 });

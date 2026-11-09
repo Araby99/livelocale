@@ -163,69 +163,103 @@ function resolveNode(
   return out;
 }
 
+/** `options.fallback`, else, in the browser, the strings the dev server put into the page. */
+function fallbackSource(options: WrapOptions): Record<string, any> | undefined {
+  return (
+    options.fallback ??
+    (typeof window !== 'undefined' ? (window as any).__livelocale_fallback__ : undefined)
+  );
+}
+
+/**
+ * Set on the page, next to `__livelocale_fallback__`, when the dev server put only some
+ * namespaces in it (the `fallbackNamespaces` option).
+ *
+ * @internal
+ */
+export const FALLBACK_PARTIAL_GLOBAL = '__livelocale_fallback_partial__';
+
+const warnedNamespaces = new Set<string>();
+
+/**
+ * `key` in the fallback. When the page's strings hold only some namespaces and this key's
+ * namespace is not one of them, it says so in the console, once per namespace, so a
+ * client-side read the dev server left out does not go blank without a word.
+ */
+function fromFallback(fallbackObj: Record<string, any>, key: string, options: WrapOptions) {
+  const value = getNestedProperty(fallbackObj, key);
+  if (value !== undefined || options.fallback !== undefined || typeof window === 'undefined') {
+    return value;
+  }
+  // A key under a namespace only: a read of a top-level name is also how React, JSON and
+  // promises probe an object (`$$typeof`, `toJSON`, `then`).
+  const dot = key.indexOf('.');
+  const ns = key.slice(0, dot);
+  if (dot > 0 && (window as any)[FALLBACK_PARTIAL_GLOBAL] === true && !(ns in fallbackObj)) {
+    if (!warnedNamespaces.has(ns)) {
+      warnedNamespaces.add(ns);
+      console.warn(
+        `[livelocale] "${key}" is missing, and this page's fallback strings leave out the "${ns}" namespace. Add "${ns}" to the fallbackNamespaces option of the livelocale plugin or integration.`
+      );
+    }
+  }
+  return value;
+}
+
+/**
+ * The keys the fallback adds at this level of a record: those of the fallback object at the
+ * same key path. None for an array or a function, whose shape is the engine's own (as in
+ * `resolveTranslations`), and none for a record that cannot take new keys, since a Proxy may
+ * not report a key its non-extensible target lacks.
+ */
+function fallbackOnlyKeys(target: object, keyPrefix: string, options: WrapOptions): string[] {
+  if (typeof target !== 'object' || Array.isArray(target) || !Object.isExtensible(target)) {
+    return [];
+  }
+  const fallbackObj = fallbackSource(options);
+  const node = keyPrefix ? getNestedProperty(fallbackObj, keyPrefix) : fallbackObj;
+  if (!isContainer(node) || Array.isArray(node)) return [];
+  return Object.keys(node).filter(
+    (key) => !Object.prototype.hasOwnProperty.call(target, key) && node[key] !== undefined
+  );
+}
+
 function buildProxy<T extends object>(target: T, keyPrefix: string, options: WrapOptions): T {
+  // Without these traps, `Object.keys`, `Object.values`, `Object.entries`, spread, `in` and
+  // `JSON.stringify` see only the record's own keys, while a read also finds the keys only
+  // the fallback has: a half-translated namespace then enumerates fewer keys in development
+  // than the merged object production gets. The fallback keys are reported as ordinary
+  // configurable data properties holding the value a read gives.
   return new Proxy(target, {
-    get(obj, prop: string | symbol) {
-      if (typeof prop !== 'string') {
-        const val = Reflect.get(obj, prop);
-        return typeof val === 'object' && val !== null
-          ? buildProxy(val as object, keyPrefix, options)
-          : val;
+    get: (obj, prop) => readProp(obj, prop),
+
+    has(obj, prop) {
+      if (Reflect.has(obj, prop)) return true;
+      return typeof prop === 'string' && fallbackOnlyKeys(obj, keyPrefix, options).includes(prop);
+    },
+
+    ownKeys(obj) {
+      const own = Reflect.ownKeys(obj);
+      const extra = fallbackOnlyKeys(obj, keyPrefix, options);
+      if (extra.length === 0) return own;
+      // String keys first, as an ordinary object lists them, then its symbols.
+      const strings = own.filter((key) => typeof key === 'string');
+      const symbols = own.filter((key) => typeof key !== 'string');
+      return [...strings, ...extra, ...symbols];
+    },
+
+    getOwnPropertyDescriptor(obj, prop) {
+      const desc: PropertyDescriptor | undefined = Reflect.getOwnPropertyDescriptor(obj, prop);
+      if (desc) {
+        // A configurable data property may report another value; a non-configurable one
+        // (an array's `length`, a frozen record) must report its own.
+        if (desc.configurable && 'value' in desc) desc.value = readProp(obj, prop);
+        return desc;
       }
-
-      let val = Reflect.get(obj, prop);
-      const fullKey = keyPrefix ? `${keyPrefix}.${prop}` : prop;
-
-      // If val is missing, try looking it up in fallback
-      const fallbackObj =
-        options.fallback ??
-        (typeof window !== 'undefined' ? (window as any).__livelocale_fallback__ : undefined);
-      if (val === undefined && fallbackObj) {
-        const fbVal = getNestedProperty(fallbackObj, fullKey);
-        if (fbVal !== undefined) {
-          val = fbVal;
-        }
+      if (typeof prop === 'string' && fallbackOnlyKeys(obj, keyPrefix, options).includes(prop)) {
+        return { value: readProp(obj, prop), writable: true, enumerable: true, configurable: true };
       }
-
-      // Leaf string value – encode it with its full key path
-      if (typeof val === 'string') {
-        return encodeKey(val, fullKey);
-      }
-
-      // Function (e.g. t() or t.raw() or t.rich() from next-intl) – wrap the call result
-      if (typeof val === 'function') {
-        return (...args: unknown[]) => {
-          const result = (val as (...args: unknown[]) => unknown).apply(obj, args);
-          const calledKey = extractKey(args[0], fullKey);
-
-          let resolvedValue = result;
-          const isMissing =
-            resolvedValue === undefined ||
-            resolvedValue === null ||
-            resolvedValue === '' ||
-            (typeof resolvedValue === 'string' &&
-              (resolvedValue === args[0] || resolvedValue === calledKey));
-
-          if (isMissing && fallbackObj && calledKey) {
-            const fbVal = getNestedProperty(fallbackObj, calledKey);
-            if (fbVal !== undefined) {
-              resolvedValue = fbVal;
-            }
-          }
-
-          if (typeof resolvedValue === 'string' && calledKey) {
-            return encodeKey(resolvedValue, calledKey);
-          }
-          return resolvedValue;
-        };
-      }
-
-      // Nested object – recurse with updated key path
-      if (typeof val === 'object' && val !== null) {
-        return buildProxy(val as object, fullKey, options);
-      }
-
-      return val;
+      return undefined;
     },
 
     // Allow the proxy to be called directly (e.g. t('key') or t('key', { name: 'value' }))
@@ -233,9 +267,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
       const result = Reflect.apply(target, thisArg, args);
       const calledKey = extractKey(args[0], keyPrefix);
 
-      const fallbackObj =
-        options.fallback ??
-        (typeof window !== 'undefined' ? (window as any).__livelocale_fallback__ : undefined);
+      const fallbackObj = fallbackSource(options);
       let resolvedValue = result;
       const isMissing =
         resolvedValue === undefined ||
@@ -245,7 +277,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
           (resolvedValue === args[0] || resolvedValue === calledKey));
 
       if (isMissing && fallbackObj && calledKey) {
-        const fbVal = getNestedProperty(fallbackObj, calledKey);
+        const fbVal = fromFallback(fallbackObj, calledKey, options);
         if (fbVal !== undefined) {
           resolvedValue = fbVal;
         }
@@ -257,4 +289,66 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
       return resolvedValue;
     },
   });
+
+  // A function declaration, hoisted, so the traps above can call it.
+  function readProp(obj: T, prop: string | symbol): unknown {
+    if (typeof prop !== 'string') {
+      const val = Reflect.get(obj, prop);
+      return typeof val === 'object' && val !== null
+        ? buildProxy(val as object, keyPrefix, options)
+        : val;
+    }
+
+    let val = Reflect.get(obj, prop);
+    const fullKey = keyPrefix ? `${keyPrefix}.${prop}` : prop;
+
+    // If val is missing, try looking it up in fallback
+    const fallbackObj = fallbackSource(options);
+    if (val === undefined && fallbackObj) {
+      const fbVal = fromFallback(fallbackObj, fullKey, options);
+      if (fbVal !== undefined) {
+        val = fbVal;
+      }
+    }
+
+    // Leaf string value – encode it with its full key path
+    if (typeof val === 'string') {
+      return encodeKey(val, fullKey);
+    }
+
+    // Function (e.g. t() or t.raw() or t.rich() from next-intl) – wrap the call result
+    if (typeof val === 'function') {
+      return (...args: unknown[]) => {
+        const result = (val as (...args: unknown[]) => unknown).apply(obj, args);
+        const calledKey = extractKey(args[0], fullKey);
+
+        let resolvedValue = result;
+        const isMissing =
+          resolvedValue === undefined ||
+          resolvedValue === null ||
+          resolvedValue === '' ||
+          (typeof resolvedValue === 'string' &&
+            (resolvedValue === args[0] || resolvedValue === calledKey));
+
+        if (isMissing && fallbackObj && calledKey) {
+          const fbVal = fromFallback(fallbackObj, calledKey, options);
+          if (fbVal !== undefined) {
+            resolvedValue = fbVal;
+          }
+        }
+
+        if (typeof resolvedValue === 'string' && calledKey) {
+          return encodeKey(resolvedValue, calledKey);
+        }
+        return resolvedValue;
+      };
+    }
+
+    // Nested object – recurse with updated key path
+    if (typeof val === 'object' && val !== null) {
+      return buildProxy(val as object, fullKey, options);
+    }
+
+    return val;
+  }
 }
