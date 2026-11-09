@@ -18,6 +18,10 @@ export interface WrapOptions {
 
   /**
    * Optional fallback translations to use when the target key is missing.
+   *
+   * Only read while LiveLocale is on: in production `wrapTranslationEngine` returns the
+   * engine itself, so a fallback must already be part of what the engine returns.
+   * `createTranslations` does that for you.
    */
   fallback?: Record<string, any>;
 }
@@ -84,6 +88,76 @@ function getNestedProperty(obj: any, path: string): any {
     current = current[part];
   }
   return current;
+}
+
+function isContainer(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null;
+}
+
+/**
+ * Resolves a translation record against `fallback` into a plain object, with the values a
+ * read through `wrapTranslationEngine(record, { keyPrefix, fallback })` gives: a key the
+ * record lacks (`undefined`) takes the fallback's value at the same full key path, and a
+ * record value, even `null` or `''`, wins. With `watermark`, every string is encoded with
+ * its full key path, as the proxy does. Arrays stay arrays; other values pass through.
+ *
+ * The result holds every key of the record and of the fallback, so it is safe to
+ * JSON-serialize or pass as props. Without `watermark`, subtrees that need no merging are
+ * shared with the inputs rather than copied: treat the result as read-only.
+ *
+ * @internal Not part of the public API: semver does not cover it and it may change in any
+ * release. See https://livelocale.js.org/docs/reference/stability.html
+ */
+export function resolveTranslations(
+  record: Record<string, any>,
+  options: Pick<WrapOptions, 'keyPrefix' | 'fallback'> & { watermark: boolean }
+): Record<string, any> {
+  const prefix = options.keyPrefix ?? '';
+  const fallbackNode = prefix ? getNestedProperty(options.fallback, prefix) : options.fallback;
+  return resolveNode(record, fallbackNode, prefix, options.fallback, options.watermark);
+}
+
+function resolveNode(
+  target: Record<string, any>,
+  fallbackNode: unknown,
+  keyPrefix: string,
+  fallback: Record<string, any> | undefined,
+  watermark: boolean
+): Record<string, any> {
+  // Nothing to fill and nothing to encode: hand back the record itself.
+  if (!watermark && !isContainer(fallbackNode)) return target;
+
+  const keys = new Set(Object.keys(target));
+  // Fallback indices only extend an array, never turn it into an object.
+  if (isContainer(fallbackNode) && Array.isArray(fallbackNode) === Array.isArray(target)) {
+    for (const key of Object.keys(fallbackNode)) keys.add(key);
+  }
+
+  const out: Record<string, any> = Array.isArray(target) ? [] : {};
+  for (const key of keys) {
+    const fullKey = keyPrefix ? `${keyPrefix}.${key}` : key;
+    let val = target[key];
+    const fromFallback = val === undefined && fallback !== undefined;
+    if (fromFallback) val = getNestedProperty(fallback, fullKey);
+
+    if (fromFallback && !watermark) {
+      // A whole subtree taken from the fallback has nothing left to fill.
+      if (val !== undefined) out[key] = val;
+    } else if (typeof val === 'string') {
+      out[key] = watermark ? encodeKey(val, fullKey) : val;
+    } else if (isContainer(val)) {
+      out[key] = resolveNode(
+        val,
+        getNestedProperty(fallback, fullKey),
+        fullKey,
+        fallback,
+        watermark
+      );
+    } else if (val !== undefined) {
+      out[key] = val;
+    }
+  }
+  return out;
 }
 
 function buildProxy<T extends object>(target: T, keyPrefix: string, options: WrapOptions): T {

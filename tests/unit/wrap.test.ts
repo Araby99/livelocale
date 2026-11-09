@@ -1,7 +1,10 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { wrapTranslationEngine, wrapNextIntl } from '../../src/client/wrap.js';
+import { types } from 'util';
+import { resolveTranslations, wrapTranslationEngine, wrapNextIntl } from '../../src/client/wrap.js';
 import { decodeKey } from '../../src/client/watermark.js';
+
+const { isProxy } = types;
 
 describe('wrapTranslationEngine', () => {
   beforeEach(() => {
@@ -23,6 +26,14 @@ describe('wrapTranslationEngine', () => {
     vi.stubEnv('LIVELOCALE', 'off');
     const engine = { welcome: 'Hello' };
     expect(wrapTranslationEngine(engine)).toBe(engine);
+  });
+
+  it('should return the original engine unchanged in production even with a fallback', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const engine = { welcome: 'Hello' };
+    const wrapped = wrapTranslationEngine(engine, { fallback: { title: 'Home' } });
+    expect(wrapped).toBe(engine);
+    expect((wrapped as any).title).toBeUndefined();
   });
 
   it('should watermark existing properties in development', () => {
@@ -153,5 +164,79 @@ describe('wrapTranslationEngine', () => {
     } finally {
       (globalThis as any).window = originalWindow;
     }
+  });
+});
+
+describe('resolveTranslations', () => {
+  beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'development');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const record = {
+    home: { title: 'Accueil' },
+    list: ['un'],
+    count: 2,
+    nothing: null,
+  } as Record<string, any>;
+  const fallback = {
+    home: { title: 'Home', subtitle: 'Welcome' },
+    list: ['one', 'two'],
+    count: 5,
+    nothing: 'Something',
+    plural: { one: '# file', other: '# files' },
+  };
+
+  it('should give the values a read through the proxy gives, as a plain object', () => {
+    const proxy = wrapTranslationEngine(record, { fallback }) as Record<string, any>;
+    const plain = resolveTranslations(record, { fallback, watermark: true });
+
+    expect(isProxy(plain)).toBe(false);
+    for (const path of [
+      'home.title',
+      'home.subtitle',
+      'list.0',
+      'list.1',
+      'count',
+      'nothing',
+      'plural.one',
+      'plural.other',
+    ]) {
+      const read = (obj: any) => path.split('.').reduce((o, k) => o[k], obj);
+      expect(read(plain), path).toBe(read(proxy));
+    }
+    expect(Array.isArray(plain.list)).toBe(true);
+  });
+
+  it('should keep every key and its watermark through JSON', () => {
+    const copy = JSON.parse(
+      JSON.stringify(resolveTranslations(record, { fallback, watermark: true }))
+    );
+
+    expect(Object.keys(copy).sort()).toEqual(['count', 'home', 'list', 'nothing', 'plural']);
+    expect(decodeKey(copy.home.subtitle)).toEqual({ key: 'home.subtitle', cleanText: 'Welcome' });
+    expect(decodeKey(copy.list[1])).toEqual({ key: 'list.1', cleanText: 'two' });
+  });
+
+  it('should look the fallback up under keyPrefix, like the proxy', () => {
+    const plain = resolveTranslations({}, { keyPrefix: 'home', fallback, watermark: true });
+    expect(decodeKey(plain.subtitle)).toEqual({ key: 'home.subtitle', cleanText: 'Welcome' });
+  });
+
+  it('should merge without watermarks and share subtrees that need no merge', () => {
+    const plain = resolveTranslations(record, { fallback, watermark: false });
+
+    expect(plain).toEqual({
+      home: { title: 'Accueil', subtitle: 'Welcome' },
+      list: ['un', 'two'],
+      count: 2,
+      nothing: null,
+      plural: { one: '# file', other: '# files' },
+    });
+    expect(plain.plural).toBe(fallback.plural);
+    expect(resolveTranslations(record, { watermark: false })).toBe(record);
   });
 });
