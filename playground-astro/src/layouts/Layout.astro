@@ -1,0 +1,40 @@
+---
+import { unwrap } from 'livelocale/server';
+import { pathFor, translationsFor, type Locale } from '../i18n';
+
+interface Props {
+  locale: Locale;
+  page: '' | 'about';
+}
+
+const { locale, page } = Astro.props;
+const t = translationsFor(locale);
+// The tab title is not on the page, so it is unwrapped: no watermark to pick.
+const title = unwrap(t.layout.site);
+const other: Locale = locale === 'en' ? 'ar' : 'en';
+---
+
+<html lang={locale} dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <style>
+      nav {
+        display: flex;
+        gap: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <a id="to-home" href={pathFor(locale, '')}>{t.layout.nav.home}</a>
+      <a id="to-about" href={pathFor(locale, 'about')}>{t.layout.nav.about}</a>
+      <a id="switch-locale" href={pathFor(other, page)} lang={other}>{t.layout.switch}</a>
+    </nav>
+    <main>
+      <slot />
+    </main>
+    <footer>{t.layout.footer}</footer>
+  </body>
+</html>

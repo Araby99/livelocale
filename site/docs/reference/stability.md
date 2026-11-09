@@ -9,14 +9,14 @@ livelocale follows Semantic Versioning (semver). From 1.0 on, a minor or patch r
 
 ## What the promise covers
 
-| Surface            | Covered                                                                                                                                                                                                                                                                 |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Imports            | The exports listed on the [Configuration](./configuration.md) page: `livelocale/server`, `livelocale/client`, `livelocale/react` and `livelocale/vite`, with every documented option. The bare `livelocale` import is the same as `livelocale/server` (server only).    |
-| CLI                | Every command and flag in the [CLI reference](./cli/index.md), the [exit codes](./cli/index.md#exit-codes) of every command, the rule that an unknown flag is a usage error (exit code 2), and the `check` finding names (`hardcoded`, `untranslated`, `wrong-script`). |
-| Files in your repo | `livelocale.allow`, the `// livelocale-ignore-next-line` and `// livelocale-ignore-file` comments, the API route `init` writes, the scripts and the `.github/workflows/livelocale.yml` that `init --share` writes, and the `livelocale/` branch names.                  |
-| Environment        | The variables on the [Environment variables](./environment.md) page and the values they take.                                                                                                                                                                           |
-| Share links        | Change links (`lc1.…`), the share folder (`livelocale/index.html`, `manifest.json`, `flag.js`), the fenced `livelocale` block in a GitHub issue and the `/livelocale apply` comment. See below.                                                                         |
-| Locale file edits  | How a save writes your JSON: same indentation, same trailing newline, same key order.                                                                                                                                                                                   |
+| Surface            | Covered                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Imports            | The exports listed on the [Configuration](./configuration.md) page: `livelocale/server`, `livelocale/client`, `livelocale/react`, `livelocale/vite` and `livelocale/astro`, with every documented option. `livelocale/astro/middleware` is internal: the integration loads it, and it is not covered. The bare `livelocale` import is the same as `livelocale/server` (server only). |
+| CLI                | Every command and flag in the [CLI reference](./cli/index.md), the [exit codes](./cli/index.md#exit-codes) of every command, the rule that an unknown flag is a usage error (exit code 2), and the `check` finding names (`hardcoded`, `untranslated`, `wrong-script`).                                                                                                              |
+| Files in your repo | `livelocale.allow`, the `// livelocale-ignore-next-line` and `// livelocale-ignore-file` comments, the API route `init` writes, the scripts and the `.github/workflows/livelocale.yml` that `init --share` writes, and the `livelocale/` branch names.                                                                                                                               |
+| Environment        | The variables on the [Environment variables](./environment.md) page and the values they take.                                                                                                                                                                                                                                                                                        |
+| Share links        | Change links (`lc1.…`), the share folder (`livelocale/index.html`, `manifest.json`, `flag.js`), the fenced `livelocale` block in a GitHub issue and the `/livelocale apply` comment. See below.                                                                                                                                                                                      |
+| Locale file edits  | How a save writes your JSON: same indentation, same trailing newline, same key order.                                                                                                                                                                                                                                                                                                |
 
 ## What is internal
 
@@ -46,7 +46,7 @@ When something public has to go, it is deprecated first:
 2. It keeps working through the rest of that major version.
 3. The next major release removes it, and its release notes say how to move off it.
 
-Raising the minimum Node.js version, or the lowest supported version of Next.js, React, Vite or TypeScript, also waits for a major release.
+Raising the minimum Node.js version, or the lowest supported version of Next.js, React, Vite, Astro or TypeScript, also waits for a major release.
 
 ## Supported versions
 
@@ -56,6 +56,7 @@ Raising the minimum Node.js version, or the lowest supported version of Next.js,
 | Next.js                                     | 13 or later                        | 16, App Router (the Pages Router route is unit-tested)               |
 | React                                       | 18 or later                        | 18                                                                   |
 | Vite                                        | 5 or later                         | 8                                                                    |
+| Astro                                       | 7 or later                         | 7, by hand on the Astro playground; the integration is unit-tested   |
 | next-intl                                   | any that returns a `t`             | not run in CI; `wrapNextIntl` wraps the `t` it is given              |
 | react-i18next / i18next                     | any                                | 17 / 26                                                              |
 | TypeScript (`check --hardcoded`, `migrate`) | 4.7 to 6                           | 5; TypeScript 7 has no classic compiler API yet, and the CLI says so |

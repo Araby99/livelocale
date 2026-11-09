@@ -33,6 +33,7 @@ The build change depends on your stack:
 | webpack and Rsbuild        | The same, packing `dist`: `"build": "<bundler> && livelocale pack dist --locales <path> --source <locale>"`.                                                                             |
 | Next.js `output: 'export'` | `livelocale build --preview -- next build`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked.                                                    |
 | Next.js on Vercel/Node     | `livelocale build --preview -- next build` as the Preview environment's build command. It packs into a gitignored `public/livelocale/`.                                                  |
+| Astro                      | `livelocale build --preview -- astro build`, deployed to a staging location, because Astro renders the text at build time.                                                               |
 | Custom CI                  | `LIVELOCALE=preview <build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                                                                    |
 
 For CRA, webpack and Rsbuild, use an explicit `&&`, not a `postbuild` script: Yarn Berry and some pnpm versions skip pre and post scripts, and hosts that call the bundler directly skip them too. Every flag of the command is on the [`init --share` reference](../reference/cli/init.md#share).

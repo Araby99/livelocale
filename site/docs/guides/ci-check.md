@@ -53,7 +53,7 @@ npx livelocale check --hardcoded
 
 ```
 
-The JSX scan uses your project's own `typescript`. Without it the other checks still run and the command exits with code 2. Install it with:
+The JSX scan uses your project's own `typescript`. Without it the other checks still run and the command exits with code 2. `.astro` files and scripts with no JSX need no `typescript`, so an Astro site without islands runs without it. Install it with:
 
 ```bash
 npm install -D typescript
@@ -69,7 +69,7 @@ Without `--hardcoded`, `check` behaves as it did before the flag existed, so an 
 | `untranslated`: a translation identical to the source locale                              | warning |
 | `wrong-script`: a translation mostly in Latin letters for a non-Latin locale (`ar`, `ja`) | warning |
 
-- **`hardcoded`** reads JSX children and the attributes a user reads or hears: `alt`, `title`, `placeholder`, `aria-label`, `label` and the other `aria-` text attributes. It always fails the run.
+- **`hardcoded`** reads JSX children and the attributes a user reads or hears: `alt`, `title`, `placeholder`, `aria-label`, `label` and the other `aria-` text attributes. It always fails the run. In `.astro` files it reads the template the same way and skips the frontmatter, `<script>` and `<style>`; there an HTML comment works as an opt-out too: `<!-- livelocale-ignore-next-line -->`.
 - **`untranslated`** is a value left the same as the source locale's. A locale of the source's own language, such as `en-GB` beside `en`, is not compared.
 - **`wrong-script`** is a value in a locale normally written in another script, such as Arabic or Japanese, that is mostly Latin letters.
 
@@ -101,7 +101,7 @@ const label = <span>LiveLocale</span>;
 </footer>;
 ```
 
-A `// livelocale-ignore-file` comment at the top of a file skips the whole file.
+A `// livelocale-ignore-file` comment at the top of a file skips the whole file. In an `.astro` file, put it in the frontmatter, or put `<!-- livelocale-ignore-file -->` at the top of the template.
 
 Brand names and other words that are never translated go in a `livelocale.allow` file at the project root, one per line. A `key:` line exempts a translation key from `untranslated` and `wrong-script`, for a value that is the same in every language. Blank lines and lines starting with `#` are skipped:
 
@@ -144,7 +144,7 @@ The step fails when the command exits with code 1 (a problem) or 2 (the check co
 
 ## What it does not see
 
-- **Only JSX is checked.** Vue, Svelte, Angular and HTML templates are not, and neither are object literals such as page metadata.
+- **Only JSX and Astro templates are checked.** Vue, Svelte, Angular and HTML templates are not, and neither are object literals such as page metadata. In an `.astro` file, text inside a `{...}` expression is not checked, except an expression that is one string literal: `{items.map((i) => <li>Buy</li>)}` is not seen.
 - **Text built at run time is not seen:** a template string with substitutions, a concatenation or a value from an API.
 - **Some files are skipped:** test and story files (`*.test.*`, `*.spec.*`, `*.stories.*`, `*.cy.*`, `*.e2e.*`), the folders `__tests__`, `__mocks__`, `__fixtures__`, `fixtures`, `.storybook`, `e2e` and `cypress`, `.d.ts` files, folders the key scanner ignores (`node_modules`, build output) and paths in `.gitignore`.
 - **Code-like strings are not reported:** URLs, emails, paths, ids, `kebab-case`, `snake_case`, `camelCase` and `CONSTANT` tokens, dotted keys, and shell commands.

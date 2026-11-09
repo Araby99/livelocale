@@ -66,6 +66,15 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
+Without React (Vue, Svelte, plain Vite), start the client from your entry file instead. The plugin tells the page which mode it runs in, so this needs no `NODE_ENV` from the bundler:
+
+```ts
+// src/main.ts
+import { startLiveLocale } from 'livelocale/client';
+
+startLiveLocale();
+```
+
 The Studio finds a string by an invisible watermark, added in development to every string that goes through livelocale. Wrap the `t` function your app looks text up with in `wrapTranslationEngine`. With `react-i18next`:
 
 ```tsx

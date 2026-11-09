@@ -3,14 +3,23 @@ import * as path from 'path';
 import { parseGitignore, type GitignoreMatcher } from '../../core/gitignore.js';
 import { IGNORE_DIRS, MAX_SOURCE_BYTES } from '../../server/key-scanner.js';
 
-/** Files that can hold JSX. `.ts` is left out: TypeScript forbids JSX there. */
+/**
+ * Files that can hold JSX, and Astro components. `.ts` is left out: TypeScript forbids JSX
+ * there. `.astro` files go to their own scanner, which needs no TypeScript.
+ */
 export const COMPONENT_EXTENSIONS: ReadonlySet<string> = new Set([
   '.tsx',
   '.jsx',
   '.js',
   '.mjs',
   '.cjs',
+  '.astro',
 ]);
+
+/** True for a file `scan-astro` reads instead of the TypeScript-based JSX scanner. */
+export function isAstroFile(file: string): boolean {
+  return file.endsWith('.astro');
+}
 
 /** Folders of tests, mocks, fixtures and stories, skipped on top of `IGNORE_DIRS`. */
 export const SKIPPED_DIRS: ReadonlySet<string> = new Set([

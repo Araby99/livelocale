@@ -73,13 +73,13 @@ Also finds text never passed through translation, and translations left identica
 | `untranslated`: a translation identical to the source locale                              | warning |
 | `wrong-script`: a translation mostly in Latin letters for a non-Latin locale (`ar`, `ja`) | warning |
 
-Each finding prints its file, line and column, and the source text shortened to 60 characters; translation values are never printed. The JSX scan uses your project's own `typescript` (`npm install -D typescript`); without it the other checks still run and the command exits with code 2. Without `--hardcoded`, `check` behaves as it did before the flag existed.
+Each finding prints its file, line and column, and the source text shortened to 60 characters; translation values are never printed. The JSX scan uses your project's own `typescript` (`npm install -D typescript`); without it the other checks still run and the command exits with code 2. `.astro` templates are scanned without `typescript`. The key scan reads `.astro` files too, frontmatter and template. Without `--hardcoded`, `check` behaves as it did before the flag existed.
 
 ```cli check-hardcoded
 
 ```
 
-Opt-outs: `// livelocale-ignore-next-line` above the text or its element, `// livelocale-ignore-file` at the top of a file, and words in a `livelocale.allow` file at the project root (one per line; a `key:` line exempts a translation key from `untranslated` and `wrong-script`).
+Opt-outs: `// livelocale-ignore-next-line` above the text or its element, `// livelocale-ignore-file` at the top of a file (in `.astro`, in the frontmatter or as `<!-- livelocale-ignore-file -->` atop the template), and words in a `livelocale.allow` file at the project root (one per line; a `key:` line exempts a translation key from `untranslated` and `wrong-script`).
 
 ### `--allow`
 

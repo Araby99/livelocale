@@ -56,6 +56,44 @@ describe('runDoctor — static checks', () => {
     expect(byTitle(findings, 'locale files')?.level).toBe('ok');
   });
 
+  describe('on an Astro project', () => {
+    const astroProject = (config: string) => {
+      write(project, 'package.json', JSON.stringify({ dependencies: { astro: '^7.0.0' } }));
+      write(project, 'astro.config.mjs', config);
+      write(project, 'src/middleware.ts', 'export const onRequest = (_, next) => next();');
+      write(project, 'locales/en/home.json', JSON.stringify({ title: 'Hi' }));
+    };
+
+    it('checks the integration instead of a Next.js route, provider and middleware', async () => {
+      astroProject(
+        "import liveLocale from 'livelocale/astro';\nexport default { integrations: [liveLocale({ localesPath: './locales' })] };\n"
+      );
+      const findings = await runDoctor({ projectDir: project });
+      expect(hasFailures(findings)).toBe(false);
+      expect(findings.filter((f) => f.level !== 'ok')).toEqual([]);
+      expect(byTitle(findings, 'Astro integration')).toEqual({
+        level: 'ok',
+        title: 'Astro integration',
+        detail: 'astro.config.mjs uses livelocale/astro',
+      });
+      expect(byTitle(findings, 'route handler')).toBeUndefined();
+      expect(byTitle(findings, 'provider')).toBeUndefined();
+      expect(byTitle(findings, 'middleware')).toBeUndefined();
+      expect(byTitle(findings, 'next.config')).toBeUndefined();
+    });
+
+    it('fails without the integration and says how to add it', async () => {
+      astroProject('export default {};\n');
+      const findings = await runDoctor({ projectDir: project });
+      expect(byTitle(findings, 'Astro integration')).toEqual({
+        level: 'fail',
+        title: 'Astro integration',
+        detail:
+          "astro.config.mjs does not use livelocale/astro. Add liveLocale({ localesPath: './locales' }) from 'livelocale/astro' to integrations.",
+      });
+    });
+  });
+
   it('fails when the mutation route handler is missing and points at init', async () => {
     healthyAppRouterProject(project);
     fs.rmSync(path.join(project, 'app', 'api'), { recursive: true });

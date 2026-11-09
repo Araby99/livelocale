@@ -21,18 +21,18 @@ It exits 1 on a blocking problem, 0 when only warnings remain. Fix each marked l
 
 ## Studio
 
-| Symptom                                                | Fix                                                                                                                                              |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Mutation API** reports HTTP 404                      | Next.js: run `npx livelocale init`, restart `next dev`. Vite: put `liveLocaleVite(...)` in `plugins`, restart `vite`.                            |
-| **Mutation API** reports a redirect                    | Auth middleware intercepts the route: `matcher: ['/((?!api/livelocale).*)']`.                                                                    |
-| **Mutation API** says the app is not reachable         | The dev server is not running or runs on another port: pass that port to `studio --app` and `doctor --app`.                                      |
-| Blank preview, **Studio can embed the app** warns      | Only while `NODE_ENV` is `development`: send no `X-Frame-Options` (`SAMEORIGIN` blocks too), and `frame-ancestors 'self' http://localhost:3010`. |
-| Alt+Click follows the link or does nothing             | The text is not wrapped (`wrapTranslationEngine`, `wrapNextIntl`, `createTranslations`), or Alt was not held.                                    |
-| No text responds at all                                | livelocale is off: not a dev server, `LIVELOCALE=off`, or a detected hosting platform.                                                           |
-| Keys under a namespace do not match                    | Give the wrapper the namespace: `wrapTranslationEngine(rawT, { keyPrefix: 'auth' })`, so `t('login.title')` maps to `auth.login.title`.          |
-| Saves fail from Codespaces, Gitpod or a shared dev box | `LIVELOCALE_ALLOWED_ORIGINS="<studio origin>"` in the app's dev process, then restart it.                                                        |
-| **Save Changes** shows a placeholder warning           | The fix dropped or added a `{placeholder}`: put it back, or choose **Save anyway**.                                                              |
-| The Changes panel shows no git status                  | `git` must be on `PATH` and the locales folder inside a repository.                                                                              |
+| Symptom                                                | Fix                                                                                                                                                                                                                |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Mutation API** reports HTTP 404                      | Next.js: run `npx livelocale init`, restart `next dev`. Vite: put `liveLocaleVite(...)` in `plugins`, restart `vite`. Astro: put `liveLocale(...)` from `livelocale/astro` in `integrations`, restart `astro dev`. |
+| **Mutation API** reports a redirect                    | Auth middleware intercepts the route: `matcher: ['/((?!api/livelocale).*)']`.                                                                                                                                      |
+| **Mutation API** says the app is not reachable         | The dev server is not running or runs on another port: pass that port to `studio --app` and `doctor --app`.                                                                                                        |
+| Blank preview, **Studio can embed the app** warns      | Only while `NODE_ENV` is `development`: send no `X-Frame-Options` (`SAMEORIGIN` blocks too), and `frame-ancestors 'self' http://localhost:3010`.                                                                   |
+| Alt+Click follows the link or does nothing             | The text is not wrapped (`wrapTranslationEngine`, `wrapNextIntl`, `createTranslations`), or Alt was not held.                                                                                                      |
+| No text responds at all                                | livelocale is off: not a dev server, `LIVELOCALE=off`, or a detected hosting platform.                                                                                                                             |
+| Keys under a namespace do not match                    | Give the wrapper the namespace: `wrapTranslationEngine(rawT, { keyPrefix: 'auth' })`, so `t('login.title')` maps to `auth.login.title`.                                                                            |
+| Saves fail from Codespaces, Gitpod or a shared dev box | `LIVELOCALE_ALLOWED_ORIGINS="<studio origin>"` in the app's dev process, then restart it.                                                                                                                          |
+| **Save Changes** shows a placeholder warning           | The fix dropped or added a `{placeholder}`: put it back, or choose **Save anyway**.                                                                                                                                |
+| The Changes panel shows no git status                  | `git` must be on `PATH` and the locales folder inside a repository.                                                                                                                                                |
 
 ## Share links
 

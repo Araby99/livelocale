@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { LOCALE_RE } from '../core/validate.js';
 import { FLAG_SCRIPT_SIGNATURE } from '../core/flag-script.js';
+import { ASTRO_CONFIG_FILES, detectBuildTarget } from '../server/build-target.js';
 import {
   SHARE_DIR,
   SHARE_FLAG_FILE,
@@ -176,6 +177,23 @@ function checkProvider(root: string): Finding {
     level: 'warn',
     title: 'LiveLocaleProvider mounted',
     detail: `Add <LiveLocaleProvider /> from 'livelocale/react' to ${existing[0]} so the Studio can talk to the page.`,
+  };
+}
+
+/**
+ * On Astro, the `livelocale/astro` integration serves the API in `astro dev` and loads the
+ * in-page client, so its presence in the config is the whole setup.
+ */
+function checkAstroIntegration(root: string): Finding {
+  const title = 'Astro integration';
+  const config = firstExisting(root, ASTRO_CONFIG_FILES);
+  if (config && /['"]livelocale\/astro['"]/.test(readText(path.join(root, config)))) {
+    return { level: 'ok', title, detail: `${config} uses livelocale/astro` };
+  }
+  return {
+    level: 'fail',
+    title,
+    detail: `${config ?? 'astro.config.mjs'} does not use livelocale/astro. Add liveLocale({ localesPath: './locales' }) from 'livelocale/astro' to integrations.`,
   };
 }
 
@@ -797,13 +815,17 @@ function looksLikeShareBuild(manifest: Fetched): boolean {
 
 export async function runDoctor(options: DoctorOptions): Promise<Finding[]> {
   const root = path.resolve(options.projectDir);
-  const findings: Finding[] = [
-    checkRouteHandler(root),
-    checkProvider(root),
-    checkMiddleware(root),
-    checkFrameHeaders(root),
-    checkLocales(root, options.localesPath),
-  ];
+  // Astro's integration replaces the Next.js route, provider, middleware matcher and config.
+  const appChecks =
+    detectBuildTarget(root).kind === 'astro'
+      ? [checkAstroIntegration(root)]
+      : [
+          checkRouteHandler(root),
+          checkProvider(root),
+          checkMiddleware(root),
+          checkFrameHeaders(root),
+        ];
+  const findings: Finding[] = [...appChecks, checkLocales(root, options.localesPath)];
   const workerConfig = checkServiceWorkerConfig(root);
   if (workerConfig) findings.push(workerConfig);
 

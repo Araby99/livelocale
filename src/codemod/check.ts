@@ -4,8 +4,9 @@ import { LOCALE_RE } from '../core/validate.js';
 import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
 import { KeyScanner } from '../server/key-scanner.js';
 import { readAllowList } from './hardcoded/allow-list.js';
-import { listComponentFiles } from './hardcoded/files.js';
-import { loadProjectTypeScript } from './hardcoded/load-typescript.js';
+import { isAstroFile, listComponentFiles } from './hardcoded/files.js';
+import { loadProjectTypeScript, type ProjectTypeScript } from './hardcoded/load-typescript.js';
+import { findAstroHardcodedText } from './hardcoded/scan-astro.js';
 import { findHardcodedText } from './hardcoded/scan-jsx.js';
 import {
   hasLetters,
@@ -13,6 +14,9 @@ import {
   isNonLatinLocale,
   primaryLanguage,
 } from './hardcoded/locale-script.js';
+
+/** A JSX element or fragment needs a `<` before a letter or `>`; a file without one has none. */
+const MAY_HOLD_JSX = /<[A-Za-z>]/;
 
 export type IssueKind =
   | 'invalid-json'
@@ -377,28 +381,38 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
   }
 
   if (allow) {
-    const loaded = await loadProjectTypeScript(projectDir);
-    if ('problem' in loaded) {
-      setupProblems = [loaded.problem];
-    } else {
-      for (const file of await listComponentFiles(projectDir)) {
-        let content: string;
-        try {
-          content = await fs.promises.readFile(path.join(projectDir, file), 'utf-8');
-        } catch {
+    // TypeScript is loaded only for a file that can hold JSX: .astro files have their own
+    // scanner, and a script with no `<` (astro.config.mjs) has nothing the JSX scan reports.
+    let loaded: ProjectTypeScript | null = null;
+    for (const file of await listComponentFiles(projectDir)) {
+      let content: string;
+      try {
+        content = await fs.promises.readFile(path.join(projectDir, file), 'utf-8');
+      } catch {
+        continue;
+      }
+      let findings;
+      if (isAstroFile(file)) {
+        findings = findAstroHardcodedText(content, allow);
+      } else {
+        if (!MAY_HOLD_JSX.test(content)) continue;
+        loaded ??= await loadProjectTypeScript(projectDir);
+        if ('problem' in loaded) {
+          setupProblems = [loaded.problem];
           continue;
         }
-        for (const finding of findHardcodedText(loaded.ts, content, file, allow)) {
-          issues.push({
-            kind: 'hardcoded',
-            level: 'fail',
-            file,
-            line: finding.line,
-            column: finding.column,
-            text: finding.text,
-            message: 'Not passed through a translation call.',
-          });
-        }
+        findings = findHardcodedText(loaded.ts, content, file, allow);
+      }
+      for (const finding of findings) {
+        issues.push({
+          kind: 'hardcoded',
+          level: 'fail',
+          file,
+          line: finding.line,
+          column: finding.column,
+          text: finding.text,
+          message: 'Not passed through a translation call.',
+        });
       }
     }
   }

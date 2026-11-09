@@ -1,0 +1,5 @@
+{
+  "title": "Welcome to the Astro playground",
+  "intro": "Every line on this page comes from a locale file, loaded in the frontmatter.",
+  "cta": "Hold Alt and click any line to fix it"
+}

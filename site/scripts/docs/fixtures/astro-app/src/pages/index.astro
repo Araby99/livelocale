@@ -1,0 +1,14 @@
+---
+import { createTranslations } from 'livelocale/server';
+
+const t = createTranslations('en', { supportedLocales: ['en', 'ar'] });
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+  </head>
+  <body>
+    <h1>{t.home.title}</h1>
+  </body>
+</html>

@@ -29,7 +29,7 @@ describe('the check --hardcoded and Studio docs', () => {
 
   it('states the honest limits and the typescript requirement', () => {
     for (const s of [
-      'Only JSX is checked',
+      'Only JSX and Astro templates are checked',
       'Text built at run time is not seen',
       'exits with code 2',
       'npm install -D typescript',

@@ -12,7 +12,8 @@ import {
   findExportBlockingRoute,
 } from '../server/build-target.js';
 
-export type ShareStack = 'vite' | 'cra' | 'webpack' | 'next-export' | 'next-server' | 'unknown';
+export type ShareStack =
+  'vite' | 'astro' | 'cra' | 'webpack' | 'next-export' | 'next-server' | 'unknown';
 
 export const CHECKOUT_ACTION = 'actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2';
 
@@ -69,6 +70,7 @@ export function detectShareStack(projectDir: string): { stack: ShareStack; evide
       ? { stack: 'next-export', evidence: "Next.js with output: 'export'" }
       : { stack: 'next-server', evidence: "Next.js without output: 'export'" };
   }
+  if (target.kind === 'astro') return { stack: 'astro', evidence: 'Astro' };
   if (target.kind === 'vite') return { stack: 'vite', evidence: 'Vite' };
   if (target.kind === 'cra') return { stack: 'cra', evidence: 'react-scripts' };
   const pkg = parsePackageJson(readText(path.join(projectDir, 'package.json')));
@@ -79,7 +81,10 @@ export function detectShareStack(projectDir: string): { stack: ShareStack; evide
     .readdirSync(projectDir)
     .find((name) => /^webpack\.config\.[A-Za-z]+$/.test(name));
   if (config) return { stack: 'webpack', evidence: config };
-  return { stack: 'unknown', evidence: 'no Vite, Next.js, CRA, webpack or Rsbuild setup found' };
+  return {
+    stack: 'unknown',
+    evidence: 'no Vite, Astro, Next.js, CRA, webpack or Rsbuild setup found',
+  };
 }
 
 export interface WorkflowOptions {
@@ -330,20 +335,23 @@ function planPackageScripts(c: BuildContext): PlannedFile[] {
   const text = readText(path.join(c.projectDir, 'package.json'));
   const pkg = parsePackageJson(text);
   const args = `--locales ${c.localesPath} --source ${c.sourceLocale}`;
+  // Next.js and Astro render the text at build time, so the share build is a preview build.
   const isNext = c.stack === 'next-export' || c.stack === 'next-server';
+  const previewBuild = isNext || c.stack === 'astro';
+  const buildCommand = c.stack === 'astro' ? 'astro build' : 'next build';
   const outDir = c.stack === 'cra' ? 'build' : 'dist';
   const packCommand = `livelocale pack ${outDir} ${args}`;
   if (!pkg) {
     c.notes.push(
-      isNext
-        ? `Add "build:preview": "livelocale build --preview ${args} -- next build" to package.json.`
+      previewBuild
+        ? `Add "build:preview": "livelocale build --preview ${args} -- ${buildCommand}" to package.json.`
         : `Run "${packCommand}" after your build.`
     );
     return [{ path: 'package.json', action: 'skipped', reason: 'no readable package.json' }];
   }
   const scripts = { ...(pkg.scripts ?? {}) };
-  if (isNext) {
-    const wanted = `livelocale build --preview ${args} -- next build`;
+  if (previewBuild) {
+    const wanted = `livelocale build --preview ${args} -- ${buildCommand}`;
     const current = scripts['build:preview'];
     if (
       current === wanted ||
@@ -399,6 +407,13 @@ function planBuild(c: BuildContext): PlannedFile[] {
     case 'cra':
     case 'webpack':
       return planPackageScripts(c);
+    case 'astro': {
+      const files = planPackageScripts(c);
+      c.notes.push(
+        'Use "npm run build:preview" as the build command of a staging deployment only: it watermarks every page\'s text.'
+      );
+      return files;
+    }
     case 'next-export':
     case 'next-server': {
       const files = [...planPackageScripts(c), planGitignore(c.projectDir)];
