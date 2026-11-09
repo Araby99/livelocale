@@ -5,6 +5,7 @@ import {
   getDisabledReason,
   getLiveLocaleMode,
   resetEnvWarnings,
+  BROWSER_FLAG_GLOBAL,
 } from '../../src/core/env.js';
 
 const PLATFORM_VARS = [
@@ -181,6 +182,31 @@ describe('browser flag global', () => {
   it('honours an "off" flag from the global', () => {
     vi.stubEnv('NODE_ENV', 'development');
     vi.stubGlobal('window', { __LIVELOCALE_FLAG__: 'off' });
+    expect(getLiveLocaleMode()).toBe('off');
+  });
+
+  it('reads development mode from the global when the bundle inlined no NODE_ENV', () => {
+    vi.stubEnv('NODE_ENV', '');
+    vi.stubGlobal('window', { __LIVELOCALE_FLAG__: 'development' });
+    expect(getLiveLocaleMode()).toBe('development');
+    expect(getDisabledReason()).toBeNull();
+  });
+
+  it('never turns a production bundle on from a "development" global', () => {
+    vi.stubGlobal('window', { __LIVELOCALE_FLAG__: 'development' });
+    expect(getLiveLocaleMode()).toBe('off');
+  });
+
+  it('takes "development" from the page global only, not from NEXT_PUBLIC_LIVELOCALE', () => {
+    vi.stubEnv('NODE_ENV', '');
+    vi.stubEnv('NEXT_PUBLIC_LIVELOCALE', 'development');
+    vi.stubGlobal('window', {});
+    expect(getLiveLocaleMode()).toBe('off');
+  });
+
+  it('ignores a "development" global on the server', () => {
+    vi.stubEnv('NODE_ENV', '');
+    vi.stubGlobal(BROWSER_FLAG_GLOBAL, 'development');
     expect(getLiveLocaleMode()).toBe('off');
   });
 });

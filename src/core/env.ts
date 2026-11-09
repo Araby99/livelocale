@@ -12,9 +12,12 @@
  * Rules, in order:
  *   1. `LIVELOCALE=off|0|false` (or `NEXT_PUBLIC_LIVELOCALE=off`) always wins → off.
  *   2. `LIVELOCALE=preview` / `NEXT_PUBLIC_LIVELOCALE=preview` → preview.
- *   3. `NODE_ENV` must be `development`, otherwise off.
- *   4. `LIVELOCALE=force` skips rule 5.
- *   5. On the server, a known hosting platform (Vercel preview/production, Netlify,
+ *   3. In the browser, a page global `__LIVELOCALE_FLAG__ = 'development'` → development,
+ *      unless the bundle inlined `NODE_ENV=production`. The server that rendered the page sets
+ *      it (the Astro integration, the Vite plugin), so a bundle needs no `NODE_ENV` inlining.
+ *   4. `NODE_ENV` must be `development`, otherwise off.
+ *   5. `LIVELOCALE=force` skips rule 6.
+ *   6. On the server, a known hosting platform (Vercel preview/production, Netlify,
  *      Kubernetes, Render, Fly.io, Railway, Heroku) → off, so a mis-configured staging
  *      deploy cannot leak watermarks. A one-time warning is logged.
  *
@@ -44,14 +47,7 @@ function readNodeEnv(): string | undefined {
 /** Set by the Vite plugin (and usable by any host) to mirror the server flag into the page. */
 export const BROWSER_FLAG_GLOBAL = '__LIVELOCALE_FLAG__';
 
-function readPublicFlag(): string | undefined {
-  let value: string | undefined;
-  try {
-    value = process.env.NEXT_PUBLIC_LIVELOCALE;
-  } catch {
-    value = undefined;
-  }
-  if (value) return value;
+function readGlobalFlag(): string | undefined {
   try {
     const g = globalThis as any;
     const fromGlobal = g.window?.[BROWSER_FLAG_GLOBAL] ?? g[BROWSER_FLAG_GLOBAL];
@@ -59,6 +55,22 @@ function readPublicFlag(): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function readPublicFlag(): string | undefined {
+  let value: string | undefined;
+  try {
+    value = process.env.NEXT_PUBLIC_LIVELOCALE;
+  } catch {
+    value = undefined;
+  }
+  return value || readGlobalFlag();
+}
+
+/** Rule 3: the page says the server that rendered it runs in development. Browser only. */
+function pageSaysDevelopment(nodeEnv: string | undefined): boolean {
+  if (typeof window === 'undefined' || nodeEnv === 'production') return false;
+  return (readGlobalFlag() ?? '').toLowerCase() === 'development';
 }
 
 function readEnv(name: string): string | undefined {
@@ -97,6 +109,7 @@ function evaluate(): { mode: LiveLocaleMode; reason: string | null } {
   if (flag === 'preview' || publicFlag === 'preview') return { mode: 'preview', reason: null };
 
   const nodeEnv = readNodeEnv();
+  if (pageSaysDevelopment(nodeEnv)) return { mode: 'development', reason: null };
   if (nodeEnv !== 'development') {
     return {
       mode: 'off',

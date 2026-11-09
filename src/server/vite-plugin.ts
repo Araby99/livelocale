@@ -1,13 +1,11 @@
 import * as path from 'path';
-import * as fs from 'fs';
 import type { Plugin } from 'vite';
 import { FileMutator } from './file-mutator.js';
 import { GitClient } from './git-client.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
 import { readNodeBody } from './node-body.js';
-import { deepMerge } from '../core/deep-merge.js';
-import { isLiveLocaleEnabled, BROWSER_FLAG_GLOBAL } from '../core/env.js';
 import { packOutput } from './pack.js';
+import { injectIntoHead, pageHeadScripts } from './page-script.js';
 import { flagSrcFor, injectFlagScript, normalizeBase, type AppBase } from './share-html.js';
 
 export interface VitePluginConfig {
@@ -160,61 +158,9 @@ export function liveLocaleVite(config: VitePluginConfig): Plugin {
         const htmlRelPath = (ctx?.path ?? '/index.html').replace(/^\/+/, '');
         return injectFlagScript(html, flagSrcFor(shareBuild.appBase, htmlRelPath));
       }
-      // Mirror the server-side LIVELOCALE flag (preview/off) into the page so the client
-      // bundle resolves the same mode without bundler-specific env inlining.
-      const flag = process.env['LIVELOCALE'];
-      const flagScript = flag
-        ? `<script>window.${BROWSER_FLAG_GLOBAL} = ${JSON.stringify(flag)};</script>\n`
-        : '';
-      if (!isLiveLocaleEnabled()) {
-        return flagScript ? html.replace('</head>', `${flagScript}</head>`) : html;
-      }
-      try {
-        const resolvedLocalesPath = path.resolve(config.localesPath);
-        const entries = fs.readdirSync(resolvedLocalesPath);
-        let fallbackData: Record<string, any> = {};
-        for (const entry of entries) {
-          if (entry.startsWith('.')) continue;
-          const entryPath = path.join(resolvedLocalesPath, entry);
-          let entryIsDir = false;
-          try {
-            entryIsDir = fs.statSync(entryPath).isDirectory();
-          } catch {}
-
-          if (entryIsDir) {
-            try {
-              const files = fs.readdirSync(entryPath);
-              for (const file of files) {
-                if (file.endsWith('.json')) {
-                  const ns = file.slice(0, -5);
-                  const raw = fs.readFileSync(path.join(entryPath, file), 'utf-8');
-                  try {
-                    const parsed = JSON.parse(raw);
-                    fallbackData[ns] = deepMerge(fallbackData[ns] || {}, parsed);
-                  } catch {}
-                }
-              }
-            } catch {}
-          } else if (entry.endsWith('.json')) {
-            const raw = fs.readFileSync(entryPath, 'utf-8');
-            try {
-              const parsed = JSON.parse(raw);
-              fallbackData = deepMerge(fallbackData, parsed);
-            } catch {}
-          }
-        }
-        // RULE SEC-008: XSS-SAFE INJECTION — escape U+2028/U+2029 and "<" so
-        // translation values containing "</script>" cannot break out of the tag.
-        const safeJson = JSON.stringify(fallbackData)
-          .replace(/</g, '\\u003c')
-          .replace(/\u2028/g, '\\u2028')
-          .replace(/\u2029/g, '\\u2029');
-        const script = `<script>window.__livelocale_fallback__ = ${safeJson};</script>`;
-        return html.replace('</head>', `${flagScript}${script}\n</head>`);
-      } catch (err) {
-        console.warn('[livelocale] Failed to inject fallback data:', err);
-        return flagScript ? html.replace('</head>', `${flagScript}</head>`) : html;
-      }
+      // Mirror the server-side mode (development/preview/off) and the fallback dictionary into
+      // the page, so the client bundle resolves the same mode without bundler env inlining.
+      return injectIntoHead(html, pageHeadScripts(config.localesPath));
     },
   };
 }

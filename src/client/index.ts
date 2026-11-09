@@ -92,15 +92,40 @@ function restorePreviews(): void {
   previewNodes.clear();
 }
 
-// ─── Auto-initialization ────────────────────────────────────────────────────
+/// ─── Start ──────────────────────────────────────────────────────────────────
 
-// Auto-initialize the interceptor if running in the browser, in development mode,
-// AND only when the page is embedded inside the studio iframe (not accessed directly).
-if (
-  typeof window !== 'undefined' &&
-  isLiveLocaleEnabled() &&
-  window.parent !== window // <-- iframe guard: only activate inside the studio
-) {
+/** The running client, on `window` so a second copy of this module finds it. */
+interface ClientHandle {
+  bridge: IframeBridge;
+  interceptor: DOMInterceptor;
+  /** Rescans the page when its `<body>` was replaced (Astro view transitions). */
+  refresh?: () => void;
+}
+
+/**
+ * Starts the in-page client: the element picker, the live preview and the link to the
+ * Studio. It starts only in the browser, while LiveLocale is on, and only when the page is
+ * framed (inside the Studio); otherwise it does nothing and returns `false`.
+ *
+ * Importing `livelocale/client` already calls it, so most apps never do. Call it yourself
+ * when your page replaces `<body>` without a full load (Astro view transitions do): a
+ * second call never starts a second client, it rescans the new body.
+ *
+ * @example
+ * // A page without React: plain Vite, Vue, Svelte.
+ * import { startLiveLocale } from 'livelocale/client';
+ * startLiveLocale();
+ */
+export function startLiveLocale(): boolean {
+  if (typeof window === 'undefined' || !isLiveLocaleEnabled() || window.parent === window) {
+    return false;
+  }
+  const running = (window as any).__LIVELOCALE_CLIENT__ as ClientHandle | undefined;
+  if (running) {
+    running.refresh?.();
+    return true;
+  }
+
   let storage: Storage | null = null;
   try {
     storage = window.sessionStorage;
@@ -127,6 +152,7 @@ if (
   );
 
   interceptor.init();
+  let scannedBody = document.body;
 
   const locationUrl = () =>
     window.location.pathname + window.location.search + window.location.hash;
@@ -184,9 +210,23 @@ if (
     }
   });
 
-  // Attach reference to window for developer inspection/diagnostics
-  (window as any).__LIVELOCALE_CLIENT__ = {
-    bridge,
-    interceptor,
+  const refresh = () => {
+    if (document.body === scannedBody) return;
+    // The old body, with its observer and overlay, is gone: start over on the new one.
+    previewNodes.clear();
+    interceptor.destroy();
+    interceptor.init();
+    scannedBody = document.body;
   };
+
+  // Attach reference to window for developer inspection/diagnostics
+  const handle: ClientHandle = { bridge, interceptor, refresh };
+  (window as any).__LIVELOCALE_CLIENT__ = handle;
+  return true;
 }
+
+// ─── Auto-initialization ────────────────────────────────────────────────────
+
+// Start on import when running in the browser, with LiveLocale on, and only when the page
+// is embedded inside the studio iframe (not accessed directly).
+startLiveLocale();
