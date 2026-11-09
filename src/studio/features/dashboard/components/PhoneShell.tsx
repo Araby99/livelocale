@@ -64,6 +64,15 @@ interface PhoneEditorSheetProps {
  */
 export const EDITOR_SHEET_MAX_SHARE = 0.6;
 
+/**
+ * The most CSS px at the bottom of `frame` the editor sheet can cover, before it has opened
+ * and can be measured: a jump to text puts it above this line, so the sheet never hides it.
+ */
+export function editorSheetCover(frame: HTMLElement | null): number {
+  const frameBottom = frame?.getBoundingClientRect().bottom ?? window.innerHeight;
+  return Math.max(0, Math.round(frameBottom - window.innerHeight * (1 - EDITOR_SHEET_MAX_SHARE)));
+}
+
 /** How many CSS px at the bottom of the frame the sheet covers, keyboard included. */
 function coveredFrameBottom(sheet: HTMLElement, frame: HTMLElement | null, inset: number): number {
   // The sheet is pinned `inset` px above the layout bottom; `offsetHeight` ignores the

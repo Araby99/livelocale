@@ -13,6 +13,8 @@ import { useSaveFocus } from '../hooks/useSaveFocus.js';
 import { getLocaleLabel, getLocaleName } from '../locale-names.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { studioMessage } from '../../../i18n/catalogue.js';
+import { KeyJumpNote } from './KeyJumpNote.jsx';
+import type { KeyJumpNote as JumpNote } from '../hooks/useKeyJump.js';
 
 /** The server refuses longer values; the count shows once the text gets close. */
 const MAX_CHARS = 10000;
@@ -37,6 +39,8 @@ interface PhoneEditorProps {
   onDismissWarning: () => void;
   /** Shown next to Save (Next missing); its status line spans the row above. */
   nextMissing?: ReactNode;
+  /** Said under the key when the text picked from the Keys list is not visible on this page. */
+  jumpNote?: JumpNote | null;
 }
 
 const LABEL = 'text-[10px] font-semibold text-fg-muted uppercase tracking-wider';
@@ -59,6 +63,7 @@ export const PhoneEditor = ({
   onForceSave,
   onDismissWarning,
   nextMissing,
+  jumpNote = null,
 }: PhoneEditorProps) => {
   const { t } = useStudioText();
   const referenceId = useId();
@@ -113,6 +118,7 @@ export const PhoneEditor = ({
           {getLocaleLabel(locale, t)}
         </span>
       </div>
+      <KeyJumpNote note={jumpNote} />
 
       {showReference && (
         <div className="space-y-1">
