@@ -33,12 +33,13 @@ A [browser test](https://github.com/Araby99/livelocale/blob/main/tests/e2e/water
 
 ## How Alt+Click finds the key
 
-`LiveLocaleProvider` loads the in-page client in the browser while livelocale is on, and the client starts only when the page is framed, inside the Studio. Then:
+`LiveLocaleProvider` (on Astro, the integration, through `startLiveLocale()`) loads the in-page client in the browser while livelocale is on, and the client starts only when the page is framed, inside the Studio. Then:
 
 1. **It scans the page.** It walks every text node, decodes a watermark at the start of one, and sets `data-i18n-key` (and `data-i18n-template`, the visible text) on the text's parent element. A `MutationObserver` does the same for text rendered later, so client navigation and streamed content are picked up.
 2. **It leaves the text alone.** The text nodes keep their watermark, because changing them would break React's hydration.
 3. **It outlines what you point at.** Hovering a marked element shows a dashed outline labelled `Alt+Click to edit` with the key; holding Alt makes the outline solid.
 4. **Alt+Click selects it.** A click with Alt held on a marked element, or inside one, is stopped before your app sees it, and the key and its current text go to the Studio, which opens the key in the editor. A click without Alt reaches your app as usual, so links and buttons keep working.
+5. **A key picked in the Studio goes the other way.** Pick a key from the Locale Directory and the client scrolls the first visible element with that key into view and outlines it. When the text is hidden, such as in a closed menu, or not on this page, it tells the Studio, and the editor says so.
 
 The client talks to the Studio with `postMessage`, sends only to the Studio's origin, and ignores messages from any other origin.
 
@@ -57,4 +58,4 @@ Custom components that keep their own state can still end up holding a watermark
 
 ## When livelocale is off
 
-In a production build, or with the [kill switch](./safety-switches.md#kill-switch) set, `wrapTranslationEngine` hands back your engine unchanged, so strings have no watermark, and `LiveLocaleProvider` never loads the client. There are no listeners, no scanner and no patched inputs.
+In a production build, or with the [kill switch](./safety-switches.md#kill-switch) set, `wrapTranslationEngine` hands back your engine unchanged and `createTranslations` returns a plain object, so strings have no watermark, and `LiveLocaleProvider` never loads the client. A normal `astro build` has no client code at all. There are no listeners, no scanner and no patched inputs.

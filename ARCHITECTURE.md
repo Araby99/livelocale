@@ -233,7 +233,7 @@ argument as a Web `Request`. Body reading for Node requests is shared with the V
 promise-chain mutex, validates the parsed JSON root, sets the nested key with depth and
 prototype-pollution guards, then writes `file.tmp` and renames it over the target so a concurrent
 HMR read never sees a half-written file. The rewrite preserves the file's indentation unit and
-trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')`, `t.rich('…')` and `t.a.b` references in source files with regexes,
+trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')`, `t.rich('…')` and `t.a.b` references in source files (`.astro` files read whole) with regexes,
 prefixes them with the namespace bound to that translator variable in the same file
 (`useTranslations('ns')`, `getTranslations`, `useTranslation('ns')`, `wrapNextIntl`,
 `wrapTranslationEngine({ keyPrefix })`), and merges them with keys present in the locale files. Scans are
@@ -244,10 +244,14 @@ incremental (per-file mtime and size cache), honour the root `.gitignore` throug
 ### 7. Client runtime (`src/client/dom-interceptor.ts`, `iframe-bridge.ts`, `index.ts`)
 
 `DOMInterceptor` walks text nodes on init and on every mutation, tags parents with
-`data-i18n-key` and `data-i18n-template`, draws a fixed-position highlight overlay, intercepts
-Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
-watermarks never leave the page. `IframeBridge` validates origins both ways. `index.ts`
-auto-initializes only inside an iframe, and only when LiveLocale is enabled: in development, or
+`data-i18n-key` and `data-i18n-template`, draws a fixed-position highlight overlay (moved with a
+`transform`), intercepts Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
+watermarks never leave the page. `JUMP_TO_KEY`, sent for a key picked in the Studio's Keys list,
+scrolls the first visible element with that key into view and outlines it, and `KEY_JUMPED` answers
+`shown`, `hidden` or `absent`; the Studio sends it only to a client whose `READY` lists the
+`key-jump` feature. `IframeBridge` validates origins both ways. `startLiveLocale()` in `index.ts`
+runs on import (through `LiveLocaleProvider`) or from the Astro integration's page script, and
+starts only inside an iframe, and only when LiveLocale is enabled: in development, or
 in a build made with `LIVELOCALE=preview`, or in a production build when `flag.js` set `window.__LIVELOCALE_FLAG__ = 'preview'` because the
 page is framed by a same-origin Studio under its `livelocale/` folder (the share link). It
 resolves the Studio origin in this order: a readable same-origin parent (a Studio served from the same host), the
@@ -264,7 +268,7 @@ the Studio can resend saved values without triggering mutation loops. Right afte
 A React app with one composer hook, `useStudio`, that wires focused hooks: `useConnection`
 (iframe bridge), `useLocaleData` (fetching and coverage), `useSelection` (editing session and live
 preview), `useLocaleActions` (add, rename, delete), `useKeySearch`, `useGit` (status, diff,
-commit, discard), `useHistory` (session edit log) and `useAuth` (bearer token for preview mode).
+commit, discard), `useHistory` (session edit log), `useKeyJump` (takes the page to a key picked from the Keys list) and `useAuth` (bearer token for preview mode).
 All HTTP calls live in `src/studio/api.ts`, which attaches the token from sessionStorage and
 announces 401s on `window` so the token modal can appear.
 Undo is implemented in the composer: it re-saves the previous value through the normal mutation

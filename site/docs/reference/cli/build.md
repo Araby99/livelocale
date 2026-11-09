@@ -16,11 +16,12 @@ Everything after `--` is your build command, run in the project folder, untouche
 - **Next.js** projects are packed into `public/livelocale/` before the build runs, so Next copies it into the output. HTML is never injected. Without `--preview`, `build` warns that the pages have no watermarks, and it warns when `public/livelocale/` is not in `.gitignore`. A static export (`output: 'export'`) stops before building when `app/api/livelocale/route.*` exports POST, because export mode only allows GET route handlers; the share link does not need that route.
 - **Other stacks** are packed after a successful build, as [`pack`](./pack.md) does. When the command fails, nothing is packed.
 
-| Stack                      | Build change                                                                                                                                                           |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Next.js `output: 'export'` | `"build:preview": "livelocale build --preview -- next build"`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked at build time. |
-| Next.js on Vercel/Node     | For the Preview environment, use the build command `livelocale build --preview -- next build`. It packs into a gitignored `public/livelocale/`.                        |
-| Custom CI                  | `LIVELOCALE=preview <your build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                                             |
+| Stack                      | Build change                                                                                                                                                                    |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Next.js `output: 'export'` | `"build:preview": "livelocale build --preview -- next build"`, deployed to a staging location, because the HTML is pre-rendered and must be watermarked at build time.          |
+| Next.js on Vercel/Node     | For the Preview environment, use the build command `livelocale build --preview -- next build`. It packs into a gitignored `public/livelocale/`.                                 |
+| Astro                      | `"build:preview": "livelocale build --preview -- astro build"`, deployed to a staging location, because Astro renders the text at build time. It packs into `dist/livelocale/`. |
+| Custom CI                  | `LIVELOCALE=preview <your build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                                                      |
 
 ## Flags
 
@@ -28,7 +29,7 @@ Everything after `--` is your build command, run in the project folder, untouche
 
 Off by default.
 
-Runs the command with `LIVELOCALE=preview` and `NEXT_PUBLIC_LIVELOCALE=preview`, so server-rendered and pre-rendered pages carry watermarks.
+Runs the command with `LIVELOCALE=preview` and `NEXT_PUBLIC_LIVELOCALE=preview`, so server-rendered and pre-rendered pages carry watermarks. It also sets `LIVELOCALE_SHARE_BUILD=1`, so the Astro integration leaves its inline flag out and the packed `flag.js` decides.
 
 ### `--out`
 
