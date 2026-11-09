@@ -75,7 +75,7 @@ The Vite plugin. On the dev server it serves the mutation API at `/api/livelocal
 | `shareBase`          | `string`            | Vite `base`                              | The site path the HTML is served from. Set it when `base` is a full URL, or when the HTML is served from a path other than `base`.                                                                                                               |
 | `fallbackNamespaces` | `'all' \| string[]` | `'all'`                                  | Which namespaces of the strings put into the page for missing keys each page gets. A list puts in only the namespaces whose keys the page's HTML shows, plus the listed ones. See [Fallback strings in the page](#fallback-strings-in-the-page). |
 
-The plugin has no `allowedOrigins` option.
+The plugin has no `allowedOrigins` option. A Studio away from `localhost` is allowed through `LIVELOCALE_ALLOWED_ORIGINS`.
 
 ### Fallback strings in the page
 
@@ -83,7 +83,7 @@ The strings the plugin puts into the page (`window.__livelocale_fallback__`) are
 
 With `'all'`, the default, every page carries every locale's strings, which can reach 100 KB or more on a big site. A list such as `fallbackNamespaces: []` keeps only the namespaces whose watermarked keys are in that page's HTML (a namespace is a top-level key: a file name in a folder layout). Add the namespaces that only browser code reads, such as those of a `client:only` island: `fallbackNamespaces: ['checkout']`. In a Vite single-page app the HTML holds no rendered text, so a list keeps exactly the listed namespaces.
 
-With a list, a read in the browser of a key whose namespace the page left out warns once in the console, naming the namespace to add. The text is then what production shows, since `wrapTranslationEngine` adds no fallback in production. A Studio away from `localhost` is allowed through `LIVELOCALE_ALLOWED_ORIGINS`.
+With a list, a read in the browser of a key whose namespace the page left out warns once in the console, naming the namespace to add. The text is then what production shows, since `wrapTranslationEngine` adds no fallback in production.
 
 ## `liveLocale` (Astro)
 
