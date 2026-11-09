@@ -70,7 +70,7 @@ describe('DOMInterceptor jumpToKey', () => {
     expect(onElementSelected).not.toHaveBeenCalled();
     // The Alt+Click look: the overlay around the element with a solid border and the key.
     expect(overlay().style.opacity).toBe('1');
-    expect(overlay().style.top).toBe('900px');
+    expect(overlay().style.transform).toMatch(/translate(.*900px)/);
     expect(overlay().style.border).toContain('solid');
     expect(overlay().textContent).toContain('hero.cta');
   });
@@ -217,7 +217,7 @@ describe('DOMInterceptor jumpToKey', () => {
 
     document.getElementById('title')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
 
-    expect(overlay().style.top).toBe('10px');
+    expect(overlay().style.transform).toMatch(/translate(.*10px)/);
     expect(overlay().style.border).toContain('dashed');
   });
 

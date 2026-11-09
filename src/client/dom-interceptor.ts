@@ -589,7 +589,9 @@ export class DOMInterceptor {
   /**
    * Creates and injects a single floating overlay div into the document body.
    * The overlay is positioned using fixed coordinates from getBoundingClientRect()
-   * and uses pointer-events: none so it never blocks user interaction.
+   * and uses pointer-events: none so it never blocks user interaction. It glides
+   * between elements with a transform (composited, no layout per frame); its size
+   * snaps, since animating width/height would re-run layout on every frame.
    */
   private injectOverlay(): void {
     if (this.overlay) return; // Guard against double injection
@@ -607,7 +609,8 @@ export class DOMInterceptor {
       'box-sizing: border-box',
       'opacity: 0',
       'border-radius: 4px',
-      'transition: opacity 120ms ease, top 80ms ease, left 80ms ease, width 80ms ease, height 80ms ease, border-color 150ms ease',
+      'will-change: transform',
+      'transition: opacity 120ms ease, transform 80ms ease, border-color 150ms ease',
     ].join('; ');
 
     const badge = document.createElement('span');
@@ -650,8 +653,7 @@ export class DOMInterceptor {
     const computedStyle = window.getComputedStyle(element);
     const borderRadius = computedStyle.borderRadius || '4px';
 
-    this.overlay.style.top = `${rect.top}px`;
-    this.overlay.style.left = `${rect.left}px`;
+    this.overlay.style.transform = `translate(${rect.left}px, ${rect.top}px)`;
     this.overlay.style.width = `${rect.width}px`;
     this.overlay.style.height = `${rect.height}px`;
     this.overlay.style.borderRadius = borderRadius;
