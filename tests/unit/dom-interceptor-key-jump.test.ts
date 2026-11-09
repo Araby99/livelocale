@@ -152,6 +152,65 @@ describe('DOMInterceptor jumpToKey', () => {
     expect(animate).not.toHaveBeenCalled();
   });
 
+  it('a jump that finds nothing removes the look of the previous jump', () => {
+    vi.useFakeTimers();
+    interceptor.init();
+    expect(interceptor.jumpToKey('hero.cta', 0)).toBe('shown');
+    expect(overlay().style.opacity).toBe('1');
+
+    expect(interceptor.jumpToKey('no.such.key', 0)).toBe('absent');
+
+    // The editor now shows another key: the page must not still point at hero.cta.
+    expect(overlay().style.opacity).toBe('0');
+    expect(overlay().hasAttribute('data-livelocale-jump')).toBe(false);
+    vi.advanceTimersByTime(2000);
+    expect(overlay().style.opacity).toBe('0');
+  });
+
+  it('a hidden key after a shown one removes the selection look and, in Edit mode, the picked marker', () => {
+    interceptor.init();
+    interceptor.setEditMode(true);
+    expect(interceptor.jumpToKey('hero.cta', 0)).toBe('shown');
+    expect(document.getElementById('cta')!.hasAttribute(PICKED)).toBe(true);
+
+    expect(interceptor.jumpToKey('nav.pricing', 0)).toBe('hidden');
+
+    expect(document.getElementById('cta')!.hasAttribute(PICKED)).toBe(false);
+    expect(overlay().style.opacity).toBe('0');
+  });
+
+  it('says "hidden" for text moved off to the side, as on a carousel slide', () => {
+    const slide = document.createElement('div');
+    slide.innerHTML = `<p id="slide">${encodeKey('Second slide', 'carousel.two')}</p>`;
+    document.body.appendChild(slide);
+    const text = slide.querySelector('p')!;
+    const rect = new DOMRect(window.innerWidth + 40, 100, 300, 20);
+    (text as any).getBoundingClientRect = () => rect;
+    (text as any).getClientRects = () => [rect];
+    (text as any).scrollIntoView = vi.fn();
+    interceptor.init();
+
+    expect(interceptor.jumpToKey('carousel.two', 0)).toBe('hidden');
+    expect(animate).not.toHaveBeenCalled();
+    expect(overlay().style.opacity).not.toBe('1');
+  });
+
+  it('says "hidden" for text cut off by a parent that clips its content', () => {
+    const track = document.createElement('div');
+    track.style.overflow = 'hidden';
+    track.innerHTML = `<p id="clipped">${encodeKey('Second slide', 'carousel.two')}</p>`;
+    document.body.appendChild(track);
+    (track as any).getBoundingClientRect = () => new DOMRect(0, 100, 400, 200);
+    const text = track.querySelector('p')!;
+    const rect = new DOMRect(420, 120, 300, 20);
+    (text as any).getBoundingClientRect = () => rect;
+    (text as any).getClientRects = () => [rect];
+    (text as any).scrollIntoView = vi.fn();
+    interceptor.init();
+
+    expect(interceptor.jumpToKey('carousel.two', 0)).toBe('hidden');
+  });
+
   it('moving the pointer onto other text replaces the selection look with the hover hint', () => {
     interceptor.init();
     interceptor.jumpToKey('hero.cta', 0);

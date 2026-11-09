@@ -81,6 +81,32 @@ function isRendered(el: HTMLElement): boolean {
   return rect.width > 0 && rect.height > 0;
 }
 
+/**
+ * Whether some of the element's box lies across the frame's width and inside
+ * every parent that clips its content (overflow other than `visible`). Text
+ * on a carousel slide moved off to the side fails this, though it is rendered.
+ */
+function isOnScreenSideways(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect();
+  if (rect.right <= 0 || rect.left >= window.innerWidth) return false;
+  for (let parent = el.parentElement; parent !== null; parent = parent.parentElement) {
+    if (parent === document.body || parent === document.documentElement) break;
+    const style = window.getComputedStyle(parent);
+    if (style.overflowX === 'visible' && style.overflowY === 'visible') continue;
+    const box = parent.getBoundingClientRect();
+    if (box.width === 0 && box.height === 0) continue;
+    if (
+      rect.right <= box.left ||
+      rect.left >= box.right ||
+      rect.bottom <= box.top ||
+      rect.top >= box.bottom
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 /** Whether the element holds non-blank text directly (not only inside children). */
 function hasOwnText(el: Element): boolean {
   for (const child of el.childNodes) {
@@ -260,15 +286,15 @@ export class DOMInterceptor {
    * the Studio's focus and any draft stay as they are. With a `bottomInset`
    * (the Studio's phone sheet), the element is centred in the part of the
    * frame above it. Returns what it found: `shown`, `hidden` (on the page but
-   * not visible; the keys are reported again) or `absent`.
+   * not visible, such as in a closed menu or on a slide moved off to the
+   * side; the keys are reported again) or `absent`. When nothing is shown,
+   * the previous jump's look and picked marker are removed, so the page never
+   * points at other text than the key the Studio opened.
    */
   jumpToKey(key: string, bottomInset: number): KeyJumpResult {
     const el = this.active ? this.findRenderedElement(key) : null;
-    if (!el) {
-      if (this.active) this.broadcastVisibleKeys();
-      return this.getActiveKeys().includes(key) ? 'hidden' : 'absent';
-    }
-    if (!this.isInView(el, bottomInset)) {
+    if (!el) return this.jumpFoundNothing(key);
+    if (!this.isInView(el, bottomInset) || !isOnScreenSideways(el)) {
       if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
       if (bottomInset > 0 && !this.isInView(el, bottomInset)) {
         const rect = el.getBoundingClientRect();
@@ -276,9 +302,36 @@ export class DOMInterceptor {
         window.scrollBy(0, rect.top - Math.max(REVEAL_MARGIN, (limit - rect.height) / 2));
       }
     }
+    // A carousel slide moved off to the side by a transform, or cut off by a
+    // clipping parent, is rendered but cannot be seen.
+    if (!isOnScreenSideways(el)) return this.jumpFoundNothing(key);
     if (this.editMode) this.markPicked(el);
     this.showJumped(el);
     return 'shown';
+  }
+
+  /** Ends the previous jump's look and says whether `key` is on the page at all. */
+  private jumpFoundNothing(key: string): KeyJumpResult {
+    if (this.active) {
+      this.endJump();
+      this.clearPicked();
+      this.broadcastVisibleKeys();
+    }
+    return this.getActiveKeys().includes(key) ? 'hidden' : 'absent';
+  }
+
+  /** Removes the selected look of the last jump, if the overlay still shows it. */
+  private endJump(): void {
+    if (this.jumpTimer !== null) {
+      clearTimeout(this.jumpTimer);
+      this.jumpTimer = null;
+    }
+    this.overlay?.removeAttribute(JUMP_ATTRIBUTE);
+    if (this.jumpedElement !== null && this.hoveredElement === this.jumpedElement) {
+      this.hideOverlay();
+      this.hoveredElement = null;
+    }
+    this.jumpedElement = null;
   }
 
   /** Whether `el` sits fully between the frame's top and `bottomInset` above its bottom. */

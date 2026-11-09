@@ -133,6 +133,26 @@ test.describe('desktop', () => {
     ).toBe(0);
   });
 
+  test('a hidden key after a shown one removes the outline from the first text', async ({
+    page,
+  }) => {
+    await openStudio(page);
+    await keyRow(page, 'home.title').click();
+    await chooseLanguageIfAsked(page);
+    await expect(page.locator('#studio-translation-input')).toHaveValue(/static playground/);
+    await expect
+      .poll(() => overlay(page).evaluate((el) => (el as HTMLElement).style.opacity))
+      .toBe('1');
+
+    await keyRow(page, 'home.menu_item').click();
+    await expect(page.locator('#studio-translation-input')).toHaveValue('Pricing');
+    await expect(note(page)).toContainText('hidden right now');
+    // The page no longer points at home.title while the editor shows home.menu_item.
+    await expect
+      .poll(() => overlay(page).evaluate((el) => (el as HTMLElement).style.opacity))
+      .toBe('0');
+  });
+
   test('a key that is not on this page says so; the next pick clears the note', async ({
     page,
   }) => {
