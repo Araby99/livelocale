@@ -254,8 +254,10 @@ async function runDoctorCommand({ dir, localesPath, app, share, token }: DoctorA
   const shareLink = findings.find((f) => f.title === 'Share link')?.detail;
   if (shareLink) console.log(`🔗 Share link: ${shareLink}`);
   if (!app) {
+    // astro dev serves on 4321 by default, next dev on 3000.
+    const port = isAstroProject(projectDir) ? 4321 : 3000;
     console.log(
-      `💡 Start your dev server and re-run with --app http://localhost:3000 for live checks.`
+      `💡 Start your dev server and re-run with --app http://localhost:${port} for live checks.`
     );
   }
 }

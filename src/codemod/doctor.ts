@@ -815,16 +815,17 @@ function looksLikeShareBuild(manifest: Fetched): boolean {
 
 export async function runDoctor(options: DoctorOptions): Promise<Finding[]> {
   const root = path.resolve(options.projectDir);
-  // Astro's integration replaces the Next.js route, provider and middleware matcher.
+  // Astro's integration replaces the Next.js route, provider, middleware matcher and config.
   const appChecks =
     detectBuildTarget(root).kind === 'astro'
       ? [checkAstroIntegration(root)]
-      : [checkRouteHandler(root), checkProvider(root), checkMiddleware(root)];
-  const findings: Finding[] = [
-    ...appChecks,
-    checkFrameHeaders(root),
-    checkLocales(root, options.localesPath),
-  ];
+      : [
+          checkRouteHandler(root),
+          checkProvider(root),
+          checkMiddleware(root),
+          checkFrameHeaders(root),
+        ];
+  const findings: Finding[] = [...appChecks, checkLocales(root, options.localesPath)];
   const workerConfig = checkServiceWorkerConfig(root);
   if (workerConfig) findings.push(workerConfig);
 

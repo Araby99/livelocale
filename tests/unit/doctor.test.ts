@@ -79,6 +79,7 @@ describe('runDoctor — static checks', () => {
       expect(byTitle(findings, 'route handler')).toBeUndefined();
       expect(byTitle(findings, 'provider')).toBeUndefined();
       expect(byTitle(findings, 'middleware')).toBeUndefined();
+      expect(byTitle(findings, 'next.config')).toBeUndefined();
     });
 
     it('fails without the integration and says how to add it', async () => {
