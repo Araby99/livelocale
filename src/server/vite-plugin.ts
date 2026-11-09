@@ -5,7 +5,7 @@ import { GitClient } from './git-client.js';
 import { createMutationRouter, MAX_BODY_BYTES } from './router.js';
 import { readNodeBody } from './node-body.js';
 import { packOutput } from './pack.js';
-import { injectIntoHead, pageHeadScripts } from './page-script.js';
+import { injectIntoHead, pageHeadScripts, type FallbackNamespaces } from './page-script.js';
 import { flagSrcFor, injectFlagScript, normalizeBase, type AppBase } from './share-html.js';
 
 export interface VitePluginConfig {
@@ -23,6 +23,14 @@ export interface VitePluginConfig {
   sourceLocale?: string;
   /** Site path the HTML is served from, when Vite `base` is a full URL or differs. */
   shareBase?: string;
+  /**
+   * Which namespaces of the fallback strings each page gets, for `wrapTranslationEngine` reads
+   * in the browser. `'all'` (the default) puts every locale's strings into every page. A list
+   * puts only the namespaces whose keys the page's HTML shows watermarked, plus the listed
+   * ones: list a namespace that only client-side code reads. A read of a namespace left out
+   * warns in the browser console.
+   */
+  fallbackNamespaces?: FallbackNamespaces;
 }
 
 /** What `apply` receives from Vite: the command, and whether this is an SSR build. */
@@ -160,7 +168,13 @@ export function liveLocaleVite(config: VitePluginConfig): Plugin {
       }
       // Mirror the server-side mode (development/preview/off) and the fallback dictionary into
       // the page, so the client bundle resolves the same mode without bundler env inlining.
-      return injectIntoHead(html, pageHeadScripts(config.localesPath, config.sourceLocale));
+      return injectIntoHead(
+        html,
+        pageHeadScripts(config.localesPath, config.sourceLocale, {
+          fallbackNamespaces: config.fallbackNamespaces,
+          html,
+        })
+      );
     },
   };
 }

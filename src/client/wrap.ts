@@ -172,6 +172,41 @@ function fallbackSource(options: WrapOptions): Record<string, any> | undefined {
 }
 
 /**
+ * Set on the page, next to `__livelocale_fallback__`, when the dev server put only some
+ * namespaces in it (the `fallbackNamespaces` option).
+ *
+ * @internal
+ */
+export const FALLBACK_PARTIAL_GLOBAL = '__livelocale_fallback_partial__';
+
+const warnedNamespaces = new Set<string>();
+
+/**
+ * `key` in the fallback. When the page's strings hold only some namespaces and this key's
+ * namespace is not one of them, it says so in the console, once per namespace, so a
+ * client-side read the dev server left out does not go blank without a word.
+ */
+function fromFallback(fallbackObj: Record<string, any>, key: string, options: WrapOptions) {
+  const value = getNestedProperty(fallbackObj, key);
+  if (value !== undefined || options.fallback !== undefined || typeof window === 'undefined') {
+    return value;
+  }
+  // A key under a namespace only: a read of a top-level name is also how React, JSON and
+  // promises probe an object (`$$typeof`, `toJSON`, `then`).
+  const dot = key.indexOf('.');
+  const ns = key.slice(0, dot);
+  if (dot > 0 && (window as any)[FALLBACK_PARTIAL_GLOBAL] === true && !(ns in fallbackObj)) {
+    if (!warnedNamespaces.has(ns)) {
+      warnedNamespaces.add(ns);
+      console.warn(
+        `[livelocale] "${key}" is missing, and this page's fallback strings leave out the "${ns}" namespace. Add "${ns}" to the fallbackNamespaces option of the livelocale plugin or integration.`
+      );
+    }
+  }
+  return value;
+}
+
+/**
  * The keys the fallback adds at this level of a record: those of the fallback object at the
  * same key path. None for an array or a function, whose shape is the engine's own (as in
  * `resolveTranslations`), and none for a record that cannot take new keys, since a Proxy may
@@ -242,7 +277,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
           (resolvedValue === args[0] || resolvedValue === calledKey));
 
       if (isMissing && fallbackObj && calledKey) {
-        const fbVal = getNestedProperty(fallbackObj, calledKey);
+        const fbVal = fromFallback(fallbackObj, calledKey, options);
         if (fbVal !== undefined) {
           resolvedValue = fbVal;
         }
@@ -270,7 +305,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
     // If val is missing, try looking it up in fallback
     const fallbackObj = fallbackSource(options);
     if (val === undefined && fallbackObj) {
-      const fbVal = getNestedProperty(fallbackObj, fullKey);
+      const fbVal = fromFallback(fallbackObj, fullKey, options);
       if (fbVal !== undefined) {
         val = fbVal;
       }
@@ -296,7 +331,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
             (resolvedValue === args[0] || resolvedValue === calledKey));
 
         if (isMissing && fallbackObj && calledKey) {
-          const fbVal = getNestedProperty(fallbackObj, calledKey);
+          const fbVal = fromFallback(fallbackObj, calledKey, options);
           if (fbVal !== undefined) {
             resolvedValue = fbVal;
           }

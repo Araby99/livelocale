@@ -167,6 +167,52 @@ describe('wrapTranslationEngine', () => {
   });
 });
 
+describe('wrapTranslationEngine with page strings cut to some namespaces', () => {
+  let originalWindow: unknown;
+
+  beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'development');
+    originalWindow = (globalThis as any).window;
+  });
+
+  afterEach(() => {
+    (globalThis as any).window = originalWindow;
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
+
+  it('warns once per namespace the page left out, and stays quiet otherwise', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (globalThis as any).window = {
+      __livelocale_fallback__: { home: { title: 'Home' } },
+      __livelocale_fallback_partial__: true,
+    };
+    const t = wrapTranslationEngine({} as Record<string, any>);
+
+    expect(decodeKey(t.home.title)?.cleanText).toBe('Home');
+    expect(t.home.lead).toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+    // A read of a top-level name is how React and JSON probe objects: no warning.
+    expect(t.toJSON).toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+
+    const island = wrapTranslationEngine({} as Record<string, any>, { keyPrefix: 'islandOnly' });
+    expect(island.title).toBeUndefined();
+    expect(island.lead).toBeUndefined();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn.mock.calls[0]![0]).toContain('"islandOnly"');
+    expect(warn.mock.calls[0]![0]).toContain('fallbackNamespaces');
+  });
+
+  it('never warns with every namespace in the page', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (globalThis as any).window = { __livelocale_fallback__: { home: {} } };
+    const t = wrapTranslationEngine({} as Record<string, any>, { keyPrefix: 'other' });
+    expect(t.title).toBeUndefined();
+    expect(warn).not.toHaveBeenCalled();
+  });
+});
+
 describe('resolveTranslations', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'development');

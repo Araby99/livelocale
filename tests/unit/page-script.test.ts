@@ -8,7 +8,9 @@ import {
   pageFlag,
   pageHeadScripts,
   readFallbackDictionary,
+  watermarkedNamespaces,
 } from '../../src/server/page-script.js';
+import { encodeKey } from '../../src/client/watermark.js';
 
 const HTML = '<html><head><title>T</title></head><body></body></html>';
 
@@ -101,6 +103,37 @@ describe('page head scripts', () => {
     expect(html).toContain('"y":"$$ and $`"');
     expect(html.match(/<\/script>/g)).toHaveLength(3);
     expect(html.endsWith('</head><body><script>x()</script></body></html>')).toBe(true);
+  });
+
+  describe('fallbackNamespaces', () => {
+    beforeEach(() => {
+      fs.writeFileSync(path.join(dir, 'en', 'common.json'), JSON.stringify({ nav: 'Nav' }));
+    });
+
+    const page = `<html><head></head><body><h1>${encodeKey('Hello', 'home.title')}</h1><span title="${encodeKey('Logo', 'common.logo')}"></span></body></html>`;
+
+    it('finds the namespaces a page shows watermarked', () => {
+      expect([...watermarkedNamespaces(page)].sort()).toEqual(['common', 'home']);
+      expect(watermarkedNamespaces('<p>\u200Cplain ZWNJ text</p>').size).toBe(0);
+    });
+
+    it('puts every namespace in by default', () => {
+      const scripts = pageHeadScripts(dir, undefined, { html: page });
+      expect(scripts).toContain('"about"');
+      expect(scripts).not.toContain('__livelocale_fallback_partial__');
+    });
+
+    it('with a list, puts in the namespaces the page shows and the listed ones, and says so', () => {
+      const shown = pageHeadScripts(dir, undefined, { fallbackNamespaces: [], html: page });
+      expect(shown).toContain(
+        'window.__livelocale_fallback__ = {"common":{"nav":"Nav"},"home":{"title":"Hello"}}; window.__livelocale_fallback_partial__ = true;'
+      );
+      const listed = pageHeadScripts(dir, undefined, {
+        fallbackNamespaces: ['about'],
+        html: '<p>no text</p>',
+      });
+      expect(listed).toContain('window.__livelocale_fallback__ = {"about":{"title":"عن"}};');
+    });
   });
 
   it('puts the scripts right before </head>', () => {

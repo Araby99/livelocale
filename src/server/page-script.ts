@@ -2,6 +2,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { deepMerge } from '../core/deep-merge.js';
 import { BROWSER_FLAG_GLOBAL, getLiveLocaleMode } from '../core/env.js';
+import { decodeKey } from '../client/watermark.js';
+import { FALLBACK_PARTIAL_GLOBAL } from '../client/wrap.js';
 
 /**
  * What a dev server puts in `<head>` of every page it renders, so the in-page client runs
@@ -69,8 +71,55 @@ export function pageFlag(): string | null {
   return process.env['LIVELOCALE'] || null;
 }
 
-/** `<script>` tags for `<head>`: the flag, then, when LiveLocale is on, the fallback dictionary. */
-export function pageHeadScripts(localesPath: string, sourceLocale?: string): string {
+/**
+ * Which namespaces (top-level keys) of the fallback dictionary a page gets: `'all'`, or the
+ * ones whose keys the page's HTML shows watermarked plus the ones listed.
+ */
+export type FallbackNamespaces = 'all' | readonly string[];
+
+export interface PageHeadOptions {
+  /** Defaults to `'all'`. */
+  fallbackNamespaces?: FallbackNamespaces;
+  /** The page, read for its watermarks when `fallbackNamespaces` is a list. */
+  html?: string;
+}
+
+/** A complete watermark, as `encodeKey` writes it. */
+const WATERMARK_RE = /\u200C(?:[\u200B\u200D]{8})+\u200C/g;
+
+/** The first segment of every watermarked key in `html`: the namespaces the page shows. */
+export function watermarkedNamespaces(html: string): Set<string> {
+  const namespaces = new Set<string>();
+  for (const m of html.matchAll(WATERMARK_RE)) {
+    const key = decodeKey(m[0])?.key;
+    if (key) namespaces.add(key.split('.', 1)[0]!);
+  }
+  return namespaces;
+}
+
+/** The dictionary cut to `fallbackNamespaces`; the whole dictionary for `'all'`. */
+function pageDictionary(
+  dictionary: Record<string, any>,
+  options: PageHeadOptions
+): Record<string, any> {
+  const list = options.fallbackNamespaces ?? 'all';
+  if (list === 'all') return dictionary;
+  const keep = watermarkedNamespaces(options.html ?? '');
+  for (const ns of list) keep.add(ns);
+  return Object.fromEntries(Object.entries(dictionary).filter(([ns]) => keep.has(ns)));
+}
+
+/**
+ * `<script>` tags for `<head>`: the flag, then, when LiveLocale is on, the fallback dictionary.
+ * With a `fallbackNamespaces` list, the dictionary holds only the namespaces the page shows and
+ * the listed ones, and the page is told so: a client-side read of a namespace left out then
+ * warns in the console instead of going blank without a word.
+ */
+export function pageHeadScripts(
+  localesPath: string,
+  sourceLocale?: string,
+  options: PageHeadOptions = {}
+): string {
   const flag = pageFlag();
   const flagScript = flag
     ? `<script>window.${BROWSER_FLAG_GLOBAL} = ${JSON.stringify(flag)};</script>\n`
@@ -79,11 +128,16 @@ export function pageHeadScripts(localesPath: string, sourceLocale?: string): str
   try {
     // RULE SEC-008: XSS-SAFE INJECTION — escape U+2028/U+2029 and "<" so
     // translation values containing "</script>" cannot break out of the tag.
-    const safeJson = JSON.stringify(readFallbackDictionary(localesPath, sourceLocale))
+    const dictionary = pageDictionary(readFallbackDictionary(localesPath, sourceLocale), options);
+    const safeJson = JSON.stringify(dictionary)
       .replace(/</g, '\\u003c')
       .replace(/\u2028/g, '\\u2028')
       .replace(/\u2029/g, '\\u2029');
-    return `${flagScript}<script>window.__livelocale_fallback__ = ${safeJson};</script>\n`;
+    const partial =
+      (options.fallbackNamespaces ?? 'all') === 'all'
+        ? ''
+        : ` window.${FALLBACK_PARTIAL_GLOBAL} = true;`;
+    return `${flagScript}<script>window.__livelocale_fallback__ = ${safeJson};${partial}</script>\n`;
   } catch (err) {
     console.warn('[livelocale] Failed to inject fallback data:', err);
     return flagScript;
