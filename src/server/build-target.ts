@@ -19,15 +19,28 @@ export const VITE_CONFIG_FILES = [
   'vite.config.mts',
 ];
 
+/** Astro config file names, in the order they are read. */
+export const ASTRO_CONFIG_FILES = [
+  'astro.config.mjs',
+  'astro.config.js',
+  'astro.config.ts',
+  'astro.config.mts',
+  'astro.config.cjs',
+];
+
 export type BuildTarget =
   | { kind: 'next'; staticExport: boolean; base: string | null } // base = Next basePath
   | { kind: 'cra'; base: string | null } // from package.json homepage ('./' for '.')
+  | { kind: 'astro'; base: string | null } // from astro.config base (site path)
   | { kind: 'vite'; base: string | null } // from vite.config base (site path or './')
   | { kind: 'other'; base: null };
 
 const OUTPUT_EXPORT = /\boutput\s*:\s*['"`]export['"`]/;
 const BASE_PATH = /\bbasePath\s*:\s*['"`](\/[^'"`]*)['"`]/;
-/** Vite `base`: a site path ('/repo/') or a relative base ('./', ''). Full URLs are not a site path. */
+/**
+ * Vite or Astro `base`: a site path ('/repo/') or a relative base ('./', ''). Full URLs are not
+ * a site path.
+ */
 const VITE_BASE = /\bbase\s*:\s*['"`](\/[^'"`]*|\.\/?|)['"`]/;
 const EXPORTS_POST =
   /export\s+(?:const|let|var|async\s+function|function)\s+POST\b|export\s*\{[^}]*\bPOST\b[^}]*\}/;
@@ -90,7 +103,7 @@ function craBase(homepage: unknown): string | null {
   }
 }
 
-/** Detects the project's build stack. The first match wins: Next, CRA, Vite, then other. */
+/** Detects the project's build stack. The first match wins: Next, CRA, Astro, Vite, then other. */
 export function detectBuildTarget(projectDir: string): BuildTarget {
   const pkg = readPackageJson(projectDir);
 
@@ -105,6 +118,13 @@ export function detectBuildTarget(projectDir: string): BuildTarget {
   }
 
   if (hasDependency(pkg, 'react-scripts')) return { kind: 'cra', base: craBase(pkg.homepage) };
+
+  // Before Vite: Astro builds with Vite, and some projects list vite too.
+  const astroConfig = firstExisting(projectDir, ASTRO_CONFIG_FILES);
+  if (astroConfig || hasDependency(pkg, 'astro')) {
+    const source = stripComments((astroConfig && readText(astroConfig)) ?? '');
+    return { kind: 'astro', base: VITE_BASE.exec(source)?.[1] ?? null };
+  }
 
   if (hasDependency(pkg, 'vite') || firstExisting(projectDir, VITE_CONFIG_FILES)) {
     const viteConfig = firstExisting(projectDir, VITE_CONFIG_FILES);

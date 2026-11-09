@@ -45,7 +45,7 @@ The source locale.
 
 `--base <path>`, default: detected from the project, else `/`.
 
-The site path the app is served from, such as `/repo/`. Without it, `pack` reads the base from the Vite config's `base`, Next.js's `basePath` or the CRA `homepage`. A relative base (`./`) prints a warning; pass an absolute one if the app has client-side routes.
+The site path the app is served from, such as `/repo/`. Without it, `pack` reads the base from the Vite or Astro config's `base`, Next.js's `basePath` or the CRA `homepage`. A relative base (`./`) prints a warning; pass an absolute one if the app has client-side routes.
 
 ### `--expose-repo`
 

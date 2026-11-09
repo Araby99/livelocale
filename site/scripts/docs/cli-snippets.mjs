@@ -37,7 +37,9 @@ export const SNIPPETS = {
     args: ['init', '--share'],
     expect: 0,
   },
+  'doctor-astro': { fixture: 'astro-app', args: ['doctor'], expect: 0 },
   'check-clean': { fixture: 'vite-app', args: ['check'], expect: 0 },
+  'check-astro': { fixture: 'astro-app', args: ['check', '--hardcoded'], expect: 0 },
   'check-missing': { fixture: 'check-missing', args: ['check'], expect: 1 },
   'check-hardcoded': { fixture: 'site/sample', args: ['check', '--hardcoded'], expect: 1 },
   'apply-dry-run': {

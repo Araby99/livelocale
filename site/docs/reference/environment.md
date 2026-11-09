@@ -23,17 +23,18 @@ The values of `LIVELOCALE` and `NEXT_PUBLIC_LIVELOCALE` are not case-sensitive, 
 
 1. `LIVELOCALE` or `NEXT_PUBLIC_LIVELOCALE` is `off`, `0` or `false`: **off**.
 2. `LIVELOCALE` or `NEXT_PUBLIC_LIVELOCALE` is `preview`: **preview**.
-3. `NODE_ENV` is not `development`: **off**.
-4. `LIVELOCALE` is `force`: **development**.
-5. On the server, a hosting platform from the table below is detected: **off**, with one warning in the log.
-6. Otherwise: **development**.
+3. In the browser, the page sets `window.__LIVELOCALE_FLAG__ = "development"`, and the bundle did not inline `NODE_ENV=production`: **development**. The Vite plugin and the Astro integration set it in development.
+4. `NODE_ENV` is not `development`: **off**.
+5. `LIVELOCALE` is `force`: **development**.
+6. On the server, a hosting platform from the table below is detected: **off**, with one warning in the log.
+7. Otherwise: **development**.
 
 Off means no watermarks, no mutation API and no in-page client.
 
 ## Setting them for you
 
-- The Vite plugin copies the server's `LIVELOCALE` into the page, so a Vite app needs no `NEXT_PUBLIC_LIVELOCALE`.
-- `livelocale build --preview -- <command>` runs your build with `LIVELOCALE=preview` and `NEXT_PUBLIC_LIVELOCALE=preview`.
+- The Vite plugin and the Astro integration put the server's active mode in the page as `window.__LIVELOCALE_FLAG__`, or `off` when `LIVELOCALE` is off. A Vite or Astro app needs no `NEXT_PUBLIC_LIVELOCALE`.
+- `livelocale build --preview -- <command>` runs your build with `LIVELOCALE=preview` and `NEXT_PUBLIC_LIVELOCALE=preview`. It also sets `LIVELOCALE_SHARE_BUILD=1`, so the Astro integration leaves its inline flag out and the packed `flag.js` alone decides who gets the client. You never set it yourself.
 
 ## CI and host variables
 

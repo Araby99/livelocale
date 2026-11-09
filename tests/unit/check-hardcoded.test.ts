@@ -194,6 +194,55 @@ describe('runCheck --hardcoded locale checks', () => {
     expect(report.issues.some((i) => i.kind === 'hardcoded')).toBe(false);
   });
 
+  it('reports hardcoded text in .astro templates, with no typescript needed', async () => {
+    write(project, 'locales/en.json', { home: { title: 'Hi' } });
+    write(
+      project,
+      'src/pages/index.astro',
+      [
+        '---',
+        "const t = createTranslations('en');",
+        "const hidden = 'Frontmatter text';",
+        '---',
+        '<h1>{t.home.title}</h1>',
+        '<p>Hardcoded line</p>',
+      ].join('\n')
+    );
+    const report = await runCheck({ projectDir: project, hardcoded: true });
+    expect('setupProblems' in report).toBe(false);
+    expect(report.issues.filter((i) => i.kind === 'hardcoded')).toEqual([
+      {
+        kind: 'hardcoded',
+        level: 'fail',
+        file: 'src/pages/index.astro',
+        line: 6,
+        column: 4,
+        text: 'Hardcoded line',
+        message: 'Not passed through a translation call.',
+      },
+    ]);
+  });
+
+  it('needs no typescript for an Astro config file, which holds no JSX', async () => {
+    write(project, 'locales/en.json', {});
+    write(project, 'astro.config.mjs', 'export default { integrations: [] };\n');
+    write(project, 'src/pages/index.astro', '<p>Hardcoded line</p>');
+    const report = await runCheck({ projectDir: project, hardcoded: true });
+    expect('setupProblems' in report).toBe(false);
+    expect(report.issues.filter((i) => i.kind === 'hardcoded')).toHaveLength(1);
+  });
+
+  it('still names the missing typescript when JSX files sit beside .astro files', async () => {
+    write(project, 'locales/en.json', {});
+    write(project, 'src/pages/index.astro', '<p>Hardcoded line</p>');
+    write(project, 'src/components/Island.tsx', 'export const I = () => <p>Island text</p>;');
+    const report = await runCheck({ projectDir: project, hardcoded: true });
+    expect(report.setupProblems).toEqual([TYPESCRIPT_MISSING]);
+    expect(report.issues.filter((i) => i.kind === 'hardcoded').map((i) => i.file)).toEqual([
+      'src/pages/index.astro',
+    ]);
+  });
+
   it('reports an unusable typescript as its own setup problem', async () => {
     linkFakeTypeScript(project, '7.0.0');
     write(project, 'locales/en.json', { a: 'Save' });

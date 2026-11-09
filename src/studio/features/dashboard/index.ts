@@ -10,7 +10,12 @@ export { LocalePicker } from './components/LocalePicker.jsx';
 export { FirstRunTips } from './components/FirstRunTips.jsx';
 export { EditBrowseSwitch, TapNotice } from './components/EditBrowseSwitch.jsx';
 export { PhoneTopBar } from './components/PhoneTopBar.jsx';
-export { PhoneShell, PhoneEditorSheet, NextMissingButton } from './components/PhoneShell.jsx';
+export {
+  PhoneShell,
+  PhoneEditorSheet,
+  NextMissingButton,
+  editorSheetCover,
+} from './components/PhoneShell.jsx';
 export { PhoneEditor } from './components/PhoneEditor.jsx';
 export { BottomSheet } from './components/BottomSheet.jsx';
 export { AddressBar } from './components/AddressBar.jsx';
@@ -25,6 +30,7 @@ export { RepoPrompt } from './components/RepoPrompt.jsx';
 export { StudioLayout, type StudioPanel } from './components/StudioLayout.jsx';
 export { ThemeToggle } from './components/ThemeToggle.jsx';
 export { useStudio } from './hooks/useStudio.js';
+export { useKeyJump } from './hooks/useKeyJump.js';
 export { useMediaQuery, WIDE_LAYOUT_QUERY } from './hooks/useMediaQuery.js';
 export { useTheme } from './hooks/useTheme.js';
 export * from './types/index.js';

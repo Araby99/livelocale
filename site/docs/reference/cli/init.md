@@ -30,7 +30,7 @@ Plain `init` sets up Next.js only. It picks TypeScript when the project has a `t
 
 ```
 
-A Vite app does not use `init`: add `liveLocaleVite(...)` from `livelocale/vite` to `vite.config` by hand.
+A Vite app does not use `init`: add `liveLocaleVite(...)` from `livelocale/vite` to `vite.config` by hand. On an Astro project (an `astro.config.*` file or `astro` in `package.json`), `init` writes no file: it prints how to add the `livelocale/astro` integration, which serves the API itself. See [Astro](../../start/astro.md).
 
 ## Flags
 
@@ -51,6 +51,7 @@ Sets up the share link build and the GitHub workflow instead of the API route. `
 | webpack / Rsbuild          | The same, packing `dist`.                                                                                                                                                                                                                                                                                                                                                |
 | Next.js `output: 'export'` | Adds `"build:preview": "livelocale build --preview --locales <path> --source <locale> -- next build"` and `public/livelocale/` to `.gitignore`. Deploy that build to a staging location: the HTML is pre-rendered and must be watermarked at build time. If `app/api/livelocale/route.*` exports POST, `init` tells you to delete it: static export rejects POST routes. |
 | Next.js on Vercel/Node     | The same `build:preview` script and `.gitignore` line. Use `npm run build:preview` as the build command of your preview deployments.                                                                                                                                                                                                                                     |
+| Astro                      | Adds `"build:preview": "livelocale build --preview --locales <path> --source <locale> -- astro build"`. Use it only for a staging deployment: Astro renders the text at build time, so the build is watermarked. It packs into `dist/livelocale/`.                                                                                                                       |
 | Anything else              | Nothing is changed. In custom CI, run `LIVELOCALE=preview <your build>` (only for SSR/SSG), then `npx livelocale pack <outDir>`.                                                                                                                                                                                                                                         |
 
 When `origin` is a GitHub repository, `init --share` also writes `.github/workflows/livelocale.yml` at the repository root. The workflow runs [`apply --github-event`](./apply.md) to turn change links into pull requests. On another git host no workflow is written; use `npx livelocale apply "<link>" --pr` instead. Commit and push the result: the workflow must be on the default branch.

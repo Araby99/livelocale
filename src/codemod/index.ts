@@ -26,6 +26,7 @@ import {
 import { PackError } from '../server/pack-error.js';
 import { runApplyCommand } from './apply/cli.js';
 import { planInitShare, writePlannedFiles } from './init-share.js';
+import { astroInitSteps, isAstroProject } from './init-astro.js';
 import { readOwnVersion } from '../server/module-dir.js';
 import { findGlobalOption, UsageError, USAGE_EXIT_CODE } from './cli-args.js';
 import {
@@ -104,6 +105,12 @@ function runInit(projectDir: string) {
   if (!fs.existsSync(absoluteDir)) {
     console.error(`Error: Directory "${projectDir}" does not exist.`);
     process.exit(1);
+  }
+
+  // Astro has src/pages too: a Pages Router route written there would be an Astro endpoint.
+  if (isAstroProject(absoluteDir)) {
+    console.log(astroInitSteps());
+    return;
   }
 
   // 1. Detect TypeScript vs. JavaScript
@@ -247,8 +254,10 @@ async function runDoctorCommand({ dir, localesPath, app, share, token }: DoctorA
   const shareLink = findings.find((f) => f.title === 'Share link')?.detail;
   if (shareLink) console.log(`🔗 Share link: ${shareLink}`);
   if (!app) {
+    // astro dev serves on 4321 by default, next dev on 3000.
+    const port = isAstroProject(projectDir) ? 4321 : 3000;
     console.log(
-      `💡 Start your dev server and re-run with --app http://localhost:3000 for live checks.`
+      `💡 Start your dev server and re-run with --app http://localhost:${port} for live checks.`
     );
   }
 }

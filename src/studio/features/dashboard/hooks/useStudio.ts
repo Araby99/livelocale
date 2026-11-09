@@ -77,12 +77,15 @@ export const useStudio = () => {
     visibleKeys,
     renderedKeys,
     supportsEditMode,
+    supportsKeyJump,
+    keyJumpAnswer,
     unkeyedTapSeq,
     iframeRef,
     sendToIframe,
     setSiteEditMode,
     selectKeyInPage,
     revealKeyInPage,
+    jumpToKeyInPage,
   } = useConnection({
     onElementSelected: (el) => selectElementRef.current(el),
     onLocaleDetected: (locale) => setLocaleRef.current(locale),
@@ -454,6 +457,11 @@ export const useStudio = () => {
     setSiteEditMode,
     selectKeyInPage,
     revealKeyInPage,
+    // Keys list: scroll the page to the picked key
+    locationSeq,
+    supportsKeyJump,
+    keyJumpAnswer,
+    jumpToKeyInPage,
     // Changes panel: git + session history
     isChangesOpen,
     toggleChanges: () => setIsChangesOpen((v) => !v),

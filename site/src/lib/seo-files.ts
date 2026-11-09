@@ -96,7 +96,7 @@ export function llmsTxt(opts: { siteUrl: string; sidebar: SidebarGroup[]; pages:
 
 - Who it's for: teams whose content people review copy and keep asking developers for text changes; freelance and agency developers whose client fixes their own copy through a share link; any developer who only wants the CI check.
 - Install: \`npm install livelocale\` (Node.js 18 or later). One package, MIT licence, no runtime dependencies, no account, no server.
-- Next.js: \`npx livelocale init\` writes the API route; the Studio runs beside \`next dev\`. Vite: add the \`liveLocaleVite\` plugin from \`livelocale/vite\`; the Studio runs beside \`vite\`.
+- Next.js: \`npx livelocale init\` writes the API route; the Studio runs beside \`next dev\`. Vite: add the \`liveLocaleVite\` plugin from \`livelocale/vite\`; the Studio runs beside \`vite\`. Astro: add the \`liveLocale\` integration from \`livelocale/astro\`; the Studio runs beside \`astro dev\`, with no React.
 - Share links: \`npx livelocale init --share\` ships the Studio inside a static build, so someone with no git account can fix text on the deployed site and send a change link; on GitHub a workflow turns it into a pull request, elsewhere \`npx livelocale apply "<link>" --pr\` does.
 - CI: \`npx livelocale check\` fails the build on missing keys, broken ICU and placeholder drift; \`--hardcoded\` also fails it on text that never went through translation.
 - Keep next-intl or react-i18next: translations stay as JSON locale files in your repository. The Studio edits every locale, and right-to-left sites such as Arabic flip right to left under it.

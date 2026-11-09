@@ -3,12 +3,13 @@
 // site/media/docs/manifest.json; DocShot.vue and DocClip.vue read the manifest.
 
 /** The ports record-docs.mjs runs the dev apps and the Studio on, unless its environment moves them. */
-export const DEFAULT_PORTS = { next: 3100, vite: 5180, studio: 3110 };
+export const DEFAULT_PORTS = { next: 3100, vite: 5180, astro: 4380, studio: 3110 };
 
 /** The app each capture films, as its provenance names it, on the ports it was filmed on. */
 const apps = (ports) => ({
   next: `the real dev Studio (\`livelocale studio\`, port ${ports.studio}) editing the Next.js playground (playground/, \`next dev -p ${ports.next}\`)`,
   vite: `the real dev Studio (\`livelocale studio\`, port ${ports.studio}) editing the Vite + React playground (playground-vite/, \`vite --port ${ports.vite}\` with \`liveLocaleVite\`)`,
+  astro: `the real dev Studio (\`livelocale studio\`, port ${ports.studio}) editing the Astro playground (playground-astro/, \`astro dev --port ${ports.astro}\` with the \`livelocale/astro\` integration, no React)`,
   share:
     'the real share Studio that `livelocale pack` writes into the fictional Tidewell stage site (site/stage, packed with --expose-repo and served as tidewell.example)',
 });
@@ -41,6 +42,18 @@ export const SHOTS = {
   'vite-saved-file': {
     app: 'vite',
     use: 'after Save: the preview shows the new headline, Changes lists playground-vite/locales/en.json as modified with its git diff',
+  },
+  'astro-studio-open': {
+    app: 'astro',
+    use: 'the Studio open beside the running Astro site: the Locale Directory, the live preview and the editor waiting for a pick',
+  },
+  'astro-alt-click': {
+    app: 'astro',
+    use: 'the headline Alt+Clicked in the Astro preview, the editor open on home.title with the fix typed',
+  },
+  'astro-saved-file': {
+    app: 'astro',
+    use: 'after Save: the preview shows the new headline, Changes lists playground-astro/locales/en/home.json as modified with its git diff',
   },
   'share-open-link': {
     app: 'share',

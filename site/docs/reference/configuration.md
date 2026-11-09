@@ -1,18 +1,19 @@
 ---
 title: Configuration
-description: Every option of the livelocale route handler, Vite plugin, translation loader and wrappers, with its type and default, and the livelocale.allow file.
+description: Every option of the livelocale route handler, Vite plugin, Astro integration, translation loader and wrappers, with its type and default.
 ---
 
 # Configuration
 
-livelocale has no config file. You configure it where you call it: the route handler, the Vite plugin, the translation loader and the wrappers each take an options object. This page lists every option with its type and default. The environment variables are on [their own page](./environment.md).
+livelocale has no config file. You configure it where you call it: the route handler, the Vite plugin, the Astro integration, the translation loader and the wrappers each take an options object. This page lists every option with its type and default. The environment variables are on [their own page](./environment.md).
 
 | Import              | What this page covers from it                                                                                                                                                           |
 | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `livelocale/server` | `createLiveLocaleHandler`, `createTranslations`, `wrapTranslationEngine`, `wrapNextIntl`, `getLiveLocaleMode`, `isLiveLocaleEnabled`, `unwrap`, `sanitizeZeroWidth`, `removeWatermarks` |
-| `livelocale/client` | `wrapTranslationEngine`, `wrapNextIntl`, `unwrap`, `sanitizeZeroWidth`, `removeWatermarks`                                                                                              |
+| `livelocale/client` | `wrapTranslationEngine`, `wrapNextIntl`, `startLiveLocale`, `unwrap`, `sanitizeZeroWidth`, `removeWatermarks`                                                                           |
 | `livelocale/react`  | `LiveLocaleProvider`                                                                                                                                                                    |
 | `livelocale/vite`   | `liveLocaleVite`                                                                                                                                                                        |
+| `livelocale/astro`  | `liveLocale` (the default export)                                                                                                                                                       |
 
 ## `createLiveLocaleHandler`
 
@@ -61,7 +62,7 @@ export default defineConfig({
 });
 ```
 
-The Vite plugin. On the dev server it serves the mutation API at `/api/livelocale`, puts every locale's strings into the page so missing keys still render, and copies the server's `LIVELOCALE` value into the page so the client bundle runs in the same mode. In `vite build` it does nothing unless `share: true` is set, and it never packs an SSR or library build.
+The Vite plugin. On the dev server it serves the mutation API at `/api/livelocale`, puts every locale's strings into the page so missing keys still render (the `sourceLocale` text wins over the other locales), and copies the server's mode (`development`, `preview` or `off`) into the page so the client bundle runs in the same mode, with no `NODE_ENV` from the bundler. In `vite build` it does nothing unless `share: true` is set, and it never packs an SSR or library build.
 
 | Option         | Type      | Default                                  | What it does                                                                                                                                                    |
 | -------------- | --------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -70,10 +71,32 @@ The Vite plugin. On the dev server it serves the mutation API at `/api/livelocal
 | `authToken`    | `string`  | `LIVELOCALE_TOKEN`                       | A bearer token every request except the CORS preflight must carry.                                                                                              |
 | `share`        | `boolean` | `false`                                  | Writes the share Studio, `manifest.json`, the locale files and `flag.js` into `<outDir>/livelocale/` on `vite build`, and links `flag.js` from every HTML page. |
 | `exposeRepo`   | `boolean` | `false`                                  | Puts the GitHub `owner/repo` into the published manifest. Leave it off for a private repository.                                                                |
-| `sourceLocale` | `string`  | `en` when present, else the first locale | The source locale written into the manifest.                                                                                                                    |
+| `sourceLocale` | `string`  | `en` when present, else the first locale | The source locale written into the manifest. On the dev server, its text wins in the strings put into the page for missing keys.                                |
 | `shareBase`    | `string`  | Vite `base`                              | The site path the HTML is served from. Set it when `base` is a full URL, or when the HTML is served from a path other than `base`.                              |
 
 The plugin has no `allowedOrigins` option. A Studio away from `localhost` is allowed through `LIVELOCALE_ALLOWED_ORIGINS`.
+
+## `liveLocale` (Astro)
+
+```js
+// astro.config.mjs
+import { defineConfig } from 'astro/config';
+import liveLocale from 'livelocale/astro';
+
+export default defineConfig({
+  integrations: [liveLocale({ localesPath: './locales' })],
+});
+```
+
+The Astro integration. It takes the options of [`liveLocaleVite`](#livelocalevite). Astro renders its own HTML, so the integration does three things the Vite plugin cannot do there:
+
+- In `astro dev` it adds the Vite plugin, so the mutation API is at `/api/livelocale`.
+- A middleware puts the mode flag and every locale's strings into `<head>` of each HTML page. It reads the locale files on every request, so a save shows on the next page load.
+- A page script starts the in-page client with [`startLiveLocale`](#startlivelocale), and starts it again after a view transition swaps the page.
+
+A normal `astro build` gets none of it: no flag, no strings, no client code. A preview build (`LIVELOCALE=preview astro build`, or `npx livelocale build --preview -- astro build`) gets the flag, the strings and the client. `share: true` packs the share Studio into the output of a preview build only, since Astro renders the text at build time; in any other build it prints a warning and packs nothing.
+
+The integration needs Node.js at run time: the middleware reads the locale files from disk.
 
 ## `createTranslations`
 
@@ -84,15 +107,31 @@ const t = createTranslations(locale, { supportedLocales: ['en', 'ar', 'es'] });
 return <h1>{t.home?.title}</h1>;
 ```
 
-Loads one locale for a Server Component and returns it as an object. While livelocale is on, every string in it carries its watermark, and keys missing from this locale fall back to the other locales' text, so they still render and stay editable. While it is off, the object is returned as it was read.
+Loads one locale for a Server Component and returns it as an object. A key missing from this locale takes its text from `fallbackLocale`, in development and in production.
+
+While livelocale is on, every string in it carries its watermark. A key missing from both locales takes the text of another locale, so it still renders and stays editable in the Studio. `fallbackLocale` always wins over the other locales.
+
+While it is off, the result is a plain object: the locale merged over `fallbackLocale`, with no watermarks. The merge is cached until a file changes. An array in the locale is kept as it is, so a list the translator shortened stays short.
 
 It reads `<localesDir>/<locale>.json`, or every `.json` file in `<localesDir>/<locale>/` as one namespace each.
 
-| Option             | Type       | Default                         | What it does                                                                                                               |
-| ------------------ | ---------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `localesDir`       | `string`   | `locales` under `process.cwd()` | The locales folder.                                                                                                        |
-| `supportedLocales` | `string[]` | `['en']`                        | The locales it accepts. Any other locale gets `fallbackLocale`, so a request cannot reach a file outside the folder.       |
-| `fallbackLocale`   | `string`   | `'en'`                          | The locale it loads when the requested one is not supported or its file is missing. With neither file, the result is `{}`. |
+| Option             | Type       | Default                         | What it does                                                                                                                                                      |
+| ------------------ | ---------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `localesDir`       | `string`   | `locales` under `process.cwd()` | The locales folder.                                                                                                                                               |
+| `supportedLocales` | `string[]` | `['en']`                        | The locales it accepts. Any other locale gets `fallbackLocale`, so a request cannot reach a file outside the folder.                                              |
+| `fallbackLocale`   | `string`   | `'en'`                          | The locale it loads when the requested one is not supported or its file is missing, and the locale missing keys come from. With neither file, the result is `{}`. |
+| `plain`            | `boolean`  | `false`                         | Returns a plain object with every key filled in, instead of a Proxy. Use it to pass the translations as props or to `JSON.stringify` them.                        |
+
+### Passing translations to a client component
+
+While livelocale is on, the object is a Proxy. It fills a missing key only when your code reads it, so `JSON.stringify` and the props of a client component, such as a React island in Astro, get only the keys the locale has. Pass `plain: true` to get every key:
+
+```tsx
+const t = createTranslations(locale, { supportedLocales: ['en', 'ar'], plain: true });
+return <Header labels={t.header} />;
+```
+
+Its strings carry the same watermarks a read through the Proxy gives, so the Studio still finds them. In production it is the same plain object as without `plain`.
 
 ## `wrapTranslationEngine` and `wrapNextIntl`
 
@@ -108,10 +147,12 @@ const t = wrapTranslationEngine(rawT, { keyPrefix: 'auth' });
 
 Both are exported from `livelocale/client` and `livelocale/server`.
 
-| Option      | Type                  | Default | What it does                                                                                                                                       |
-| ----------- | --------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `keyPrefix` | `string`              | none    | A dot-separated prefix put before every key, so `t('title')` on the `home` namespace is watermarked as `home.title`, the path in your locale file. |
-| `fallback`  | `Record<string, any>` | none    | Text used when a key is missing. Without it, in the browser, the wrapper uses the strings the Vite plugin put into the page.                       |
+| Option      | Type                  | Default | What it does                                                                                                                                                                  |
+| ----------- | --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `keyPrefix` | `string`              | none    | A dot-separated prefix put before every key, so `t('title')` on the `home` namespace is watermarked as `home.title`, the path in your locale file.                            |
+| `fallback`  | `Record<string, any>` | none    | Text used when a key is missing, while livelocale is on. Without it, in the browser, the wrapper uses the strings the Vite plugin or the Astro integration put into the page. |
+
+While livelocale is off, `wrapTranslationEngine` returns `engine` itself, so `fallback` is not used. Production text then comes from your engine alone: give it a fallback of its own, such as `fallbackLng` in i18next. `createTranslations` already merges `fallbackLocale` in production.
 
 ## `LiveLocaleProvider`
 
@@ -126,6 +167,18 @@ import { LiveLocaleProvider } from 'livelocale/react';
 ```
 
 Render it once in your root layout. It takes no props and renders nothing. While livelocale is on it loads the in-page client in the browser, and that client starts only when the page is inside the Studio's frame.
+
+## `startLiveLocale`
+
+```ts
+import { startLiveLocale } from 'livelocale/client';
+
+startLiveLocale(); // true when the client runs
+```
+
+Starts the in-page client without React, for Vue, Svelte or a plain Vite page. It starts only in the browser, while livelocale is on, and only inside the Studio's frame; otherwise it does nothing and returns `false`. The mode comes from the flag the Vite plugin or the Astro integration puts into the page, so it needs no `NODE_ENV` from the bundler.
+
+Calling it twice never starts a second client. After a page swapped its `<body>` without a full load, a second call scans the new one. Importing `livelocale/client` calls it once already.
 
 ## `getLiveLocaleMode`
 

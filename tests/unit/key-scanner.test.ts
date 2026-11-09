@@ -46,6 +46,33 @@ describe('KeyScanner (real filesystem)', () => {
     expect(keys).not.toContain('map');
   });
 
+  it('finds keys in .astro frontmatter and template expressions', async () => {
+    write(
+      project,
+      'src/pages/index.astro',
+      [
+        '---',
+        "import { createTranslations } from 'livelocale/server';",
+        "const t = createTranslations('en', { supportedLocales: ['en'] });",
+        "const label = t('astro.from_frontmatter');",
+        '---',
+        '<h1>{t.astro.from_template}</h1>',
+        '<a title={t.astro.from_attribute}>{label}</a>',
+      ].join('\n')
+    );
+    write(project, '.astro/types.d.ts', `t('ignored.astro_codegen')`);
+    write(project, '.astro/content.ts', `t('ignored.astro_codegen_ts')`);
+    const keys = await new KeyScanner().scanCodebaseKeys(localesPath);
+    expect(keys).toEqual(
+      expect.arrayContaining([
+        'astro.from_frontmatter',
+        'astro.from_template',
+        'astro.from_attribute',
+      ])
+    );
+    expect(keys).not.toContain('ignored.astro_codegen_ts');
+  });
+
   it('skips node_modules, .gitignore-d paths, and .d.ts files', async () => {
     const keys = await new KeyScanner().scanCodebaseKeys(localesPath);
     expect(keys).not.toContain('ignored.from_node_modules');

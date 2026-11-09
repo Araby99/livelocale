@@ -1,6 +1,6 @@
 {
   "name": "livelocale",
-  "description": "The livelocale Agent Skill: set up and use livelocale in Next.js, Vite + React and static-host projects.",
+  "description": "The livelocale Agent Skill: set up and use livelocale in Next.js, Vite + React, Astro and static-host projects.",
   "owner": {
     "name": "Araby99"
   },

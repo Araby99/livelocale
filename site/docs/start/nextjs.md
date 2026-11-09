@@ -98,6 +98,8 @@ export default async function Page({ searchParams }) {
 }
 ```
 
+A key missing from the locale takes its text from `fallbackLocale` (`en` by default), in development and in production. To pass the translations to a Client Component as props, add `plain: true`. See [`createTranslations`](../reference/configuration.md#createtranslations).
+
 With `react-i18next` or `next-intl` hooks, wrap the `t` the hook returns with `wrapTranslationEngine`:
 
 ```tsx

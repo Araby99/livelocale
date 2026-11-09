@@ -27,7 +27,7 @@ Code references resolve namespaces the same way the Studio does, an object acces
 
 ```
 
-**Exit codes.** 0 when there is no problem, 1 when there is at least one, and 2 when the check could not run: a wrong command line (such as a mistyped flag), a project folder or locales folder that does not exist, a locales folder with no locale files in it, that is no `{locale}.json` and no `*.json` inside a `{locale}/` folder (`No locale files found in <dir>. Point --locales at the folder with en.json, ar.json, ...`, followed by the JSON files and folders it skipped because their name is not a locale, such as `en_US.json`), a `--source` locale that is not there, or `--hardcoded` without `typescript` installed. A CI step can tell "the translations need work" (1) from "the check never ran" (2).
+**Exit codes.** 0 when there is no problem, 1 when there is at least one, and 2 when the check could not run: a wrong command line (such as a mistyped flag), a project folder or locales folder that does not exist, a locales folder with no locale files in it, that is no `{locale}.json` and no `*.json` inside a `{locale}/` folder (`No locale files found in <dir>. Point --locales at the folder with en.json, ar.json, ...`, followed by the JSON files and folders it skipped because their name is not a locale, such as `en_US.json`), a `--source` locale that is not there, or `--hardcoded` on JSX files without `typescript` installed. A CI step can tell "the translations need work" (1) from "the check never ran" (2).
 
 ## Flags
 
@@ -73,13 +73,13 @@ Also finds text never passed through translation, and translations left identica
 | `untranslated`: a translation identical to the source locale                              | warning |
 | `wrong-script`: a translation mostly in Latin letters for a non-Latin locale (`ar`, `ja`) | warning |
 
-Each finding prints its file, line and column, and the source text shortened to 60 characters; translation values are never printed. The JSX scan uses your project's own `typescript` (`npm install -D typescript`); without it the other checks still run and the command exits with code 2. Without `--hardcoded`, `check` behaves as it did before the flag existed.
+Each finding prints its file, line and column, and the source text shortened to 60 characters; translation values are never printed. The JSX scan uses your project's own `typescript` (`npm install -D typescript`); without it the other checks still run and the command exits with code 2. `.astro` templates are scanned without `typescript`. The key scan reads `.astro` files too, frontmatter and template. Without `--hardcoded`, `check` behaves as it did before the flag existed.
 
 ```cli check-hardcoded
 
 ```
 
-Opt-outs: `// livelocale-ignore-next-line` above the text or its element, `// livelocale-ignore-file` at the top of a file, and words in a `livelocale.allow` file at the project root (one per line; a `key:` line exempts a translation key from `untranslated` and `wrong-script`).
+Opt-outs: `// livelocale-ignore-next-line` above the text or its element, `// livelocale-ignore-file` at the top of a file (in `.astro`, in the frontmatter or as `<!-- livelocale-ignore-file -->` atop the template), and words in a `livelocale.allow` file at the project root (one per line; a `key:` line exempts a translation key from `untranslated` and `wrong-script`).
 
 ### `--allow`
 

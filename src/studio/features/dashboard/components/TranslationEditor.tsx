@@ -7,6 +7,8 @@ import { TRANSLATION_INPUT_ID } from '../constants.js';
 import { useSaveFocus } from '../hooks/useSaveFocus.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
+import { KeyJumpNote } from './KeyJumpNote.jsx';
+import type { KeyJumpNote as JumpNote } from '../hooks/useKeyJump.js';
 
 export interface SaveWarning {
   code: string;
@@ -29,6 +31,8 @@ interface TranslationEditorProps {
   onForceSave: () => void;
   onDismissWarning: () => void;
   onClear: () => void;
+  /** Said under the key when the text picked from the Keys list is not visible on this page. */
+  jumpNote?: JumpNote | null;
 }
 
 export type ChipState = 'present' | 'missing' | 'extra';
@@ -75,6 +79,7 @@ export const TranslationEditor = ({
   onForceSave,
   onDismissWarning,
   onClear,
+  jumpNote = null,
 }: TranslationEditorProps) => {
   const { t } = useStudioText();
   // Plural messages get a structured editor unless the user switches to raw text.
@@ -117,6 +122,7 @@ export const TranslationEditor = ({
         >
           {selected.key}
         </div>
+        <KeyJumpNote note={jumpNote} />
       </div>
 
       {/* Fallback Reference */}

@@ -9,7 +9,7 @@ Four steps from one command to a pull request with a fix to your site's text. Ea
 
 <DocClip name="alt-click-edit" label="Alt+Click the Tidewell headline in the share Studio, fix the typo in the editor and save it." caption="Step 3 on the deployed site: Alt+Click, fix, save." />
 
-You need an app built with Vite, CRA, webpack, Rsbuild or Next.js, its translations in JSON files, and its text going through livelocale's wrapper, as in step 2 of [Vite + React](./vite.md) or step 3 of [Next.js](./nextjs.md). The one-click pull requests need the code on GitHub.
+You need an app built with Vite, Astro, CRA, webpack, Rsbuild or Next.js, its translations in JSON files, and its text going through livelocale's wrapper, as in step 2 of [Vite + React](./vite.md), step 2 of [Astro](./astro.md) or step 3 of [Next.js](./nextjs.md). The one-click pull requests need the code on GitHub.
 
 ## 1. Run `init --share`
 
@@ -23,7 +23,7 @@ It finds your stack and changes its build so the build also writes the Studio, t
 
 ```
 
-On Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. On CRA it adds `livelocale pack build --locales <path> --source <locale>` after the bundler in the `build` script, and on webpack and Rsbuild the same command packing `dist`; on Next.js it adds a `build:preview` script that runs `livelocale build --preview --locales <path> --source <locale> -- next build`. The whole table, and setting the build up by hand, are in [Share links](../guides/share-links.md#set-up).
+On Vite it adds `share: true` to your `liveLocaleVite({ ... })` call. On CRA it adds `livelocale pack build --locales <path> --source <locale>` after the bundler in the `build` script, and on webpack and Rsbuild the same command packing `dist`; on Next.js it adds a `build:preview` script that runs `livelocale build --preview --locales <path> --source <locale> -- next build`, and on Astro the same script ending in `-- astro build`. The whole table, and setting the build up by hand, are in [Share links](../guides/share-links.md#set-up).
 
 ::: details Didn't work?
 

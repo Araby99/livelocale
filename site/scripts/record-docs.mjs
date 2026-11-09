@@ -4,11 +4,12 @@
 //
 // With no names it shoots everything in SHOTS and CLIPS (site/scripts/docs/media.mjs); names
 // re-shoot only those and keep the rest of the manifest. It needs the built CLI (`npm run build`)
-// and both playground installs (`npm ci --prefix playground`, `npm ci --prefix playground-vite`).
+// and the playground installs (`npm ci --prefix playground`, `npm ci --prefix playground-vite`,
+// `npm ci --prefix playground-astro`).
 //
 // The dev shots film the real dev Studio (`livelocale studio --port 3110`) editing the Next.js
-// playground (`next dev -p 3100`) or the Vite playground (`vite --port 5180`, picked with the
-// Studio's ?app=). The share shots and the clips film the share Studio packed into the Tidewell
+// playground (`next dev -p 3100`), the Vite playground (`vite --port 5180`) or the Astro
+// playground (`astro dev --port 4380`), picked with the Studio's ?app=. The share shots and the clips film the share Studio packed into the Tidewell
 // stage site, served on a port in 5170-5179 and browsed as http://tidewell.example (a Chromium
 // host-resolver rule). Saves in the dev Studio write the playgrounds' locale files, so those are
 // snapshotted first and put back after every capture and when the run ends.
@@ -38,6 +39,7 @@ const CHANGE_LINK = join(SITE_DIR, 'scripts', 'docs', 'fixtures', 'change-link.t
 const CLI = join(ROOT_DIR, 'dist', 'codemod', 'index.js');
 const PLAYGROUND = join(ROOT_DIR, 'playground');
 const PLAYGROUND_VITE = join(ROOT_DIR, 'playground-vite');
+const PLAYGROUND_ASTRO = join(ROOT_DIR, 'playground-astro');
 
 const SHOT_VIEW = { width: 1440, height: 900 };
 const SHOT_WIDTH = 1200;
@@ -45,17 +47,22 @@ const SHOT_WIDTH = 1200;
 const PHONE_VIEW = { width: 390, height: 844 };
 const PHONE_WIDTH = 640;
 const CLIP_VIEW = { width: 1280, height: 720 };
-// DOCS_NEXT_PORT, DOCS_VITE_PORT and DOCS_STUDIO_PORT move the dev servers off their defaults
+// DOCS_NEXT_PORT, DOCS_VITE_PORT, DOCS_ASTRO_PORT and DOCS_STUDIO_PORT move the dev servers off their defaults
 // (for a machine where those ports are taken); the provenance names the ports actually used.
 const envPort = (name, fallback) => (process.env[name] ? Number(process.env[name]) : fallback);
 const NEXT_PORT = envPort('DOCS_NEXT_PORT', DEFAULT_PORTS.next);
 const VITE_PORT = envPort('DOCS_VITE_PORT', DEFAULT_PORTS.vite);
+const ASTRO_PORT = envPort('DOCS_ASTRO_PORT', DEFAULT_PORTS.astro);
 const STUDIO_PORT = envPort('DOCS_STUDIO_PORT', DEFAULT_PORTS.studio);
-const PORTS = { next: NEXT_PORT, vite: VITE_PORT, studio: STUDIO_PORT };
+const PORTS = { next: NEXT_PORT, vite: VITE_PORT, astro: ASTRO_PORT, studio: STUDIO_PORT };
 const STAGE_PORTS = [5170, 5171, 5172, 5173, 5174, 5175, 5176, 5177, 5178, 5179];
 // RFC 2606 reserves .example, so this host can never belong to a real company.
 const HOST = 'tidewell.example';
-const ORIGINS = { next: `http://localhost:${NEXT_PORT}`, vite: `http://localhost:${VITE_PORT}` };
+const ORIGINS = {
+  next: `http://localhost:${NEXT_PORT}`,
+  vite: `http://localhost:${VITE_PORT}`,
+  astro: `http://localhost:${ASTRO_PORT}`,
+};
 
 // The share stage is packed with the build identity of the public demo repository's main branch
 // (github.com/Araby99/tidewell), as record-hero.mjs packs it, so the change link names it and the
@@ -76,6 +83,10 @@ const PREREQUISITES = [
   {
     path: join(PLAYGROUND_VITE, 'node_modules', 'vite'),
     command: 'npm ci --prefix playground-vite',
+  },
+  {
+    path: join(PLAYGROUND_ASTRO, 'node_modules', 'astro'),
+    command: 'npm ci --prefix playground-astro',
   },
   { path: join(SITE_DIR, 'node_modules', 'ffmpeg-static'), command: 'npm ci --prefix site' },
 ];
@@ -158,6 +169,20 @@ function servers() {
             [bin, '--port', String(VITE_PORT), '--strictPort'],
             PLAYGROUND_VITE,
             `${ORIGINS.vite}/`
+          )
+        );
+      });
+      await studio();
+    },
+    async astro() {
+      await once('astro', async () => {
+        const bin = join(PLAYGROUND_ASTRO, 'node_modules', 'astro', 'bin', 'astro.mjs');
+        stops.push(
+          await startServer(
+            'astro dev',
+            [bin, 'dev', '--port', String(ASTRO_PORT)],
+            PLAYGROUND_ASTRO,
+            `${ORIGINS.astro}/`
           )
         );
       });
@@ -252,10 +277,11 @@ async function fixHeadline(page, delay = 0) {
 
 // ─── what each capture does before the camera fires ──────────────────────────
 
-/** Dev edits: the Next.js welcome line in sentence case, the Vite headline named. */
+/** Dev edits: the Next.js welcome line in sentence case, the Vite and Astro headlines named. */
 const DEV_FIX = {
-  next: { target: 'p', text: 'Welcome back to production' },
-  vite: { target: 'h1', text: 'Welcome to the Vite playground' },
+  next: { target: 'p', text: 'Welcome back to production', file: 'locales/en.json' },
+  vite: { target: 'h1', text: 'Welcome to the Vite playground', file: 'locales/en.json' },
+  astro: { target: 'h1', text: 'Welcome to your Astro site', file: 'locales/en/home.json' },
 };
 
 async function devAltClick(page, which) {
@@ -270,7 +296,7 @@ async function devSavedFile(page, which) {
   await save(page);
   await page.getByText('Saved!').waitFor();
   await page.getByRole('button', { name: 'Changes', exact: true }).click();
-  await page.getByText('locales/en.json').first().waitFor();
+  await page.getByText(DEV_FIX[which].file).first().waitFor();
   await page.getByRole('button', { name: 'Show diff' }).click();
   await page.getByText(`"${DEV_FIX[which].text}"`).first().waitFor();
   await settle(page, 400);
@@ -283,6 +309,9 @@ const SCENES = {
   'vite-studio-open': (page) => openDev(page, 'vite'),
   'vite-alt-click': (page) => devAltClick(page, 'vite'),
   'vite-saved-file': (page) => devSavedFile(page, 'vite'),
+  'astro-studio-open': (page) => openDev(page, 'astro'),
+  'astro-alt-click': (page) => devAltClick(page, 'astro'),
+  'astro-saved-file': (page) => devSavedFile(page, 'astro'),
   'share-open-link': (page) => openShare(page, { tips: 'keep' }),
   async 'share-alt-click'(page) {
     await openShare(page);
@@ -598,7 +627,11 @@ async function main() {
   FFMPEG = require('ffmpeg-static');
   const { chromium } = require(join(ROOT_DIR, 'node_modules', 'playwright'));
 
-  const localeDirs = [join(PLAYGROUND, 'locales'), join(PLAYGROUND_VITE, 'locales')];
+  const localeDirs = [
+    join(PLAYGROUND, 'locales'),
+    join(PLAYGROUND_VITE, 'locales'),
+    join(PLAYGROUND_ASTRO, 'locales'),
+  ];
   const localeFiles = (await Promise.all(localeDirs.map(listFiles))).flat();
   const restoreLocales = localeGuard(
     localeDirs,
@@ -621,6 +654,7 @@ async function main() {
     }
     if (needs.has('next')) await apps.next();
     if (needs.has('vite')) await apps.vite();
+    if (needs.has('astro')) await apps.astro();
     browser = await chromium.launch({
       args: [
         `--host-resolver-rules=MAP ${HOST} 127.0.0.1:${port}`,

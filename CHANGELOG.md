@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-09
+
+1.1.0 adds Astro support and two Studio improvements, and fixes missing translations rendering as `undefined` in production. Nothing documented changed incompatibly.
+
+### Minor Changes
+
+- **Added**
+  - First-party Astro support without React: `liveLocale({ localesPath })` from the new `livelocale/astro` entry serves the Studio's API in `astro dev`, puts the mode flag and the fallback dictionary in every page, and loads the in-page client; a normal `astro build` gets none of it. `startLiveLocale()` in `livelocale/client` boots the client on any page without React, and `livelocale check` now reads `.astro` files for keys and for hardcoded text. `init` and `doctor` detect Astro projects.
+  - `createTranslations` has a `plain: true` option that returns a plain object with every key filled in, safe to pass as props or `JSON.stringify`.
+  - Picking a key from the Studio's Keys list now scrolls the page to its text and outlines it, or says when the text is hidden or not on this page.
+  - When the Studio cannot connect to the app, it now says what the app answered before the usual causes: nothing listening at the app's address, the HTTP status of the page (such as "The app answered 500 at /en") or of `/api/livelocale`, a redirect to a sign-in page, a header that forbids framing, or a page that loaded without starting the LiveLocale client. **Check again** asks once more. `npx livelocale studio` answers this through a new same-origin endpoint that only probes the app origin it was started with; a share-link Studio reads the page's status itself.
+- **Fixed**
+  - `createTranslations` now fills keys missing from a locale with the `fallbackLocale` text in production too; they rendered as `undefined`. A locale's own arrays are kept whole. In development `fallbackLocale` now wins over the other locales, and the fallback the Vite plugin puts in the page prefers `sourceLocale`, whatever order the locale folders are listed in.
+
 ## [1.0.0] - 2026-11-08
 
 1.0.0 is the first stable release. From here on livelocale follows semantic versioning: the documented imports, options, CLI commands, flags and exit codes, environment variables, the files `init` writes, and the share-link formats (`lc1.` change links, `manifest.json` format 1, `flag.js`) change incompatibly only in a new major version. Change links already sent and share folders already deployed keep working. Nothing documented was removed or renamed. The breaking changes below are about how the CLI treats a wrong command line and which exit code it returns, plus one type; a project whose scripts use only documented flags needs no change. Exports that no docs page uses, such as `FileMutator`, `KeyScanner`, `createMutationRouter`, `IframeBridge`, `encodeKey` and `stripWatermark`, are now marked internal: they still work, but semver does not cover them. The [Versioning and stability](https://livelocale.js.org/docs/reference/stability.html) page lists what is covered, the deprecation policy, and the versions CI tests.

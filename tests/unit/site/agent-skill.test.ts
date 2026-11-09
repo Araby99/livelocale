@@ -106,6 +106,7 @@ it('imports only what each livelocale entry point exports', () => {
     server: 'src/server/index.ts',
     react: 'src/react/index.tsx',
     vite: 'src/server/vite-plugin.ts',
+    astro: 'src/astro/index.ts',
   };
   const exported = (sub: string, name: string) => {
     const source = fs.readFileSync(entry[sub]!, 'utf8');

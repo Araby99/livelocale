@@ -70,15 +70,17 @@ still open and still holds a change block.
 
 ## Packages and entry points
 
-The library ships one npm package with five entry points (see `tsup.config.ts`):
+The library ships one npm package with seven entry points (see `tsup.config.ts`):
 
-| Entry                  | Source                      | Runs in                          | Purpose                                     |
-| ---------------------- | --------------------------- | -------------------------------- | ------------------------------------------- |
-| `livelocale/server`    | `src/server/index.ts`       | Node (Next.js server)            | Route handler, loader, mutator, watermark   |
-| `livelocale/client`    | `src/client/index.ts`       | Browser                          | DOM scanner, bridge, auto-init              |
-| `livelocale/react`     | `src/react/index.tsx`       | Browser (React)                  | `LiveLocaleProvider` that lazy-loads client |
-| `livelocale/vite`      | `src/server/vite-plugin.ts` | Node (Vite dev server and build) | Mutation API as Vite middleware             |
-| `npx livelocale` (bin) | `src/codemod/index.ts`      | Node CLI                         | `init`, `studio`, `migrate`                 |
+| Entry                         | Source                      | Runs in                             | Purpose                                             |
+| ----------------------------- | --------------------------- | ----------------------------------- | --------------------------------------------------- |
+| `livelocale/server`           | `src/server/index.ts`       | Node (Next.js server)               | Route handler, loader, mutator, watermark           |
+| `livelocale/client`           | `src/client/index.ts`       | Browser                             | DOM scanner, bridge, `startLiveLocale`              |
+| `livelocale/react`            | `src/react/index.tsx`       | Browser (React)                     | `LiveLocaleProvider` that lazy-loads client         |
+| `livelocale/vite`             | `src/server/vite-plugin.ts` | Node (Vite dev server and build)    | Mutation API as Vite middleware                     |
+| `livelocale/astro`            | `src/astro/index.ts`        | Node (Astro config hooks)           | Integration: Vite plugin, head, client              |
+| `livelocale/astro/middleware` | `src/astro/middleware.ts`   | Node (Astro dev and preview builds) | Puts the mode flag and fallback strings in `<head>` |
+| `npx livelocale` (bin)        | `src/codemod/index.ts`      | Node CLI                            | `init`, `studio`, `migrate`                         |
 
 The Studio UI (`src/studio`) is a separate Vite app built into `dist/studio` and served by the CLI.
 
@@ -135,16 +137,20 @@ orthography in Persian, Urdu, Thai, and others.
 otherwise. Property reads of strings are encoded with the full dotted path; function calls (`t('x')`)
 encode the result with `keyPrefix + '.' + x`. FormatJS-style descriptor objects (`{ id }`) are
 supported. `options.fallback` supplies values from other locales for missing keys so untranslated
-text is still visible and editable. `wrapNextIntl` is a thin alias for `next-intl` users.
+text is still visible and editable. It is not read in production, where the engine is returned
+as-is (a documented, stable promise), so production fallback is the engine's own job. `wrapNextIntl` is a thin alias for `next-intl` users.
 
 This file has no `'use client'` directive on purpose so it can be imported by Server Components.
 
 ### 3. Server-side loader (`src/server/translations.ts`)
 
 `createTranslations(locale, options)` reads `locales/{locale}.json` or the namespaced folder
-`locales/{locale}/*.json`, builds a fallback dictionary from every other locale in development,
-and returns the wrapped object. Parses are cached by `core/json-cache.ts` keyed on mtime and size, so
-steady-state renders cost one `stat` per file.
+`locales/{locale}/*.json`. In development it builds a fallback dictionary from every other locale,
+with `fallbackLocale` winning over the rest, and returns the wrapped object. In production it
+returns a plain object: the locale merged over `fallbackLocale`, the merge cached per parsed file
+object. `plain: true` returns `resolveTranslations` (in `wrap.ts`) instead of the Proxy: the same
+values a Proxy read gives, every key filled in, safe to serialize. Parses are cached by
+`core/json-cache.ts` keyed on mtime and size, so steady-state renders cost one `stat` per file.
 
 ### 3a. Plural structure (`src/core/icu-plural.ts`)
 
@@ -227,7 +233,7 @@ argument as a Web `Request`. Body reading for Node requests is shared with the V
 promise-chain mutex, validates the parsed JSON root, sets the nested key with depth and
 prototype-pollution guards, then writes `file.tmp` and renames it over the target so a concurrent
 HMR read never sees a half-written file. The rewrite preserves the file's indentation unit and
-trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')`, `t.rich('…')` and `t.a.b` references in source files with regexes,
+trailing newline (`detectJsonIndent`) so diffs stay minimal. `KeyScanner` finds `t('…')`, `t.rich('…')` and `t.a.b` references in source files (`.astro` files read whole) with regexes,
 prefixes them with the namespace bound to that translator variable in the same file
 (`useTranslations('ns')`, `getTranslations`, `useTranslation('ns')`, `wrapNextIntl`,
 `wrapTranslationEngine({ keyPrefix })`), and merges them with keys present in the locale files. Scans are
@@ -238,10 +244,14 @@ incremental (per-file mtime and size cache), honour the root `.gitignore` throug
 ### 7. Client runtime (`src/client/dom-interceptor.ts`, `iframe-bridge.ts`, `index.ts`)
 
 `DOMInterceptor` walks text nodes on init and on every mutation, tags parents with
-`data-i18n-key` and `data-i18n-template`, draws a fixed-position highlight overlay, intercepts
-Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
-watermarks never leave the page. `IframeBridge` validates origins both ways. `index.ts`
-auto-initializes only inside an iframe, and only when LiveLocale is enabled: in development, or
+`data-i18n-key` and `data-i18n-template`, draws a fixed-position highlight overlay (moved with a
+`transform`), intercepts Alt+click, and sanitizes copy, paste, form submit, and the `value` property of inputs so
+watermarks never leave the page. `JUMP_TO_KEY`, sent for a key picked in the Studio's Keys list,
+scrolls the first visible element with that key into view and outlines it, and `KEY_JUMPED` answers
+`shown`, `hidden` or `absent`; the Studio sends it only to a client whose `READY` lists the
+`key-jump` feature. `IframeBridge` validates origins both ways. `startLiveLocale()` in `index.ts`
+runs on import (through `LiveLocaleProvider`) or from the Astro integration's page script, and
+starts only inside an iframe, and only when LiveLocale is enabled: in development, or
 in a build made with `LIVELOCALE=preview`, or in a production build when `flag.js` set `window.__LIVELOCALE_FLAG__ = 'preview'` because the
 page is framed by a same-origin Studio under its `livelocale/` folder (the share link). It
 resolves the Studio origin in this order: a readable same-origin parent (a Studio served from the same host), the
@@ -258,7 +268,7 @@ the Studio can resend saved values without triggering mutation loops. Right afte
 A React app with one composer hook, `useStudio`, that wires focused hooks: `useConnection`
 (iframe bridge), `useLocaleData` (fetching and coverage), `useSelection` (editing session and live
 preview), `useLocaleActions` (add, rename, delete), `useKeySearch`, `useGit` (status, diff,
-commit, discard), `useHistory` (session edit log) and `useAuth` (bearer token for preview mode).
+commit, discard), `useHistory` (session edit log), `useKeyJump` (takes the page to a key picked from the Keys list) and `useAuth` (bearer token for preview mode).
 All HTTP calls live in `src/studio/api.ts`, which attaches the token from sessionStorage and
 announces 401s on `window` so the token modal can appear.
 Undo is implemented in the composer: it re-saves the previous value through the normal mutation
@@ -278,12 +288,19 @@ session's saved values (`COMMIT_PREVIEW`, newest wins per key) whenever the page
 navigates, or its visible keys change. Setup problems render in `SetupProblems`: the runtime's own
 problems from start-up, shown before any connection, followed by those from `?action=info` once
 connected; `IframeViewer` lists likely causes when the bridge has not answered in eight
-seconds, because a blocked frame is only reported in the browser console.
+seconds, because a blocked frame is only reported in the browser console. At that point it also
+asks what the app answers (`src/studio/connection-probe.ts`): a share link reads the framed page's
+status on its own origin; under `livelocale studio` the server's `/__livelocale/app-status` probes
+the page and `?action=info` and reports status, a redirect to another host and frame-blocking
+headers; any other Studio sees only whether something answered. `diagnoseConnection`
+(`src/core/app-probe.ts`) turns that into the one finding shown above the usual causes.
 
 ### 9. CLI (`src/codemod`)
 
 `init` writes a route file matching the detected router and language. `studio` serves
-`dist/studio` through `createStudioServer`, injecting the app origin into `index.html`. `migrate`
+`dist/studio` through `createStudioServer`, injecting the app origin into `index.html`, and answers
+`/__livelocale/app-status` for the Studio's connection help: GET requests to paths on that origin
+only, no credentials, a five-second timeout, and only to same-origin callers on a local host name. `migrate`
 lazily imports the TypeScript-based codemod so the other commands work in JavaScript-only projects.
 `doctor` (`src/codemod/doctor.ts`) runs static checks on the project tree and, with `--app`, live
 HTTP probes; it returns structured findings so the CLI output and the tests share one source. With
@@ -298,7 +315,8 @@ second server can bind beside it. Commands set `process.exitCode` rather than ca
 `pack` parses its options with `parseShareArgs` and calls `packOutput` (§10), printing each
 `PackError` as one `❌` line with exit code 1. `build` (`runBuildCommand`) runs the user's build
 command through `spawnInherit` (on Windows one quoted command line through the shell) with
-`--preview` setting `LIVELOCALE` and `NEXT_PUBLIC_LIVELOCALE`. Next projects are packed into
+`--preview` setting `LIVELOCALE`, `NEXT_PUBLIC_LIVELOCALE` and `LIVELOCALE_SHARE_BUILD=1` (the Astro
+integration then leaves out its inline flag and middleware, so the packed `flag.js` decides). Next projects are packed into
 `public/` first without HTML injection (a static export with a POST route stops first with
 `NEXT_EXPORT_POST_ROUTE`); static stacks are packed after a zero exit, into `--out` or the first
 `outputCandidates` folder whose `index.html` was written by this build.
@@ -350,9 +368,10 @@ tag first in each HTML file Vite emits (and skips the dev fallback data), and `w
 | Body size cap                         | next-handler, node-body, vite-plugin        |
 | Change-link size caps                 | core/change-link, core/change-link-node     |
 | Path containment                      | core/safe-path, file-mutator, studio-server |
+| App probe limited to the app origin   | core/app-probe, studio-server               |
 | Prototype pollution                   | core/validate, file-mutator                 |
 | Atomic writes                         | file-mutator                                |
-| Script injection escaping             | vite-plugin, studio-server                  |
+| Script injection escaping             | page-script, studio-server                  |
 | postMessage origin checks             | iframe-bridge, useConnection                |
 | Framed-only activation                | core/flag-script                            |
 | Edits re-validated on apply           | core/apply-plan, codemod/apply              |

@@ -18,7 +18,7 @@ LIVELOCALE=off
 NEXT_PUBLIC_LIVELOCALE=off
 ```
 
-The Vite plugin copies the server's `LIVELOCALE` into the page, so a Vite app needs only `LIVELOCALE=off`.
+The Vite plugin and the Astro integration copy the server's mode into the page, so a Vite or Astro app needs only `LIVELOCALE=off`.
 
 The kill switch wins over everything else, preview mode included. While it is set, the mutation API answers every request with `403` and the reason.
 

@@ -27,7 +27,13 @@ describe('check --hardcoded noise benchmark', () => {
       { file: 'src/main.tsx', line: 55, column: 54, text: 'About' },
     ]));
 
-  it.each(['playground', 'playground-vite'])(
+  it('finds nothing in the translated Astro playground, without React', async () => {
+    const report = await runCheck({ projectDir: 'playground-astro', hardcoded: true });
+    expect(report.setupProblems).toBeUndefined();
+    expect(report.issues.filter((i) => i.kind === 'hardcoded')).toEqual([]);
+  });
+
+  it.each(['playground', 'playground-vite', 'playground-astro'])(
     'raises no untranslated or wrong-script warning in %s',
     async (dir) => expect(await localeWarnings(dir)).toEqual([])
   );

@@ -83,6 +83,7 @@ describe('runBuildCommand', () => {
       KEEP: '1',
       LIVELOCALE: 'preview',
       NEXT_PUBLIC_LIVELOCALE: 'preview',
+      LIVELOCALE_SHARE_BUILD: '1',
     });
   });
 

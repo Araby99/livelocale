@@ -21,18 +21,19 @@ It exits 1 on a blocking problem, 0 when only warnings remain. Fix each marked l
 
 ## Studio
 
-| Symptom                                                | Fix                                                                                                                                              |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Mutation API** reports HTTP 404                      | Next.js: run `npx livelocale init`, restart `next dev`. Vite: put `liveLocaleVite(...)` in `plugins`, restart `vite`.                            |
-| **Mutation API** reports a redirect                    | Auth middleware intercepts the route: `matcher: ['/((?!api/livelocale).*)']`.                                                                    |
-| **Mutation API** says the app is not reachable         | The dev server is not running or runs on another port: pass that port to `studio --app` and `doctor --app`.                                      |
-| Blank preview, **Studio can embed the app** warns      | Only while `NODE_ENV` is `development`: send no `X-Frame-Options` (`SAMEORIGIN` blocks too), and `frame-ancestors 'self' http://localhost:3010`. |
-| Alt+Click follows the link or does nothing             | The text is not wrapped (`wrapTranslationEngine`, `wrapNextIntl`, `createTranslations`), or Alt was not held.                                    |
-| No text responds at all                                | livelocale is off: not a dev server, `LIVELOCALE=off`, or a detected hosting platform.                                                           |
-| Keys under a namespace do not match                    | Give the wrapper the namespace: `wrapTranslationEngine(rawT, { keyPrefix: 'auth' })`, so `t('login.title')` maps to `auth.login.title`.          |
-| Saves fail from Codespaces, Gitpod or a shared dev box | `LIVELOCALE_ALLOWED_ORIGINS="<studio origin>"` in the app's dev process, then restart it.                                                        |
-| **Save Changes** shows a placeholder warning           | The fix dropped or added a `{placeholder}`: put it back, or choose **Save anyway**.                                                              |
-| The Changes panel shows no git status                  | `git` must be on `PATH` and the locales folder inside a repository.                                                                              |
+| Symptom                                                | Fix                                                                                                                                                                                                                |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Studio stuck on **Connecting to Project**              | After a few seconds it says what the app answered (nothing listening, an HTTP status at the page or at `/api/livelocale`, a frame-blocking header, or a page whose client did not start): fix that one first.      |
+| **Mutation API** reports HTTP 404                      | Next.js: run `npx livelocale init`, restart `next dev`. Vite: put `liveLocaleVite(...)` in `plugins`, restart `vite`. Astro: put `liveLocale(...)` from `livelocale/astro` in `integrations`, restart `astro dev`. |
+| **Mutation API** reports a redirect                    | Auth middleware intercepts the route: `matcher: ['/((?!api/livelocale).*)']`.                                                                                                                                      |
+| **Mutation API** says the app is not reachable         | The dev server is not running or runs on another port: pass that port to `studio --app` and `doctor --app`.                                                                                                        |
+| Blank preview, **Studio can embed the app** warns      | Only while `NODE_ENV` is `development`: send no `X-Frame-Options` (`SAMEORIGIN` blocks too), and `frame-ancestors 'self' http://localhost:3010`.                                                                   |
+| Alt+Click follows the link or does nothing             | The text is not wrapped (`wrapTranslationEngine`, `wrapNextIntl`, `createTranslations`), or Alt was not held.                                                                                                      |
+| No text responds at all                                | livelocale is off: not a dev server, `LIVELOCALE=off`, or a detected hosting platform.                                                                                                                             |
+| Keys under a namespace do not match                    | Give the wrapper the namespace: `wrapTranslationEngine(rawT, { keyPrefix: 'auth' })`, so `t('login.title')` maps to `auth.login.title`.                                                                            |
+| Saves fail from Codespaces, Gitpod or a shared dev box | `LIVELOCALE_ALLOWED_ORIGINS="<studio origin>"` in the app's dev process, then restart it.                                                                                                                          |
+| **Save Changes** shows a placeholder warning           | The fix dropped or added a `{placeholder}`: put it back, or choose **Save anyway**.                                                                                                                                |
+| The Changes panel shows no git status                  | `git` must be on `PATH` and the locales folder inside a repository.                                                                                                                                                |
 
 ## Share links
 
@@ -53,12 +54,12 @@ It exits 1 on a blocking problem, 0 when only warnings remain. Fix each marked l
 
 ## CI check
 
-| Symptom                                        | Fix                                                                                  |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Exit code 2 with `--hardcoded`                 | `npm install -D typescript`; the JSX scan uses the project's own copy.               |
-| "Locales directory not found"                  | The files are not in `locales`: `npx livelocale check --locales <path>`.             |
-| Keys built at run time reported unused         | They cannot be detected: review before deleting, or pass `--no-unused`.              |
-| A brand name reported as hardcoded             | Add it to `livelocale.allow`, or `--allow <word>` for one run.                       |
-| Vue, Svelte, Angular or HTML text is not found | Only JSX is scanned; text built at run time and object literals are not seen either. |
+| Symptom                                        | Fix                                                                                                       |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Exit code 2 with `--hardcoded`                 | `npm install -D typescript`; the JSX scan uses the project's own copy (`.astro` files need none).         |
+| "Locales directory not found"                  | The files are not in `locales`: `npx livelocale check --locales <path>`.                                  |
+| Keys built at run time reported unused         | They cannot be detected: review before deleting, or pass `--no-unused`.                                   |
+| A brand name reported as hardcoded             | Add it to `livelocale.allow`, or `--allow <word>` for one run.                                            |
+| Vue, Svelte, Angular or HTML text is not found | Only JSX and Astro templates are scanned; text built at run time and object literals are not seen either. |
 
 Full pages: https://livelocale.js.org/docs/guides/teams.html, https://livelocale.js.org/docs/guides/share-links.html#hosting-notes, https://livelocale.js.org/docs/guides/ci-check.html#what-it-does-not-see

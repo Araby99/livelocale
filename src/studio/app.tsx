@@ -24,14 +24,17 @@ import {
   NextMissingButton,
   BottomSheet,
   AddressBar,
+  editorSheetCover,
   useStudio,
+  useKeyJump,
   useTheme,
   useMediaQuery,
   WIDE_LAYOUT_QUERY,
   type StudioPanel,
 } from './features/dashboard/index.js';
 import { TRANSLATION_INPUT_ID } from './features/dashboard/constants.js';
-import { isAppPreviewBlocked, isShareStudio } from './runtime.js';
+import { getStudioRuntime, isAppPreviewBlocked, isShareStudio } from './runtime.js';
+import { diagnoseAppConnection } from './connection-probe.js';
 import { useStudioText } from './i18n/StudioLanguage.js';
 
 // A row of the phone's More menu, at least 44px tall for a thumb.
@@ -143,6 +146,10 @@ export const App = () => {
     renderedKeys,
     selectKeyInPage,
     revealKeyInPage,
+    locationSeq,
+    supportsKeyJump,
+    keyJumpAnswer,
+    jumpToKeyInPage,
   } = useStudio();
   const theme = useTheme(isShareStudio());
   const { t } = useStudioText();
@@ -176,13 +183,38 @@ export const App = () => {
     if (reviewFocusSeq > 0) setOpenPanel('side');
   }, [reviewFocusSeq]);
 
+  // A key picked from the Keys list is also shown on the page, once the pick completes (after
+  // a language pick or an unsaved-changes prompt). The page scrolls to it and outlines it
+  // without selecting it again, so the editor's focus and draft stay put. On a phone it lands
+  // above where the editor sheet will be. In Browse mode it is only shown: nothing switches.
+  const keyJump = useKeyJump({
+    supported: supportsKeyJump,
+    selectedKey: selected?.key ?? null,
+    selectionCount,
+    pageSeq: locationSeq,
+    answer: keyJumpAnswer,
+    jump: (key) => jumpToKeyInPage(key, isPhone ? editorSheetCover(iframeRef.current) : 0),
+  });
+
   const pickKey = useCallback(
     (key: string) => {
+      keyJump.request(key);
       selectKeyDirectly(key);
       setOpenPanel('side');
     },
-    [selectKeyDirectly]
+    [selectKeyDirectly, keyJump.request]
   );
+
+  // Cancelling the language picker or the unsaved-changes prompt abandons a pending pick,
+  // so its jump must not fire on a later selection of the same key.
+  const cancelLocalePickAndJump = useCallback(() => {
+    keyJump.cancel();
+    cancelLocalePick();
+  }, [cancelLocalePick, keyJump.cancel]);
+  const cancelDiscardAndJump = useCallback(() => {
+    keyJump.cancel();
+    cancelDiscard();
+  }, [cancelDiscard, keyJump.cancel]);
 
   // A pick made from the keyboard lands in the editor, so typing goes straight into the
   // translation. The frame lets the new selection and the opened drawer render first.
@@ -197,6 +229,18 @@ export const App = () => {
       target?.focus();
     });
   }, []);
+
+  // Asks what the app answers at the page the frame is loading (see connection-probe.ts).
+  const diagnoseConnection = useCallback(
+    () =>
+      diagnoseAppConnection({
+        runtime: getStudioRuntime(),
+        frameUrl: iframeRef.current?.src || appUrl,
+        studioOrigin: window.location.origin,
+        fetch: window.fetch.bind(window),
+      }),
+    [iframeRef, appUrl]
+  );
 
   const viewer = (compact: boolean) =>
     /* A share-folder Studio without a usable manifest has no app to point at,
@@ -216,6 +260,7 @@ export const App = () => {
         connectionStatus={connectionStatus}
         navigation={navigation}
         toolbar={!compact}
+        diagnose={diagnoseConnection}
       />
     );
 
@@ -259,6 +304,7 @@ export const App = () => {
         onAddLocale={handleAddLocale}
         onRenameLocale={handleRenameLocale}
         onDeleteLocale={handleDeleteLocale}
+        jumpNote={keyJump.note}
       />
     );
 
@@ -348,7 +394,7 @@ export const App = () => {
       <LocalePicker
         candidates={localePickerCandidates}
         onChoose={chooseTargetLocale}
-        onCancel={cancelLocalePick}
+        onCancel={cancelLocalePickAndJump}
       />
     </>
   );
@@ -358,7 +404,7 @@ export const App = () => {
     <ConfirmModal
       showConfirmModal={showConfirmModal}
       onConfirm={confirmDiscard}
-      onCancel={cancelDiscard}
+      onCancel={cancelDiscardAndJump}
     />
   );
 
@@ -450,6 +496,7 @@ export const App = () => {
                   onSave={() => handleSave()}
                   onForceSave={handleForceSave}
                   onDismissWarning={dismissSaveWarning}
+                  jumpNote={keyJump.note}
                   nextMissing={
                     canTapEdit ? (
                       <NextMissingButton

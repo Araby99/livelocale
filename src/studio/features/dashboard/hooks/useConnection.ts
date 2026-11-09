@@ -2,8 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { ConnectionStatus, SelectedElement } from '../types/index.js';
 import { getAppOrigin } from '../constants.js';
 import {
+  KEY_JUMP_RESULTS,
   MAX_VISIBLE_TEXTS,
   toLocationUrl,
+  type KeyJumpResult,
   type VisibleText,
 } from '../../../../client/iframe-bridge.js';
 import { localeFromUrl } from '../../../locale-inference.js';
@@ -34,10 +36,24 @@ function toVisibleTexts(payload: unknown[]): VisibleText[] {
 const toKeys = (payload: unknown[]): string[] =>
   payload.filter((key): key is string => typeof key === 'string');
 
-/** Whether a READY payload says the client can freeze the page and select on tap. */
-const hasEditMode = (payload: unknown): boolean => {
+/** Whether a READY payload lists `feature` among what the client can do. */
+const hasFeature = (payload: unknown, feature: string): boolean => {
   const features = (payload as { features?: unknown } | null | undefined)?.features;
-  return Array.isArray(features) && features.includes('edit-mode');
+  return Array.isArray(features) && features.includes(feature);
+};
+
+/** The page's answer to a JUMP_TO_KEY; `seq` makes every answer a new value. */
+export interface KeyJumpAnswer {
+  key: string;
+  result: KeyJumpResult;
+  seq: number;
+}
+
+/** A KEY_JUMPED payload's key and result, or null when it is malformed. */
+const toKeyJump = (payload: unknown): Omit<KeyJumpAnswer, 'seq'> | null => {
+  const { key, result } = (payload ?? {}) as { key?: unknown; result?: unknown };
+  if (typeof key !== 'string' || !KEY_JUMP_RESULTS.includes(result as KeyJumpResult)) return null;
+  return { key, result: result as KeyJumpResult };
 };
 
 /**
@@ -56,6 +72,10 @@ export const useConnection = (handlers: ConnectionHandlers) => {
   const [readySeq, setReadySeq] = useState(0);
   // The latest client said it understands Edit mode; an older one keeps view-only behaviour.
   const [supportsEditMode, setSupportsEditMode] = useState(false);
+  // The latest client can scroll to a key from the Keys list; an older one is never asked.
+  const [supportsKeyJump, setSupportsKeyJump] = useState(false);
+  // The page's latest answer to a jump request.
+  const [keyJumpAnswer, setKeyJumpAnswer] = useState<KeyJumpAnswer | null>(null);
   // Keys with a visible element on the page, in document order (for Next missing).
   const [renderedKeys, setRenderedKeys] = useState<string[] | null>(null);
   // Bumped on every tap on text that has no translation key.
@@ -102,7 +122,8 @@ export const useConnection = (handlers: ConnectionHandlers) => {
 
       if (type === 'READY') {
         setConnectionStatus('connected');
-        setSupportsEditMode(hasEditMode(payload));
+        setSupportsEditMode(hasFeature(payload, 'edit-mode'));
+        setSupportsKeyJump(hasFeature(payload, 'key-jump'));
         setRenderedKeys(null);
         setReadySeq((seq) => seq + 1);
         // Reset visible keys on page navigation so the sidebar shows all keys briefly
@@ -127,6 +148,9 @@ export const useConnection = (handlers: ConnectionHandlers) => {
         if (Array.isArray(payload)) {
           setRenderedKeys(toKeys(payload));
         }
+      } else if (type === 'KEY_JUMPED') {
+        const answer = toKeyJump(payload);
+        if (answer) setKeyJumpAnswer((last) => ({ ...answer, seq: (last?.seq ?? 0) + 1 }));
       } else if (type === 'TAP_UNKEYED') {
         setUnkeyedTapSeq((seq) => seq + 1);
       } else if (type === 'VISIBLE_TEXTS_CHANGED') {
@@ -167,6 +191,11 @@ export const useConnection = (handlers: ConnectionHandlers) => {
     (key: string, bottomInset: number) => sendToIframe('REVEAL_KEY', { key, bottomInset }),
     [sendToIframe]
   );
+  // Scrolls to `key` and shows it as selected without selecting it again (see KEY_JUMPED).
+  const jumpToKeyInPage = useCallback(
+    (key: string, bottomInset: number) => sendToIframe('JUMP_TO_KEY', { key, bottomInset }),
+    [sendToIframe]
+  );
 
   return {
     connectionStatus,
@@ -177,11 +206,14 @@ export const useConnection = (handlers: ConnectionHandlers) => {
     visibleKeys,
     renderedKeys,
     supportsEditMode,
+    supportsKeyJump,
+    keyJumpAnswer,
     unkeyedTapSeq,
     iframeRef,
     sendToIframe,
     setSiteEditMode,
     selectKeyInPage,
     revealKeyInPage,
+    jumpToKeyInPage,
   };
 };
