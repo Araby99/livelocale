@@ -63,7 +63,7 @@ function isPortAnswering(port: number): Promise<boolean> {
   });
 }
 
-async function runStudio(port: number, appOrigin: string) {
+async function runStudio(port: number, appOrigin: string, appUrl?: string) {
   console.log(`\n🚀 Starting LiveLocale Studio...`);
   const studioDir = path.resolve(moduleDir(), '../studio');
 
@@ -80,7 +80,7 @@ async function runStudio(port: number, appOrigin: string) {
     process.exit(1);
   }
 
-  const server = createStudioServer({ studioDir, appOrigin });
+  const server = createStudioServer({ studioDir, appOrigin, appUrl });
 
   server.on('error', (err: NodeJS.ErrnoException) => {
     if (err.code === 'EADDRINUSE') {
@@ -94,7 +94,7 @@ async function runStudio(port: number, appOrigin: string) {
   server.listen(port, () => {
     console.log(`\n🎨 LiveLocale Studio is running!`);
     console.log(`📡 Studio: http://localhost:${port}`);
-    console.log(`🔗 Editing app at: ${appOrigin}`);
+    console.log(`🔗 Editing app at: ${appUrl ?? appOrigin}`);
     console.log(`💡 Press Ctrl+C to stop the studio server.\n`);
   });
 }
@@ -468,8 +468,8 @@ async function run() {
       return;
     }
     case 'studio': {
-      const { port, appOrigin } = parseStudioArgs(rest);
-      return runStudio(port, appOrigin);
+      const { port, appOrigin, appUrl } = parseStudioArgs(rest);
+      return runStudio(port, appOrigin, appUrl);
     }
     default:
       process.exitCode = await runMigrate(parseMigrateArgs(rest));

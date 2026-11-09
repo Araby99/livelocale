@@ -71,6 +71,8 @@ export function parseDoctorArgs(argv: string[]): DoctorArgs {
 export interface StudioArgs {
   port: number;
   appOrigin: string;
+  /** The full `--app` URL when it has a path, query or hash: the page the Studio opens first. */
+  appUrl?: string;
 }
 
 /** Parses the arguments after `studio`. */
@@ -91,6 +93,9 @@ export function parseStudioArgs(argv: string[]): StudioArgs {
       const url = new URL(app);
       if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('bad protocol');
       args.appOrigin = url.origin;
+      if (url.pathname !== '/' || url.search !== '' || url.hash !== '') {
+        args.appUrl = url.origin + url.pathname + url.search + url.hash;
+      }
     } catch {
       throw new UsageError(
         `--app must be an http(s) origin such as http://localhost:3001 (got "${app}").`

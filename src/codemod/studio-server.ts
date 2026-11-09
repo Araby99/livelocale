@@ -6,6 +6,8 @@ import { APP_STATUS_PATH, probeAppFromServer } from '../core/app-probe.js';
 export interface StudioConfig {
   /** Origin of the application being edited, e.g. `http://localhost:3001`. */
   appOrigin: string;
+  /** The page the Studio opens first, on `appOrigin`, e.g. `http://localhost:3001/ar/`. */
+  appUrl?: string;
 }
 
 export interface StudioServerOptions extends StudioConfig {
@@ -98,6 +100,7 @@ export function createStudioServer(options: StudioServerOptions): http.Server {
   const studioDir = path.resolve(options.studioDir);
   const indexPath = path.join(studioDir, 'index.html');
   const config: StudioConfig = { appOrigin: options.appOrigin };
+  if (options.appUrl !== undefined) config.appUrl = options.appUrl;
 
   const sendIndex = (res: http.ServerResponse) => {
     fs.readFile(indexPath, 'utf-8', (err, html) => {

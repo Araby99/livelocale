@@ -1,5 +1,5 @@
 import { setStudioTransport } from './api.js';
-import { detectStudioRuntime, resolveAppOrigin } from './config.js';
+import { detectStudioRuntime, resolveAppTarget } from './config.js';
 import { setStudioRuntime, type StudioRuntime } from './runtime.js';
 import { openDraftStore } from './transport/draft-store.js';
 import { createStaticTransport } from './transport/static.js';
@@ -12,6 +12,8 @@ export interface StudioEnvironment {
   search: string;
   /** `window.__LIVELOCALE_CONFIG__?.appOrigin`, injected by `livelocale studio`. */
   injected?: unknown;
+  /** `window.__LIVELOCALE_CONFIG__?.appUrl`, the full `--app` URL, path included. */
+  injectedUrl?: unknown;
   /** `VITE_APP_ORIGIN` compiled in at build time. */
   buildTime?: unknown;
   fetch: typeof fetch;
@@ -39,15 +41,15 @@ async function resolveRuntime(env: StudioEnvironment): Promise<StudioRuntime> {
 /**
  * Decides how the Studio runs and installs it: a static share folder gets the
  * IndexedDB draft transport, anything else keeps the HTTP API. Never rejects:
- * an unexpected failure falls back to a server runtime from `resolveAppOrigin`.
+ * an unexpected failure falls back to a server runtime from `resolveAppTarget`.
  */
 export async function startStudio(env: StudioEnvironment): Promise<StudioRuntime> {
   let runtime: StudioRuntime;
   try {
     runtime = await resolveRuntime(env);
   } catch {
-    const appOrigin = resolveAppOrigin(env);
-    runtime = { kind: 'server', appOrigin, appUrl: appOrigin, problems: [] };
+    const { appOrigin, appUrl } = resolveAppTarget(env);
+    runtime = { kind: 'server', appOrigin, appUrl, problems: [] };
   }
   setStudioTransport(runtime.kind === 'static' ? runtime.transport : null);
   setStudioRuntime(runtime);
