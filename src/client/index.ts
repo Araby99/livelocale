@@ -181,6 +181,19 @@ if (
       ) {
         interceptor.revealKey(payload.key, payload.bottomInset);
       }
+    } else if (type === 'JUMP_TO_KEY') {
+      // A key opened from the Studio's Keys list: show it, and say whether it is on the page.
+      const bottomInset = payload?.bottomInset ?? 0;
+      if (
+        payload &&
+        typeof payload.key === 'string' &&
+        typeof bottomInset === 'number' &&
+        Number.isFinite(bottomInset) &&
+        bottomInset >= 0
+      ) {
+        const result = interceptor.jumpToKey(payload.key, bottomInset);
+        bridge.sendToParent('KEY_JUMPED', { key: payload.key, result });
+      }
     }
   });
 

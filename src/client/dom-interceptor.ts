@@ -6,7 +6,12 @@ import {
   WATERMARK_DELIMITER,
 } from './watermark.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
-import { MAX_VISIBLE_TEXTS, MAX_VISIBLE_TEXT_LENGTH, type VisibleText } from './iframe-bridge.js';
+import {
+  MAX_VISIBLE_TEXTS,
+  MAX_VISIBLE_TEXT_LENGTH,
+  type KeyJumpResult,
+  type VisibleText,
+} from './iframe-bridge.js';
 
 // Debounce helper: delays executing fn until after wait ms have elapsed
 // since the last call. Returns a cancel function.
@@ -46,6 +51,21 @@ const PICKED_ATTRIBUTE = 'data-livelocale-picked';
 
 /** Space, in CSS px, kept between a revealed element and the frame's edges. */
 const REVEAL_MARGIN = 16;
+
+/** Attribute on the overlay while it pulses on text the Studio jumped to. */
+const JUMP_ATTRIBUTE = 'data-livelocale-jump';
+
+/** How long, in ms, the pulse on jumped-to text lasts. */
+const JUMP_PULSE_MS = 1400;
+
+/** Whether the person asked the system for less motion. */
+function prefersReducedMotion(): boolean {
+  try {
+    return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Whether the element is rendered and visible: not under `display: none`,
@@ -102,6 +122,11 @@ export class DOMInterceptor {
   private active: boolean = false;
   /** The element carrying `PICKED_ATTRIBUTE`, if any. */
   private pickedElement: HTMLElement | null = null;
+
+  // ─── Jump from the Studio's Keys list ────────────────────────────────────
+  /** The element the Studio last jumped to; the overlay shows it as selected. */
+  private jumpedElement: HTMLElement | null = null;
+  private jumpTimer: ReturnType<typeof setTimeout> | null = null;
 
   // Debounced key-broadcast to avoid flooding the parent on rapid DOM mutations
   private broadcastVisibleKeys: (() => void) & { cancel(): void };
@@ -229,6 +254,73 @@ export class DOMInterceptor {
   }
 
   /**
+   * Scrolls the first visible element with `key` into view and shows it as
+   * selected, with a short pulse, for a key the Studio has already opened
+   * from its Keys list. Unlike `selectKey` it reports no selection back, so
+   * the Studio's focus and any draft stay as they are. With a `bottomInset`
+   * (the Studio's phone sheet), the element is centred in the part of the
+   * frame above it. Returns what it found: `shown`, `hidden` (on the page but
+   * not visible; the keys are reported again) or `absent`.
+   */
+  jumpToKey(key: string, bottomInset: number): KeyJumpResult {
+    const el = this.active ? this.findRenderedElement(key) : null;
+    if (!el) {
+      if (this.active) this.broadcastVisibleKeys();
+      return this.getActiveKeys().includes(key) ? 'hidden' : 'absent';
+    }
+    if (!this.isInView(el, bottomInset)) {
+      if (typeof el.scrollIntoView === 'function') el.scrollIntoView({ block: 'center' });
+      if (bottomInset > 0 && !this.isInView(el, bottomInset)) {
+        const rect = el.getBoundingClientRect();
+        const limit = window.innerHeight - bottomInset;
+        window.scrollBy(0, rect.top - Math.max(REVEAL_MARGIN, (limit - rect.height) / 2));
+      }
+    }
+    if (this.editMode) this.markPicked(el);
+    this.showJumped(el);
+    return 'shown';
+  }
+
+  /** Whether `el` sits fully between the frame's top and `bottomInset` above its bottom. */
+  private isInView(el: HTMLElement, bottomInset: number): boolean {
+    const rect = el.getBoundingClientRect();
+    return rect.top >= 0 && rect.bottom <= window.innerHeight - bottomInset;
+  }
+
+  /**
+   * Draws the overlay around `el` as selected and pulses it once (not under
+   * reduced motion). Outside Edit mode the look stays until the pointer moves
+   * to other text; in Edit mode it fades with the pulse and the picked outline
+   * stays.
+   */
+  private showJumped(el: HTMLElement): void {
+    const overlay = this.overlay;
+    if (!overlay) return;
+    this.jumpedElement = el;
+    this.hoveredElement = el;
+    this.positionOverlay(el);
+    overlay.setAttribute(JUMP_ATTRIBUTE, '');
+    if (!prefersReducedMotion() && typeof overlay.animate === 'function') {
+      overlay.animate(
+        [
+          { boxShadow: '0 0 0 0 rgba(79, 195, 220, 0.6)' },
+          { boxShadow: '0 0 0 12px rgba(79, 195, 220, 0)' },
+        ],
+        { duration: JUMP_PULSE_MS / 2, iterations: 2, easing: 'ease-out' }
+      );
+    }
+    if (this.jumpTimer !== null) clearTimeout(this.jumpTimer);
+    this.jumpTimer = setTimeout(() => {
+      this.jumpTimer = null;
+      overlay.removeAttribute(JUMP_ATTRIBUTE);
+      if (this.editMode && this.hoveredElement === el) {
+        this.hideOverlay();
+        this.hoveredElement = null;
+      }
+    }, JUMP_PULSE_MS);
+  }
+
+  /**
    * Turns Edit mode on or off. In Edit mode no tap reaches the site: a tap on
    * keyed text selects it, a tap on other text calls `onUnkeyedTap`, and
    * anything else does nothing. Scrolling still works. The mode is kept on
@@ -326,6 +418,12 @@ export class DOMInterceptor {
     this.overlay = null;
     this.overlayBadge = null;
     this.hoveredElement = null;
+
+    this.jumpedElement = null;
+    if (this.jumpTimer !== null) {
+      clearTimeout(this.jumpTimer);
+      this.jumpTimer = null;
+    }
 
     // Cancel any pending debounced broadcasts
     this.broadcastVisibleKeys.cancel();
@@ -524,6 +622,13 @@ export class DOMInterceptor {
       this.overlayBadge.style.color = '#E8E4D9';
       this.overlayBadge.style.borderColor = '#4FC3DC';
       this.overlayBadge.textContent = `✎ Click to edit: ${key}`;
+    } else if (this.hoveredElement !== null && this.hoveredElement === this.jumpedElement) {
+      // Jumped to from the Studio's Keys list — solid Hunk border, as an Alt+Click pick shows
+      this.overlay.style.border = '2px solid #4FC3DC';
+      this.overlay.style.boxShadow = 'none';
+      this.overlayBadge.style.color = '#E8E4D9';
+      this.overlayBadge.style.borderColor = '#4FC3DC';
+      this.overlayBadge.textContent = `✎ ${key}`;
     } else {
       // Hover — dashed Hunk border signals "Alt + Click to edit"
       this.overlay.style.border = '1.5px dashed #4FC3DC';
@@ -746,6 +851,7 @@ export class DOMInterceptor {
         this.hideOverlay();
         this.hoveredElement = null;
       }
+      this.jumpedElement = null;
       return;
     }
 
@@ -753,6 +859,8 @@ export class DOMInterceptor {
     const key = keyedElement.getAttribute('data-i18n-key');
     if (key === null) return;
 
+    // Other text under the pointer ends the selected look of a jump.
+    if (keyedElement !== this.jumpedElement) this.jumpedElement = null;
     this.hoveredElement = keyedElement;
     this.positionOverlay(keyedElement);
   };

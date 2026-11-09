@@ -52,7 +52,7 @@ describe('client inside a same-origin Studio', () => {
       {
         source: 'livelocale-client',
         type: 'READY',
-        payload: { url: '/', features: ['edit-mode'] },
+        payload: { url: '/', features: ['edit-mode', 'key-jump'] },
       },
       OWN
     );
@@ -239,6 +239,44 @@ describe('client inside a same-origin Studio', () => {
     expect(selected()).toBe(before);
   });
 
+  it('jumps to a key the Studio names and answers with what it found, never with a selection', async () => {
+    const parent = studioParent();
+    setParent(parent);
+    runFlag();
+    await bootClient();
+    const h1 = document.querySelector('h1')!;
+    const rect = new DOMRect(0, 900, 100, 40);
+    (h1 as any).getBoundingClientRect = () => rect;
+    (h1 as any).getClientRects = () => [rect];
+    (h1 as any).scrollIntoView = vi.fn();
+    parent.postMessage.mockClear();
+
+    const answers = () =>
+      parent.postMessage.mock.calls.filter(([m]) => m.type === 'KEY_JUMPED').map(([m]) => m);
+    fromStudio('JUMP_TO_KEY', { key: 'home.title', bottomInset: 0 });
+    expect(h1.scrollIntoView).toHaveBeenCalledWith({ block: 'center' });
+    fromStudio('JUMP_TO_KEY', { key: 'no.such.key' });
+    // Invalid requests get no answer.
+    fromStudio('JUMP_TO_KEY', { key: 42 });
+    fromStudio('JUMP_TO_KEY', { key: 'home.title', bottomInset: -1 });
+
+    // Clients booted by earlier tests in this file still listen and answer too.
+    expect(answers()).toContainEqual({
+      source: 'livelocale-client',
+      type: 'KEY_JUMPED',
+      payload: { key: 'home.title', result: 'shown' },
+    });
+    expect(answers()).toContainEqual({
+      source: 'livelocale-client',
+      type: 'KEY_JUMPED',
+      payload: { key: 'no.such.key', result: 'absent' },
+    });
+    expect(answers().every((m) => ['home.title', 'no.such.key'].includes(m.payload.key))).toBe(
+      true
+    );
+    expect(parent.postMessage.mock.calls.some(([m]) => m.type === 'ELEMENT_SELECTED')).toBe(false);
+  });
+
   it('says when the page goes away and greets again from the back-forward cache', async () => {
     const parent = studioParent();
     setParent(parent);
@@ -261,7 +299,7 @@ describe('client inside a same-origin Studio', () => {
       {
         source: 'livelocale-client',
         type: 'READY',
-        payload: { url: '/', features: ['edit-mode'] },
+        payload: { url: '/', features: ['edit-mode', 'key-jump'] },
       },
       OWN
     );
