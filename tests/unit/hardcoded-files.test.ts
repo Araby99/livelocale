@@ -44,7 +44,7 @@ describe('hardcoded scan setup', () => {
     );
   });
 
-  it('lists component files, skipping tests, stories, mocks, fixtures, e2e, declarations, .ts and ignored folders', async () => {
+  it('lists component files, skipping tests, stories, mocks, fixtures, e2e, declarations, .ts and ignored folders, with .astro pages', async () => {
     for (const rel of [
       'app/page.tsx',
       'app/page.test.tsx',
@@ -66,6 +66,8 @@ describe('hardcoded scan setup', () => {
       'test/fixtures/page.tsx',
       'app/page.cy.tsx',
       'app/page.e2e.jsx',
+      'src/pages/index.astro',
+      '.astro/content.mjs',
     ])
       write(project, rel, 'export {};');
     write(project, '.gitignore', 'generated/\n');
@@ -73,6 +75,7 @@ describe('hardcoded scan setup', () => {
       'app/page.tsx',
       'src/esm.mjs',
       'src/legacy.js',
+      'src/pages/index.astro',
     ]);
   });
 });

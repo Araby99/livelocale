@@ -17,9 +17,12 @@ export const IGNORE_DIRS = new Set([
   '.vscode',
   '.turbo',
   '.cache',
+  // Astro's generated types and content cache.
+  '.astro',
 ]);
 
-const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
+/** `.astro` files are read whole: frontmatter and template expressions use the same `t` syntax. */
+const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs', '.astro']);
 
 /** Files above this size are almost certainly bundles or fixtures, not components. */
 export const MAX_SOURCE_BYTES = 1_000_000;

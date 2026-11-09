@@ -4,9 +4,10 @@ import { LOCALE_RE } from '../core/validate.js';
 import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
 import { KeyScanner } from '../server/key-scanner.js';
 import { readAllowList } from './hardcoded/allow-list.js';
-import { listComponentFiles } from './hardcoded/files.js';
+import { isAstroFile, listComponentFiles } from './hardcoded/files.js';
 import { loadProjectTypeScript } from './hardcoded/load-typescript.js';
-import { findHardcodedText } from './hardcoded/scan-jsx.js';
+import { findAstroHardcodedText } from './hardcoded/scan-astro.js';
+import { findHardcodedText, type TypeScriptModule } from './hardcoded/scan-jsx.js';
 import {
   hasLetters,
   isMostlyLatin,
@@ -377,28 +378,36 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
   }
 
   if (allow) {
-    const loaded = await loadProjectTypeScript(projectDir);
-    if ('problem' in loaded) {
-      setupProblems = [loaded.problem];
-    } else {
-      for (const file of await listComponentFiles(projectDir)) {
-        let content: string;
-        try {
-          content = await fs.promises.readFile(path.join(projectDir, file), 'utf-8');
-        } catch {
-          continue;
-        }
-        for (const finding of findHardcodedText(loaded.ts, content, file, allow)) {
-          issues.push({
-            kind: 'hardcoded',
-            level: 'fail',
-            file,
-            line: finding.line,
-            column: finding.column,
-            text: finding.text,
-            message: 'Not passed through a translation call.',
-          });
-        }
+    const files = await listComponentFiles(projectDir);
+    // TypeScript parses JSX only; an Astro-only project runs without it.
+    let ts: TypeScriptModule | null = null;
+    if (files.some((file) => !isAstroFile(file))) {
+      const loaded = await loadProjectTypeScript(projectDir);
+      if ('problem' in loaded) setupProblems = [loaded.problem];
+      else ts = loaded.ts;
+    }
+    for (const file of files) {
+      const astro = isAstroFile(file);
+      if (!astro && ts === null) continue;
+      let content: string;
+      try {
+        content = await fs.promises.readFile(path.join(projectDir, file), 'utf-8');
+      } catch {
+        continue;
+      }
+      const findings = astro
+        ? findAstroHardcodedText(content, allow)
+        : findHardcodedText(ts!, content, file, allow);
+      for (const finding of findings) {
+        issues.push({
+          kind: 'hardcoded',
+          level: 'fail',
+          file,
+          line: finding.line,
+          column: finding.column,
+          text: finding.text,
+          message: 'Not passed through a translation call.',
+        });
       }
     }
   }
