@@ -178,6 +178,37 @@ const t = createTranslations('en', { supportedLocales: ['en', 'ar'], plain: true
 
 Do not mount `LiveLocaleProvider` in an island: the integration already loads the client on every page.
 
+## One namespace per page
+
+To give each page or component only its own namespace, pass `namespace`. The result is the object of `locales/<locale>/home.json`. Its strings still carry the full key path, so the Studio saves an edit to `home.hero.title`:
+
+```astro
+---
+import { createTranslations } from 'livelocale/server';
+
+const t = createTranslations('en', {
+  supportedLocales: ['en', 'ar'],
+  plain: true,
+  namespace: 'home',
+});
+---
+
+<h1>{t.hero.title}</h1>
+```
+
+A helper of your own works too, such as `getT(ns, locale)` returning `createTranslations(locale, { plain: true })[ns]`, or `i18n(Astro, 'home')` around it. [`livelocale check`](../reference/cli/check.md#a-t-that-holds-one-namespace) reads `t.hero.title` in both cases, and in an island that gets `t` as a prop, as `home.hero.title`.
+
+## Smaller dev pages
+
+In `astro dev` every page carries every locale's strings by default (`window.__livelocale_fallback__`). On a big site that can add 100 KB or more to each page. Only `wrapTranslationEngine` calls in the browser read these strings. Text rendered in the frontmatter, and `plain: true` props passed to islands, already hold their text. `fallbackNamespaces` cuts the strings to the namespaces each page shows, plus the ones you list:
+
+```js
+// astro.config.mjs
+integrations: [liveLocale({ localesPath: './locales', fallbackNamespaces: [] })],
+```
+
+List a namespace that only browser code reads through `wrapTranslationEngine`, such as a `client:only` island: `fallbackNamespaces: ['checkout']`. If code in the browser reads a key from a namespace the page left out, the browser console names that namespace. The text shows what production shows, so it does not go blank without a warning.
+
 ## Preview builds and share links
 
 A normal `astro build` has no watermarks and no client. Astro renders the text at build time, so a build the Studio can edit is a preview build, for a staging location only:

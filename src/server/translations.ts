@@ -34,6 +34,16 @@ export interface CreateTranslationsOptions {
    * @default `false`
    */
   plain?: boolean;
+
+  /**
+   * Return one namespace instead of the whole locale: the object under this top-level key
+   * (one `<locale>/<namespace>.json` file in a folder layout), or under a dotted path such as
+   * `home.hero`. Its strings keep the watermark of their full key path (`home.hero.title`),
+   * and `livelocale check` reads `t.hero.title` on the result as `home.hero.title`. `{}` when
+   * neither the locale nor its fallback has it.
+   * @default the whole locale
+   */
+  namespace?: string;
 }
 
 function isDirectory(p: string): boolean {
@@ -46,6 +56,19 @@ function isDirectory(p: string): boolean {
 
 function isRecord(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null;
+}
+
+/** The object at the dotted `namespace` path of `data`, through own keys only; else `undefined`. */
+function namespaceOf(
+  data: Record<string, any> | undefined,
+  namespace: string
+): Record<string, any> | undefined {
+  let node: unknown = data;
+  for (const part of namespace.split('.')) {
+    if (!isRecord(node) || !Object.prototype.hasOwnProperty.call(node, part)) return undefined;
+    node = node[part];
+  }
+  return isRecord(node) ? node : undefined;
 }
 
 /** Reads every `*.json` in `dir` into `{ [namespace]: data }`, skipping unparsable files. */
@@ -209,6 +232,7 @@ export function createTranslations(
     supportedLocales = ['en'],
     fallbackLocale = 'en',
     plain = false,
+    namespace,
   } = options;
 
   // SECURITY: reject locales not in the allow-list to prevent path traversal
@@ -221,16 +245,26 @@ export function createTranslations(
 
   // Production: fill missing keys from the fallback locale only, as a plain object.
   if (!isLiveLocaleEnabled()) {
-    if (safeLocale === fallbackLocale) return data;
-    return fillFromFallback(data, readLocale(localesDir, fallbackLocale));
+    if (!namespace) {
+      if (safeLocale === fallbackLocale) return data;
+      return fillFromFallback(data, readLocale(localesDir, fallbackLocale));
+    }
+    const own = namespaceOf(data, namespace);
+    if (safeLocale === fallbackLocale) return own ?? {};
+    const fallbackNs = namespaceOf(readLocale(localesDir, fallbackLocale), namespace);
+    return own ? fillFromFallback(own, fallbackNs) : (fallbackNs ?? {});
   }
 
   // In development, merge every other locale into a fallback dictionary so
   // untranslated keys still render (and stay editable) in the Studio.
   const fallbackData = readOtherLocales(localesDir, safeLocale, fallbackLocale);
+  // A namespace keeps its full key path: the fallback is looked up, and every string
+  // watermarked, under `namespace.`.
+  const record = namespace ? (namespaceOf(data, namespace) ?? {}) : data;
+  const keyPrefix = namespace || '';
 
   if (plain) {
-    return resolveTranslations(data, { fallback: fallbackData, watermark: true });
+    return resolveTranslations(record, { keyPrefix, fallback: fallbackData, watermark: true });
   }
-  return wrapTranslationEngine(data, { fallback: fallbackData });
+  return wrapTranslationEngine(record, { keyPrefix, fallback: fallbackData });
 }

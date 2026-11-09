@@ -54,6 +54,7 @@ it('documents every liveLocaleVite option', () => {
     'exposeRepo',
     'sourceLocale',
     'shareBase',
+    'fallbackNamespaces',
   ]);
   const md = fs.readFileSync(`${REFERENCE}/configuration.md`, 'utf8');
   expect(keys.filter((key) => !md.includes(`\`${key}\``))).toEqual([]);

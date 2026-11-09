@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import { getLiveLocaleMode } from '../core/env.js';
 import { liveLocaleVite, type VitePluginConfig } from '../server/vite-plugin.js';
 import { packOutput, SHARE_BUILD_ENV } from '../server/pack.js';
+import type { LiveLocaleMiddlewareOptions } from './middleware.js';
 
 /** The options of `liveLocale()`: the same as `liveLocaleVite()`. */
 export type LiveLocaleAstroOptions = VitePluginConfig;
@@ -56,7 +57,7 @@ export interface LiveLocaleAstroIntegration {
 }
 
 /** Serves the middleware module with the integration's options baked in. */
-function middlewareModulePlugin(localesPath: string, sourceLocale?: string) {
+function middlewareModulePlugin(middlewareOptions: LiveLocaleMiddlewareOptions) {
   return {
     name: 'livelocale:astro-middleware',
     resolveId(id: string) {
@@ -66,7 +67,7 @@ function middlewareModulePlugin(localesPath: string, sourceLocale?: string) {
       if (id !== RESOLVED_MIDDLEWARE_ID) return null;
       return [
         "import { createLiveLocaleMiddleware } from 'livelocale/astro/middleware';",
-        `export const onRequest = createLiveLocaleMiddleware(${JSON.stringify({ localesPath, sourceLocale })});`,
+        `export const onRequest = createLiveLocaleMiddleware(${JSON.stringify(middlewareOptions)});`,
       ].join('\n');
     },
   };
@@ -116,7 +117,13 @@ export function liveLocale(options: LiveLocaleAstroOptions): LiveLocaleAstroInte
         const plugins: unknown[] = [];
         if (dev) plugins.push(liveLocaleVite({ ...options, share: false }));
         if (!shareBuild)
-          plugins.push(middlewareModulePlugin(options.localesPath, options.sourceLocale));
+          plugins.push(
+            middlewareModulePlugin({
+              localesPath: options.localesPath,
+              sourceLocale: options.sourceLocale,
+              fallbackNamespaces: options.fallbackNamespaces,
+            })
+          );
         updateConfig({ vite: { plugins } });
         if (!shareBuild) addMiddleware({ entrypoint: MIDDLEWARE_ID, order: 'pre' });
         injectScript('page', CLIENT_SCRIPT);

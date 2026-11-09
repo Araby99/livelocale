@@ -425,6 +425,19 @@ describe('liveLocaleVite plugin', () => {
     expect(fallback.onlyZz).toBe('Zz only');
   });
 
+  it('should inject only the listed namespaces with fallbackNamespaces', () => {
+    fs.mkdirSync(path.join(tmpDir, 'en'));
+    fs.writeFileSync(path.join(tmpDir, 'en', 'common.json'), JSON.stringify({ title: 'Home' }));
+    fs.writeFileSync(path.join(tmpDir, 'en', 'about.json'), JSON.stringify({ title: 'About' }));
+    const trimmed = liveLocaleVite({ localesPath: tmpDir, fallbackNamespaces: ['common'] });
+
+    const result = (trimmed as any).transformIndexHtml('<head></head>');
+
+    expect(result).toContain(
+      'window.__livelocale_fallback__ = {"common":{"title":"Home"}}; window.__livelocale_fallback_partial__ = true;</script>'
+    );
+  });
+
   it('should prefer en in the injected fallback for a folder layout', () => {
     fs.mkdirSync(path.join(tmpDir, 'en'));
     fs.mkdirSync(path.join(tmpDir, 'zz'));

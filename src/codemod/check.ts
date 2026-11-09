@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { LOCALE_RE } from '../core/validate.js';
 import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
-import { KeyScanner } from '../server/key-scanner.js';
+import { KeyScanner, resolveCodeKeys, type LocaleKeyIndex } from '../server/key-scanner.js';
 import { readAllowList } from './hardcoded/allow-list.js';
 import { isAstroFile, listComponentFiles } from './hardcoded/files.js';
 import { loadProjectTypeScript, type ProjectTypeScript } from './hardcoded/load-typescript.js';
@@ -221,6 +221,35 @@ function hasKey(data: LocaleData, key: string): boolean {
   return false;
 }
 
+/**
+ * What any locale holds, for reading the code's references: every leaf, object and plural
+ * family, and the namespaces of a folder layout (the `*.json` names in `<locale>/` folders).
+ */
+function localeKeyIndex(localesDir: string, locales: LocaleData[]): LocaleKeyIndex {
+  const leaves = new Set<string>();
+  const branches = new Set<string>();
+  for (const locale of locales) {
+    for (const leaf of locale.leaves.keys()) {
+      leaves.add(leaf);
+      if (PLURAL_SUFFIX_RE.test(leaf)) leaves.add(leaf.replace(PLURAL_SUFFIX_RE, ''));
+    }
+    for (const branch of locale.branches) branches.add(branch);
+  }
+
+  const namespaces = new Set<string>();
+  for (const item of fs.readdirSync(localesDir, { withFileTypes: true })) {
+    if (!item.isDirectory() || !LOCALE_RE.test(item.name)) continue;
+    for (const file of fs.readdirSync(path.join(localesDir, item.name))) {
+      if (file.endsWith('.json')) namespaces.add(path.basename(file, '.json'));
+    }
+  }
+
+  return {
+    kind: (key) => (leaves.has(key) ? 'leaf' : branches.has(key) ? 'branch' : undefined),
+    namespaces,
+  };
+}
+
 /** True when a locale key is reached by some code reference (directly, via a parent object, or as a plural form). */
 function isReferenced(key: string, codeKeys: Set<string>): boolean {
   const base = key.replace(PLURAL_SUFFIX_RE, '');
@@ -266,7 +295,12 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
   }
 
   const scanner = new KeyScanner({ requireEnabled: false });
-  const codeKeys = new Set(await scanner.scanSourceKeys(projectDir));
+  const codeKeys = new Set(
+    resolveCodeKeys(
+      await scanner.scanSourceReferences(projectDir),
+      localeKeyIndex(localesDir, [...data.values()])
+    )
+  );
   const allow = options.hardcoded ? readAllowList(projectDir, options.allow) : null;
   let setupProblems: string[] | undefined;
 

@@ -12,6 +12,7 @@ import liveLocale, {
 } from '../../src/astro/index.js';
 import { createLiveLocaleMiddleware } from '../../src/astro/middleware.js';
 import { packOutput } from '../../src/server/pack.js';
+import { encodeKey } from '../../src/client/watermark.js';
 
 vi.mock('../../src/server/pack.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../src/server/pack.js')>()),
@@ -122,6 +123,14 @@ describe('liveLocale() Astro integration', () => {
     );
   });
 
+  it('bakes fallbackNamespaces into the middleware module', () => {
+    const { plugins } = setup('dev', { fallbackNamespaces: ['islands'] });
+    const plugin = plugins().find((p) => p.name === 'livelocale:astro-middleware');
+    expect(plugin.load(`\0${MIDDLEWARE_ID}`)).toContain(
+      'createLiveLocaleMiddleware({"localesPath":"./locales","fallbackNamespaces":["islands"]});'
+    );
+  });
+
   it('starts the client from livelocale/client and again after a view transition', () => {
     expect(CLIENT_SCRIPT).toContain("import { startLiveLocale } from 'livelocale/client';");
     expect(CLIENT_SCRIPT).toContain("addEventListener('astro:after-swap'");
@@ -206,6 +215,15 @@ describe('Astro head middleware', () => {
     fs.writeFileSync(path.join(localesPath, 'en', 'home.json'), JSON.stringify({ title: 'Saved' }));
     const html = await (await onRequest({}, async () => page())).text();
     expect(html).toContain('{"home":{"title":"Saved"}}');
+  });
+
+  it('with fallbackNamespaces, puts in only the namespaces the rendered page shows', async () => {
+    fs.writeFileSync(path.join(localesPath, 'en', 'about.json'), JSON.stringify({ title: 'A' }));
+    const onRequest = createLiveLocaleMiddleware({ localesPath, fallbackNamespaces: [] });
+    const body = `<html><head></head><body>${encodeKey('Hi', 'home.title')}</body></html>`;
+    const html = await (await onRequest({}, async () => page(body))).text();
+    expect(html).toContain('window.__livelocale_fallback__ = {"home":{"title":"Hi"}};');
+    expect(html).toContain('window.__livelocale_fallback_partial__ = true;');
   });
 
   it('leaves responses that are not HTML alone', async () => {

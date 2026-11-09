@@ -458,5 +458,73 @@ describe('createTranslations fallback', () => {
         expect(decodeKey(t.auth.login)?.cleanText).toBe('Sign in');
       });
     });
+
+    it('enumerates a namespace the locale has as an empty file like production', () => {
+      mockLocales(LOCALES_DIR, {
+        ar: { 'faq.json': json({}) },
+        en: { 'faq.json': json({ title: 'FAQ', sections: [{ q: 'Why?' }] }) },
+      });
+      const t = createTranslations('ar', opts);
+
+      expect(Object.keys(t.faq)).toEqual(['title', 'sections']);
+      const sections = Object.values(t.faq).find(Array.isArray);
+      expect(Array.isArray(sections)).toBe(true);
+      expect(decodeKey(sections[0].q)).toEqual({ key: 'faq.sections.0.q', cleanText: 'Why?' });
+      expect(Object.keys(JSON.parse(JSON.stringify(t.faq)))).toEqual(['title', 'sections']);
+    });
+
+    describe('with namespace', () => {
+      it('returns that namespace with watermarks that carry the full key path', () => {
+        mockLocales(LOCALES_DIR, FOLDERS);
+        const t = createTranslations('ar', { ...opts, namespace: 'common' });
+
+        expect(decodeKey(t.title)).toEqual({ key: 'common.title', cleanText: 'الرئيسية' });
+        expect(decodeKey(t.subtitle)).toEqual({ key: 'common.subtitle', cleanText: 'Welcome' });
+        expect(Object.keys(t).sort()).toEqual(['subtitle', 'title']);
+        expect(t.login).toBeUndefined();
+      });
+
+      it('gives the same plain object as the whole locale gives under that key', () => {
+        mockLocales(LOCALES_DIR, FOLDERS);
+        const ns = createTranslations('ar', { ...opts, plain: true, namespace: 'common' });
+        const all = createTranslations('ar', { ...opts, plain: true });
+
+        expect(isProxy(ns)).toBe(false);
+        expect(ns).toEqual(all.common);
+      });
+
+      it('takes a namespace only the fallback has, and a dotted path', () => {
+        mockLocales(LOCALES_DIR, {
+          ...FLAT,
+          'en.json': json({ home: { hero: { title: 'Hero' } }, footer: 'Footer' }),
+        });
+        const auth = createTranslations('ar', { ...opts, plain: true, namespace: 'home.hero' });
+        expect(decodeKey(auth.title)).toEqual({ key: 'home.hero.title', cleanText: 'Hero' });
+        expect(createTranslations('ar', { ...opts, namespace: 'nope' })).toEqual({});
+        expect(createTranslations('ar', { ...opts, namespace: 'toString' })).toEqual({});
+      });
+    });
+  });
+
+  describe('with namespace while livelocale is off', () => {
+    beforeEach(() => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('LIVELOCALE', '');
+    });
+
+    it('returns the namespace filled from the fallback locale', () => {
+      mockLocales(LOCALES_DIR, FOLDERS);
+      expect(createTranslations('ar', { ...opts, namespace: 'common' })).toEqual({
+        title: 'الرئيسية',
+        subtitle: 'Welcome',
+      });
+      expect(createTranslations('ar', { ...opts, namespace: 'auth' })).toEqual({
+        login: 'Sign in',
+      });
+      expect(createTranslations('en', { ...opts, namespace: 'auth' })).toEqual({
+        login: 'Sign in',
+      });
+      expect(createTranslations('ar', { ...opts, namespace: 'missing' })).toEqual({});
+    });
   });
 });
