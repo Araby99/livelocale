@@ -79,7 +79,7 @@ Each finding prints its file, line and column, and the source text shortened to 
 
 ```
 
-Opt-outs: `// livelocale-ignore-next-line` above the text or its element, `// livelocale-ignore-file` at the top of a file, and words in a `livelocale.allow` file at the project root (one per line; a `key:` line exempts a translation key from `untranslated` and `wrong-script`).
+Opt-outs: `// livelocale-ignore-next-line` above the text or its element, `// livelocale-ignore-file` at the top of a file (in `.astro`, in the frontmatter or as `<!-- livelocale-ignore-file -->` atop the template), and words in a `livelocale.allow` file at the project root (one per line; a `key:` line exempts a translation key from `untranslated` and `wrong-script`).
 
 ### `--allow`
 

@@ -53,6 +53,17 @@ function templateStart(text: string): { start: number; frontmatter: string } {
   };
 }
 
+/** True when one of the HTML comments that open the template says `livelocale-ignore-file`. */
+function templateIgnoresFile(text: string, start: number): boolean {
+  const leadingComment = /\s*<!--([\s\S]*?)-->/y;
+  leadingComment.lastIndex = start;
+  let match: RegExpExecArray | null;
+  while ((match = leadingComment.exec(text)) !== null) {
+    if (IGNORE_FILE.test(match[1]!)) return true;
+  }
+  return false;
+}
+
 /** Index just past the `}` matching the `{` at `open`, counting braces only. */
 function skipBraces(text: string, open: number): number {
   let depth = 0;
@@ -198,7 +209,7 @@ export function findAstroHardcodedText(sourceText: string, allow: AllowList): Ha
   // Drop a BOM so first-line columns match the editor.
   const text = sourceText.startsWith('\uFEFF') ? sourceText.slice(1) : sourceText;
   const { start, frontmatter } = templateStart(text);
-  if (IGNORE_FILE.test(frontmatter)) return [];
+  if (IGNORE_FILE.test(frontmatter) || templateIgnoresFile(text, start)) return [];
 
   const lineStarts = [0];
   for (let i = 0; i < text.length; i++) if (text[i] === '\n') lineStarts.push(i + 1);

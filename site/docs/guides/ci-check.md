@@ -101,7 +101,7 @@ const label = <span>LiveLocale</span>;
 </footer>;
 ```
 
-A `// livelocale-ignore-file` comment at the top of a file skips the whole file.
+A `// livelocale-ignore-file` comment at the top of a file skips the whole file. In an `.astro` file, put it in the frontmatter, or put `<!-- livelocale-ignore-file -->` at the top of the template.
 
 Brand names and other words that are never translated go in a `livelocale.allow` file at the project root, one per line. A `key:` line exempts a translation key from `untranslated` and `wrong-script`, for a value that is the same in every language. Blank lines and lines starting with `#` are skipped:
 

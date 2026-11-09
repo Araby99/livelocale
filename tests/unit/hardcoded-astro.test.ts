@@ -88,6 +88,27 @@ describe('findAstroHardcodedText', () => {
       scan(['---', '// livelocale-ignore-file', '---', '<p>Demo copy</p>'].join('\n'))
     ).toEqual([]));
 
+  it('skips the whole file with an HTML livelocale-ignore-file comment atop the template', () => {
+    expect(scan(['<!-- livelocale-ignore-file -->', '<p>Demo copy</p>'].join('\n'))).toEqual([]);
+    expect(
+      scan(
+        [
+          '---',
+          'const t = 1;',
+          '---',
+          '<!-- a note -->',
+          '<!-- livelocale-ignore-file -->',
+          '<p>Demo copy</p>',
+        ].join('\n')
+      )
+    ).toEqual([]);
+  });
+
+  it('honors livelocale-ignore-file only at the top of the template', () =>
+    expect(scan(['<p>Demo copy</p>', '<!-- livelocale-ignore-file -->'].join('\n'))).toEqual([
+      'Demo copy@1:4',
+    ]));
+
   it('applies the allow list', () =>
     expect(scan('<b>GitHub</b><b>Contact us</b>', parseAllowFile('GitHub\n'))).toEqual([
       'Contact us@1:17',
