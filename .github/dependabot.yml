@@ -100,6 +100,16 @@ updates:
       dev-tooling:
         patterns:
           - '*'
+  # The Astro playground has no React and no E2E job; only the docs recorder runs it.
+  - package-ecosystem: npm
+    directory: /playground-astro
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      dev-tooling:
+        patterns:
+          - '*'
   - package-ecosystem: npm
     directory: /site
     schedule:

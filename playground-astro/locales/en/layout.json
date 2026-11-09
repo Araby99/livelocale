@@ -1,0 +1,9 @@
+{
+  "site": "LiveLocale Astro playground",
+  "nav": {
+    "home": "Home",
+    "about": "About"
+  },
+  "switch": "العربية",
+  "footer": "Made with care in Cairo"
+}
