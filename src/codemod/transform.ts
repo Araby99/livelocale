@@ -1,21 +1,40 @@
 // Type-only import: the runtime module is loaded lazily by `loadTypeScript()`.
 import type * as ts from 'typescript';
+import {
+  TypeScriptUnusableError,
+  typescriptUnusable,
+  typescriptVersion,
+  withCompilerApi,
+} from './hardcoded/load-typescript.js';
 
 type TypeScriptModule = typeof ts;
+
+/** The module `useTypeScript` chose: the project's own copy, found by `migrate`. */
+let chosen: TypeScriptModule | null = null;
+
+/** Makes the transform parse with `mod` (the project's TypeScript) instead of importing one. */
+export function useTypeScript(mod: TypeScriptModule): void {
+  chosen = mod;
+}
 
 /**
  * `typescript` is an optional peer: it is only needed by `migrate`. Loading it
  * lazily keeps `init` and `studio` working in JavaScript-only projects.
  */
 export async function loadTypeScript(): Promise<TypeScriptModule> {
+  if (chosen) return chosen;
+  let mod: any;
   try {
-    const mod: any = await import('typescript');
-    return (mod.default ?? mod) as TypeScriptModule;
+    mod = await import('typescript');
   } catch {
     throw new Error(
       "The 'typescript' package is required for the migrate command. Install it with: npm install -D typescript"
     );
   }
+  // TypeScript 7 exports only its version: say so once instead of failing on every file.
+  const ts = withCompilerApi(mod);
+  if (!ts) throw new TypeScriptUnusableError(typescriptUnusable(typescriptVersion(mod), 'migrate'));
+  return ts as unknown as TypeScriptModule;
 }
 
 export interface TransformResult {

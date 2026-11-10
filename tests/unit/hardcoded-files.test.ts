@@ -40,7 +40,7 @@ describe('hardcoded scan setup', () => {
     linkFakeTypeScript(project, '7.0.0');
     expect(await loadProjectTypeScript(project)).toEqual({ problem: typescriptUnusable('7.0.0') });
     expect(typescriptUnusable('7.0.0')).toBe(
-      'typescript 7.0.0 found but its compiler API is unavailable; hardcoded-text detection needs typescript 4.7–6.x'
+      'TypeScript 7.0.0 has no JavaScript compiler API, which hardcoded-text detection needs. Install TypeScript 5 or 6 as a dev dependency: npm install -D typescript@5'
     );
   });
 

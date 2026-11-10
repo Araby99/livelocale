@@ -1,7 +1,17 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { LOCALE_RE } from '../core/validate.js';
-import { comparePlaceholders, validateMessageSyntax } from '../core/placeholders.js';
+import { parseJsonText } from '../core/json-path.js';
+import {
+  LOCALES_CANDIDATES,
+  resolveLocalesPath,
+  skippedLocaleEntries,
+} from '../core/locale-folder.js';
+import {
+  comparePlaceholders,
+  optionalPlaceholdersFor,
+  validateMessageSyntax,
+} from '../core/placeholders.js';
 import { KeyScanner, resolveCodeKeys, type LocaleKeyIndex } from '../server/key-scanner.js';
 import { readAllowList } from './hardcoded/allow-list.js';
 import { isAstroFile, listComponentFiles } from './hardcoded/files.js';
@@ -20,9 +30,11 @@ const MAY_HOLD_JSX = /<[A-Za-z>]/;
 
 export type IssueKind =
   | 'invalid-json'
+  | 'not-a-locale'
   | 'missing-in-locale'
   | 'missing-from-code'
   | 'placeholder-mismatch'
+  | 'plural-missing-other'
   | 'syntax'
   | 'empty'
   | 'unused'
@@ -50,7 +62,10 @@ export interface CheckIssue {
 export interface CheckOptions {
   /** Project root to scan for source files. */
   projectDir: string;
-  /** Locales directory, absolute or relative to `projectDir`. Defaults to `locales`. */
+  /**
+   * Locales directory, absolute or relative to `projectDir`. Defaults to the first known folder
+   * that holds locale files (see `LOCALES_CANDIDATES`), else `locales`.
+   */
   localesPath?: string;
   /** Locale the others are compared against. Defaults to `en` when present, else the first locale. */
   sourceLocale?: string;
@@ -66,6 +81,8 @@ export interface CheckOptions {
 
 export interface CheckReport {
   localesDir: string;
+  /** The locales folder found without `--locales`, relative to the project; unset when given. */
+  detectedLocalesPath?: string;
   sourceLocale: string | null;
   locales: string[];
   codeKeyCount: number;
@@ -79,10 +96,12 @@ const PLURAL_SUFFIX_RE = /_(?:ordinal_)?(?:zero|one|two|few|many|other)$/;
 
 const KIND_ORDER: IssueKind[] = [
   'invalid-json',
+  'not-a-locale',
   'syntax',
   'missing-from-code',
   'missing-in-locale',
   'placeholder-mismatch',
+  'plural-missing-other',
   'hardcoded',
   'empty',
   'untranslated',
@@ -92,10 +111,12 @@ const KIND_ORDER: IssueKind[] = [
 
 const KIND_TITLE: Record<IssueKind, string> = {
   'invalid-json': 'Locale files that are not valid JSON',
+  'not-a-locale': 'Files and folders not read because their name is not a locale code',
   syntax: 'Broken ICU message syntax',
   'missing-from-code': 'Keys used in code but missing from a locale',
   'missing-in-locale': 'Keys missing compared to the source locale',
   'placeholder-mismatch': 'Placeholders that differ from the source locale',
+  'plural-missing-other': 'Plural forms without their _other form',
   empty: 'Empty translations',
   unused: 'Keys never referenced in code',
   hardcoded: 'Hardcoded text not passed through translation',
@@ -110,6 +131,26 @@ interface LocaleData {
   branches: Set<string>;
   /** Leaf key → locale file it came from, relative to the project and `/`-separated. */
   files: Map<string, string>;
+  /**
+   * What could not be read: `''` for the whole locale (a flat file), else the namespaces of
+   * the folder files that failed. Keys under them are not reported as missing, since the
+   * invalid file is the one problem to fix.
+   */
+  unreadable: Set<string>;
+}
+
+/** Why a parsed locale file is not a JSON object, or null when it is one. */
+function rootProblem(parsed: unknown): string | null {
+  if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return null;
+  const what = Array.isArray(parsed) ? 'a list' : parsed === null ? 'null' : `a ${typeof parsed}`;
+  return `The file must hold a JSON object ({ ... }), not ${what}.`;
+}
+
+/** True when `key` lies in a part of `data` whose file could not be read. */
+function isUnreadable(data: LocaleData, key: string): boolean {
+  if (data.unreadable.has('')) return true;
+  for (const ns of data.unreadable) if (key === ns || key.startsWith(`${ns}.`)) return true;
+  return false;
 }
 
 function listLocales(localesDir: string): string[] {
@@ -177,21 +218,26 @@ function readLocale(
   projectDir: string,
   issues: CheckIssue[]
 ): LocaleData {
-  const data: LocaleData = { leaves: new Map(), branches: new Set(), files: new Map() };
+  const data: LocaleData = {
+    leaves: new Map(),
+    branches: new Set(),
+    files: new Map(),
+    unreadable: new Set(),
+  };
   const rel = (p: string) => path.relative(projectDir, p).split(path.sep).join('/');
   const parse = (file: string): unknown => {
+    let message: string | null;
+    let parsed: unknown;
     try {
-      return JSON.parse(fs.readFileSync(file, 'utf-8'));
+      // A byte-order mark is common in files saved on Windows, and bundlers ignore it.
+      parsed = parseJsonText(fs.readFileSync(file, 'utf-8'));
+      message = rootProblem(parsed);
     } catch (err: any) {
-      issues.push({
-        kind: 'invalid-json',
-        level: 'fail',
-        locale,
-        file: rel(file),
-        message: err?.message ?? String(err),
-      });
-      return undefined;
+      message = err?.message ?? String(err);
     }
+    if (message === null) return parsed;
+    issues.push({ kind: 'invalid-json', level: 'fail', locale, file: rel(file), message });
+    return undefined;
   };
 
   const dir = path.join(localesDir, locale);
@@ -201,13 +247,18 @@ function readLocale(
       const ns = path.basename(file, '.json');
       const full = path.join(dir, file);
       const parsed = parse(full);
-      if (parsed === undefined) continue;
+      if (parsed === undefined) {
+        data.unreadable.add(ns);
+        continue;
+      }
       data.branches.add(ns);
       flatten(parsed, ns, rel(full), data);
     }
   } else {
     const full = path.join(localesDir, `${locale}.json`);
-    flatten(parse(full), '', rel(full), data);
+    const parsed = parse(full);
+    if (parsed === undefined) data.unreadable.add('');
+    flatten(parsed, '', rel(full), data);
   }
   return data;
 }
@@ -271,18 +322,32 @@ function isReferenced(key: string, codeKeys: Set<string>): boolean {
  */
 export async function runCheck(options: CheckOptions): Promise<CheckReport> {
   const projectDir = path.resolve(options.projectDir);
-  const localesDir = path.resolve(projectDir, options.localesPath ?? 'locales');
+  const localesPath = resolveLocalesPath(projectDir, options.localesPath);
+  const localesDir = path.resolve(projectDir, localesPath.path);
   const issues: CheckIssue[] = [];
   const strict = options.strict ?? false;
   const warn: IssueLevel = strict ? 'fail' : 'warn';
 
   if (!fs.existsSync(localesDir) || !fs.statSync(localesDir).isDirectory()) {
-    throw new Error(`Locales directory not found: ${localesDir}`);
+    const tried =
+      options.localesPath === undefined
+        ? ` Looked in ${LOCALES_CANDIDATES.join(', ')}. Pass --locales <path>.`
+        : '';
+    throw new Error(`Locales directory not found: ${localesDir}.${tried}`);
   }
 
   const locales = listLocales(localesDir);
   if (!locales.some((locale) => hasLocaleFile(localesDir, locale))) {
     throw noLocaleFilesError(localesDir);
+  }
+  const rel = (p: string) => path.relative(projectDir, p).split(path.sep).join('/');
+  for (const entry of skippedLocaleEntries(localesDir)) {
+    issues.push({
+      kind: 'not-a-locale',
+      level: warn,
+      file: rel(path.join(localesDir, entry)) + (entry.endsWith('/') ? '/' : ''),
+      message: 'Not read: a locale name looks like en, pt-BR or zh-Hant-TW.',
+    });
   }
   const data = new Map(locales.map((l) => [l, readLocale(localesDir, l, projectDir, issues)]));
 
@@ -317,7 +382,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
     }
 
     for (const key of codeKeys) {
-      if (!hasKey(localeData, key)) {
+      if (!hasKey(localeData, key) && !isUnreadable(localeData, key)) {
         issues.push({
           kind: 'missing-from-code',
           level: 'fail',
@@ -326,6 +391,33 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
           message: `Used in code but not defined in ${locale}.`,
         });
       }
+    }
+  }
+
+  // `other` is the one plural form every language has: without it i18next shows the key or the
+  // fallback language for most counts. Only families some locale completes with `_other` are
+  // checked, so a plain key that happens to end in `_one` is left alone.
+  const completeFamilies = new Set<string>();
+  for (const localeData of data.values()) {
+    for (const key of localeData.leaves.keys()) {
+      if (key.endsWith('_other')) completeFamilies.add(key.slice(0, -'_other'.length));
+    }
+  }
+  for (const [locale, localeData] of data) {
+    const reported = new Set<string>();
+    for (const key of localeData.leaves.keys()) {
+      if (!PLURAL_SUFFIX_RE.test(key) || key.endsWith('_other')) continue;
+      const family = key.replace(/_(?:zero|one|two|few|many)$/, '');
+      if (!completeFamilies.has(family) || reported.has(family)) continue;
+      if (localeData.leaves.has(`${family}_other`)) continue;
+      reported.add(family);
+      issues.push({
+        kind: 'plural-missing-other',
+        level: warn,
+        locale,
+        key: `${family}_other`,
+        message: 'This plural has other forms but no _other, which every language needs.',
+      });
     }
   }
 
@@ -338,6 +430,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
           // Keys the code uses are already reported as missing-from-code, and plural
           // families differ legitimately between languages (Arabic has six forms).
           if (codeKeys.has(key) || PLURAL_SUFFIX_RE.test(key)) continue;
+          if (isUnreadable(localeData, key)) continue;
           issues.push({
             kind: 'missing-in-locale',
             level: 'fail',
@@ -350,7 +443,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
 
         const value = localeData.leaves.get(key);
         if (typeof sourceValue !== 'string' || typeof value !== 'string' || value === '') continue;
-        const cmp = comparePlaceholders(sourceValue, value);
+        const cmp = comparePlaceholders(sourceValue, value, optionalPlaceholdersFor(key));
         if (!cmp.ok) {
           const parts: string[] = [];
           if (cmp.missing.length) parts.push(`missing ${cmp.missing.join(', ')}`);
@@ -462,6 +555,7 @@ export async function runCheck(options: CheckOptions): Promise<CheckReport> {
 
   return {
     localesDir,
+    ...(localesPath.detected ? { detectedLocalesPath: localesPath.path } : {}),
     sourceLocale,
     locales,
     codeKeyCount: codeKeys.size,

@@ -106,7 +106,7 @@ export function parseStudioArgs(argv: string[]): StudioArgs {
 }
 
 export type InitArgs =
-  | { share: false; dir: string }
+  | { share: false; dir: string; overwrite: boolean }
   | {
       share: true;
       dir: string;
@@ -122,12 +122,12 @@ const SHARE_ONLY = ['--locales', '--source', '--branches'] as const;
 export function parseInitArgs(argv: string[]): InitArgs {
   const parsed = parseCommandArgs(COMMAND_SPECS.init, argv);
   if (!parsed.flags.has('--share')) {
-    for (const flag of [...SHARE_ONLY, '--overwrite']) {
+    for (const flag of SHARE_ONLY) {
       if (parsed.values[flag] !== undefined || parsed.flags.has(flag)) {
         throw new UsageError(`${flag} only works with init --share.`);
       }
     }
-    return { share: false, dir: folderArg(parsed) };
+    return { share: false, dir: folderArg(parsed), overwrite: parsed.flags.has('--overwrite') };
   }
   const folder = parsed.positionals[0];
   if (folder !== undefined) {

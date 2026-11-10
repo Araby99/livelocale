@@ -5,11 +5,12 @@ import * as path from 'path';
 import * as net from 'net';
 import { moduleDir } from '../server/module-dir.js';
 import { createStudioServer } from './studio-server.js';
-import { runDoctor, formatFindings, hasFailures } from './doctor.js';
+import { runDoctor, formatFindings, hasFailures, devServerPort } from './doctor.js';
 import { runCheck, formatCheckReport } from './check.js';
 import {
   checkErrorReport,
   checkExitCode,
+  checkHeaderLines,
   checkSummaryLines,
   CHECK_COULD_NOT_RUN,
   parseCheckArgs,
@@ -26,7 +27,7 @@ import {
 import { PackError } from '../server/pack-error.js';
 import { runApplyCommand } from './apply/cli.js';
 import { planInitShare, writePlannedFiles } from './init-share.js';
-import { astroInitSteps, isAstroProject } from './init-astro.js';
+import { planInitRoute } from './init-route.js';
 import { readOwnVersion } from '../server/module-dir.js';
 import { findGlobalOption, UsageError, USAGE_EXIT_CODE } from './cli-args.js';
 import {
@@ -38,7 +39,8 @@ import {
   type DoctorArgs,
   type InitArgs,
 } from './command-args.js';
-import { helpText } from './help.js';
+import { commandHelpText, helpText } from './help.js';
+import { resolveLocalesPath } from '../core/locale-folder.js';
 import { runMigrate } from './migrate.js';
 
 function printHelp() {
@@ -99,7 +101,7 @@ async function runStudio(port: number, appOrigin: string, appUrl?: string) {
   });
 }
 
-function runInit(projectDir: string) {
+function runInit(projectDir: string, overwrite: boolean) {
   console.log(`\n🚀 Initializing LiveLocale API handler...`);
   const absoluteDir = path.resolve(projectDir);
   if (!fs.existsSync(absoluteDir)) {
@@ -107,104 +109,52 @@ function runInit(projectDir: string) {
     process.exit(1);
   }
 
-  // Astro has src/pages too: a Pages Router route written there would be an Astro endpoint.
-  if (isAstroProject(absoluteDir)) {
-    console.log(astroInitSteps());
+  const plan = planInitRoute(absoluteDir);
+  if (plan.kind === 'astro' || plan.kind === 'vite') {
+    console.log(plan.text);
+    return;
+  }
+  if (plan.kind === 'unknown') {
+    console.error(`❌ ${plan.text}`);
+    process.exitCode = USAGE_EXIT_CODE;
     return;
   }
 
-  // 1. Detect TypeScript vs. JavaScript
-  const isTypeScript = fs.existsSync(path.join(absoluteDir, 'tsconfig.json'));
-  const fileExt = isTypeScript ? 'ts' : 'js';
+  const { targetPath, content } = plan;
+  const relTarget = path.relative(absoluteDir, targetPath);
   console.log(`📁 Target: ${absoluteDir}`);
-  console.log(`🔧 Language detected: ${isTypeScript ? 'TypeScript' : 'JavaScript'}`);
+  console.log(`🔧 Language detected: ${plan.isTypeScript ? 'TypeScript' : 'JavaScript'}`);
+  console.log(`📍 Project structure: ${plan.routerType}`);
 
-  // 2. Check for installed libraries in package.json
-  let hasNextIntl = false;
-  let hasReactI18next = false;
-  const targetPkgPath = path.join(absoluteDir, 'package.json');
-  if (fs.existsSync(targetPkgPath)) {
-    try {
-      const pkg = JSON.parse(fs.readFileSync(targetPkgPath, 'utf8'));
-      const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
-      hasNextIntl = Boolean(allDeps['next-intl']);
-      hasReactI18next = Boolean(allDeps['react-i18next']);
-    } catch {}
+  if (plan.existing === 'same') {
+    console.log(`✅ ${relTarget} is already there and up to date. Nothing to write.\n`);
+    return;
+  }
+  // The route is where a team sets localesPath, allowedOrigins or a token: keep their edits.
+  if (plan.existing === 'different' && !overwrite) {
+    console.log(
+      `⚠️  ${relTarget} already exists and differs from the default route. Left it unchanged.`
+    );
+    console.log(`   Pass --overwrite to replace it with the default.\n`);
+    return;
   }
 
-  // 3. Check for App Router vs Pages Router
-  const appDirPath = path.join(absoluteDir, 'app');
-  const pagesDirPath = path.join(absoluteDir, 'pages');
-  const srcAppDirPath = path.join(absoluteDir, 'src', 'app');
-  const srcPagesDirPath = path.join(absoluteDir, 'src', 'pages');
-
-  let targetPath = '';
-  let routerType = '';
-  let content = '';
-
-  if (fs.existsSync(appDirPath)) {
-    targetPath = path.join(appDirPath, 'api', 'livelocale', `route.${fileExt}`);
-    routerType = 'Next.js App Router (root)';
-  } else if (fs.existsSync(srcAppDirPath)) {
-    targetPath = path.join(srcAppDirPath, 'api', 'livelocale', `route.${fileExt}`);
-    routerType = 'Next.js App Router (src/)';
-  } else if (fs.existsSync(pagesDirPath)) {
-    targetPath = path.join(pagesDirPath, 'api', `livelocale.${fileExt}`);
-    routerType = 'Next.js Pages Router (root)';
-  } else if (fs.existsSync(srcPagesDirPath)) {
-    targetPath = path.join(srcPagesDirPath, 'api', `livelocale.${fileExt}`);
-    routerType = 'Next.js Pages Router (src/)';
-  } else {
-    // Default fallback to root app router structure
-    targetPath = path.join(absoluteDir, 'app', 'api', 'livelocale', `route.${fileExt}`);
-    routerType = 'Default App Router (app/ not found)';
-  }
-
-  console.log(`📍 Project structure: ${routerType}`);
-
-  if (routerType.includes('App Router')) {
-    content = `import { createLiveLocaleHandler } from 'livelocale/server';
-import * as path from 'path';
-
-const handler = createLiveLocaleHandler({
-  localesPath: path.resolve('./locales'), // Adjust relative to project root
-});
-
-export const GET = handler;
-export const POST = handler;
-export const OPTIONS = handler;
-`;
-  } else {
-    content = `import { createLiveLocaleHandler } from 'livelocale/server';
-import * as path from 'path';
-
-// Pages Router API route: the handler accepts the (req, res) signature.
-const handler = createLiveLocaleHandler({
-  localesPath: path.resolve('./locales'), // Adjust relative to project root
-});
-
-export default handler;
-`;
-  }
-
-  // Ensure target folder exists
-  const targetDir = path.dirname(targetPath);
-  if (!fs.existsSync(targetDir)) {
-    fs.mkdirSync(targetDir, { recursive: true });
-  }
-
-  // Write file
   try {
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     fs.writeFileSync(targetPath, content, 'utf8');
-    console.log(`✅ Created API Route Handler successfully at:`);
-    console.log(`   ${path.relative(absoluteDir, targetPath)}`);
-    if (hasNextIntl) {
+    console.log(
+      plan.existing === 'different'
+        ? `✅ Replaced the API Route Handler at:`
+        : `✅ Created API Route Handler successfully at:`
+    );
+    console.log(`   ${relTarget}`);
+    if (plan.hasNextIntl) {
       console.log(`\n💡 Detected 'next-intl' in your project!`);
       console.log(
         `   Wrap your translation hook with: import { wrapNextIntl } from 'livelocale/client';`
       );
       console.log(`   const t = wrapNextIntl(useTranslations('namespace'), 'namespace');`);
-    } else if (hasReactI18next) {
+    } else if (plan.hasReactI18next) {
       console.log(`\n💡 Detected 'react-i18next' in your project!`);
       console.log(`   You can auto-wrap usages by running: npx livelocale migrate`);
     }
@@ -254,8 +204,7 @@ async function runDoctorCommand({ dir, localesPath, app, share, token }: DoctorA
   const shareLink = findings.find((f) => f.title === 'Share link')?.detail;
   if (shareLink) console.log(`🔗 Share link: ${shareLink}`);
   if (!app) {
-    // astro dev serves on 4321 by default, next dev on 3000.
-    const port = isAstroProject(projectDir) ? 4321 : 3000;
+    const port = devServerPort(projectDir);
     console.log(
       `💡 Start your dev server and re-run with --app http://localhost:${port} for live checks.`
     );
@@ -302,7 +251,10 @@ async function runCheckCommand(argv: string[]) {
       allow,
     });
   } catch (err: any) {
-    couldNotRun(err?.message ?? String(err), path.resolve(projectDir, localesPath ?? 'locales'));
+    couldNotRun(
+      err?.message ?? String(err),
+      path.resolve(projectDir, resolveLocalesPath(projectDir, localesPath).path)
+    );
     return;
   }
 
@@ -313,12 +265,7 @@ async function runCheckCommand(argv: string[]) {
     return;
   }
 
-  console.log(`\n🔎 LiveLocale check — ${projectDir}`);
-  console.log(
-    `🌐 Locales: ${report.locales.join(', ') || 'none'}` +
-      (report.sourceLocale ? ` (source: ${report.sourceLocale})` : '') +
-      ` · ${report.codeKeyCount} key(s) referenced in code`
-  );
+  for (const line of checkHeaderLines(report, projectDir)) console.log(line);
   console.log('--------------------------------------------------');
   if (report.issues.length > 0) {
     console.log(formatCheckReport(report));
@@ -431,7 +378,9 @@ async function run() {
   // never as an option's value (`check --source -v` is a missing value).
   const global = args[0] === 'help' ? 'help' : findGlobalOption(args, commandSpec(args[0]));
   if (global === 'help') {
-    printHelp();
+    // `check --help` and `help check` print that command's part; anything else, all of it.
+    const topic = args[0] === 'help' ? args[1] : args[0];
+    console.log((topic !== undefined && commandHelpText(topic)) || helpText());
     return;
   }
   if (global === 'version') {
@@ -464,7 +413,7 @@ async function run() {
     case 'init': {
       const init = parseInitArgs(rest);
       if (init.share) return runInitShareCommand(init);
-      runInit(init.dir);
+      runInit(init.dir, init.overwrite);
       return;
     }
     case 'studio': {

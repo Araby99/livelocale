@@ -9,8 +9,14 @@ import * as os from 'os';
 import * as path from 'path';
 import { decodeChangeLink } from '../../core/change-link.js';
 import { nodeInflate } from '../../core/change-link-node.js';
-import { planApply, type ApplyPlan, type LocaleTarget } from '../../core/apply-plan.js';
+import {
+  planApply,
+  type ApplyPlan,
+  type LocaleTarget,
+  type PlannedEdit,
+} from '../../core/apply-plan.js';
 import { isValidLocaleFormat } from '../../core/validate.js';
+import { LOCALES_CANDIDATES, resolveLocalesPath } from '../../core/locale-folder.js';
 import { FileMutator } from '../../server/file-mutator.js';
 import { GitClient } from '../../server/git-client.js';
 import { runCheck } from '../check.js';
@@ -34,7 +40,7 @@ export type GhExec = (args: string[], cwd: string) => Promise<string>;
 
 export interface LocalApplyOptions {
   projectDir: string;
-  /** Locales directory relative to the project (default `locales`). */
+  /** Locales directory relative to the project (default: the detected folder, else `locales`). */
   localesPath?: string;
   /** Default: `en` when present, else the first locale. */
   sourceLocale?: string;
@@ -53,6 +59,8 @@ export interface LocalApplyResult {
   plan: ApplyPlan;
   /** Project-relative POSIX paths of the locale files written. */
   written: string[];
+  /** Edits planned as `apply` whose file could not be written, with the reason. */
+  failed: Map<PlannedEdit, string>;
   branch?: string;
   prUrl?: string;
   exitCode: 0 | 1;
@@ -176,27 +184,46 @@ function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-/** Writes every `apply` edit and returns the project-relative files written. */
+/** Why `file` could not be written, in plain words. */
+function writeFailure(file: string, err: unknown): string {
+  const message = errorMessage(err);
+  // FileMutator wraps the fs error, so the code is only in its message.
+  if (/\b(?:EPERM|EACCES|EROFS|EBUSY)\b/.test(message)) {
+    return `cannot write ${file}: the file is read-only or in use.`;
+  }
+  return `cannot write ${file}: ${message.replace(/^\[livelocale\]\s*/, '')}`;
+}
+
+/**
+ * Writes every `apply` edit. A file that cannot be written (read-only, locked) does not stop
+ * the others: its edits are returned in `failed`, so the summary can say what landed.
+ */
 async function writeEdits(
   mutator: FileMutator,
   plan: ApplyPlan,
   targets: Map<string, LocaleTarget>,
   localesDir: string,
   localesPath: string
-): Promise<string[]> {
+): Promise<{ written: string[]; failed: Map<PlannedEdit, string> }> {
   const written: string[] = [];
+  const failed = new Map<PlannedEdit, string>();
   for (const edit of plan.edits) {
     if (edit.status !== 'apply') continue;
-    await mutator.updateLocaleKey(localesDir, edit.locale, edit.key, edit.to);
     const file = fileFor(localesPath, targets.get(edit.locale)!.layout, edit.locale, edit.key);
+    try {
+      await mutator.updateLocaleKey(localesDir, edit.locale, edit.key, edit.to);
+    } catch (err) {
+      failed.set(edit, writeFailure(file, err));
+      continue;
+    }
     if (!written.includes(file)) written.push(file);
   }
-  return written;
+  return { written, failed };
 }
 
-function exitCodeFor(plan: ApplyPlan): 0 | 1 {
+function exitCodeFor(plan: ApplyPlan, failed: number): 0 | 1 {
   const c = plan.counts;
-  return c.conflict + c.invalid + c['needs-force'] > 0 ? 1 : 0;
+  return c.conflict + c.invalid + c['needs-force'] + failed > 0 ? 1 : 0;
 }
 
 /** The repository root and current branch; refuses a detached HEAD or a dirty locales folder. */
@@ -283,10 +310,18 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
   const log = options.log ?? ((line: string) => console.log(line));
   const set = await decodeChangeLink(options.input, nodeInflate);
 
-  const localesPath = options.localesPath ?? 'locales';
+  const resolved = resolveLocalesPath(options.projectDir, options.localesPath);
+  const localesPath = resolved.path;
   const localesDir = path.resolve(options.projectDir, localesPath);
   if (!fs.statSync(localesDir, { throwIfNoEntry: false })?.isDirectory()) {
-    throw new ApplyInputError(`No locales folder at ${localesPath}.`);
+    const tried =
+      options.localesPath === undefined
+        ? ` Looked in ${LOCALES_CANDIDATES.join(', ')}. Pass --locales <path>.`
+        : '';
+    throw new ApplyInputError(`No locales folder at ${localesPath}.${tried}`);
+  }
+  if (resolved.detected) {
+    log(`Locales folder: ${localesPath} (found it; pass --locales to pick another)`);
   }
 
   const pr = options.pr === true && options.dryRun !== true;
@@ -308,7 +343,9 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
   }
   if (set.src !== sourceLocale) {
     log(
-      `The link says the source locale is \`${set.src}\`; using \`${sourceLocale}\` (pass --source to change).`
+      options.sourceLocale === undefined
+        ? `The link says the source locale is \`${set.src}\`; using \`${sourceLocale}\` (pass --source to change).`
+        : `The link says the source locale is \`${set.src}\`; using \`${sourceLocale}\` from --source.`
     );
   }
 
@@ -323,15 +360,16 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
     targets,
     allowForce: options.force === true,
   });
-  const exitCode = exitCodeFor(plan);
+  const summary = (failed?: Map<PlannedEdit, string>) =>
+    renderTerminalSummary(plan, { dryRun: options.dryRun === true, failed, localesPath });
 
   if (!repo || plan.counts.apply === 0) {
-    const written =
+    const { written, failed } =
       repo || options.dryRun
-        ? []
+        ? { written: [], failed: new Map<PlannedEdit, string>() }
         : await writeEdits(mutator, plan, targets, localesDir, localesPath);
-    log(renderTerminalSummary(plan));
-    return { plan, written, exitCode };
+    log(summary(failed));
+    return { plan, written, failed, exitCode: exitCodeFor(plan, failed.size) };
   }
 
   const { root, original } = repo;
@@ -341,8 +379,11 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
 
   let committed = false;
   try {
-    const written = await writeEdits(mutator, plan, targets, localesDir, localesPath);
-    log(renderTerminalSummary(plan));
+    const { written, failed } = await writeEdits(mutator, plan, targets, localesDir, localesPath);
+    log(summary(failed));
+    if (failed.size > 0) {
+      throw new Error(`${failed.size} edit(s) could not be written, so nothing was committed.`);
+    }
 
     let checkSummary: string;
     try {
@@ -392,7 +433,7 @@ export async function runLocalApply(options: LocalApplyOptions): Promise<LocalAp
     }
 
     await git(['switch', original], root);
-    return { plan, written, branch, prUrl, exitCode };
+    return { plan, written, failed, branch, prUrl, exitCode: exitCodeFor(plan, 0) };
   } catch (err) {
     log(
       committed

@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { LOCALE_RE } from '../core/validate.js';
+import { parseJsonText } from '../core/json-path.js';
+import { resolveLocalesPath, skippedLocaleEntries } from '../core/locale-folder.js';
 import { FLAG_SCRIPT_SIGNATURE } from '../core/flag-script.js';
 import { ASTRO_CONFIG_FILES, detectBuildTarget } from '../server/build-target.js';
 import {
@@ -21,7 +23,10 @@ export interface Finding {
 export interface DoctorOptions {
   /** Project root to inspect. */
   projectDir: string;
-  /** Locales directory, absolute or relative to `projectDir`. Defaults to `locales`. */
+  /**
+   * Locales directory, absolute or relative to `projectDir`. Defaults to the first known folder
+   * that holds locale files (see `LOCALES_CANDIDATES`), else `locales`.
+   */
   localesPath?: string;
   /** When given, the running app is probed over HTTP. */
   appOrigin?: string;
@@ -60,6 +65,13 @@ const LAYOUT_CANDIDATES = [
   'src/pages/_app.jsx',
   'src/pages/_app.js',
 ];
+
+const LAYOUT_EXTENSIONS = ['tsx', 'jsx', 'js'];
+
+/** Where a Vite app mounts the provider or calls startLiveLocale(): its entry or root component. */
+const VITE_ENTRY_CANDIDATES = ['main', 'index', 'App'].flatMap((name) =>
+  ['tsx', 'jsx', 'ts', 'js'].map((ext) => `src/${name}.${ext}`)
+);
 
 // Next.js 16 renamed middleware.ts to proxy.ts; both are checked.
 const MIDDLEWARE_CANDIDATES = [
@@ -161,8 +173,30 @@ function checkRouteHandler(root: string): Finding {
   };
 }
 
+/**
+ * The layouts a Next.js app may mount the provider in: the root layout or `_app`, and a layout
+ * one folder down, such as next-intl's `app/[locale]/layout.tsx` or a route group's
+ * `app/(site)/layout.tsx`, which is the real root layout in those apps.
+ */
+function layoutCandidates(root: string): string[] {
+  const nested: string[] = [];
+  for (const appDir of ['app', 'src/app']) {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(path.join(root, appDir), { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      if (!entry.isDirectory() || !/^[[(].*[\])]$/.test(entry.name)) continue;
+      for (const ext of LAYOUT_EXTENSIONS) nested.push(`${appDir}/${entry.name}/layout.${ext}`);
+    }
+  }
+  return [...LAYOUT_CANDIDATES, ...nested];
+}
+
 function checkProvider(root: string): Finding {
-  const existing = LAYOUT_CANDIDATES.filter((rel) => fs.existsSync(path.join(root, rel)));
+  const existing = layoutCandidates(root).filter((rel) => fs.existsSync(path.join(root, rel)));
   if (existing.length === 0) {
     return {
       level: 'warn',
@@ -197,17 +231,63 @@ function checkAstroIntegration(root: string): Finding {
   };
 }
 
+/**
+ * True when a matcher's negative lookahead leaves out all of `/api`, as next-intl's standard
+ * `'/((?!api|trpc|_next|_vercel|.*\\..*).*)'` does.
+ */
+function excludesAllOfApi(text: string): boolean {
+  for (const m of text.matchAll(/\(\?!([^)]*)\)/g)) {
+    const alternatives = m[1]!.split('|').map((alt) => alt.trim().replace(/^(?:\\?\/)+/, ''));
+    if (alternatives.some((alt) => /^api(?:\\?\/)?$/.test(alt))) return true;
+  }
+  return false;
+}
+
 function checkMiddleware(root: string): Finding {
   const found = firstExisting(root, MIDDLEWARE_CANDIDATES);
   if (!found) return { level: 'ok', title: 'Middleware matcher', detail: 'no middleware file' };
   const text = readText(path.join(root, found));
-  if (text.includes('api/livelocale')) {
+  if (text.includes('api/livelocale') || excludesAllOfApi(text)) {
     return { level: 'ok', title: 'Middleware matcher', detail: `${found} excludes ${API_ROUTE}` };
   }
+  // No full matcher here: pasted over next-intl's, it would run the middleware on /_next and files.
   return {
     level: 'warn',
     title: 'Middleware matcher',
-    detail: `${found} does not mention api/livelocale. If it enforces auth or redirects, exclude the route: matcher: ['/((?!api/livelocale).*)']`,
+    detail: `${found} does not leave out ${API_ROUTE}. If it enforces auth or redirects, add api/livelocale to the paths its matcher already leaves out, for example (?!api/livelocale|_next|...).`,
+  };
+}
+
+/**
+ * On Vite, the `livelocale/vite` plugin serves the API in `vite dev`, so it replaces the
+ * Next.js route handler, middleware matcher and next.config checks.
+ */
+function checkVitePlugin(root: string): Finding {
+  const title = 'Vite plugin';
+  const config = firstExisting(root, VITE_CONFIG_CANDIDATES);
+  const text = config ? readText(path.join(root, config)) : '';
+  if (/['"]livelocale\/vite['"]/.test(text) && /\bliveLocaleVite\s*\(/.test(text)) {
+    return { level: 'ok', title, detail: `${config} uses liveLocaleVite from livelocale/vite` };
+  }
+  return {
+    level: 'fail',
+    title,
+    detail: `${config ?? 'vite.config.ts'} does not use livelocale/vite. Add liveLocaleVite({ localesPath: './locales' }) from 'livelocale/vite' to plugins.`,
+  };
+}
+
+/** A Vite app starts the in-page client with <LiveLocaleProvider /> or startLiveLocale(). */
+function checkViteProvider(root: string): Finding {
+  const title = 'LiveLocaleProvider mounted';
+  const existing = VITE_ENTRY_CANDIDATES.filter((rel) => fs.existsSync(path.join(root, rel)));
+  const mounted = existing.find((rel) =>
+    /LiveLocaleProvider|startLiveLocale\s*\(/.test(readText(path.join(root, rel)))
+  );
+  if (mounted) return { level: 'ok', title, detail: mounted };
+  return {
+    level: 'warn',
+    title,
+    detail: `Add <LiveLocaleProvider /> from 'livelocale/react' to ${existing[0] ?? 'src/main.tsx'} (or call startLiveLocale() from 'livelocale/client') so the Studio can talk to the page.`,
   };
 }
 
@@ -246,8 +326,11 @@ function checkFrameHeaders(root: string): Finding {
 }
 
 function checkLocales(root: string, localesPath: string | undefined): Finding {
-  const dir = path.resolve(root, localesPath ?? 'locales');
-  const rel = path.relative(root, dir) || '.';
+  const resolved = resolveLocalesPath(root, localesPath);
+  const dir = path.resolve(root, resolved.path);
+  // Forward slashes on every OS, as `check` prints it.
+  const where = path.relative(root, dir).split(path.sep).join('/') || '.';
+  const rel = resolved.detected ? `${where} (found it; pass --locales to pick another)` : where;
   if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) {
     return {
       level: 'fail',
@@ -265,7 +348,8 @@ function checkLocales(root: string, localesPath: string | undefined): Finding {
   const validate = (file: string, label: string) => {
     fileCount++;
     try {
-      const parsed = JSON.parse(fs.readFileSync(file, 'utf-8'));
+      // A byte-order mark is common in files saved on Windows, and bundlers ignore it.
+      const parsed = parseJsonText(fs.readFileSync(file, 'utf-8'));
       if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
         invalid.push(`${label} (root must be an object)`);
       }
@@ -306,6 +390,18 @@ function checkLocales(root: string, localesPath: string | undefined): Finding {
     level: 'ok',
     title: 'Locale files',
     detail: `${rel}: ${layout}, ${fileCount} file(s) parse`,
+  };
+}
+
+/** Warns about locale-looking files and folders skipped for their name, so none is ignored silently. */
+function checkLocaleNames(root: string, localesPath: string | undefined): Finding | null {
+  const dir = path.resolve(root, resolveLocalesPath(root, localesPath).path);
+  const skipped = skippedLocaleEntries(dir);
+  if (skipped.length === 0) return null;
+  return {
+    level: 'warn',
+    title: 'Locale names',
+    detail: `Not read: ${skipped.join(', ')}. A locale name looks like en, pt-BR or zh-Hant-TW.`,
   };
 }
 
@@ -815,17 +911,22 @@ function looksLikeShareBuild(manifest: Fetched): boolean {
 
 export async function runDoctor(options: DoctorOptions): Promise<Finding[]> {
   const root = path.resolve(options.projectDir);
-  // Astro's integration replaces the Next.js route, provider, middleware matcher and config.
+  // Astro's integration and Vite's plugin replace the Next.js route, middleware and config.
+  const kind = detectBuildTarget(root).kind;
   const appChecks =
-    detectBuildTarget(root).kind === 'astro'
+    kind === 'astro'
       ? [checkAstroIntegration(root)]
-      : [
-          checkRouteHandler(root),
-          checkProvider(root),
-          checkMiddleware(root),
-          checkFrameHeaders(root),
-        ];
+      : kind === 'vite'
+        ? [checkVitePlugin(root), checkViteProvider(root)]
+        : [
+            checkRouteHandler(root),
+            checkProvider(root),
+            checkMiddleware(root),
+            checkFrameHeaders(root),
+          ];
   const findings: Finding[] = [...appChecks, checkLocales(root, options.localesPath)];
+  const names = checkLocaleNames(root, options.localesPath);
+  if (names) findings.push(names);
   const workerConfig = checkServiceWorkerConfig(root);
   if (workerConfig) findings.push(workerConfig);
 
@@ -857,6 +958,12 @@ export async function runDoctor(options: DoctorOptions): Promise<Finding[]> {
   }
 
   return findings;
+}
+
+/** The port the project's dev server uses by default: astro dev 4321, vite 5173, next dev 3000. */
+export function devServerPort(projectDir: string): number {
+  const kind = detectBuildTarget(projectDir).kind;
+  return kind === 'astro' ? 4321 : kind === 'vite' ? 5173 : 3000;
 }
 
 export function hasFailures(findings: Finding[]): boolean {

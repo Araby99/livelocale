@@ -4,6 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parseGitignore } from '../core/gitignore.js';
 import { stringifyLike } from '../core/json-path.js';
+import { findLocalesFolder } from '../core/locale-folder.js';
 import { LOCALE_RE } from '../core/validate.js';
 import { parseGitHubSlug, runGit, type GitRunner } from '../server/build-info.js';
 import {
@@ -19,13 +20,6 @@ export const CHECKOUT_ACTION = 'actions/checkout@11bd71901bbe5b1630ceea73d275973
 
 export const WORKFLOW_PATH = '.github/workflows/livelocale.yml';
 
-const LOCALES_CANDIDATES = [
-  'locales',
-  'src/locales',
-  'public/locales',
-  'src/i18n/locales',
-  'messages',
-];
 const SAFE_ARG = /^[A-Za-z0-9_./-]+$/;
 const VERSION_RE = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 const MAX_BRANCHES = 10;
@@ -241,27 +235,8 @@ function realDir(dir: string): string {
   }
 }
 
-function holdsLocaleJson(dir: string): boolean {
-  let entries: fs.Dirent[];
-  try {
-    entries = fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
-    return false;
-  }
-  return entries.some((entry) => {
-    if (entry.isFile())
-      return entry.name.endsWith('.json') && LOCALE_RE.test(entry.name.slice(0, -5));
-    if (!entry.isDirectory() || !LOCALE_RE.test(entry.name)) return false;
-    try {
-      return fs.readdirSync(path.join(dir, entry.name)).some((name) => name.endsWith('.json'));
-    } catch {
-      return false;
-    }
-  });
-}
-
 function findLocalesPath(projectDir: string): string {
-  const found = LOCALES_CANDIDATES.find((rel) => holdsLocaleJson(path.join(projectDir, rel)));
+  const found = findLocalesFolder(projectDir);
   if (!found) throw new Error('Pass --locales <path>.');
   return found;
 }

@@ -147,9 +147,9 @@ describe('parseStudioArgs', () => {
 
 describe('parseInitArgs', () => {
   it('reads a plain init', () => {
-    expect(parseInitArgs([])).toEqual({ share: false, dir: '.' });
-    expect(parseInitArgs(['web'])).toEqual({ share: false, dir: 'web' });
-    expect(parseInitArgs(['--dir', 'web'])).toEqual({ share: false, dir: 'web' });
+    expect(parseInitArgs([])).toEqual({ share: false, dir: '.', overwrite: false });
+    expect(parseInitArgs(['web'])).toEqual({ share: false, dir: 'web', overwrite: false });
+    expect(parseInitArgs(['--dir', 'web'])).toEqual({ share: false, dir: 'web', overwrite: false });
   });
 
   it('reads every --share option', () =>
@@ -184,10 +184,8 @@ describe('parseInitArgs', () => {
     expect(usage(() => parseInitArgs([flag, 'x']))).toBe(`${flag} only works with init --share.`)
   );
 
-  it('rejects --overwrite without --share', () =>
-    expect(usage(() => parseInitArgs(['--overwrite']))).toBe(
-      '--overwrite only works with init --share.'
-    ));
+  it('reads --overwrite for the route file too', () =>
+    expect(parseInitArgs(['--overwrite'])).toEqual({ share: false, dir: '.', overwrite: true }));
 
   it.each([
     [['--share', '--locales'], '--locales'],

@@ -64,11 +64,11 @@ describe('runCheck', () => {
   });
 
   it('names the JSON files it skipped for a name that is not a locale', async () => {
-    write(project, 'locales/en_US.json', { a: 'A' });
+    write(project, 'locales/english.json', { a: 'A' });
     write(project, 'locales/messages/en.json', { a: 'A' });
     write(project, 'app/page.tsx', `t('a')`);
     await expect(runCheck({ projectDir: project })).rejects.toThrow(
-      'Skipped en_US.json, messages/: a locale name looks like en, ar or pt-BR.'
+      'Skipped english.json, messages/: a locale name looks like en, ar or pt-BR.'
     );
   });
 

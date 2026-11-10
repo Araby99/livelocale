@@ -125,6 +125,21 @@ function parseIcu(message: string): ParseResult {
 
     if (PLURAL_TYPES.has(type)) {
       let hasOther = false;
+      if (type !== 'select') {
+        // `{n, plural, offset:1 =0 {…} other {…}}`: ICU (and next-intl) allow an offset before
+        // the branches. It is not a selector, so it has no `{…}` of its own.
+        while (pos < message.length && /\s/.test(message[pos]!)) pos += 1;
+        if (message.startsWith('offset:', pos)) {
+          pos += 'offset:'.length;
+          while (pos < message.length && /\s/.test(message[pos]!)) pos += 1;
+          const digits = /^\d+/.exec(message.slice(pos))?.[0];
+          if (!digits) {
+            fail(`"${name}" (${type}): "offset:" needs a whole number`);
+            return;
+          }
+          pos += digits.length;
+        }
+      }
       while (pos < message.length) {
         // skip whitespace
         while (pos < message.length && /\s/.test(message[pos]!)) pos += 1;
@@ -199,16 +214,34 @@ export interface PlaceholderComparison {
   extra: string[];
 }
 
-/** Compares placeholder sets; an empty reference is compatible with anything. */
+/** i18next plural forms for counts that many languages spell as a word. */
+const WORD_PLURAL_FORM_RE = /_(?:ordinal_)?(?:zero|one|two)$/;
+
+/**
+ * Placeholders the value at `key` may leave out although its reference has them, or keep
+ * although its reference does not. An i18next `_zero`, `_one` or `_two` form often spells the
+ * number as a word (Arabic "عنصر واحد", "one item"), which is a correct translation, so it need
+ * not repeat `{{count}}`; another language may keep it in the same form.
+ */
+export function optionalPlaceholdersFor(key: string): string[] {
+  return WORD_PLURAL_FORM_RE.test(key) ? ['{{count}}'] : [];
+}
+
+/**
+ * Compares placeholder sets; an empty reference is compatible with anything. `optional`
+ * tokens (see `optionalPlaceholdersFor`) are never reported, missing or extra: either side
+ * of a plural form may spell the count as a word ("One item") or keep `{{count}}`.
+ */
 export function comparePlaceholders(
   reference: string | undefined | null,
-  value: string
+  value: string,
+  optional: readonly string[] = []
 ): PlaceholderComparison {
   if (!reference) return { ok: true, missing: [], extra: [] };
   const ref = new Set(extractPlaceholders(reference));
   const val = new Set(extractPlaceholders(value));
-  const missing = Array.from(ref).filter((t) => !val.has(t));
-  const extra = Array.from(val).filter((t) => !ref.has(t));
+  const missing = Array.from(ref).filter((t) => !val.has(t) && !optional.includes(t));
+  const extra = Array.from(val).filter((t) => !ref.has(t) && !optional.includes(t));
   return { ok: missing.length === 0 && extra.length === 0, missing, extra };
 }
 

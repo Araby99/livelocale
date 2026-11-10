@@ -1,6 +1,7 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { isSafeLocaleSegment } from '../core/validate.js';
+import { isSafeLocaleSegment, KEY_RE } from '../core/validate.js';
+import { parseJsonText } from '../core/json-path.js';
 import { getDisabledReason } from '../core/env.js';
 import { parseGitignore, type GitignoreMatcher } from '../core/gitignore.js';
 
@@ -49,7 +50,6 @@ const IGNORE_PROPS = new Set([
   'has',
 ]);
 
-const KEY_SHAPE = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
 const DECL = String.raw`(?:const|let|var)\s+`;
 /** A string literal in any quote style; read the value with `stringArg(match)`. */
 const STR = String.raw`(?:'(?<s1>[^']*)'|"(?<s2>[^"]*)"|\x60(?<s3>[^\x60]*)\x60)`;
@@ -126,7 +126,7 @@ function objectBindings(content: string): Map<string, string> {
   );
   for (const m of content.matchAll(re)) {
     const namespace = stringArg(m);
-    if (namespace && KEY_SHAPE.test(namespace)) map.set(m.groups!['name']!, namespace);
+    if (namespace && KEY_RE.test(namespace)) map.set(m.groups!['name']!, namespace);
   }
   return map;
 }
@@ -228,6 +228,68 @@ function takesTranslations(content: string, translators: ReadonlySet<string>): b
   return false;
 }
 
+/** `<Trans` as a JSX tag name, not `<Translate` or `<TransList`. */
+const TRANS_TAG_RE = /<Trans(?=[\s/>])/g;
+
+/**
+ * The attribute text of the JSX tag whose name ends at `from`, up to its closing `>`. A `>`
+ * inside braces or quotes belongs to an attribute (`components={{ link: <a /> }}`).
+ */
+function tagAttributes(content: string, from: number): string {
+  let depth = 0;
+  let quote = '';
+  for (let i = from; i < content.length; i++) {
+    const ch = content[i]!;
+    if (quote) {
+      if (ch === quote) quote = '';
+    } else if (ch === '"' || ch === "'" || ch === '`') {
+      quote = ch;
+    } else if (ch === '{') {
+      depth++;
+    } else if (ch === '}') {
+      depth--;
+    } else if (ch === '>' && depth <= 0) {
+      return content.slice(from, i);
+    }
+  }
+  return content.slice(from);
+}
+
+/** A string attribute: `name="x"`, `name='x'` or `name={'x'}` in any quote style. */
+function stringAttribute(attributes: string, name: string): string | undefined {
+  // STR appears once, with optional braces: its group names may occur only once per regex,
+  // since Node before 23 refuses a regex that names a group twice.
+  const re = new RegExp(
+    String.raw`(?<![\w-])` + name + String.raw`\s*=\s*\{?\s*` + STR + String.raw`\s*\}?`
+  );
+  const m = re.exec(attributes);
+  return m ? stringArg(m) : undefined;
+}
+
+/**
+ * The keys of react-i18next `<Trans i18nKey="…">` elements. With an `ns` prop, or a `t` prop
+ * bound to a hook with a namespace, the key is exact (a call). Without either, i18next reads it
+ * in the default namespace, which the code does not name, so it is looked up like a property
+ * read: under whichever namespace has it.
+ */
+function transKeys(
+  content: string,
+  bindings: Map<string, string>
+): { calls: string[]; props: string[] } {
+  const calls: string[] = [];
+  const props: string[] = [];
+  for (const m of content.matchAll(TRANS_TAG_RE)) {
+    const attributes = tagAttributes(content, m.index! + m[0].length);
+    const key = stringAttribute(attributes, 'i18nKey');
+    if (!key || key.includes('${') || !KEY_RE.test(key)) continue;
+    const tName = /(?<![\w-])t\s*=\s*\{\s*(\w+)\s*\}/.exec(attributes)?.[1];
+    const ns = stringAttribute(attributes, 'ns') ?? (tName ? bindings.get(tName) : undefined);
+    if (ns && KEY_RE.test(ns)) calls.push(`${ns}.${key}`);
+    else props.push(key);
+  }
+  return { calls, props };
+}
+
 /** Extracts the translation key references from one source file's text, calls and property reads apart. */
 export function extractKeyReferences(content: string): KeyReferences {
   const calls = new Set<string>();
@@ -248,10 +310,13 @@ export function extractKeyReferences(content: string): KeyReferences {
     const callRe = new RegExp(String.raw`\b` + name + METHODS + String.raw`\(\s*` + STR, 'g');
     for (const m of content.matchAll(callRe)) {
       const key = stringArg(m);
-      if (!key || key.includes('${') || !KEY_SHAPE.test(key)) continue;
+      if (!key || key.includes('${') || !KEY_RE.test(key)) continue;
       calls.add(prefix ? `${prefix}.${key}` : key);
     }
   }
+
+  const trans = transKeys(code, bindings);
+  for (const key of trans.calls) calls.add(key);
 
   // `const t = common.footer` makes `t` a part of some object: `t.eggLabel` is then also
   // read as `footer.eggLabel`, which `resolveCodeKeys` finds under the `common` namespace.
@@ -329,6 +394,7 @@ export function extractKeyReferences(content: string): KeyReferences {
     for (const key of unscoped) props.add(key);
     for (const key of strict) translatorProps.add(key);
   }
+  for (const key of trans.props) props.add(key);
 
   const refs: KeyReferences = {
     calls: Array.from(calls).sort(),
@@ -611,12 +677,17 @@ export class KeyScanner {
           continue;
         }
 
+        let content;
         try {
-          const content = await fs.readFile(fullPath, 'utf-8');
-          const refs = extractKeyReferences(content);
-          this.fileCache.set(fullPath, { mtimeMs: stat.mtimeMs, size: stat.size, value: refs });
-          collect(refs);
-        } catch {}
+          content = await fs.readFile(fullPath, 'utf-8');
+        } catch {
+          continue;
+        }
+        // Outside the try on purpose: a scanner bug must fail loudly, not drop the file's
+        // keys so that `check` reports them as unused.
+        const refs = extractKeyReferences(content);
+        this.fileCache.set(fullPath, { mtimeMs: stat.mtimeMs, size: stat.size, value: refs });
+        collect(refs);
       }
     };
 
@@ -671,7 +742,7 @@ export class KeyScanner {
               const ns = path.basename(file, '.json');
               try {
                 const content = await fs.readFile(path.join(localePath, file), 'utf-8');
-                data[ns] = JSON.parse(content);
+                data[ns] = parseJsonText(content);
               } catch {}
             }
           }
@@ -683,7 +754,7 @@ export class KeyScanner {
             const filePath = path.resolve(resolvedBasePath, `${locale}.json`);
             if (filePath.startsWith(resolvedBasePath)) {
               const content = await fs.readFile(filePath, 'utf-8');
-              data = JSON.parse(content);
+              data = parseJsonText(content) as Record<string, any>;
             }
           } catch {}
         }

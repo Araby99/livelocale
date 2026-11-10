@@ -5,12 +5,28 @@
  * UI so that every layer enforces exactly the same contract.
  */
 
-export const LOCALE_RE = /^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,4})?$/;
+/**
+ * A BCP 47 style code of up to three subtags: en, pt-BR, es-419, zh-Hant-TW, sr-Latn-RS. The
+ * underscore form (pt_BR, zh_Hant_TW) that Android, Java and gettext projects use is accepted
+ * too, with one separator throughout. A code is also a file or folder name, so it never holds a
+ * dot, slash or space.
+ */
+export const LOCALE_RE =
+  /^[a-zA-Z]{2,3}(?:-[a-zA-Z0-9]{2,4}(?:-[a-zA-Z0-9]{2,4})?|_[a-zA-Z0-9]{2,4}(?:_[a-zA-Z0-9]{2,4})?)?$/;
+
+/**
+ * One key segment: letters and digits of any script (and the marks Hindi or Arabic words need),
+ * `_`, `-`, and single spaces between words, so i18next natural-language keys such as
+ * "Hello world" fit. The first segment can name a namespace file, so a segment never holds a
+ * slash, colon, dot or other path character.
+ */
+const KEY_SEGMENT = '[\\p{L}\\p{M}\\p{N}_-]+(?: [\\p{L}\\p{M}\\p{N}_-]+)*';
 
 /** Dot-separated segments, none of them empty (the same shape the KeyScanner accepts). */
-export const KEY_RE = /^[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)*$/;
+export const KEY_RE = new RegExp(`^${KEY_SEGMENT}(?:\\.${KEY_SEGMENT})*$`, 'u');
 
-export const MAX_LOCALE_LENGTH = 10;
+/** The longest code LOCALE_RE accepts: a 3-letter language and two 4-character subtags. */
+export const MAX_LOCALE_LENGTH = 13;
 export const MAX_KEY_LENGTH = 200;
 export const MAX_VALUE_LENGTH = 10000;
 
@@ -31,8 +47,8 @@ export function isSafeKeyPath(key: unknown): boolean {
 }
 
 /**
- * Returns true if `locale` is a 2-10 character code matching the loose
- * standard pattern (supports es-419, zh-Hans, eng, etc.).
+ * Returns true if `locale` is a 2-13 character code matching LOCALE_RE
+ * (en, eng, es-419, zh-Hans, pt_BR, zh-Hant-TW, ...).
  */
 export function isValidLocaleFormat(locale: unknown): boolean {
   return (
@@ -44,8 +60,8 @@ export function isValidLocaleFormat(locale: unknown): boolean {
 }
 
 /**
- * Returns true if `key` is a 1-200 character dot-separated path containing
- * only alphanumerics, underscores, or hyphens, with no empty segment.
+ * Returns true if `key` is a 1-200 character dot-separated path matching KEY_RE:
+ * letters, digits, underscores, hyphens and single inner spaces, with no empty segment.
  */
 export function isValidKeyFormat(key: unknown): boolean {
   return (

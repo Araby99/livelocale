@@ -3,6 +3,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import type { MigrateArgs } from './command-args.js';
+import {
+  loadProjectTypeScript,
+  TYPESCRIPT_MISSING,
+  TypeScriptUnusableError,
+} from './hardcoded/load-typescript.js';
 
 export type MigrateTransform = (
   code: string,
@@ -11,21 +16,29 @@ export type MigrateTransform = (
 
 const SOURCE_EXTENSIONS = ['.js', '.jsx', '.ts', '.tsx'];
 
-/** Loads the codemod, which needs the optional `typescript` peer. */
-async function loadTransform(): Promise<MigrateTransform> {
+/**
+ * Loads the codemod, which needs the optional `typescript` peer: the project's own copy first,
+ * as `check --hardcoded` does, else the one next to livelocale (a global install, say).
+ */
+async function loadTransform(projectDir: string): Promise<MigrateTransform> {
   const transform = await import('./transform.js');
-  await transform.loadTypeScript();
+  const project = await loadProjectTypeScript(projectDir, 'migrate');
+  if ('ts' in project) transform.useTypeScript(project.ts as any);
+  else if (project.problem !== TYPESCRIPT_MISSING)
+    throw new TypeScriptUnusableError(project.problem);
+  else await transform.loadTypeScript();
   return transform.transformReactI18next;
 }
 
 /**
  * Converts every file it can and resolves with the exit code: 0 when every file converted (or
- * needed nothing), 1 when the folder is missing, TypeScript cannot load, or any file failed.
+ * needed nothing), 1 when the folder is missing, TypeScript is missing, or any file failed, 2
+ * when the installed TypeScript has no compiler API (TypeScript 7), so nothing could run.
  */
 export async function runMigrate(
   { dir, excludes, dryRun }: MigrateArgs,
   transform?: MigrateTransform
-): Promise<0 | 1> {
+): Promise<0 | 1 | 2> {
   const absoluteDir = path.resolve(dir);
   if (!fs.existsSync(absoluteDir)) {
     console.error(`Error: Directory "${dir}" does not exist.`);
@@ -34,10 +47,10 @@ export async function runMigrate(
 
   let convert: MigrateTransform;
   try {
-    convert = transform ?? (await loadTransform());
+    convert = transform ?? (await loadTransform(absoluteDir));
   } catch (err: any) {
     console.error(`❌ ${err.message}`);
-    return 1;
+    return err instanceof TypeScriptUnusableError ? 2 : 1;
   }
 
   console.log(`\n🚀 Starting migration scanner...`);

@@ -35,6 +35,22 @@ export function checkExitCode(report: CheckReport): 0 | 1 | 2 {
   return hasCheckFailures(report) ? 1 : 0;
 }
 
+/** The opening lines of the human `check` output: the project, the locales folder and locales. */
+export function checkHeaderLines(report: CheckReport, projectDir: string): string[] {
+  const lines = [`\n🔎 LiveLocale check — ${projectDir}`];
+  if (report.detectedLocalesPath !== undefined) {
+    lines.push(
+      `📂 Locales folder: ${report.detectedLocalesPath} (found it; pass --locales to pick another)`
+    );
+  }
+  lines.push(
+    `🌐 Locales: ${report.locales.join(', ') || 'none'}` +
+      (report.sourceLocale ? ` (source: ${report.sourceLocale})` : '') +
+      ` · ${report.codeKeyCount} key(s) referenced in code`
+  );
+  return lines;
+}
+
 /**
  * The closing lines of the human `check` output. A setup problem replaces the success line,
  * so a run that exits 2 never also says the translations look good.

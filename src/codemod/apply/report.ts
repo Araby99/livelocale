@@ -280,14 +280,56 @@ export function renderCommitMessage(input: {
   return parts.join('\n\n');
 }
 
-/** The terminal summary: counts, then one status line per edit. Never contains values. */
-export function renderTerminalSummary(plan: ApplyPlan): string {
+export interface TerminalSummaryOptions {
+  /** Nothing was written: say so, and use "would apply". */
+  dryRun?: boolean;
+  /** Edits planned as `apply` whose file could not be written, with the reason. */
+  failed?: ReadonlyMap<PlannedEdit, string>;
+  /** The locales folder, for the `git diff` hint after edits with a warning. */
+  localesPath?: string;
+}
+
+/**
+ * The terminal summary: counts, then one status line per edit, with the reason an edit was not
+ * applied and the warnings of an applied one. Never contains values (SEC-001): plan messages and
+ * flags name placeholders and rules, never the translator's text.
+ */
+export function renderTerminalSummary(
+  plan: ApplyPlan,
+  options: TerminalSummaryOptions = {}
+): string {
   const c = plan.counts;
-  const lines = [
-    `Applied ${c.apply} · already done ${c.already} · conflicts ${c.conflict} · needs --force ${c['needs-force']} · rejected ${c.invalid}`,
-  ];
+  const failed = options.failed ?? new Map<PlannedEdit, string>();
+  const applyLabel = options.dryRun ? 'would apply' : STATUS_LABELS.apply;
+  const lines: string[] = options.dryRun ? ['Dry run: nothing was written.'] : [];
+  lines.push(
+    `${options.dryRun ? 'Would apply' : 'Applied'} ${c.apply - failed.size} · already done ${c.already} · conflicts ${c.conflict} · needs --force ${c['needs-force']} · rejected ${c.invalid}` +
+      (failed.size > 0 ? ` · failed ${failed.size}` : '')
+  );
+  let flagged = 0;
   for (const edit of plan.edits) {
-    lines.push(`${STATUS_LABELS[edit.status]} ${edit.locale} ${edit.key}`);
+    const where = `${edit.locale} ${edit.key}`;
+    const failure = failed.get(edit);
+    if (failure !== undefined) {
+      lines.push(`failed ${where} — ${failure}`);
+    } else if (edit.status === 'apply') {
+      if (edit.flags.length > 0) flagged++;
+      const warnings = edit.flags.map((flag) => FLAG_MESSAGES[flag]).join(' ');
+      lines.push(`${applyLabel} ${where}${warnings ? `  ⚠ ${warnings}` : ''}`);
+    } else if (edit.message && edit.status !== 'already') {
+      const hint = edit.status === 'needs-force' ? ' Pass --force to apply it.' : '';
+      lines.push(`${STATUS_LABELS[edit.status]} ${where} — ${edit.message}${hint}`);
+    } else {
+      lines.push(`${STATUS_LABELS[edit.status]} ${where}`);
+    }
+  }
+  if (flagged > 0 && !options.dryRun) {
+    const diff = `git diff -- ${options.localesPath ?? '.'}`;
+    lines.push(
+      flagged === 1
+        ? `⚠ 1 applied edit has a warning. Review it with: ${diff}`
+        : `⚠ ${flagged} applied edits have warnings. Review them with: ${diff}`
+    );
   }
   return lines.join('\n');
 }
