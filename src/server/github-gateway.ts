@@ -12,7 +12,7 @@ import {
   isSafeKeyPath,
   DANGEROUS_KEY_SEGMENTS,
 } from '../core/validate.js';
-import { setNestedProperty, stringifyLike, flattenKeys } from '../core/json-path.js';
+import { setNestedProperty, stringifyLike, flattenKeys, parseJsonText } from '../core/json-path.js';
 import {
   namespaceKeyRequiredMessage,
   namespaceNotFoundMessage,
@@ -76,6 +76,25 @@ const isWriteConflict = (err: unknown) =>
   err instanceof GitHubApiError &&
   (err.status === 409 || (err.status === 422 && /sha/i.test(err.message)));
 
+/**
+ * True when GitHub says the working branch does not exist. A read answers 404 "No commit
+ * found for the ref …", a write 404 "Branch … not found", a ref update 422 "Reference does
+ * not exist". Matched on GitHub's wording, so a missing file never counts.
+ */
+const isBranchMissing = (err: unknown) =>
+  err instanceof GitHubApiError &&
+  (err.status === 404 || err.status === 422) &&
+  /no commit found for the ref|branch\b.*\bnot found|reference does not exist/i.test(err.message);
+
+/**
+ * True when GitHub refuses to create a branch because it exists: another request, or
+ * another server process, created it between our check and our create.
+ */
+const isBranchAlreadyCreated = (err: unknown) =>
+  err instanceof GitHubApiError &&
+  err.status === 422 &&
+  /reference already exists/i.test(err.message);
+
 const encodePath = (p: string) => p.split('/').map(encodeURIComponent).join('/');
 
 const normalizeDir = (p: string) =>
@@ -120,7 +139,11 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
         if (await refSha(branch)) return;
         const base = await refSha(baseBranch);
         if (!base) throw new Error(`Base branch "${baseBranch}" does not exist in ${repo}.`);
-        await api('POST', '/git/refs', { body: { ref: `refs/heads/${branch}`, sha: base } });
+        try {
+          await api('POST', '/git/refs', { body: { ref: `refs/heads/${branch}`, sha: base } });
+        } catch (err) {
+          if (!isBranchAlreadyCreated(err)) throw err;
+        }
       })().catch((err) => {
         branchReady = null;
         throw err;
@@ -129,36 +152,68 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     return branchReady;
   }
 
+  /**
+   * Runs `fn` on the working branch. The branch is checked once per process, but it can
+   * vanish later: GitHub's "automatically delete head branches" removes it when the
+   * pull request merges. When GitHub says the branch is gone, recreate it from base and
+   * run `fn` once more instead of failing every save until the server restarts.
+   */
+  async function onBranch<T>(fn: () => Promise<T>): Promise<T> {
+    const checked = ensureBranch();
+    await checked;
+    try {
+      return await fn();
+    } catch (err) {
+      if (!isBranchMissing(err)) throw err;
+      // Parallel requests (the Studio loads every locale at once) all fail the same way.
+      // Only the first forgets the check; the others wait on the recreation it started.
+      if (branchReady === checked) branchReady = null;
+      await ensureBranch();
+      return fn();
+    }
+  }
+
   async function getContents(path: string): Promise<Contents> {
-    await ensureBranch();
-    const res = await api<Contents>('GET', `/contents/${encodePath(path)}`, {
-      query: { ref: branch },
-      allow404: true,
+    return onBranch(async () => {
+      try {
+        const res = await api<Contents>('GET', `/contents/${encodePath(path)}`, {
+          query: { ref: branch },
+        });
+        return res.data;
+      } catch (err) {
+        // A missing file is normal (a new locale, a flat layout); a missing branch is not.
+        if (err instanceof GitHubApiError && err.status === 404 && !isBranchMissing(err)) {
+          return null;
+        }
+        throw err;
+      }
     });
-    return res.data;
   }
 
   async function readFile(path: string): Promise<{ text: string; sha: string } | null> {
     const contents = await getContents(path);
     if (!contents || Array.isArray(contents) || contents.type !== 'file') return null;
-    const text = decodeBase64Utf8(contents.content);
+    const text = decodeBase64Utf8(contents.content, { keepBom: true });
     return { text, sha: contents.sha };
   }
 
   async function putFile(path: string, text: string, message: string, sha?: string): Promise<void> {
-    await ensureBranch();
-    await api('PUT', `/contents/${encodePath(path)}`, {
-      body: {
-        message,
-        content: encodeBase64Utf8(text),
-        branch,
-        ...(sha ? { sha } : {}),
-      },
-    });
+    await onBranch(() =>
+      api('PUT', `/contents/${encodePath(path)}`, {
+        body: {
+          message,
+          content: encodeBase64Utf8(text),
+          branch,
+          ...(sha ? { sha } : {}),
+        },
+      })
+    );
   }
 
   async function deleteFile(path: string, message: string, sha: string): Promise<void> {
-    await api('DELETE', `/contents/${encodePath(path)}`, { body: { message, sha, branch } });
+    await onBranch(() =>
+      api('DELETE', `/contents/${encodePath(path)}`, { body: { message, sha, branch } })
+    );
   }
 
   // Saves to one file are queued in this process, and a save that still loses
@@ -231,14 +286,14 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
         const f = await readFile(`${dirPath(basePath, locale)}/${file}`);
         if (!f) continue;
         try {
-          merged[file.slice(0, -5)] = JSON.parse(f.text);
+          merged[file.slice(0, -5)] = parseJsonText(f.text);
         } catch {}
       }
       return merged;
     }
     const flat = await readFile(flatPath(basePath, locale));
     if (!flat) throw new Error(`Locale "${locale}" not found on branch ${branch}.`);
-    return JSON.parse(flat.text);
+    return parseJsonText(flat.text) as Record<string, any>;
   }
 
   /**
@@ -290,11 +345,11 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
         const existing = await readFile(filePath);
         let data: Record<string, any> = {};
         if (existing) {
-          const parsed = JSON.parse(existing.text);
+          const parsed = parseJsonText(existing.text);
           if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
             throw new Error('[livelocale] Invalid locale file: root must be an object.');
           }
-          data = parsed;
+          data = parsed as Record<string, any>;
         }
         // Throws KeyOccupiedError against the content just read, before anything is committed.
         setNestedProperty(data, mutationKeyPath, value);
@@ -398,11 +453,20 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
   async function compareFiles(
     basePath: string
   ): Promise<{ filename: string; status: string; patch?: string }[]> {
-    await ensureBranch();
-    const res = await api<{ files?: { filename: string; status: string; patch?: string }[] }>(
-      'GET',
-      `/compare/${encodeURIComponent(baseBranch)}...${encodeURIComponent(branch)}`
-    );
+    const res = await onBranch(async () => {
+      try {
+        return await api<{ files?: { filename: string; status: string; patch?: string }[] }>(
+          'GET',
+          `/compare/${encodeURIComponent(baseBranch)}...${encodeURIComponent(branch)}`
+        );
+      } catch (err) {
+        // Compare answers a bare 404 "Not Found" when the branch is gone, so ask the ref.
+        if (err instanceof GitHubApiError && err.status === 404 && !(await refSha(branch))) {
+          throw new GitHubApiError(`Branch ${branch} not found.`, 404);
+        }
+        throw err;
+      }
+    });
     const prefix = `${normalizeDir(basePath)}/`;
     return (res.data?.files ?? []).filter((f) => f.filename.startsWith(prefix));
   }
@@ -454,10 +518,11 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
   async function discard(): Promise<void> {
     const base = await refSha(baseBranch);
     if (!base) throw new Error(`Base branch "${baseBranch}" does not exist in ${repo}.`);
-    await ensureBranch();
-    await api('PATCH', `/git/refs/heads/${encodeURIComponent(branch)}`, {
-      body: { sha: base, force: true },
-    });
+    await onBranch(() =>
+      api('PATCH', `/git/refs/heads/${encodeURIComponent(branch)}`, {
+        body: { sha: base, force: true },
+      })
+    );
   }
 
   /**

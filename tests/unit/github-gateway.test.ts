@@ -61,6 +61,8 @@ class FakeGitHub {
     }
     if (path === '/git/refs' && method === 'POST') {
       const b = body.ref.replace('refs/heads/', '');
+      // GitHub refuses to create a branch that exists, as when another request won the race.
+      if (this.branches[b]) return json(422, { message: 'Reference already exists' });
       const source = Object.keys(this.branches).find((x) => this.sha(x) === body.sha);
       this.branches[b] = { ...(this.branches[source ?? 'main'] ?? {}) };
       return json(201, { ref: body.ref });
@@ -79,7 +81,15 @@ class FakeGitHub {
       const p = decodeURIComponent(m[1]!);
       const branch = url.searchParams.get('ref') ?? body?.branch ?? 'main';
       const files = this.branches[branch];
-      if (!files) return json(404, { message: 'Branch not found' });
+      // GitHub's own wording: a read names the missing ref, a write the missing branch.
+      if (!files) {
+        return json(404, {
+          message:
+            method === 'GET'
+              ? `No commit found for the ref ${branch}`
+              : `Branch ${branch} not found`,
+        });
+      }
       if (method === 'GET') {
         if (files[p] !== undefined) {
           return json(200, {
@@ -130,7 +140,8 @@ class FakeGitHub {
     m = /^\/compare\/(.+)\.\.\.(.+)$/.exec(path);
     if (m && method === 'GET') {
       const base = this.branches[decodeURIComponent(m[1]!)] ?? {};
-      const head = this.branches[decodeURIComponent(m[2]!)] ?? {};
+      const head = this.branches[decodeURIComponent(m[2]!)];
+      if (!head) return json(404, { message: 'Not Found' });
       const out: any[] = [];
       for (const f of new Set([...Object.keys(base), ...Object.keys(head)])) {
         if (base[f] === head[f]) continue;
@@ -335,6 +346,73 @@ describe('createGitHubGateway', () => {
     expect(github.forcedConflicts).toBe(6); // four attempts, then the error surfaces
   });
 
+  it('recreates the branch when it was deleted after a merge and saves again', async () => {
+    const gw = make();
+    await gw.updateLocaleKey('locales', 'en', 'home.title', 'First');
+    // GitHub's "automatically delete head branches" removes it once the pull request merges.
+    delete github.branches['i18n/preview-edits'];
+
+    await gw.updateLocaleKey('locales', 'en', 'home.title', 'Second');
+    expect(github.branches['i18n/preview-edits']!['locales/en.json']).toContain('"Second"');
+  });
+
+  it('reads from a recreated branch instead of reporting no languages', async () => {
+    const gw = make();
+    await gw.listLocales('locales');
+    delete github.branches['i18n/preview-edits'];
+
+    expect(await gw.listLocales('locales')).toEqual(['ar', 'en']);
+    expect(await gw.readLocale('locales', 'en')).toEqual({ home: { title: 'Hello' } });
+  });
+
+  it('recreates the branch once when parallel reads find it deleted', async () => {
+    const gw = make();
+    await gw.listLocales('locales');
+    delete github.branches['i18n/preview-edits'];
+    const creates = () => github.calls.filter((c) => c.method === 'POST' && c.path === '/git/refs');
+    const before = creates().length;
+
+    const [en, ar] = await Promise.all([
+      gw.readLocale('locales', 'en'),
+      gw.readLocale('locales', 'ar'),
+    ]);
+    expect(en).toEqual({ home: { title: 'Hello' } });
+    expect(ar).toEqual({ home: { title: 'مرحبا' } });
+    expect(creates().length - before).toBe(1);
+  });
+
+  it('carries on when another server creates the branch first', async () => {
+    // Two server processes, each with its own cache, both see no branch and both create it.
+    const [one, two] = [make(), make()];
+    const [en, ar] = await Promise.all([
+      one.readLocale('locales', 'en'),
+      two.readLocale('locales', 'ar'),
+    ]);
+    expect(en).toEqual({ home: { title: 'Hello' } });
+    expect(ar).toEqual({ home: { title: 'مرحبا' } });
+  });
+
+  it('reports a clean status from a recreated branch instead of failing', async () => {
+    const gw = make();
+    await gw.updateLocaleKey('locales', 'en', 'home.title', 'Merged');
+    delete github.branches['i18n/preview-edits'];
+
+    expect((await gw.status('locales')).changes).toEqual([]);
+    expect(github.branches['i18n/preview-edits']).toBeDefined();
+  });
+
+  it('reads and saves a file with a byte-order mark and Windows line endings, keeping both', async () => {
+    github = new FakeGitHub({
+      'locales/fr.json': '\uFEFF{\r\n  "home": {\r\n    "title": "Salut"\r\n  }\r\n}\r\n',
+    });
+    const gw = make();
+    expect(await gw.readLocale('locales', 'fr')).toEqual({ home: { title: 'Salut' } });
+
+    await gw.updateLocaleKey('locales', 'fr', 'home.title', 'Bonjour');
+    expect(github.branches['i18n/preview-edits']!['locales/fr.json']).toBe(
+      '\uFEFF{\r\n  "home": {\r\n    "title": "Bonjour"\r\n  }\r\n}\r\n'
+    );
+  });
   describe('save guard', () => {
     const BRANCH = 'i18n/preview-edits';
     const puts = () => github.calls.filter((c) => c.method === 'PUT');

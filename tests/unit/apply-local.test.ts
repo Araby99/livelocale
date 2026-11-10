@@ -77,7 +77,10 @@ describe('runLocalApply', () => {
     expect(dry.plan.counts).toMatchObject({ apply: 1, invalid: 1 });
     expect(dry.written).toEqual([]);
     expect(fs.readFileSync(arFile, 'utf-8')).toBe(arBefore);
-    expect(dryLogs).toEqual([renderTerminalSummary(dry.plan)]);
+    expect(dryLogs).toEqual([
+      renderTerminalSummary(dry.plan, { dryRun: true, localesPath: 'locales' }),
+    ]);
+    expect(dryLogs[0]).toContain('Dry run: nothing was written.');
 
     const r = await runLocalApply({
       projectDir,
@@ -95,7 +98,7 @@ describe('runLocalApply', () => {
     expect(fs.readFileSync(enFile, 'utf-8')).toBe(enBefore);
     expect(logs.join('\n')).toContain('Applied 1');
     // The terminal summary is the only output: no per-key FileMutator lines.
-    expect(logs).toEqual([renderTerminalSummary(r.plan)]);
+    expect(logs).toEqual([renderTerminalSummary(r.plan, { localesPath: 'locales' })]);
     expect(consoleLog).not.toHaveBeenCalled();
     expect(logs.join('\n')).not.toContain('مرحبًا');
   });

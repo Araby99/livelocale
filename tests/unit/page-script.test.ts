@@ -52,6 +52,16 @@ describe('page head scripts', () => {
     });
   });
 
+  it('reads locale files that start with a byte-order mark, flat and per namespace', () => {
+    fs.writeFileSync(path.join(dir, 'en', 'home.json'), '\uFEFF{ "title": "Hello" }');
+    fs.writeFileSync(path.join(dir, 'fr.json'), '\uFEFF{ "flat": { "title": "Salut" } }');
+    expect(readFallbackDictionary(dir)).toEqual({
+      home: { title: 'Hello' },
+      about: { title: 'عن' },
+      flat: { title: 'Salut' },
+    });
+  });
+
   it('flags development and carries the dictionary in development', () => {
     expect(pageFlag()).toBe('development');
     const scripts = pageHeadScripts(dir);

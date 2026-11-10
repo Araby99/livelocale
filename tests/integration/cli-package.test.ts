@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -16,6 +16,10 @@ import { linkTypeScript } from '../unit/helpers/project-typescript.js';
 const REPO_ROOT = path.resolve(__dirname, '../..');
 const BUILT_CLI = path.join(REPO_ROOT, 'dist', 'codemod', 'index.js');
 const hasBuild = fs.existsSync(BUILT_CLI);
+
+// Every test spawns node, and some spawn git too: 1 to 3 seconds each on an idle Windows machine,
+// so Vitest's 5-second default fails them on a busy one. The setup copies the package.
+vi.setConfig({ testTimeout: 30_000, hookTimeout: 30_000 });
 
 function runCli(pkgDir: string, cwd: string, args: string[]) {
   return spawnSync(process.execPath, [path.join(pkgDir, 'dist', 'codemod', 'index.js'), ...args], {
@@ -48,6 +52,7 @@ function readJson(rel: string): any {
 describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
   let sandbox: string;
   let pkgDir: string;
+  let nextDir: string;
 
   beforeAll(() => {
     sandbox = fs.mkdtempSync(path.join(os.tmpdir(), 'livelocale-pkg-'));
@@ -62,6 +67,17 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
     fs.writeFileSync(
       path.join(projectDir, 'package.json'),
       JSON.stringify({ name: 'consumer', private: true }),
+      'utf-8'
+    );
+    fs.mkdirSync(path.join(projectDir, 'locales'), { recursive: true });
+    fs.writeFileSync(path.join(projectDir, 'locales', 'en.json'), '{"hello":"Hi"}', 'utf-8');
+
+    // The same, as a Next.js app: init refuses a folder with no Next, Vite or Astro in it.
+    nextDir = path.join(sandbox, 'next-app');
+    fs.mkdirSync(path.join(nextDir, 'app'), { recursive: true });
+    fs.writeFileSync(
+      path.join(nextDir, 'package.json'),
+      JSON.stringify({ name: 'next-app', private: true, dependencies: { next: '15.0.0' } }),
       'utf-8'
     );
   });
@@ -85,17 +101,17 @@ describe.skipIf(!hasBuild)('packaged CLI runs without devDependencies', () => {
   });
 
   it('should run `init` in a JavaScript project and write the route handler', () => {
-    const result = runCli(pkgDir, projectDir, ['init']);
+    const result = runCli(pkgDir, nextDir, ['init']);
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
-    const routeFile = path.join(projectDir, 'app', 'api', 'livelocale', 'route.js');
+    const routeFile = path.join(nextDir, 'app', 'api', 'livelocale', 'route.js');
     expect(fs.existsSync(routeFile)).toBe(true);
   });
 
   it('should run `doctor` against the initialized project and exit 0 without failures', () => {
-    fs.mkdirSync(path.join(projectDir, 'locales'), { recursive: true });
-    fs.writeFileSync(path.join(projectDir, 'locales', 'en.json'), '{"hello":"Hi"}', 'utf-8');
-    const result = runCli(pkgDir, projectDir, ['doctor']);
+    fs.mkdirSync(path.join(nextDir, 'locales'), { recursive: true });
+    fs.writeFileSync(path.join(nextDir, 'locales', 'en.json'), '{"hello":"Hi"}', 'utf-8');
+    const result = runCli(pkgDir, nextDir, ['doctor']);
     expect(result.stderr).toBe('');
     expect(result.status).toBe(0);
     expect(result.stdout).toContain('✅');

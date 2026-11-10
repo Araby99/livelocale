@@ -664,9 +664,10 @@ describe('runDoctor — share probes', () => {
     const viteShareProject = subProject('vite-share', {
       'vite.config.ts': `import { liveLocaleVite } from 'livelocale/vite';\nexport default { plugins: [liveLocaleVite({ share: true })] };`,
     });
-    expect(
-      byTitle(await runDoctor({ projectDir: viteShareProject }), 'route handler')?.detail
-    ).toContain('not needed');
+    // A Vite project gets the plugin check, never the Next.js route check.
+    const viteFindings = await runDoctor({ projectDir: viteShareProject });
+    expect(byTitle(viteFindings, 'route handler')).toBeUndefined();
+    expect(byTitle(viteFindings, 'vite plugin')?.level).toBe('ok');
     const packProject = subProject('pack', {
       'package.json': JSON.stringify({ scripts: { build: 'vite build && livelocale pack dist' } }),
     });

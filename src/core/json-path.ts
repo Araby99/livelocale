@@ -140,15 +140,34 @@ export function detectJsonIndent(content: string): string {
   return ws.includes('\t') ? '\t' : ws;
 }
 
+const BOM = '\uFEFF';
+
+/**
+ * Parses JSON text that may start with a UTF-8 byte-order mark. Windows editors and
+ * several translation tools save one, bundlers ignore it, and `JSON.parse` rejects it.
+ */
+export function parseJsonText(text: string): unknown {
+  return JSON.parse(text.startsWith(BOM) ? text.slice(1) : text);
+}
+
 /**
  * Serializes `data` the way the original `content` was formatted: same
- * indentation unit and the same presence or absence of a trailing newline.
- * New documents get two spaces and a trailing newline.
+ * indentation unit, same line ending (CRLF or LF, taken from the first line
+ * break), the same presence or absence of a trailing newline and of a leading
+ * byte-order mark. New documents get two spaces, LF and a trailing newline.
+ *
+ * Keys that look like integers ("10", "404") still come out first in ascending
+ * order: that is how JavaScript objects order keys, and keeping the source order
+ * would need a text splice instead of a parse and rewrite.
  */
 export function stringifyLike(data: unknown, content: string | null): string {
   const indent = content === null ? '  ' : detectJsonIndent(content);
   const trailing = content === null || content.endsWith('\n') ? '\n' : '';
-  return JSON.stringify(data, null, indent) + trailing;
+  let text = JSON.stringify(data, null, indent) + trailing;
+  // JSON.stringify escapes line breaks inside strings, so every raw \n is structural.
+  if (content !== null && /^[^\n]*\r\n/.test(content)) text = text.replace(/\n/g, '\r\n');
+  if (content?.startsWith(BOM)) text = BOM + text;
+  return text;
 }
 
 /** Flattens a nested dictionary into dot-separated leaf keys. */

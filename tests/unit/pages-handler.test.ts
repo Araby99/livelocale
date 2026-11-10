@@ -133,6 +133,93 @@ describe('createLiveLocaleHandler — Pages Router (req, res) signature', () => 
     );
   });
 
+  /**
+   * Next's Pages Router parses the body by default: the stream is already drained and
+   * never emits again, and the parsed value sits on `req.body`. Waiting for the stream
+   * would hang every save forever.
+   */
+  function createParsedReq(body: unknown, contentType = 'application/json') {
+    return {
+      method: 'POST',
+      url: '/api/livelocale',
+      headers: {
+        origin: 'http://localhost:3010',
+        'content-type': contentType,
+        host: 'localhost:3000',
+      },
+      body,
+      readableEnded: true,
+      on() {
+        return this;
+      },
+      destroy: vi.fn(),
+    };
+  }
+
+  async function settleWithin<T>(promise: Promise<T>, ms = 500): Promise<T | 'hung'> {
+    return Promise.race([promise, new Promise<'hung'>((r) => setTimeout(() => r('hung'), ms))]);
+  }
+
+  it('should use a body Next already parsed into an object instead of waiting for the stream', async () => {
+    const handler = createLiveLocaleHandler(config);
+    const req = createParsedReq({ locale: 'en', key: 'home.title', value: 'Parsed' });
+    const res = createNodeRes();
+
+    const outcome = await settleWithin((handler as any)(req, res));
+
+    expect(outcome).not.toBe('hung');
+    expect(res.statusCode).toBe(200);
+    const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+    expect(mutatorInstance.updateLocaleKey).toHaveBeenCalledWith(
+      config.localesPath,
+      'en',
+      'home.title',
+      'Parsed'
+    );
+  });
+
+  it('should use a body Next already read as a string instead of waiting for the stream', async () => {
+    const handler = createLiveLocaleHandler(config);
+    const req = createParsedReq(
+      JSON.stringify({ locale: 'en', key: 'home.title', value: 'Text' }),
+      'application/json'
+    );
+    const res = createNodeRes();
+
+    const outcome = await settleWithin((handler as any)(req, res));
+
+    expect(outcome).not.toBe('hung');
+    expect(res.statusCode).toBe(200);
+    const mutatorInstance = vi.mocked(FileMutator).mock.results[0]?.value;
+    expect(mutatorInstance.updateLocaleKey).toHaveBeenCalledWith(
+      config.localesPath,
+      'en',
+      'home.title',
+      'Text'
+    );
+  });
+
+  it('should answer at once when the stream has already ended and no body was kept', async () => {
+    const handler = createLiveLocaleHandler(config);
+    const req = createParsedReq(undefined);
+    const res = createNodeRes();
+
+    const outcome = await settleWithin((handler as any)(req, res));
+
+    expect(outcome).not.toBe('hung');
+    expect(res.statusCode).toBeGreaterThanOrEqual(400);
+  });
+
+  it('should still cap an already-parsed body at the size limit', async () => {
+    const handler = createLiveLocaleHandler(config);
+    const req = createParsedReq({ locale: 'en', key: 'k', value: 'x'.repeat(2 * 1024 * 1024) });
+    const res = createNodeRes();
+
+    await settleWithin((handler as any)(req, res));
+
+    expect(res.statusCode).toBe(413);
+  });
+
   it('should reject a disallowed origin Node-style with 403', async () => {
     const handler = createLiveLocaleHandler(config);
     const req = createNodeReq(

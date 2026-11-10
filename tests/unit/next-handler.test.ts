@@ -71,7 +71,7 @@ describe('createLiveLocaleHandler', () => {
   it('should return 400 Bad Request when locale formatting is invalid', async () => {
     const handler = createLiveLocaleHandler(config);
 
-    const invalidLocales = ['e', 'english', 'en_US', 'en-US-extra'];
+    const invalidLocales = ['e', 'english', 'en US', 'en-US-extra'];
     for (const loc of invalidLocales) {
       const request = new Request('http://localhost:3000/api/mutate', {
         method: 'POST',

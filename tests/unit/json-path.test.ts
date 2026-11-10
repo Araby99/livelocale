@@ -1,6 +1,12 @@
 // @vitest-environment node
 import { describe, it, expect } from 'vitest';
-import { KeyOccupiedError, lookupKey, setNestedProperty } from '../../src/core/json-path.js';
+import {
+  KeyOccupiedError,
+  lookupKey,
+  parseJsonText,
+  setNestedProperty,
+  stringifyLike,
+} from '../../src/core/json-path.js';
 
 describe('lookupKey', () => {
   const dict = { a: { b: 'text', n: 5, nul: null, arr: ['x'], obj: {} }, s: 'top' };
@@ -88,5 +94,35 @@ describe('setNestedProperty', () => {
   ])('refuses %s without touching Object.prototype', (keyPath) => {
     expect(() => setNestedProperty({}, keyPath, 'yes')).toThrow(/Forbidden key segment/);
     expect(({} as Record<string, unknown>)['polluted']).toBeUndefined();
+  });
+});
+
+describe('parseJsonText', () => {
+  it('reads a document that starts with a byte-order mark', () => {
+    expect(parseJsonText('\uFEFF{"a":"1"}')).toEqual({ a: '1' });
+  });
+
+  it('reads a document without one', () => {
+    expect(parseJsonText('{"a":"1"}')).toEqual({ a: '1' });
+  });
+});
+
+describe('stringifyLike', () => {
+  it('keeps Windows line endings', () => {
+    expect(stringifyLike({ a: 'x\ny' }, '{\r\n  "a": "1"\r\n}\r\n')).toBe(
+      '{\r\n  "a": "x\\ny"\r\n}\r\n'
+    );
+  });
+
+  it('keeps a leading byte-order mark', () => {
+    expect(stringifyLike({ a: '2' }, '\uFEFF{\n\t"a": "1"\n}')).toBe('\uFEFF{\n\t"a": "2"\n}');
+  });
+
+  it('keeps Unix line endings and no mark for an ordinary file', () => {
+    expect(stringifyLike({ a: '2' }, '{\n  "a": "1"\n}\n')).toBe('{\n  "a": "2"\n}\n');
+  });
+
+  it('writes a new document with two spaces, LF and a trailing newline', () => {
+    expect(stringifyLike({ a: '2' }, null)).toBe('{\n  "a": "2"\n}\n');
   });
 });

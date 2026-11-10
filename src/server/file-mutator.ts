@@ -4,7 +4,12 @@ import { isSafeLocaleSegment } from '../core/validate.js';
 import { LOCALE_RE } from '../core/validate.js';
 import { DANGEROUS_KEY_SEGMENTS } from '../core/validate.js';
 import { resolveSafeLocalePath } from '../core/safe-path.js';
-import { setNestedProperty, detectJsonIndent } from '../core/json-path.js';
+import {
+  setNestedProperty,
+  detectJsonIndent,
+  parseJsonText,
+  stringifyLike,
+} from '../core/json-path.js';
 import {
   namespaceKeyRequiredMessage,
   namespaceNotFoundMessage,
@@ -148,27 +153,26 @@ export class FileMutator {
     // Perform atomic operation within a file lock to guarantee concurrency safety (RULE SRV-006)
     await this.withLock(filePath, async () => {
       let currentData: Record<string, any> = {};
-      // Formatting of the existing file, preserved on rewrite (git-friendly diffs).
-      let indent = '  ';
-      let trailingNewline = '\n';
+      // The existing text, whose formatting the rewrite keeps (git-friendly diffs).
+      let fileContent: string | null = null;
 
       try {
-        const fileContent = await fs.readFile(filePath, 'utf-8');
-        indent = detectJsonIndent(fileContent);
-        trailingNewline = fileContent.endsWith('\n') ? '\n' : '';
+        fileContent = await fs.readFile(filePath, 'utf-8');
+        let parsed: unknown;
         try {
-          const parsed = JSON.parse(fileContent);
-
-          // RULE SRV-004: JSON PARSE VALIDATION
-          if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-            throw new Error('Root must be an object');
-          }
-          currentData = parsed;
+          parsed = parseJsonText(fileContent);
         } catch (parseError: any) {
           throw new Error(
-            `[livelocale] Invalid locale file: root must be an object. Code: INVALID_LOCALE. Original error: ${parseError.message}`
+            `[livelocale] Invalid locale file: it is not valid JSON. Code: INVALID_LOCALE. Original error: ${parseError.message}`
           );
         }
+        // RULE SRV-004: JSON PARSE VALIDATION
+        if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+          throw new Error(
+            '[livelocale] Invalid locale file: root must be an object. Code: INVALID_LOCALE.'
+          );
+        }
+        currentData = parsed as Record<string, any>;
       } catch (err: any) {
         // If file does not exist, initialize it as empty object
         if (err.code !== 'ENOENT') {
@@ -195,9 +199,8 @@ export class FileMutator {
       // RULE SEC-004: VALIDATE JSON BEFORE WRITE
       let stringified: string;
       try {
-        stringified = JSON.stringify(currentData, null, indent);
-        JSON.parse(stringified); // Paranoid check
-        stringified += trailingNewline;
+        stringified = stringifyLike(currentData, fileContent);
+        parseJsonText(stringified); // Paranoid check
       } catch (err: any) {
         throw new Error(
           `[livelocale] Produced JSON is invalid or has circular references. Original error: ${err.message}`
@@ -268,7 +271,7 @@ export class FileMutator {
       for (const file of await fs.readdir(localePath)) {
         if (!file.endsWith('.json')) continue;
         try {
-          merged[path.basename(file, '.json')] = JSON.parse(
+          merged[path.basename(file, '.json')] = parseJsonText(
             await fs.readFile(path.join(localePath, file), 'utf-8')
           );
         } catch {}
@@ -277,7 +280,7 @@ export class FileMutator {
     }
 
     const filePath = resolveSafeLocalePath(basePath, locale);
-    return JSON.parse(await fs.readFile(filePath, 'utf-8'));
+    return parseJsonText(await fs.readFile(filePath, 'utf-8')) as Record<string, any>;
   }
 
   /**

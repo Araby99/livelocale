@@ -55,6 +55,14 @@ describe('collectShareData', () => {
     expect(data.warnings).toEqual([]);
   });
 
+  it('finds a next-intl messages/ folder when no path is given', async () => {
+    const dir = makeShareProject();
+    fs.renameSync(path.join(dir, 'locales'), path.join(dir, 'messages'));
+    const data = await collectShareData({ projectDir: dir, basePath: '/', env, git: git(dir) });
+    expect(data.manifest.localesPath).toBe('messages');
+    expect(data.manifest.locales).toEqual(['ar', 'en']);
+  });
+
   it('adds repo only with exposeRepo', async () => {
     const dir = makeShareProject();
     const shown = await collectShareData({
@@ -155,6 +163,23 @@ describe('collectShareData', () => {
       code: 'SOURCE_LOCALE_NOT_FOUND',
       message: `Source locale "fr" not found in ${path.join(dir, 'locales')} (found: ar, en).`,
     });
+  });
+
+  it('reads locale files that start with a byte-order mark', async () => {
+    const dir = makeShareProject({
+      extra: { 'locales/ar.json': '\uFEFF{"home":{"title":"مرحبا"}}' },
+    });
+    const data = await collectShareData({ projectDir: dir, basePath: '/', env, git: git(dir) });
+    expect(data.dictionaries['ar']).toStrictEqual({ home: { title: 'مرحبا' } });
+  });
+
+  it('reads namespace files that start with a byte-order mark', async () => {
+    const dir = makeShareProject({
+      layout: 'namespaced',
+      extra: { 'locales/ar/home.json': '\uFEFF{"title":"مرحبا"}' },
+    });
+    const data = await collectShareData({ projectDir: dir, basePath: '/', env, git: git(dir) });
+    expect(data.dictionaries['ar']).toStrictEqual({ home: { title: 'مرحبا' } });
   });
 
   it.each([

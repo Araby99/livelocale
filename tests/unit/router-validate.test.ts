@@ -110,7 +110,7 @@ describe('mutation router — placeholder and syntax validation', () => {
       { error: 'Invalid locale string parameter.', code: 'INVALID_LOCALE_FORMAT' },
     ],
     [
-      { locale: 'en', key: 'a b', value: 'x' },
+      { locale: 'en', key: 'a$b', value: 'x' },
       400,
       {
         error:

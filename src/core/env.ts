@@ -11,7 +11,8 @@
  *
  * Rules, in order:
  *   1. `LIVELOCALE=off|0|false` (or `NEXT_PUBLIC_LIVELOCALE=off`) always wins → off.
- *   2. `LIVELOCALE=preview` / `NEXT_PUBLIC_LIVELOCALE=preview` → preview.
+ *   2. `LIVELOCALE=preview` / `NEXT_PUBLIC_LIVELOCALE=preview` → preview, unless the
+ *      platform says the deploy is production (Vercel, Netlify, Railway) → off.
  *   3. In the browser, a page global `__LIVELOCALE_FLAG__ = 'development'` → development,
  *      unless the bundle inlined `NODE_ENV=production`. The server that rendered the page sets
  *      it (the Astro integration, the Vite plugin), so a bundle needs no `NODE_ENV` inlining.
@@ -30,10 +31,12 @@ export type LiveLocaleMode = 'off' | 'development' | 'preview';
 const OFF_VALUES = new Set(['off', '0', 'false']);
 
 let warnedDeployed = false;
+let warnedProductionPreview = false;
 
-/** Test hook: forget that the deployed-platform warning was already printed. */
+/** Test hook: forget that the deployed-platform warnings were already printed. */
 export function resetEnvWarnings(): void {
   warnedDeployed = false;
+  warnedProductionPreview = false;
 }
 
 function readNodeEnv(): string | undefined {
@@ -57,14 +60,29 @@ function readGlobalFlag(): string | undefined {
   }
 }
 
-function readPublicFlag(): string | undefined {
-  let value: string | undefined;
+function readPublicEnvFlag(): string | undefined {
   try {
-    value = process.env.NEXT_PUBLIC_LIVELOCALE;
+    // A literal member expression, so Next and Vite inline it into browser bundles.
+    return process.env.NEXT_PUBLIC_LIVELOCALE || undefined;
   } catch {
-    value = undefined;
+    return undefined;
   }
-  return value || readGlobalFlag();
+}
+
+function readPublicFlag(): string | undefined {
+  return readPublicEnvFlag() || readGlobalFlag();
+}
+
+/**
+ * Names the setting that turned preview on, so a message points at what to change.
+ * Called only when `LIVELOCALE` or the public flag is `preview`.
+ */
+function previewSetting(flag: string): string {
+  if (flag === 'preview') return 'LIVELOCALE=preview';
+  if ((readPublicEnvFlag() ?? '').toLowerCase() === 'preview') {
+    return 'NEXT_PUBLIC_LIVELOCALE=preview';
+  }
+  return `the page flag ${BROWSER_FLAG_GLOBAL}="preview"`;
 }
 
 /** Rule 3: the page says the server that rendered it runs in development. Browser only. */
@@ -97,6 +115,31 @@ export function detectDeployedPlatform(): string | null {
   return null;
 }
 
+function readPublicVercelEnv(): string | undefined {
+  try {
+    // A literal member expression, so Next inlines it into browser bundles.
+    return process.env.NEXT_PUBLIC_VERCEL_ENV || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Names the platform when it says this deploy is production, otherwise `null`. Only
+ * platforms that tell production and preview apart in the environment are covered;
+ * Cloudflare Pages, for one, does not expose which branch is the production branch.
+ */
+export function detectProductionDeploy(): string | null {
+  const vercelEnv = readEnv('VERCEL_ENV') ?? readPublicVercelEnv();
+  if (vercelEnv === 'production') return 'Vercel (VERCEL_ENV=production)';
+  if (readEnv('NETLIFY') === 'true' && readEnv('CONTEXT') === 'production') {
+    return 'Netlify (CONTEXT=production)';
+  }
+  const railwayEnvName = readEnv('RAILWAY_ENVIRONMENT_NAME') ?? readEnv('RAILWAY_ENVIRONMENT');
+  if (railwayEnvName === 'production') return `Railway (environment "production")`;
+  return null;
+}
+
 function evaluate(): { mode: LiveLocaleMode; reason: string | null } {
   const flag = (readEnv('LIVELOCALE') ?? '').toLowerCase();
   const publicFlag = (readPublicFlag() ?? '').toLowerCase();
@@ -106,7 +149,27 @@ function evaluate(): { mode: LiveLocaleMode; reason: string | null } {
     return { mode: 'off', reason: 'NEXT_PUBLIC_LIVELOCALE kill switch is set' };
   }
 
-  if (flag === 'preview' || publicFlag === 'preview') return { mode: 'preview', reason: null };
+  if (flag === 'preview' || publicFlag === 'preview') {
+    // Preview mode watermarks every string on the page. Set for "all environments" by
+    // mistake, it would put invisible characters into the live site that search engines
+    // index, so a deploy the platform calls production never runs it.
+    const production = detectProductionDeploy();
+    if (production) {
+      const setting = previewSetting(flag);
+      if (!warnedProductionPreview) {
+        warnedProductionPreview = true;
+        console.warn(
+          `[livelocale] Disabled: ${setting} is set, but ${production} says this is the production deploy. ` +
+            `Preview mode only runs on preview deploys. Set the variable for preview deploys only.`
+        );
+      }
+      return {
+        mode: 'off',
+        reason: `${setting} is set on a production deploy (${production}); it only runs on preview deploys`,
+      };
+    }
+    return { mode: 'preview', reason: null };
+  }
 
   const nodeEnv = readNodeEnv();
   if (pageSaysDevelopment(nodeEnv)) return { mode: 'development', reason: null };

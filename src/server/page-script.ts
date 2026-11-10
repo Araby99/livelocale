@@ -2,6 +2,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { deepMerge } from '../core/deep-merge.js';
 import { BROWSER_FLAG_GLOBAL, getLiveLocaleMode } from '../core/env.js';
+import { parseJsonText } from '../core/json-path.js';
 import { decodeKey } from '../client/watermark.js';
 import { FALLBACK_PARTIAL_GLOBAL } from '../client/wrap.js';
 
@@ -44,7 +45,7 @@ export function readFallbackDictionary(
             const ns = file.slice(0, -5);
             const raw = fs.readFileSync(path.join(entryPath, file), 'utf-8');
             try {
-              const parsed = JSON.parse(raw);
+              const parsed = parseJsonText(raw);
               fallbackData[ns] = deepMerge(fallbackData[ns] || {}, parsed);
             } catch {}
           }
@@ -53,7 +54,7 @@ export function readFallbackDictionary(
     } else if (entry.endsWith('.json')) {
       const raw = fs.readFileSync(entryPath, 'utf-8');
       try {
-        const parsed = JSON.parse(raw);
+        const parsed = parseJsonText(raw);
         fallbackData = deepMerge(fallbackData, parsed);
       } catch {}
     }

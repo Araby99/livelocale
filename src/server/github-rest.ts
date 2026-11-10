@@ -66,11 +66,13 @@ export function encodeBase64Utf8(text: string): string {
 }
 
 /** Decodes standard base64 to UTF-8 text; GitHub wraps contents at 60 characters with '\n'. */
-export function decodeBase64Utf8(base64: string): string {
+export function decodeBase64Utf8(base64: string, options: { keepBom?: boolean } = {}): string {
   const binary = atob(base64.replace(/\s/g, ''));
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
+  // TextDecoder drops a leading byte-order mark by default. A caller that writes the
+  // file back keeps it, so the commit does not change the file's first bytes.
+  return new TextDecoder('utf-8', { ignoreBOM: options.keepBom === true }).decode(bytes);
 }
 
 /** True for the 403 GitHub gives when Actions may not open pull requests in this repository. */

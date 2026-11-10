@@ -54,6 +54,12 @@ describe('github-rest', () => {
     expect(decodeBase64Utf8('2YXYsdit2KjYpw==\n')).toBe('مرحبا');
   });
 
+  it('drops a byte-order mark by default and keeps it when asked', () => {
+    const withBom = encodeBase64Utf8('\uFEFF{}');
+    expect(decodeBase64Utf8(withBom)).toBe('{}');
+    expect(decodeBase64Utf8(withBom, { keepBom: true })).toBe('\uFEFF{}');
+  });
+
   it('reuses an open pull request and refreshes its body when asked', async () => {
     openPulls = [{ number: 9, html_url: 'https://github.com/acme/site/pull/9' }];
     const r = await rest.openOrReusePullRequest({

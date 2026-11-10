@@ -17,6 +17,8 @@ const PLATFORM_VARS = [
   'RENDER',
   'FLY_APP_NAME',
   'RAILWAY_ENVIRONMENT',
+  'RAILWAY_ENVIRONMENT_NAME',
+  'NEXT_PUBLIC_VERCEL_ENV',
   'DYNO',
   'LIVELOCALE',
   'NEXT_PUBLIC_LIVELOCALE',
@@ -155,6 +157,59 @@ describe('preview mode', () => {
     warn.mockRestore();
   });
 
+  it.each([
+    [{ VERCEL_ENV: 'production' }, /Vercel/],
+    [{ NEXT_PUBLIC_VERCEL_ENV: 'production' }, /Vercel/],
+    [{ NETLIFY: 'true', CONTEXT: 'production' }, /Netlify/],
+    [{ RAILWAY_ENVIRONMENT_NAME: 'production' }, /Railway/],
+  ])('refuses preview mode when the platform says the deploy is production (%o)', (vars, name) => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('LIVELOCALE', 'preview');
+    for (const [k, v] of Object.entries(vars)) vi.stubEnv(k, v);
+
+    expect(getLiveLocaleMode()).toBe('off');
+    const reason = getDisabledReason() ?? '';
+    expect(reason).toMatch(name);
+    expect(reason).toMatch(/production/);
+    expect(reason).toMatch(/LIVELOCALE=preview/);
+    getLiveLocaleMode();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
+  });
+
+  it('refuses NEXT_PUBLIC_LIVELOCALE=preview on a production deploy too, naming that variable', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.stubEnv('NEXT_PUBLIC_LIVELOCALE', 'preview');
+    vi.stubEnv('VERCEL_ENV', 'production');
+    expect(getLiveLocaleMode()).toBe('off');
+    expect(getDisabledReason()).toMatch(/^NEXT_PUBLIC_LIVELOCALE=preview is set/);
+    expect(warn.mock.calls[0]![0]).toMatch(/NEXT_PUBLIC_LIVELOCALE=preview is set/);
+    vi.restoreAllMocks();
+  });
+
+  it('names the page flag when only the page turned preview on', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    (globalThis as any).__LIVELOCALE_FLAG__ = 'preview';
+    try {
+      vi.stubEnv('NEXT_PUBLIC_VERCEL_ENV', 'production');
+      expect(getLiveLocaleMode()).toBe('off');
+      expect(getDisabledReason()).toMatch(/^the page flag __LIVELOCALE_FLAG__="preview" is set/);
+    } finally {
+      delete (globalThis as any).__LIVELOCALE_FLAG__;
+      vi.restoreAllMocks();
+    }
+  });
+
+  it.each([
+    { VERCEL_ENV: 'preview' },
+    { NETLIFY: 'true', CONTEXT: 'deploy-preview' },
+    { NETLIFY: 'true', CONTEXT: 'branch-deploy' },
+    { RAILWAY_ENVIRONMENT_NAME: 'staging' },
+  ])('keeps preview mode on a preview deploy (%o)', (vars) => {
+    vi.stubEnv('LIVELOCALE', 'preview');
+    for (const [k, v] of Object.entries(vars)) vi.stubEnv(k, v);
+    expect(getLiveLocaleMode()).toBe('preview');
+  });
   it('still honours the kill switch over preview in client bundles', () => {
     vi.stubEnv('LIVELOCALE', 'off');
     vi.stubEnv('NEXT_PUBLIC_LIVELOCALE', 'preview');

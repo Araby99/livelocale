@@ -2,6 +2,8 @@ import { spawn } from 'child_process';
 import { existsSync, readFileSync, statSync, promises as fs } from 'fs';
 import * as path from 'path';
 import { FLAG_SCRIPT } from '../core/flag-script.js';
+import { parseJsonText } from '../core/json-path.js';
+import { resolveLocalesPath } from '../core/locale-folder.js';
 import { readablePath } from '../core/page-path.js';
 import { LOCALE_RE } from '../core/validate.js';
 import {
@@ -81,7 +83,8 @@ async function readJsonObject(file: string, projectDir: string): Promise<Record<
   const shown = toPosix(path.relative(projectDir, file));
   let parsed: unknown;
   try {
-    parsed = JSON.parse(await fs.readFile(file, 'utf-8'));
+    // parseJsonText accepts the byte-order mark some Windows editors put first.
+    parsed = parseJsonText(await fs.readFile(file, 'utf-8'));
   } catch (error) {
     throw new PackError(
       'INVALID_LOCALE_FILE',
@@ -104,7 +107,11 @@ async function readJsonObject(file: string, projectDir: string): Promise<Record<
  */
 export async function collectShareData(options: ShareDataOptions): Promise<ShareData> {
   const projectDir = path.resolve(options.projectDir);
-  const localesDir = path.resolve(projectDir, options.localesPath ?? 'locales');
+  // Without a path, look where check and doctor look: locales/, then messages/ (next-intl), ...
+  const localesDir = path.resolve(
+    projectDir,
+    resolveLocalesPath(projectDir, options.localesPath).path
+  );
   const warnings: string[] = [];
 
   let entries;

@@ -41,44 +41,94 @@
   },
   "exports": {
     ".": {
-      "types": "./dist/server/index.d.ts",
-      "import": "./dist/server/index.js",
-      "require": "./dist/server/index.cjs"
+      "import": {
+        "types": "./dist/server/index.d.ts",
+        "default": "./dist/server/index.js"
+      },
+      "require": {
+        "types": "./dist/server/index.d.cts",
+        "default": "./dist/server/index.cjs"
+      }
     },
     "./client": {
-      "types": "./dist/client/index.d.ts",
-      "import": "./dist/client/index.js",
-      "require": "./dist/client/index.cjs"
+      "import": {
+        "types": "./dist/client/index.d.ts",
+        "default": "./dist/client/index.js"
+      },
+      "require": {
+        "types": "./dist/client/index.d.cts",
+        "default": "./dist/client/index.cjs"
+      }
     },
     "./server": {
-      "types": "./dist/server/index.d.ts",
-      "import": "./dist/server/index.js",
-      "require": "./dist/server/index.cjs"
+      "import": {
+        "types": "./dist/server/index.d.ts",
+        "default": "./dist/server/index.js"
+      },
+      "require": {
+        "types": "./dist/server/index.d.cts",
+        "default": "./dist/server/index.cjs"
+      }
     },
     "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js",
-      "require": "./dist/react/index.cjs"
+      "import": {
+        "types": "./dist/react/index.d.ts",
+        "default": "./dist/react/index.js"
+      },
+      "require": {
+        "types": "./dist/react/index.d.cts",
+        "default": "./dist/react/index.cjs"
+      }
     },
     "./vite": {
-      "types": "./dist/vite/index.d.ts",
-      "import": "./dist/vite/index.js",
-      "require": "./dist/vite/index.cjs"
+      "import": {
+        "types": "./dist/vite/index.d.ts",
+        "default": "./dist/vite/index.js"
+      },
+      "require": {
+        "types": "./dist/vite/index.d.cts",
+        "default": "./dist/vite/index.cjs"
+      }
     },
     "./astro": {
-      "types": "./dist/astro/index.d.ts",
-      "import": "./dist/astro/index.js",
-      "require": "./dist/astro/index.cjs"
+      "import": {
+        "types": "./dist/astro/index.d.ts",
+        "default": "./dist/astro/index.js"
+      },
+      "require": {
+        "types": "./dist/astro/index.d.cts",
+        "default": "./dist/astro/index.cjs"
+      }
     },
     "./astro/middleware": {
-      "types": "./dist/astro/middleware.d.ts",
-      "import": "./dist/astro/middleware.js",
-      "require": "./dist/astro/middleware.cjs"
+      "import": {
+        "types": "./dist/astro/middleware.d.ts",
+        "default": "./dist/astro/middleware.js"
+      },
+      "require": {
+        "types": "./dist/astro/middleware.d.cts",
+        "default": "./dist/astro/middleware.cjs"
+      }
     },
     "./strip": {
-      "types": "./dist/strip/index.d.ts",
-      "import": "./dist/strip/index.js",
-      "require": "./dist/strip/index.cjs"
+      "import": {
+        "types": "./dist/strip/index.d.ts",
+        "default": "./dist/strip/index.js"
+      },
+      "require": {
+        "types": "./dist/strip/index.d.cts",
+        "default": "./dist/strip/index.cjs"
+      }
+    },
+    "./wrap": {
+      "import": {
+        "types": "./dist/wrap/index.d.ts",
+        "default": "./dist/wrap/index.js"
+      },
+      "require": {
+        "types": "./dist/wrap/index.d.cts",
+        "default": "./dist/wrap/index.cjs"
+      }
     },
     "./package.json": "./package.json"
   },
@@ -176,6 +226,7 @@
     "tsup": "^9.0.0",
     "tw-animate-css": "^1.0.0",
     "typescript": "^5.4.5",
+    "use-intl": "^4.14.9",
     "vite": "^8.3.5",
     "vitest": "^4.1.12"
   },

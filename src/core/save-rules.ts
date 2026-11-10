@@ -214,7 +214,7 @@ export function validateEdit(
 export type ContentRiskFlag = 'markup' | 'javascript-url' | 'new-url' | 'bidi-control';
 
 export const RISK_FLAG_MESSAGES: Record<ContentRiskFlag, string> = {
-  markup: 'Adds markup that the source text does not have.',
+  markup: 'Adds tags, or tag attributes, that the source text does not have.',
   'javascript-url': 'Adds a javascript:, vbscript: or data: link.',
   'new-url': 'Adds a web address that the source text does not have.',
   'bidi-control': 'Contains invisible text-direction control characters.',
@@ -223,21 +223,93 @@ export const RISK_FLAG_MESSAGES: Record<ContentRiskFlag, string> = {
 // Global patterns are only ever read through String.match and String.matchAll,
 // which never leave state behind on a shared regex. No lookbehind: the core
 // must run in every browser the Studio supports.
-const TAG_PATTERN = /<\/?([A-Za-z][\w-]*)\b[^<>]*>/g;
+// A browser reads a quoted attribute value to its closing quote, `<` and `>` included, so
+// `title="<"` must not end the tag early and hide what follows. A quote opens a value only
+// right after `=`; anywhere else it is an ordinary character, as in `alt=it's`. The four
+// alternatives never start on the same character, so matching stays linear.
+const TAG_PATTERN = /<(\/?)([A-Za-z][\w-]*)\b((?:=\s*"[^"]*"|=\s*'[^']*'|=(?!\s*["'])|[^<>=])*)>/g;
+const ATTRIBUTE_PATTERN = /([^\s"'<>/=]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+// Attributes whose value can run script, load something or cover the page. A change
+// to their value is flagged; other attributes (title, alt, class) may be translated.
+const ACTIVE_ATTRIBUTE_PATTERN =
+  /^(?:on.*|style|href|src|srcset|srcdoc|action|formaction|xlink:href|poster|background|data|codebase|content|ping)$/;
 const SCRIPT_LINK_PATTERNS = [/\b(?:javascript|vbscript)\s*:/i, /\bdata:[a-z]+\/[\w.+-]+/i];
-const URL_PATTERN = /\b(?:https?:\/\/|www\.)[^\s<>"')]+/gi;
+// A protocol-relative address (`//host/path`) loads from another site just like https://.
+// It must follow a start, a space, a quote, `=` or `(`, so `https://` and prose `a // b`
+// do not count, and it needs a dotted host.
+const URL_PATTERN =
+  /\b(?:https?:\/\/|www\.)[^\s<>"')]+|(?:^|[\s"'=(])\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)+[^\s<>"')]*/gi;
 // U+202A-U+202E (embeddings and overrides) and U+2066-U+2069 (isolates).
 // LRM and RLM are ordinary Arabic and Hebrew typography, so they are left out.
 const BIDI_CONTROL_PATTERN = /[\u202A-\u202E\u2066-\u2069]/g;
 
-/** Tag names are case-insensitive in HTML, so `<B>` and `<b>` are one name. */
-const tagNames = (text: string): string[] =>
-  Array.from(text.matchAll(TAG_PATTERN), (m) => m[1]!.toLowerCase());
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  apos: "'",
+  colon: ':',
+  gt: '>',
+  lpar: '(',
+  lt: '<',
+  NewLine: '\n',
+  period: '.',
+  quot: '"',
+  rpar: ')',
+  sol: '/',
+  Tab: '\t',
+};
+
+/**
+ * Decodes the HTML character references a browser would decode in a value rendered as
+ * HTML, so `java&#115;cript:` reads as `javascript:`. The semicolon is optional, as in HTML.
+ */
+const decodeEntities = (text: string): string =>
+  text
+    .replace(/&#(?:x([0-9a-f]+)|(\d+));?/gi, (whole, hex?: string, dec?: string) => {
+      const code = hex ? parseInt(hex, 16) : Number(dec);
+      return code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+    })
+    .replace(/&([A-Za-z]+);/g, (whole, name: string) => NAMED_ENTITIES[name] ?? whole);
+
+/**
+ * A text as a browser reads it when it is a link: decoded, and without tabs and line
+ * breaks, which the URL parser drops anywhere. Only for text that is a link as a whole
+ * (an attribute value, or a translation used as an `href`): in prose, dropping a line
+ * break would glue a word to the address after it.
+ */
+const asUrl = (text: string): string => decodeEntities(text).replace(/[\t\n\r]/g, '');
+
+interface TagScan {
+  /** One per tag: see `tagSignature`. */
+  signatures: string[];
+  /** The raw value of every active attribute, in order. */
+  activeValues: string[];
+}
+
+/**
+ * Reads every tag. A signature holds the tag's lowercase name, every attribute name, and
+ * the value of each active attribute as a link, in a fixed order. So the same tag written
+ * with other quotes, case or attribute order matches, while an added `onmouseover` or a
+ * new `href` does not.
+ */
+const scanTags = (text: string): TagScan => {
+  const scan: TagScan = { signatures: [], activeValues: [] };
+  for (const tag of text.matchAll(TAG_PATTERN)) {
+    const attributes = Array.from(tag[3]!.matchAll(ATTRIBUTE_PATTERN), (m) => {
+      const attrName = m[1]!.toLowerCase();
+      if (!ACTIVE_ATTRIBUTE_PATTERN.test(attrName)) return attrName;
+      const raw = m[2] ?? m[3] ?? m[4] ?? '';
+      scan.activeValues.push(raw);
+      return `${attrName}=${asUrl(raw).trim()}`;
+    }).sort();
+    scan.signatures.push([tag[1]! + tag[2]!.toLowerCase(), ...attributes].join(' '));
+  }
+  return scan;
+};
 
 const allMatches = (pattern: RegExp, text: string): string[] => text.match(pattern) ?? [];
 
-/** Scheme (or `www.`) and host, then the rest of the address. */
-const URL_PARTS_PATTERN = /^((?:https?:\/\/|www\.)[^/?#]*)(.*)$/i;
+/** Scheme (or `www.` or `//`) and host, then the rest of the address. */
+const URL_PARTS_PATTERN = /^((?:https?:\/\/|www\.|\/\/)[^/?#]*)(.*)$/i;
 
 /**
  * One address as compared: without trailing sentence punctuation, with the
@@ -245,7 +317,8 @@ const URL_PARTS_PATTERN = /^((?:https?:\/\/|www\.)[^/?#]*)(.*)$/i;
  * case, because servers may treat `/A` and `/a` as different pages.
  */
 const normalizeUrl = (url: string): string => {
-  const trimmed = url.replace(/[.,;:!?]+$/, '');
+  // A protocol-relative match carries the character before its `//`.
+  const trimmed = url.replace(/^[\s"'=(]/, '').replace(/[.,;:!?]+$/, '');
   const parts = URL_PARTS_PATTERN.exec(trimmed);
   return parts ? parts[1]!.toLowerCase() + parts[2]! : trimmed;
 };
@@ -268,15 +341,37 @@ export function detectRiskFlags(reference: string | undefined, value: string): C
   const ref = reference ?? '';
   const flags: ContentRiskFlag[] = [];
 
-  if (hasNew(tagNames(ref), tagNames(value))) flags.push('markup');
+  const refTags = scanTags(ref);
+  const valueTags = scanTags(value);
+  if (hasNew(refTags.signatures, valueTags.signatures)) flags.push('markup');
+
+  // Addresses are read from the decoded text and from every active attribute value as a
+  // link. Each side pools what all its readings find, so an address the reference has in
+  // any reading is never new.
+  const linkTexts = (text: string, tags: TagScan): string[] => [
+    decodeEntities(text),
+    ...tags.activeValues.map(asUrl),
+  ];
+  const refLinks = linkTexts(ref, refTags);
+  const valueLinks = linkTexts(value, valueTags);
+  // A translation can itself be an `href`, so schemes are also read from the whole text
+  // as a link: `java<tab>script:` then reads as `javascript:`.
+  const refSchemeTexts = [...refLinks, asUrl(ref)];
+  const valueSchemeTexts = [...valueLinks, asUrl(value)];
 
   // Each pattern is checked on its own, so a reference holding a data: link
   // does not excuse a new javascript: link.
-  if (SCRIPT_LINK_PATTERNS.some((pattern) => pattern.test(value) && !pattern.test(ref))) {
+  if (
+    SCRIPT_LINK_PATTERNS.some(
+      (pattern) =>
+        valueSchemeTexts.some((text) => pattern.test(text)) &&
+        !refSchemeTexts.some((text) => pattern.test(text))
+    )
+  ) {
     flags.push('javascript-url');
   }
 
-  if (hasNew(urls(ref), urls(value))) flags.push('new-url');
+  if (hasNew(refLinks.flatMap(urls), valueLinks.flatMap(urls))) flags.push('new-url');
 
   if (hasNew(allMatches(BIDI_CONTROL_PATTERN, ref), allMatches(BIDI_CONTROL_PATTERN, value))) {
     flags.push('bidi-control');

@@ -563,6 +563,31 @@ describe('FileMutator', () => {
     expect(writtenText()).toBe('{\n\t"greeting": "Hi"\n}\n');
   });
 
+  it('should keep Windows line endings when the original file used them', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue('{\r\n  "a": "1",\r\n  "greeting": "Hello"\r\n}\r\n');
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+    expect(writtenText()).toBe('{\r\n  "a": "1",\r\n  "greeting": "Hi"\r\n}\r\n');
+  });
+
+  it('should read a file that starts with a byte-order mark and write the mark back', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue('\uFEFF{\n  "greeting": "Hello"\n}\n');
+    vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+    vi.mocked(fs.rename).mockResolvedValue(undefined);
+
+    await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi');
+    expect(writtenText()).toBe('\uFEFF{\n  "greeting": "Hi"\n}\n');
+  });
+
+  it('should say the file is not valid JSON, not that its root is wrong, on a parse error', async () => {
+    vi.mocked(fs.readFile).mockResolvedValue('{ "greeting": ');
+    const err = await mutator.updateLocaleKey(BASE_PATH, 'en', 'greeting', 'Hi').catch((e) => e);
+    expect(err.message).toMatch(/not valid JSON/i);
+    expect(err.message).not.toMatch(/root must be an object/i);
+  });
+
   it('should default to two spaces and a trailing newline for a new file', async () => {
     const enoent: any = new Error('missing');
     enoent.code = 'ENOENT';
@@ -579,6 +604,19 @@ describe('FileMutator', () => {
     vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
     vi.mocked(fs.readFile).mockResolvedValue('{"greeting":"Hello"}');
     expect(await mutator.readLocale(BASE_PATH, 'en')).toEqual({ greeting: 'Hello' });
+  });
+
+  it('should read a flat locale file that starts with a byte-order mark', async () => {
+    vi.mocked(fs.stat).mockRejectedValue(new Error('ENOENT'));
+    vi.mocked(fs.readFile).mockResolvedValue('\uFEFF{"greeting":"Hello"}');
+    expect(await mutator.readLocale(BASE_PATH, 'en')).toEqual({ greeting: 'Hello' });
+  });
+
+  it('should read namespace files that start with a byte-order mark', async () => {
+    vi.mocked(fs.stat).mockResolvedValue({ isDirectory: () => true } as any);
+    vi.mocked(fs.readdir).mockResolvedValue(['common.json' as any]);
+    vi.mocked(fs.readFile).mockResolvedValueOnce('\uFEFF{"title":"Welcome"}');
+    expect(await mutator.readLocale(BASE_PATH, 'en')).toEqual({ common: { title: 'Welcome' } });
   });
 
   it('should merge namespace files when the locale is a directory', async () => {
