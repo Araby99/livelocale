@@ -2,7 +2,8 @@
 // Every visible string goes through t(), wrapped with wrapTranslationEngine so the packed share
 // Studio can edit it by Alt+Click. The headline typo and the one Arabic button with no translation
 // (hero.cta is missing from ar.json, so i18next falls back to English) are deliberate: the video
-// fixes both.
+// fixes both. The footer's {year} and the Studio plan's seat plural are ICU, so the demo shows the
+// Studio's placeholder chip and plural editor; icu.ts formats them.
 import '@fontsource/plus-jakarta-sans/400.css';
 import '@fontsource/plus-jakarta-sans/500.css';
 import '@fontsource/plus-jakarta-sans/600.css';
@@ -18,6 +19,7 @@ import i18next from 'i18next';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { initReactI18next, useTranslation } from 'react-i18next';
+import { icuFormat } from './icu';
 import en from './locales/en.json';
 import ar from './locales/ar.json';
 
@@ -28,14 +30,20 @@ const dir = locale === 'ar' ? 'rtl' : 'ltr';
 document.documentElement.lang = locale;
 document.documentElement.dir = dir;
 
-void i18next.use(initReactI18next).init({
-  resources: RESOURCES,
-  lng: locale,
-  fallbackLng: 'en',
-  interpolation: { escapeValue: false },
-});
+void i18next
+  .use(initReactI18next)
+  .use(icuFormat)
+  .init({
+    resources: RESOURCES,
+    lng: locale,
+    fallbackLng: 'en',
+    interpolation: { escapeValue: false },
+  });
 
-type T = (key: string) => string;
+type T = (key: string, values?: Record<string, unknown>) => string;
+
+/** Fixed, so the hero video and the docs shots do not change on New Year's Day. */
+const YEAR = 2026;
 
 function Logo({ t }: { t: T }) {
   return (
@@ -79,8 +87,20 @@ function Check() {
   );
 }
 
-function Plan({ t, id, featured }: { t: T; id: string; featured?: boolean }) {
+function Plan({
+  t,
+  id,
+  featured,
+  seats,
+}: {
+  t: T;
+  id: string;
+  featured?: boolean;
+  seats?: number;
+}) {
   const k = (s: string) => `plans.${id}.${s}`;
+  // The seat count fills the plural in the plan's f2; the other lines have no {count} to fill.
+  const values = seats === undefined ? undefined : { count: seats };
   return (
     <article className={featured ? 'plan plan--featured' : 'plan'}>
       <header className="plan__head">
@@ -96,7 +116,7 @@ function Plan({ t, id, featured }: { t: T; id: string; featured?: boolean }) {
         {['f1', 'f2', 'f3', 'f4'].map((f) => (
           <li key={f}>
             <Check />
-            <span>{t(k(f))}</span>
+            <span>{t(k(f), values)}</span>
           </li>
         ))}
       </ul>
@@ -155,7 +175,7 @@ function Pricing() {
 
         <section className="plans">
           <Plan t={t} id="solo" />
-          <Plan t={t} id="studio" featured />
+          <Plan t={t} id="studio" featured seats={5} />
           <Plan t={t} id="agency" />
         </section>
 
@@ -181,7 +201,7 @@ function Pricing() {
           <a href="#">{t('footer.privacy')}</a>
           <a href="#">{t('footer.terms')}</a>
           <a href="#">{t('footer.status')}</a>
-          <span>{t('footer.copyright')}</span>
+          <span>{t('footer.copyright', { year: YEAR })}</span>
         </div>
       </footer>
     </div>

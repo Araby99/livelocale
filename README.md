@@ -31,7 +31,8 @@ date and number formatting and message rendering; livelocale only edits and revi
 Run your app beside the livelocale Studio, hold Alt and click a line of text, and fix it. The save
 goes straight into your locale JSON file as an ordinary edit you commit. In development every
 translated string carries an invisible watermark, so the Studio knows which key you clicked; in
-production nothing is added. Share links let someone without a checkout fix text on your deployed
+production no watermark is added and the in-page client is never loaded (what stays in your bundle
+is about 3 KB gzip and does nothing). Share links let someone without a checkout fix text on your deployed
 site and send the change back as a pull request.
 
 **Docs: [livelocale.js.org/docs](https://livelocale.js.org/docs/)**
@@ -65,12 +66,15 @@ export default function RootLayout({ children }) {
 }
 ```
 
-Let `init` write the API route the Studio saves through, then load your strings with
-`createTranslations`:
+Let `init` write the API route the Studio saves through:
 
 ```bash
 npx livelocale init
 ```
+
+With next-intl, wrap the `t` you already have: `wrapNextIntl(useTranslations('home'), 'home')`
+from `livelocale/wrap`, which works in Server and Client Components. With no i18n library yet,
+`createTranslations` is an optional loader for your JSON files:
 
 ```tsx
 // app/page.tsx
@@ -96,6 +100,35 @@ npx livelocale studio
 
 Open `http://localhost:3010`, hold Alt (Option on a Mac), click a line of text and press
 **Save Changes**. `git diff locales/` shows the fix.
+
+## React + Vite with react-i18next
+
+Keep react-i18next. Add the plugin, which serves the save API from the Vite dev server:
+
+```ts
+// vite.config.ts
+import { liveLocaleVite } from 'livelocale/vite';
+
+export default defineConfig({
+  plugins: [react(), liveLocaleVite({ localesPath: './locales' })],
+});
+```
+
+Render `<LiveLocaleProvider />` from `livelocale/react` once beside `<App />`, and wrap the `t`
+each component gets, with the namespace as the prefix:
+
+```tsx
+import { useTranslation } from 'react-i18next';
+import { wrapTranslationEngine } from 'livelocale/wrap';
+
+const { t: rawT } = useTranslation('auth');
+const t = wrapTranslationEngine(rawT, { keyPrefix: 'auth' });
+```
+
+`npx livelocale migrate` does that wrapping for you across the app. Then run `npx vite`, and
+`npx livelocale studio --app http://localhost:5173` in a second terminal. The
+[Vite guide](https://livelocale.js.org/docs/start/vite.html) covers file layouts, plurals and what
+each step should show.
 
 ## Supported versions
 
@@ -124,6 +157,7 @@ lists what that covers and what is internal.
 ## Contributing
 
 - [Contributing guide](CONTRIBUTING.md): setup, checks and changesets.
+- [Questions and roadmap](CONTRIBUTING.md#questions): where to ask, and what is not planned.
 - [Security policy](SECURITY.md): report a vulnerability privately.
 - [Code of Conduct](CODE_OF_CONDUCT.md): how we work together.
 

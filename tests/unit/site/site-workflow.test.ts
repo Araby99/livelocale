@@ -61,3 +61,9 @@ it('installs and runs the three engines', () => {
   for (const name of ["name: 'webkit'", "name: 'firefox'"]) expect(config).toContain(name);
   expect(config.match(/grep: \/@cross\//g)).toHaveLength(2);
 });
+
+it('gives the token read-only access unless a job asks for more', () => {
+  // Without a block the token gets the repository default, which may be read and write.
+  expect(wf).toMatch(/^permissions:\n {2}contents: read$/m);
+  expect(wf.replace(/\r\n/g, '\n')).toMatch(/\n {4}permissions:\n {6}pages: write\n/);
+});

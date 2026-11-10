@@ -7,7 +7,7 @@ description: Edit text against a deployed preview of your app, with every save c
 
 The dev Studio needs a developer's machine. Preview mode lets a translator or reviewer edit text against a deployed preview of your app instead: each save goes to a git branch and a pull request, not to a local file. Nothing is written to the server's filesystem.
 
-<DocShot lead name="next-studio-open" alt="The Studio beside the running Next.js playground: the Locale Directory lists five keys, the preview shows the page with status Active, and the editor says Select an Element." caption="The Studio a reviewer opens. Shot on the dev Studio; in preview mode the same Studio points at your deployed preview." />
+<DocShot lead name="next-studio-open" alt="The Studio beside the running Next.js playground: the Texts list shows five keys, the preview shows the page with the site status Connected, and the editor says Pick a text to fix." caption="The Studio a reviewer opens. Shot on the dev Studio; in preview mode the same Studio points at your deployed preview." />
 
 ## How it fits together
 
@@ -59,7 +59,7 @@ On Vite, the plugin copies the server's `LIVELOCALE` into the page, so `LIVELOCA
 
 ## Open the Studio on the preview
 
-Open the Studio with `?app=https://<preview-url>`, or start it with `studio --app https://<preview-url>`. It shows a **PREVIEW** badge, asks for the access token, and the Changes panel switches to branch and pull request actions. Code reference scanning is off in this mode, because there is no checkout, so the Locale Directory lists keys from the locale files only.
+Open the Studio with `?app=https://<preview-url>`, or start it with `studio --app https://<preview-url>`. It shows a **PREVIEW** badge, asks for the access token, and the Changes panel switches to branch and pull request actions. Code reference scanning is off in this mode, because there is no checkout, so the Texts list shows keys from the locale files only.
 
 ## Check the deployment
 
@@ -70,6 +70,34 @@ npx livelocale doctor --app https://<preview-url> --token <LIVELOCALE_TOKEN>
 ```
 
 The server checks its GitHub token when the Studio connects. A token that cannot write contents or open pull requests, a missing base branch or an unknown repository is reported in a banner in the Studio and by `doctor`, before anyone loses an edit to a failed save. See the [`doctor` reference](../reference/cli/doctor.md).
+
+## Apps with a login
+
+The Studio shows your app in a frame. When the Studio and the app are on the same site, the app's login works in the frame as it does in a tab. That covers the dev Studio (`localhost:3010` beside `localhost:3000`) and share links, whose Studio is served from your app's own site.
+
+Preview mode, and `studio --app https://<deployed-url>`, put the Studio on another site than the app. Inside the frame, the app's session cookie is then a third-party cookie:
+
+- A cookie with `SameSite=Lax` (the default of most auth libraries) or `SameSite=Strict` is not sent. The reviewer sees your login page in the frame, signs in, and lands on the login page again.
+- Safari blocks third-party cookies by default, and other browsers can be set to, whatever the `SameSite` value.
+- Firefox keeps third-party cookies separate for each site, so a login made in another tab does not carry over to the frame.
+
+The token the Studio asks for is not affected: it guards only the mutation API. Pages that need no login work as usual. What works for pages behind a login:
+
+- **Put the Studio on the same site as the app**: a subdomain of the app's own domain, such as `studio.example.com` beside `preview.example.com`. Hosting subdomains such as `*.vercel.app`, `*.netlify.app` and `*.pages.dev` count as separate sites, even for two subdomains of the same one, so use your own domain.
+- **Use a [share link](./share-links.md)** instead. Its Studio is on your app's own site, so the login carries over.
+- **On the preview deployment only**, send the session cookie with `SameSite=None; Secure`. Chrome and Edge then send it in the frame; Safari still does not. It weakens protection against cross-site requests, so never do this in production.
+
+If your auth middleware also guards `/api/livelocale`, the Studio's saves are redirected too; see [Auth middleware redirects the API](./teams.md#auth-middleware-redirects-the-api).
+
+## Docker and self-hosted servers
+
+Preview mode needs no hosting platform. A Next.js app in a container, on a VM or behind your own Node server works as long as the right variables are there at the right time:
+
+- **At build time**, run the build as `livelocale build --preview -- next build` in your Dockerfile. It sets `LIVELOCALE=preview` and `NEXT_PUBLIC_LIVELOCALE=preview` for the build: Next.js writes `NEXT_PUBLIC_LIVELOCALE` into the browser code when it builds, and pages rendered at build time get their text then. Setting both as build args does the same.
+- **At run time**, give the running container `LIVELOCALE=preview`, `LIVELOCALE_TOKEN` and `GITHUB_TOKEN` (`docker run -e`, the `environment` of a Compose file, or your orchestrator's secrets). Do not pass the two tokens as build args: build args stay readable in the image's history.
+- **The filesystem does not matter.** Every save is a commit through the GitHub API, so a container that restarts, or several replicas, lose no edit.
+
+A dev server in a container in development mode (`next dev`, or `vite` without `LIVELOCALE=preview`) is different: the Studio saves into the files inside the container, so mount your checkout as a volume or the edits go when the container does. The deployed-platform guard turns livelocale off on known hosts. It recognises a few container hosts by their variables (Kubernetes by `KUBERNETES_SERVICE_HOST`, Render, Fly.io, Railway and Heroku), but not a plain Docker host, so never make such a container reachable from outside. See the [environment reference](../reference/environment.md#ci-and-host-variables).
 
 ## Behaviour worth knowing
 

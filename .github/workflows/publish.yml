@@ -39,6 +39,18 @@ jobs:
       - name: Install Root Dependencies
         run: npm ci
 
+      # A release tagged v1.3.0 on a commit whose package.json still says 1.2.0 would find 1.2.0
+      # already on npm and go green having published nothing. Refuse it instead.
+      - name: Check the release tag matches package.json
+        if: github.event_name == 'release'
+        env: { RELEASE_TAG: '${{ github.event.release.tag_name }}' }
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "$RELEASE_TAG" != "v$VERSION" ]; then
+            echo "::error::The release tag is $RELEASE_TAG, but package.json says $VERSION. Tag the release v$VERSION, or bump package.json first."
+            exit 1
+          fi
+
       # A manual run with a prerelease base publishes <base>-next.<run number> to the "next"
       # dist-tag. The version change stays in this run: no commit, no changeset, no CHANGELOG entry.
       # --ignore-scripts: the "version" lifecycle script is `changeset version`, which would consume
@@ -47,6 +59,13 @@ jobs:
         if: inputs.prerelease_base != ''
         env: { BASE: '${{ inputs.prerelease_base }}' }
         run: npm version "$(node scripts/dist-tag.mjs prerelease "$BASE" "$GITHUB_RUN_NUMBER")" --no-git-tag-version --ignore-scripts
+
+      # The release does not wait for CI on the tagged commit, so it runs the quick checks itself.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
 
       - name: Build Library & Studio
         run: npm run build
@@ -57,14 +76,15 @@ jobs:
         run: npm run test:package
 
       # A version can already be on npm when it was published by hand (a new package's first
-      # release has to be); then the release only records it.
+      # release has to be); then the release only records it. The warning shows on the run's
+      # summary, so a release that published nothing does not pass for one that did.
       - name: Check whether this version is already published
         id: published
         run: |
           VERSION=$(node -p "require('./package.json').version")
           if npm view "livelocale@$VERSION" version >/dev/null 2>&1; then
             echo "already=true" >> "$GITHUB_OUTPUT"
-            echo "livelocale@$VERSION is already on npm; skipping publish."
+            echo "::warning::livelocale@$VERSION is already on npm, so nothing was published."
           else
             echo "already=false" >> "$GITHUB_OUTPUT"
           fi

@@ -263,7 +263,7 @@ async function tap(page, target) {
 }
 
 async function save(page) {
-  await page.getByRole('button', { name: 'Save Changes' }).click();
+  await page.getByRole('button', { name: 'Save', exact: true }).click();
 }
 
 /** Fixes Tidewell's headline typo ("Plans that grows with you") in the share Studio. */
@@ -374,7 +374,7 @@ const SCENES = {
   },
   async 'studio-keyboard'(page) {
     await openShare(page);
-    const search = page.getByPlaceholder('Search keys or values...');
+    const search = page.getByPlaceholder('Search texts...');
     await search.focus();
     await page.keyboard.type('trial');
     // Tab on to the first matching row, then pick it with Enter

@@ -15,6 +15,7 @@ livelocale has no config file. You configure it where you call it: the route han
 | `livelocale/vite`   | `liveLocaleVite`                                                                                                                                                                        |
 | `livelocale/astro`  | `liveLocale` (the default export)                                                                                                                                                       |
 | `livelocale/strip`  | `unwrap`, `sanitizeZeroWidth`, `removeWatermarks`, with no side effects                                                                                                                 |
+| `livelocale/wrap`   | `wrapTranslationEngine`, `wrapNextIntl`, with no side effects, for Server and Client Components                                                                                         |
 
 ## `createLiveLocaleHandler`
 
@@ -171,7 +172,7 @@ const t = wrapTranslationEngine(rawT, { keyPrefix: 'auth' });
 
 `wrapTranslationEngine(engine, options)` wraps a translation function or object, such as the `t` of `react-i18next` or `next-intl`, so every string it returns carries the watermark of its key. While livelocale is off it returns `engine` itself. `wrapNextIntl(t, namespace)` is the same call with `keyPrefix: namespace`, for `useTranslations(namespace)` and `getTranslations(namespace)`.
 
-Both are exported from `livelocale/client` and `livelocale/server`.
+Both are exported from `livelocale/wrap`, `livelocale/client` and `livelocale/server`. `livelocale/wrap` works in a Server Component, a Client Component and a shared component with no directive. `livelocale/client` is a `'use client'` module, so a Server Component cannot call it, and `livelocale/server` reads files with Node, so browser code cannot import it. `livelocale/wrap` does not start the in-page client: `LiveLocaleProvider` or an import of `livelocale/client` still does that.
 
 | Option      | Type                  | Default | What it does                                                                                                                                                                  |
 | ----------- | --------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

@@ -7,7 +7,7 @@ description: Install the livelocale Agent Skill in Claude Code or another coding
 
 livelocale ships an Agent Skill: one `SKILL.md` file that tells a coding agent such as Claude Code, Codex or Cursor how to add livelocale to a project, turn on share links, put `check --hardcoded` in CI and fix a setup that does not work. With it, the agent runs the commands on these pages instead of guessing them.
 
-<DocShot lead name="next-studio-open" alt="The Studio beside the running Next.js playground: the Locale Directory lists five keys, the preview shows the page with status Active, and the editor says Select an Element." caption="Where the skill's Next.js setup ends: the Studio open beside next dev, status Active." />
+<DocShot lead name="next-studio-open" alt="The Studio beside the running Next.js playground: the Texts list shows five keys, the preview shows the page with the site status Connected, and the editor says Pick a text to fix." caption="Where the skill's Next.js setup ends: the Studio open beside next dev, status Connected." />
 
 ## What the skill does
 

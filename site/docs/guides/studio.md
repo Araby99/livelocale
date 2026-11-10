@@ -7,7 +7,7 @@ description: Edit your site's text in the Studio, review and commit locale files
 
 The Studio is where text gets fixed: your running app in the middle, every translation key on one side, the editor on the other. You run the dev Studio beside your app's dev server; [share links](./share-links.md) put the Studio inside a deployed site instead. The first two sections are about the dev Studio; the rest applies to both, and the shots of the Tidewell demo site are taken on a share link.
 
-<DocShot lead name="share-alt-click" alt="The Studio over the Tidewell demo site: the Locale Directory on the left, the live page in the middle, and the editor on the right open on the Alt+Clicked headline hero.title with the typo fixed." caption="Keys on one side, the running site in the middle, the editor on the other." />
+<DocShot lead name="share-alt-click" alt="The Studio over the Tidewell demo site: the Texts list on the left, the live page in the middle, and the editor on the right open on the Alt+Clicked headline hero.title with the typo fixed." caption="Keys on one side, the running site in the middle, the editor on the other." />
 
 ## Edit
 
@@ -19,7 +19,7 @@ npx livelocale studio --port 3010 --app http://localhost:3000
 
 Open `http://localhost:3010`. `--app` defaults to `http://localhost:3000`, and you can switch apps without restarting by opening `http://localhost:3010/?app=http://localhost:3001`. A path in `?app=` or `--app` picks the page the preview opens first: `?app=http://localhost:4321/ar/` opens `/ar/`. Every flag is on the [`studio` reference](../reference/cli/studio.md).
 
-Hold Alt and click any translated text in the preview to open its key in the editor, or pick the key from the **Locale Directory**, which searches keys and values and can show only the keys on the current page. The editor shows the key, the reference text and the translation. A key picked from the directory also scrolls the preview to its text and outlines it. If the text is in a closed menu or not on this page, the editor says so, and you can still edit it. Type the fix and press **Save Changes**. The **Locale** menu in the editor picks the language you edit.
+Hold Alt and click any translated text in the preview to open its key in the editor, or pick the key from the **Texts** list, which searches keys and values and can show only the keys on the current page (**On this page**) or only the keys the language still lacks, on every page (**Missing**). The editor shows the key, the reference text and the translation. A key picked from the list also scrolls the preview to its text and outlines it. If the text is in a closed menu or not on this page, the editor says so, and you can still edit it. Type the fix and press **Save**. **Next missing**, beside Save, opens the next key without a translation: first on this page, then anywhere in the list. A key with no translation yet opens with an empty field. The **Language** menu in the editor picks the language you edit.
 
 The preview shows your text as you type, and puts the page back when you leave the key without saving. Only the translation changes: literal text around it on the page, such as `© 2026 ` before a footer line or `Home / ` before a breadcrumb, stays. A value with markup that the page renders as HTML (Astro's `set:html`, React's `dangerouslySetInnerHTML`) previews as markup, with inline tags such as `<strong>`, `<em>` and `<a href>` only; scripts, styles and event handlers never reach the page. The editor starts from the stored value, markup included, so saving never drops a tag the page shows as formatting.
 
@@ -86,9 +86,9 @@ The Studio's fonts ship inside the package, so it loads nothing from Google.
 
 ## Right-to-left sites
 
-The Studio's interface is in English. The **Locale** menu in the editor picks the locale you edit. On a share link the preview then shows the site in that locale, so an Arabic or Hebrew site that lays itself out right to left flips under the Studio, while the Studio around it stays left to right. The editing fields use `dir="auto"`, so right-to-left text reads and types correctly in them.
+The Studio's interface is in English. The **Language** menu in the editor picks the locale you edit. On a share link the preview then shows the site in that locale, so an Arabic or Hebrew site that lays itself out right to left flips under the Studio, while the Studio around it stays left to right. The editing fields use `dir="auto"`, so right-to-left text reads and types correctly in them.
 
-<DocClip name="rtl-site" label="The English Studio on the Tidewell demo site: the Locale menu is set to Arabic and the site under it flips right to left." caption="Pick the Arabic locale and the site under the Studio flips right to left." />
+<DocClip name="rtl-site" label="The English Studio on the Tidewell demo site: the Language menu is set to Arabic and the site under it flips right to left." caption="Pick the Arabic locale and the site under the Studio flips right to left." />
 
 <DocShot name="studio-rtl-site" alt="The English Studio over the Arabic Tidewell demo site, laid out right to left, with the editor open on the Alt+Clicked headline hero.title." caption="Editing the Arabic site, right to left, in the English Studio." />
 
@@ -96,17 +96,17 @@ The Studio's interface is in English. The **Locale** menu in the editor picks th
 
 Every control works by keyboard, with a visible focus ring, and the Studio announces saves, sends and errors to screen readers.
 
-| Keys                                     | What they do                                                                                        |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Tab and Shift+Tab                        | Move between controls. Inside a dialog the focus stays in the dialog.                               |
-| Enter or Space on a Locale Directory row | Opens the key in the editor and moves the focus into its field, so you can type the fix right away. |
-| Ctrl+Enter (Cmd+Enter on a Mac)          | In the editor's field, saves exactly as **Save Changes** does. **Save anyway** has no shortcut.     |
-| Escape                                   | Closes the open dialog, or an open drawer on a narrow screen.                                       |
-| Down or Up in the address field          | Opens the page suggestions. Enter opens the one picked; Escape closes them.                         |
+| Keys                                      | What they do                                                                                        |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| Tab and Shift+Tab                         | Move between controls. Inside a dialog the focus stays in the dialog.                               |
+| Enter or Space on a row of the Texts list | Opens the key in the editor and moves the focus into its field, so you can type the fix right away. |
+| Ctrl+Enter (Cmd+Enter on a Mac)           | In the editor's field, saves exactly as **Save** does. **Save anyway** has no shortcut.             |
+| Escape                                    | Closes the open dialog, or an open drawer on a narrow screen.                                       |
+| Down or Up in the address field           | Opens the page suggestions. Enter opens the one picked; Escape closes them.                         |
 
-To find a key without the mouse, type in the Locale Directory's search field, Tab to the row and press Enter.
+To find a key without the mouse, type in the search field of the Texts list, Tab to the row and press Enter.
 
-<DocShot name="studio-keyboard" alt="The Locale Directory searched for trial: two keys match, hero.cta is picked, and the editor is open on hero.cta with the focus ring on its field." caption="Search, Tab, Enter: the key is open and the field has the focus." />
+<DocShot name="studio-keyboard" alt="The Texts list searched for trial: two keys match, hero.cta is picked, and the editor is open on hero.cta with the focus ring on its field." caption="Search, Tab, Enter: the key is open and the field has the focus." />
 
 On a phone or a tablet there is no Alt key: the Studio switches to tapping, as the next section shows.
 
@@ -121,7 +121,7 @@ The editor slides up from the bottom as a sheet, with the key, the reference tex
 
 **Send · N** opens the same change list as on a desktop. **Share link…** opens the phone's own share menu, so the link goes out by WhatsApp, Slack, email or any other app; **Copy link** is always there too.
 
-<DocShot name="studio-phone" alt="A share link on a phone: the Tidewell headline tapped in Edit, and the editor sheet open over the page on hero.title with the typo fixed, Save Changes and Next missing under the field." caption="Tap the text, fix it in the sheet that slides up." />
+<DocShot name="studio-phone" alt="A share link on a phone: the Tidewell headline tapped in Edit, and the editor sheet open over the page on hero.title with the typo fixed, Save and Next missing under the field." caption="Tap the text, fix it in the sheet that slides up." />
 
 Drafts are kept in the phone's browser, which loses them more easily than a desktop: a private tab forgets them when it closes, and iOS clears the data of sites you have not opened for a while. Send your changes when you are done.
 
@@ -129,7 +129,7 @@ On a tablet the Studio keeps its usual layout, with the same **Edit** and **Brow
 
 ## When the preview does not connect
 
-The Studio shows **Connecting to Project** until the LiveLocale client in the page says hello. If that takes more than a few seconds, it asks the app what it answers and puts the finding first, above the usual causes:
+The Studio shows **Connecting to your site** until the LiveLocale client in the page says hello. If that takes more than a few seconds, it asks the app what it answers and puts the finding first, above the usual causes:
 
 | The Studio says                                                | Where to look                                                                                                            |
 | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |

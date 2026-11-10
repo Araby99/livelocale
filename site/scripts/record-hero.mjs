@@ -98,7 +98,7 @@ const PACK_ENV = {
 // Camera boxes in 1x page coordinates, all 1.6:1 like the frame.
 const CAM = {
   full: { x: 0, y: 0, w: 1600, h: 1000 },
-  // the preview's top half and the editor; drops the Locale Directory and the card grid
+  // the preview's top half and the editor; drops the Texts list and the card grid
   edit: { x: 348, y: 64, w: 1228, h: 767.5 },
   // the Send dialog: name, both diff rows, the link, the buttons and Open on GitHub
   send: { x: 320, y: 200, w: 960, h: 600 },
@@ -822,7 +822,7 @@ async function desktopStudio({ page, app, appFrame, waitForApp }) {
   await wait(160);
   await me.type('grow', 85);
   await wait(180);
-  const save = centre(await page.getByRole('button', { name: 'Save Changes' }).boundingBox());
+  const save = centre(await page.getByRole('button', { name: 'Save', exact: true }).boundingBox());
   await me.move(save.x, save.y, 400);
   await wait(60);
   await me.click();
@@ -858,7 +858,7 @@ async function desktopStudio({ page, app, appFrame, waitForApp }) {
   await me.click();
   await me.altUp();
   mark('cta clicked');
-  // hero.cta has no Arabic value, so the output starts empty; wait for the editor to open on it
+  // hero.cta has no Arabic value, so the field starts empty; wait for the editor to open on it
   await page.waitForFunction(() => document.querySelector('textarea'));
   await wait(120);
   const box = centre(await field.boundingBox());
@@ -868,7 +868,7 @@ async function desktopStudio({ page, app, appFrame, waitForApp }) {
   await wait(140);
   await me.type('ابدأ تجربتك المجانية', 28, 8);
   await wait(220);
-  const save2 = centre(await page.getByRole('button', { name: 'Save Changes' }).boundingBox());
+  const save2 = centre(await page.getByRole('button', { name: 'Save', exact: true }).boundingBox());
   await me.move(save2.x, save2.y, 420);
   await me.click();
   await wait(350);
@@ -978,7 +978,7 @@ async function phoneStudio({ page, app, waitForApp }) {
 
   // 6-11 s: the locale chip to Arabic; the page flips right to left; fill the empty button.
   chapter('Fix it in every language');
-  const chip = page.getByRole('combobox', { name: 'Locale' });
+  const chip = page.getByRole('combobox', { name: 'Language' });
   await tapOn(chip, { real: false, hold: 160 });
   await chip.selectOption('ar');
   await waitForApp('خطط تنمو معك');
@@ -989,7 +989,7 @@ async function phoneStudio({ page, app, waitForApp }) {
   await field.waitFor();
   await wait(700);
   await tapOn(field);
-  // the field starts on the English text; select it so the Arabic replaces it
+  // the field starts empty; select it anyway, so the Arabic replaces whatever is there
   await field.evaluate((el) => {
     el.focus();
     el.select();

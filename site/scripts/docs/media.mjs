@@ -21,7 +21,7 @@ const apps = (ports) => ({
 export const SHOTS = {
   'next-studio-open': {
     app: 'next',
-    use: 'the Studio open beside the running Next.js app: the Locale Directory, the live preview and the editor waiting for a pick',
+    use: 'the Studio open beside the running Next.js app: the Texts list, the live preview and the editor waiting for a pick',
   },
   'next-alt-click': {
     app: 'next',
@@ -33,7 +33,7 @@ export const SHOTS = {
   },
   'vite-studio-open': {
     app: 'vite',
-    use: 'the Studio open beside the running Vite app: the Locale Directory, the live preview and the editor waiting for a pick',
+    use: 'the Studio open beside the running Vite app: the Texts list, the live preview and the editor waiting for a pick',
   },
   'vite-alt-click': {
     app: 'vite',
@@ -45,7 +45,7 @@ export const SHOTS = {
   },
   'astro-studio-open': {
     app: 'astro',
-    use: 'the Studio open beside the running Astro site: the Locale Directory, the live preview and the editor waiting for a pick',
+    use: 'the Studio open beside the running Astro site: the Texts list, the live preview and the editor waiting for a pick',
   },
   'astro-alt-click': {
     app: 'astro',
@@ -81,7 +81,7 @@ export const SHOTS = {
   },
   'studio-rtl-site': {
     app: 'share',
-    use: 'the English Studio on the Tidewell site with the Locale menu set to Arabic: the site flips right to left under the Studio, the editor open on the Alt+Clicked headline',
+    use: 'the English Studio on the Tidewell site with the Language menu set to Arabic: the site flips right to left under the Studio, the editor open on the Alt+Clicked headline',
   },
   'studio-light': {
     app: 'share',
@@ -90,11 +90,11 @@ export const SHOTS = {
   },
   'studio-missing': {
     app: 'next',
-    use: 'the Locale menu set to ar: the Locale Directory marks the keys ar.json lacks as Missing, and the editor is open on home.greeting with no Arabic text yet',
+    use: 'the Language menu set to ar: the Texts list marks the keys ar.json lacks as Missing, and the editor is open on home.greeting with no Arabic text yet',
   },
   'studio-keyboard': {
     app: 'share',
-    use: 'a key found and picked from the Locale Directory with the keyboard (type, Tab, Enter): the editor open on hero.cta, the focus in its field',
+    use: 'a key found and picked from the Texts list with the keyboard (type, Tab, Enter): the editor open on hero.cta, the focus in its field',
   },
   'studio-phone': {
     app: 'share',
@@ -118,7 +118,7 @@ export const CLIPS = {
   'rtl-site': {
     app: 'share',
     seconds: 6,
-    use: 'pick Arabic in the Locale menu: the Tidewell site flips right to left under the Studio, which stays in English',
+    use: 'pick Arabic in the Language menu: the Tidewell site flips right to left under the Studio, which stays in English',
   },
 };
 

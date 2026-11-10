@@ -8,6 +8,11 @@ on:
     branches:
       - main
 
+# CI only reads the repository. Without this the token gets the repository's default access,
+# which can be read and write.
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-24.04

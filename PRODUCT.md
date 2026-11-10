@@ -20,7 +20,7 @@ livelocale lets anyone on a team fix a website's text on the website itself, in 
 
 - The edit happens in context on the real running site (Alt+Click), and the result lands in the developer's own repository as a pull request: no hosted translation system, no account, no server, no vendor lock-in.
 - Free and open source (MIT), from one npm package with zero runtime dependencies.
-- Arabic and right-to-left are first class (the Studio itself speaks Arabic and mirrors).
+- Arabic and right-to-left sites are first class: the Studio edits them and shows them flipping right to left under it. The Studio's own interface is English only (the Arabic translation was removed in 1.0.0); Arabic is the showcase language for translations, as in the demo and the hero video.
 - `check --hardcoded` catches, in CI, the hardcoded JSX text and untranslated values that every other tool misses.
 - Competitors with in-context editing (Tolgee, Locize, Lokalise, Crowdin) require accounts and send edits to their hosted platform; none show a real site, RTL, or a pull request in their hero (research 2026-11-02, `.superpowers/brainstorm/4253-1793618948/research/`).
 
@@ -28,14 +28,14 @@ livelocale lets anyone on a team fix a website's text on the website itself, in 
 
 - Developer: `npm install livelocale` (a regular dependency), `npx livelocale init` (or `init --share` for share links on any static host), the dev Studio beside `next dev`/`vite`/`astro dev`, `npx livelocale check --hardcoded` in GitHub Actions or any CI.
 - Share mode: `livelocale pack` builds a static share Studio; the fixer opens the link, edits, and sends a change link. On GitHub the generated workflow turns it into a pull request in one click; on other git hosts `npx livelocale apply "<link>" --pr`.
-- The Studio wraps the site in a preview panel with a keys directory and an editor side panel; it has light and dark themes and English/Arabic UI.
+- The Studio wraps the site in a preview panel with a keys directory and an editor side panel; it has light and dark themes and an English-only interface.
 
 ## Capabilities and Constraints
 
 - Supports Next.js, Vite, React (react-i18next, next-intl and similar JSON catalogues), Astro (no React needed), static hosts; GitHub one-click pull requests; other git hosts via `apply --pr`.
 - Released on npm as `livelocale` (`latest`), MIT, no runtime dependencies, Node ≥ 18.
 - Nothing is ever sent anywhere from a public demo; the landing page makes no network requests to third parties and has no analytics or tracking.
-- The landing page lives in this repository under `site/`, is built with Vite to static files and deployed to GitHub Pages; the target domain is `livelocale.js.org` (claimed by a js.org pull request, owner action). It goes live only when the owner turns on `SITE_LIVE`.
+- The landing page lives in this repository under `site/`, is built with Vite to static files and deployed to GitHub Pages. It is live at `livelocale.js.org`, with the docs at `livelocale.js.org/docs/`. The Site workflow deploys it when run by hand, or on every push to main while the `SITE_LIVE` variable is on.
 - Undecided: whether `npx livelocale theme` and a GitHub-annotations output format for `check` become features.
 
 ## Brand Commitments

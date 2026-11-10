@@ -34,6 +34,7 @@ export const SIDEBAR: SidebarGroup[] = [
     text: 'Guides',
     items: [
       { text: 'Share links', link: '/guides/share-links' },
+      { text: 'Fix text with a share link', link: '/guides/fix-text' },
       { text: 'Catch untranslated text in CI', link: '/guides/ci-check' },
       { text: 'The Studio', link: '/guides/studio' },
       { text: 'Preview mode', link: '/guides/preview-mode' },

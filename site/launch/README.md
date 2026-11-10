@@ -21,7 +21,8 @@
 Run your app beside the livelocale Studio, hold Alt and click a line of text, and fix it. The save
 goes straight into your locale JSON file as an ordinary edit you commit. In development every
 translated string carries an invisible watermark, so the Studio knows which key you clicked; in
-production nothing is added. Share links let someone without a checkout fix text on your deployed
+production no watermark is added and the in-page client is never loaded (what stays in your bundle
+is about 3 KB gzip and does nothing). Share links let someone without a checkout fix text on your deployed
 site and send the change back as a pull request.
 
 **Docs: [livelocale.js.org/docs](https://livelocale.js.org/docs/)**
@@ -85,7 +86,7 @@ npx livelocale studio
 ```
 
 Open `http://localhost:3010`, hold Alt (Option on a Mac), click a line of text and press
-**Save Changes**. `git diff locales/` shows the fix.
+**Save**. `git diff locales/` shows the fix.
 
 ## Docs
 

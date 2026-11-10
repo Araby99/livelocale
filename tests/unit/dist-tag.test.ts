@@ -81,4 +81,35 @@ describe('publish.yml', () => {
       at('Check whether this version is already published')
     );
   });
+
+  it('typechecks and lints before it publishes', () => {
+    // The release does not wait for CI on the tagged commit, so it runs the cheap checks itself.
+    for (const step of ['Typecheck', 'Lint']) {
+      expect(at(step), step).toBeGreaterThan(at('Install Root Dependencies'));
+      expect(at(step), step).toBeLessThan(at('Publish Package to NPM'));
+    }
+    expect(yml).toContain('run: npm run typecheck');
+    expect(yml).toContain('run: npm run lint');
+  });
+
+  it('refuses a release whose tag is not the package.json version', () => {
+    // A release tagged v1.3.0 on a commit still at 1.2.0 would otherwise go green, having
+    // published nothing.
+    const step = yml.slice(at('Check the release tag matches package.json'), at('Typecheck'));
+    expect(step).toContain("if: github.event_name == 'release'");
+    expect(step).toContain("RELEASE_TAG: '${{ github.event.release.tag_name }}'");
+    expect(step).toContain('if [ "$RELEASE_TAG" != "v$VERSION" ]; then');
+    expect(step).toContain('exit 1');
+    expect(at('Check the release tag matches package.json')).toBeLessThan(
+      at('Build Library & Studio')
+    );
+  });
+
+  it('warns visibly when the version is already on npm', () => {
+    const step = yml.slice(
+      at('Check whether this version is already published'),
+      at('Publish Package to NPM')
+    );
+    expect(step).toContain('echo "::warning::livelocale@$VERSION is already on npm');
+  });
 });

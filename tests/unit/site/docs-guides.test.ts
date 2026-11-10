@@ -44,6 +44,7 @@ it.each([
       'Strict mode',
       'Opt-outs',
       'GitHub Actions',
+      'GitLab CI and Bitbucket Pipelines',
       'What it does not see',
     ],
   ],
@@ -70,6 +71,8 @@ it.each([
       'Set the environment',
       'Open the Studio on the preview',
       'Check the deployment',
+      'Apps with a login',
+      'Docker and self-hosted servers',
       'Behaviour worth knowing',
       'What preview mode does not do',
     ],
@@ -142,4 +145,50 @@ it('never says a share link only views on a phone', () => {
     const prose = page(file).replace(/\s+/g, ' ');
     expect(prose, file).not.toMatch(/desktop only|can only view|in a desktop browser/i);
   }
+});
+
+/** The text of a page's `## heading` section, up to the next `## `. */
+function section(md: string, heading: string): string {
+  return md.split(`\n## ${heading}\n`)[1]?.split(/^## /m)[0] ?? '';
+}
+
+it('tells teams with a login what happens to the session in a Studio on another site', () => {
+  // Preview mode and studio --app <deployed url> frame the app from another site, so its session
+  // cookie is a third-party cookie there.
+  const login = section(page('guides/preview-mode.md'), 'Apps with a login');
+  for (const word of ['SameSite', 'third-party', 'same site', 'share link', '.vercel.app'])
+    expect(login, word).toContain(word);
+  expect(login).toContain('SameSite=None; Secure');
+  expect(login).toMatch(/never .*production/i);
+  // Firefox keeps each site's third-party cookies apart, so a login from another tab is not there.
+  expect(login).toContain('Firefox');
+  expect(page('guides/teams.md')).toContain('preview-mode.md#apps-with-a-login');
+});
+
+it('says how preview mode runs in a container, from what the code does', () => {
+  const docker = section(page('guides/preview-mode.md'), 'Docker and self-hosted servers');
+  expect(docker).toContain('livelocale build --preview -- next build');
+  expect(docker).toContain('NEXT_PUBLIC_LIVELOCALE');
+  expect(docker).toMatch(/build arg/);
+  expect(docker).toMatch(/run time/);
+  expect(docker).toMatch(/filesystem/);
+  expect(docker).toContain('KUBERNETES_SERVICE_HOST');
+  // detectDeployedPlatform (src/core/env.ts) knows these container hosts too, not only Kubernetes.
+  for (const host of ['Render', 'Fly.io', 'Railway', 'Heroku'])
+    expect(docker, host).toContain(host);
+  expect(docker).not.toMatch(/only Kubernetes/);
+});
+
+it('shows the check on GitLab CI and Bitbucket Pipelines', () => {
+  const other = section(page('guides/ci-check.md'), 'GitLab CI and Bitbucket Pipelines');
+  expect(other).toContain('# .gitlab-ci.yml');
+  expect(other).toContain('# bitbucket-pipelines.yml');
+  expect(other.match(/- npx livelocale check --hardcoded/g)).toHaveLength(2);
+});
+
+it('has a hosting note for GitLab Pages', () => {
+  const notes = section(page('guides/share-links.md'), 'Hosting notes');
+  const gitlab = notes.split('\n').find((l) => l.startsWith('- **GitLab Pages:**')) ?? '';
+  expect(gitlab).toContain('CI_COMMIT_REF_NAME');
+  expect(gitlab).toContain('apply');
 });

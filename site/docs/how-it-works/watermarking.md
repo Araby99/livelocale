@@ -39,7 +39,7 @@ A [browser test](https://github.com/Araby99/livelocale/blob/main/tests/e2e/water
 2. **It leaves the text alone.** The text nodes keep their watermark, because changing them would break React's hydration.
 3. **It outlines what you point at.** Hovering a marked element shows a dashed outline labelled `Alt+Click to edit` with the key; holding Alt makes the outline solid.
 4. **Alt+Click selects it.** A click with Alt held on a marked element, or inside one, is stopped before your app sees it, and the key and its current text go to the Studio, which opens the key in the editor. A click without Alt reaches your app as usual, so links and buttons keep working.
-5. **A key picked in the Studio goes the other way.** Pick a key from the Locale Directory and the client scrolls the first visible element with that key into view and outlines it. When the text is hidden, such as in a closed menu, or not on this page, it tells the Studio, and the editor says so.
+5. **A key picked in the Studio goes the other way.** Pick a key from the Texts list and the client scrolls the first visible element with that key into view and outlines it. When the text is hidden, such as in a closed menu, or not on this page, it tells the Studio, and the editor says so.
 
 The client talks to the Studio with `postMessage`, sends only to the Studio's origin, and ignores messages from any other origin.
 

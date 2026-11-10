@@ -86,6 +86,8 @@ Without it the workflow still commits the branch, but GitHub refuses to let it o
 
 ## What the person fixing text does
 
+Send them [Fix text with a share link](./fix-text.md) with the link. It is written for them, with no code, and repeats the first-visit tips they see only once. In short:
+
 1. Open the share link in a current Chrome, Edge, Firefox or Safari, on a computer or a phone. There is no sign-up, no password and nothing to install. If the site has its own login, sign in as usual.
 2. On the first visit, read the three tips and, optionally, type a name to be credited in the pull request.
 3. Check the language shown at the top. It is detected from the page text; change it if it is wrong.
@@ -151,6 +153,7 @@ For a long link, use `npx livelocale apply --clipboard`, or pass `-` and pipe th
 - **S3 and CloudFront:** the link must end in `index.html`, because an S3 REST origin does not resolve folder indexes.
 - **GitHub Pages:** the folder is `livelocale/`, with no underscore for Jekyll to drop, and a project site's `/repo/` base path is handled.
 - **Netlify and Cloudflare Pages:** `_headers` must not send DENY (`X-Frame-Options: DENY` or `frame-ancestors 'none'`); SAMEORIGIN is fine. Every per-deploy URL is a separate origin with its own drafts, so share the branch alias (for example `https://staging--site.netlify.app/livelocale/index.html`), not a per-deploy URL.
+- **GitLab Pages:** run `pack` in the GitLab CI job that builds the site. It reads the branch and commit from `CI_COMMIT_REF_NAME` and `CI_COMMIT_SHA`. `init --share` writes no workflow for GitLab, so turn change links into a branch with `npx livelocale apply "<link>" --pr` and open the merge request from it (see [Other git hosts](#other-git-hosts)).
 - **Basic auth and host password protection** carry over, because the Studio is on the same site.
 - **Vercel:** Deployment Protection must be off for the deployment you share, or the person must have access to it. `doctor --app` reports the login wall.
 - **PWA:** a Workbox service worker (vite-plugin-pwa, workbox-webpack-plugin) can answer the Studio with your app shell. Add `navigateFallbackDenylist: [/^\/livelocale\//]` to its Workbox options.

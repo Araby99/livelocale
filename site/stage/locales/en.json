@@ -40,7 +40,7 @@
       "period": "per month",
       "blurb": "For small teams who bill by the project or the hour.",
       "f1": "Everything in Solo",
-      "f2": "Time tracking for 5 people",
+      "f2": "Time tracking for {count, plural, one {# person} other {# people}}",
       "f3": "Project profitability",
       "f4": "Recurring retainers",
       "cta": "Choose Studio"
@@ -68,7 +68,7 @@
   },
   "footer": {
     "tagline": "Invoicing for small studios.",
-    "copyright": "© 2026 Tidewell Labs",
+    "copyright": "© {year} Tidewell Labs",
     "privacy": "Privacy",
     "terms": "Terms",
     "status": "Status"

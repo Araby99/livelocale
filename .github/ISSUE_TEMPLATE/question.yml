@@ -1,0 +1,22 @@
+name: Question
+description: Ask how to set something up, or whether livelocale fits your project.
+labels: [question]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The docs answer most setup questions: https://livelocale.js.org/docs/
+        If something does not work as documented, open a bug report instead.
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: What are you trying to do, and what have you tried?
+    validations:
+      required: true
+  - type: textarea
+    id: setup
+    attributes:
+      label: Your setup
+      description: Framework, i18n library and livelocale version, if they matter here.
+      placeholder: Next.js 16, next-intl 4, livelocale 1.2.0

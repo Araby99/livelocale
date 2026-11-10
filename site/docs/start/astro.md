@@ -7,7 +7,7 @@ description: Add livelocale to an Astro site with one integration, load translat
 
 Five steps from `npm install` to a fixed line of text in your locale file. Each step shows what you should see when it worked. You need an Astro site with its translations in JSON files under `locales/`. The site needs no React: the integration loads the in-page client itself.
 
-<DocShot lead name="astro-alt-click" alt="The headline Alt+Clicked in the Astro preview: the editor is open on home.title, with the reference Welcome to the Astro playground and the fix Welcome to your Astro site typed, above Save Changes." caption="Where step 4 ends: the key under the cursor, open in the editor." />
+<DocShot lead name="astro-alt-click" alt="The headline Alt+Clicked in the Astro preview: the editor is open on home.title, with the reference Welcome to the Astro playground and the fix Welcome to your Astro site typed, above Save." caption="Where step 4 ends: the key under the cursor, open in the editor." />
 
 ## 1. Install livelocale
 
@@ -95,9 +95,9 @@ npx astro dev
 npx livelocale studio --app http://localhost:4321
 ```
 
-Open `http://localhost:3010`. The Studio loads your site in the middle, the Locale Directory lists your keys, and the status reads **Active** once the page answers.
+Open `http://localhost:3010`. The Studio loads your site in the middle, the **Texts** list shows your keys, and the **Site** status reads **Connected** once the page answers.
 
-<DocShot name="astro-studio-open" alt="The Studio beside the running Astro playground: the Locale Directory lists ten keys, the preview shows the home page with status Active, and the editor says Select an Element." caption="The Studio, open beside astro dev." />
+<DocShot name="astro-studio-open" alt="The Studio beside the running Astro playground: the Texts list shows ten keys, the preview shows the home page with the site status Connected, and the editor says Pick a text to fix." caption="The Studio, open beside astro dev." />
 
 ::: details Didn't work?
 
@@ -112,7 +112,7 @@ With the site running, run `npx livelocale doctor --app http://localhost:4321`. 
 
 ## 4. Alt+Click and fix
 
-Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save Changes**. It worked when the editor looks like the shot at the top of this page.
+Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save**. It worked when the editor looks like the shot at the top of this page.
 
 ::: details Didn't work?
 
@@ -132,7 +132,7 @@ It is an ordinary file edit: `git diff locales/` shows the same change in your t
 
 ::: details Didn't work?
 
-- **Save Changes** shows a placeholder warning: the fix dropped or added a `{placeholder}`. Put it back, or choose **Save anyway**.
+- **Save** shows a placeholder warning: the fix dropped or added a `{placeholder}`. Put it back, or choose **Save anyway**.
 - The Studio runs away from `localhost` (Codespaces, Gitpod, a shared dev box): the API accepts writes only from `localhost` unless told otherwise. Add the Studio's origin to `LIVELOCALE_ALLOWED_ORIGINS` and restart `astro dev`; see [Teams and enterprise setups](../guides/teams.md#studio-away-from-localhost).
 - The Changes panel shows no git status: it needs `git` on your `PATH` and the locales folder inside a repository.
 - Run `npx livelocale doctor --app http://localhost:4321`; its **Mutation API** line says how many locales the API serves.

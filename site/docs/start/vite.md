@@ -7,7 +7,7 @@ description: Add livelocale to a Vite and React app with the Vite plugin, open t
 
 Five steps from `npm install` to a fixed line of text in your locale file. Each step shows what you should see when it worked. You need a Vite app with React and its translations in JSON files under `locales/`.
 
-<DocShot lead name="vite-alt-click" alt="The headline Alt+Clicked in the Vite preview: the editor is open on home.title, with the reference Welcome to the static playground and the fix Welcome to the Vite playground typed, above Save Changes." caption="Where step 4 ends: the key under the cursor, open in the editor." />
+<DocShot lead name="vite-alt-click" alt="The headline Alt+Clicked in the Vite preview: the editor is open on home.title, with the reference Welcome to the static playground and the fix Welcome to the Vite playground typed, above Save." caption="Where step 4 ends: the key under the cursor, open in the editor." />
 
 ## 1. Install livelocale
 
@@ -123,9 +123,9 @@ npx vite
 npx livelocale studio --app http://localhost:5173
 ```
 
-Open `http://localhost:3010`. The Studio loads your app in the middle, the Locale Directory lists your keys, and the status reads **Active** once the page answers.
+Open `http://localhost:3010`. The Studio loads your app in the middle, the **Texts** list shows your keys, and the **Site** status reads **Connected** once the page answers.
 
-<DocShot name="vite-studio-open" alt="The Studio beside the running Vite playground: the Locale Directory lists two keys, home.greet and home.title, the preview shows the page with status Active, and the editor says Select an Element." caption="The Studio, open beside vite." />
+<DocShot name="vite-studio-open" alt="The Studio beside the running Vite playground: the Texts list shows two keys, home.greet and home.title, the preview shows the page with the site status Connected, and the editor says Pick a text to fix." caption="The Studio, open beside vite." />
 
 ::: details Didn't work?
 
@@ -140,7 +140,7 @@ With the app running, run `npx livelocale doctor --app http://localhost:5173`. O
 
 ## 4. Alt+Click and fix
 
-Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save Changes**. It worked when the editor looks like the shot at the top of this page.
+Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save**. It worked when the editor looks like the shot at the top of this page.
 
 ::: details Didn't work?
 
@@ -160,12 +160,20 @@ It is an ordinary file edit: `git diff locales/` shows the same change in your t
 
 ::: details Didn't work?
 
-- **Save Changes** shows a placeholder warning: the fix dropped or added a `{placeholder}`. Put it back, or choose **Save anyway**.
+- **Save** shows a placeholder warning: the fix dropped or added a `{placeholder}`. Put it back, or choose **Save anyway**.
 - The Studio runs away from `localhost` (Codespaces, Gitpod, a shared dev box): the API accepts writes only from `localhost` unless told otherwise. Add the Studio's origin to `LIVELOCALE_ALLOWED_ORIGINS` and restart `vite`; see [Teams and enterprise setups](../guides/teams.md#studio-away-from-localhost).
 - The Changes panel shows no git status: it needs `git` on your `PATH` and the locales folder inside a repository.
 - Run `npx livelocale doctor --app http://localhost:5173`; its **Mutation API** line says how many locales the API serves.
 
 :::
+
+## Locale files, plurals and languages
+
+- **File layouts.** One file per locale (`locales/en.json`, `locales/ar.json`) or one folder per locale with a file per namespace (`locales/en/common.json`, `locales/en/auth.json`). In the folder layout the file name is the namespace: `useTranslation('auth')` reads `auth.json`, so its wrapper takes `keyPrefix: 'auth'`.
+- **Files somewhere else**, such as `src/locales` or `public/locales`: set that folder as `localesPath` in the plugin, and pass `--locales <path>` to `check`, `doctor` and `apply` too.
+- **Many components to wrap.** `npx livelocale migrate` wraps every `useTranslation` in your source with `wrapTranslationEngine`. It needs the `typescript` package. Run it with `--dry-run` first to see what it would change. See [`migrate`](../reference/cli/migrate.md).
+- **Plurals.** i18next plural keys such as `items_one` and `items_other` are separate keys, and the Studio opens the one the page shows. A message written as one ICU `plural` (with `i18next-icu`) gets one field per plural form in the editor; see [Plural forms](../guides/studio.md#plural-forms).
+- **Languages.** The Studio's **Language** menu reloads your page with `?locale=<code>` added. Read it where you set i18next's `lng`, and the page follows the menu.
 
 ## What next
 

@@ -14,6 +14,10 @@ on:
     paths: ['site/**', 'brand/**', 'src/**', 'package.json', 'package-lock.json', 'CHANGELOG.md', '.github/workflows/site.yml']
   workflow_dispatch:
 
+# Read-only by default, so the token cannot write unless a job asks for more; only deploy does.
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-24.04

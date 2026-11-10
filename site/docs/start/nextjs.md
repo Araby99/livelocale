@@ -7,7 +7,7 @@ description: Add livelocale to a Next.js App Router app, open the Studio beside 
 
 Six steps from `npm install` to a fixed line of text in your locale file. Each step shows what you should see when it worked. You need a Next.js app with its translations in JSON files under `locales/`.
 
-<DocShot lead name="next-alt-click" alt="The welcome line Alt+Clicked in the Next.js preview: the editor is open on home.welcome_msg, with the reference Welcome Back to Production and the fix Welcome back to production typed, above Save Changes." caption="Where step 5 ends: the key under the cursor, open in the editor." />
+<DocShot lead name="next-alt-click" alt="The welcome line Alt+Clicked in the Next.js preview: the editor is open on home.welcome_msg, with the reference Welcome Back to Production and the fix Welcome back to production typed, above Save." caption="Where step 5 ends: the key under the cursor, open in the editor." />
 
 ## 1. Install livelocale
 
@@ -153,9 +153,9 @@ npx next dev
 npx livelocale studio
 ```
 
-Open `http://localhost:3010`. The Studio loads your app from `http://localhost:3000` in the middle, the Locale Directory lists your keys, and the status reads **Active** once the page answers.
+Open `http://localhost:3010`. The Studio loads your app from `http://localhost:3000` in the middle, the **Texts** list shows your keys, and the **Site** status reads **Connected** once the page answers.
 
-<DocShot name="next-studio-open" alt="The Studio beside the running Next.js playground: the Locale Directory lists five keys, the preview shows the page with status Active, and the editor says Select an Element." caption="The Studio, open beside next dev." />
+<DocShot name="next-studio-open" alt="The Studio beside the running Next.js playground: the Texts list shows five keys, the preview shows the page with the site status Connected, and the editor says Pick a text to fix." caption="The Studio, open beside next dev." />
 
 ::: details Didn't work?
 
@@ -170,7 +170,7 @@ With the app running, run `npx livelocale doctor --app http://localhost:3000`. I
 
 ## 5. Alt+Click and fix
 
-Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save Changes**. It worked when the editor looks like the shot at the top of this page.
+Hold Alt (Option on a Mac) and click a line of text in the preview. The editor opens on its key, with the reference text and the translation. Type the fix and press **Save**. It worked when the editor looks like the shot at the top of this page.
 
 ::: details Didn't work?
 
@@ -190,7 +190,7 @@ It is an ordinary file edit: `git diff locales/` shows the same change in your t
 
 ::: details Didn't work?
 
-- **Save Changes** shows a placeholder warning: the fix dropped or added a `{placeholder}`. Put it back, or choose **Save anyway**.
+- **Save** shows a placeholder warning: the fix dropped or added a `{placeholder}`. Put it back, or choose **Save anyway**.
 - The Studio runs away from `localhost` (Codespaces, Gitpod, a shared dev box): the route accepts writes only from `localhost` unless told otherwise. Add the Studio's origin to `LIVELOCALE_ALLOWED_ORIGINS` and restart `next dev`; see [Teams and enterprise setups](../guides/teams.md#studio-away-from-localhost).
 - The Changes panel shows no git status: it needs `git` on your `PATH` and the locales folder inside a repository.
 - Run `npx livelocale doctor --app http://localhost:3000`; the **Locale files** line says which folder the doctor reads.

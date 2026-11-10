@@ -43,5 +43,6 @@ It is not an i18n library: next-intl or react-i18next keeps routing, locale dete
 ## What next
 
 - [Share links](./guides/share-links.html): let someone fix text on the deployed site, with no account and no install.
+- [Fix text with a share link](./guides/fix-text.html): the page to send to the person who fixes or translates your text.
 - [Catch untranslated text in CI](./guides/ci-check.html): fail the build on missing keys, placeholder drift and hardcoded text.
 - [Right-to-left sites](./guides/studio.html#right-to-left-sites): edit an Arabic or Hebrew site that flips right to left under the Studio.

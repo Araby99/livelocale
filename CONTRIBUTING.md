@@ -44,6 +44,25 @@ Husky and lint-staged check formatting and linting on every commit.
 - **Add a changeset** for every user-facing change: run `npx changeset`, pick the bump and
   describe the change in a sentence. Docs-only and test-only changes need none.
 
+## Questions
+
+Ask with the [Question template](https://github.com/Araby99/livelocale/issues/new?template=question.yml).
+Check the [docs](https://livelocale.js.org/docs/) first; most setup questions are answered there.
+
+## Roadmap
+
+livelocale is maintained by one person, so there are no dates. What is being considered is the
+list of [open feature requests](https://github.com/Araby99/livelocale/issues?q=is%3Aissue+is%3Aopen+label%3Aenhancement).
+Ask about anything else with the [Question template](https://github.com/Araby99/livelocale/issues/new?template=question.yml).
+
+Not planned, by design:
+
+- **Becoming an i18n library.** Routing, locale detection, formatting and rendering stay with
+  next-intl, react-i18next or whatever you use.
+- **A hosted service or an account.** Edits land in your own repository, as file edits or pull
+  requests.
+- **Runtime dependencies.** The package keeps none.
+
 ## Pull requests
 
 1. Fork the repo and branch from `main`.

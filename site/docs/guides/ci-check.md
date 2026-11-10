@@ -7,7 +7,7 @@ description: Run livelocale check in CI to fail the build on missing keys, broke
 
 `npx livelocale check` is a read-only check of your translations, built for CI. It runs in any `NODE_ENV`, never writes a file, and exits with code 1 when it finds a problem, so the CI job fails.
 
-<DocShot lead name="studio-missing" alt="The Studio on the Next.js playground with the Locale menu set to Arabic (ar): the Locale Directory marks cart.items and home.greeting as Missing, coverage reads 40%, and the editor is open on home.greeting with an empty translation field." caption="The gap the check fails on, as the Studio shows it: keys with no Arabic text yet." />
+<DocShot lead name="studio-missing" alt="The Studio on the Next.js playground with the Language menu set to Arabic (ar): the Texts list marks cart.items and home.greeting as Missing, coverage reads 40%, and the editor is open on home.greeting with an empty translation field." caption="The gap the check fails on, as the Studio shows it: keys with no Arabic text yet." />
 
 ## Run the check
 
@@ -141,6 +141,33 @@ jobs:
 ```
 
 The step fails when the command exits with code 1 (a problem) or 2 (the check could not run: a mistyped flag, a missing or empty locales folder, or `typescript` not installed for `--hardcoded` on JSX files). A typo in a flag fails the job instead of turning the check off. Add `--strict` when warnings should fail the job too, and `--locales <path>` when your locale files are not in `locales`.
+
+## GitLab CI and Bitbucket Pipelines
+
+The command is the same on any CI. It needs Node.js 18 or later and your dependencies installed:
+
+```yaml
+# .gitlab-ci.yml
+i18n:
+  image: node:24
+  script:
+    - npm ci
+    - npx livelocale check --hardcoded
+```
+
+```yaml
+# bitbucket-pipelines.yml
+image: node:24
+pipelines:
+  default:
+    - step:
+        name: i18n
+        script:
+          - npm ci
+          - npx livelocale check --hardcoded
+```
+
+The exit codes fail the job the same way as on GitHub Actions.
 
 ## What it does not see
 

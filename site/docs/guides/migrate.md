@@ -7,7 +7,7 @@ description: Move a project from next-i18n-lens 0.7.0 to livelocale, renaming th
 
 livelocale was published as `next-i18n-lens` up to 0.7.0. Version 0.8.0 renamed everything, with no aliases for the old names, so every step below is needed.
 
-<DocShot lead name="next-studio-open" alt="The Studio beside the running Next.js playground: the Locale Directory lists five keys, the preview shows the page with status Active, and the editor says Select an Element." caption="Where you end up: the same Studio, under the livelocale name, beside next dev." />
+<DocShot lead name="next-studio-open" alt="The Studio beside the running Next.js playground: the Texts list shows five keys, the preview shows the page with the site status Connected, and the editor says Pick a text to fix." caption="Where you end up: the same Studio, under the livelocale name, beside next dev." />
 
 ## Install the new package
 
