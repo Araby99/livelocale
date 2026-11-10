@@ -52,7 +52,7 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
         <div className="space-y-1.5">
           <label
             htmlFor="studio-access-token"
-            className="text-[11px] font-bold text-fg-muted uppercase tracking-wider"
+            className="text-xs font-bold text-fg-muted uppercase tracking-wider"
           >
             {t('token.label')}
           </label>
@@ -62,7 +62,7 @@ export const TokenModal = ({ isOpen, onSubmit }: TokenModalProps) => {
             autoComplete="off"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="w-full bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-2.5 text-sm text-fg font-mono transition duration-150"
+            className="w-full bg-surface border border-line-strong rounded-xl px-4 py-2.5 text-sm text-fg font-mono transition duration-150"
           />
         </div>
         <div className="flex items-center justify-end">

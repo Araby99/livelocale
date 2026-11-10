@@ -4,6 +4,7 @@ import {
   applyPreview,
   commitPreview,
   forgetPreviews,
+  restorePreview,
   restorePreviews,
   sanitizeMarkup,
 } from '../../src/client/preview.js';
@@ -138,6 +139,63 @@ describe('live preview', () => {
       commitPreview('footer.copyright', 'وولفي.');
       restorePreviews();
       expect(shown(p)).toBe('© 2026 وولفي.');
+    });
+  });
+
+  describe('restorePreview', () => {
+    it("drops one key's preview and leaves the others and saved values", () => {
+      const a = document.createElement('h1');
+      a.textContent = encodeKey('Welcome', 'home.title');
+      const b = document.createElement('p');
+      b.textContent = encodeKey('About', 'nav.about');
+      const c = document.createElement('p');
+      c.textContent = encodeKey('Old', 'nav.saved');
+      document.body.append(a, b, c);
+      const before = a.textContent;
+
+      applyPreview('home.title', 'Bienvenue');
+      applyPreview('nav.about', 'À propos');
+      commitPreview('nav.saved', 'Neu');
+      restorePreview('home.title');
+
+      expect(a.textContent).toBe(before);
+      expect(shown(b)).toBe('À propos');
+      expect(shown(c)).toBe('Neu');
+    });
+
+    it('puts back the saved rich value, not the text from before the save', () => {
+      const p = document.createElement('p');
+      p.innerHTML = encodeKey('Wolvy hosts ', 'hero.sub') + '<strong>your videos</strong> safely.';
+      document.body.appendChild(p);
+      const source = 'Wolvy hosts <strong>your videos</strong> safely.';
+
+      commitPreview('hero.sub', 'Saved <b>one</b>.', source);
+      applyPreview('hero.sub', 'Typed <i>two</i>.', 'Saved <b>one</b>.');
+      restorePreview('hero.sub');
+      expect(shown(p)).toBe('Saved one.');
+      restorePreviews();
+      expect(shown(p)).toBe('Saved one.');
+    });
+
+    it("puts back a missing translation's fallback text, not an empty one", () => {
+      const h1 = document.createElement('h1');
+      h1.textContent = encodeKey('Welcome', 'home.title');
+      document.body.appendChild(h1);
+
+      applyPreview('home.title', 'Bienvenue', '');
+      restorePreview('home.title');
+      expect(shown(h1)).toBe('Welcome');
+    });
+
+    it('leaves text the app rendered since alone', () => {
+      const h1 = document.createElement('h1');
+      h1.textContent = encodeKey('Welcome', 'home.title');
+      document.body.appendChild(h1);
+
+      applyPreview('home.title', 'Bienvenue');
+      h1.firstChild!.nodeValue = encodeKey('Hello again', 'home.title');
+      restorePreview('home.title');
+      expect(shown(h1)).toBe('Hello again');
     });
   });
 

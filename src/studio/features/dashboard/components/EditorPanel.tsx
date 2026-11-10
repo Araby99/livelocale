@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, type ReactNode } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { TranslationEditor, type SaveWarning } from './TranslationEditor.jsx';
 import { EmptySelection } from './EmptySelection.jsx';
@@ -25,8 +25,18 @@ interface EditorPanelProps {
   onAddLocale: (newLocale: string) => Promise<void>;
   onRenameLocale: (oldLocale: string, newLocale: string) => Promise<void>;
   onDeleteLocale: (locale: string) => Promise<void>;
+  /** The project's source language: named above the text being edited, and never deleted here. */
+  referenceLocale?: string;
+  /** A plain click picks text on the page (tap-to-edit), so the empty state says so. */
+  clickToEdit?: boolean;
+  /** Browse is on and the Edit switch is there, so the empty state names it. */
+  canSwitchToEdit?: boolean;
+  /** Share link: Save keeps the change in this browser until it is sent, and the editor says so. */
+  keepsInBrowser?: boolean;
   /** Said under the key when the text picked from the Keys list is not visible on this page. */
   jumpNote?: KeyJumpNote | null;
+  /** The Next missing control, shown beside Save. */
+  nextMissing?: ReactNode;
   /** Width and flex classes; defaults to the fixed column width. */
   className?: string;
 }
@@ -54,6 +64,11 @@ export const EditorPanel = ({
   onRenameLocale,
   onDeleteLocale,
   jumpNote = null,
+  nextMissing,
+  referenceLocale = 'en',
+  clickToEdit = false,
+  canSwitchToEdit = false,
+  keepsInBrowser = false,
   className = 'w-[420px] shrink-0',
 }: EditorPanelProps) => {
   const { t } = useStudioText();
@@ -74,10 +89,7 @@ export const EditorPanel = ({
         <div className="flex items-center gap-2">
           {!isManageOpen && (
             <>
-              <label
-                htmlFor="studio-locale-select"
-                className="text-[10px] font-semibold text-fg-muted uppercase tracking-wider"
-              >
+              <label htmlFor="studio-locale-select" className="text-xs font-semibold text-fg-muted">
                 {t('editor.locale')}
               </label>
               <select
@@ -85,7 +97,7 @@ export const EditorPanel = ({
                 value={locale}
                 dir="ltr"
                 onChange={(e) => onLocaleChange(e.target.value)}
-                className="bg-raised border border-line hover:border-line-strong text-fg text-xs rounded-lg px-2.5 py-1.5 cursor-pointer font-mono"
+                className="bg-raised border border-line-strong text-fg text-xs rounded-lg px-2.5 py-1.5 cursor-pointer"
               >
                 {locales.map((l) => (
                   <option key={l} value={l}>
@@ -154,6 +166,7 @@ export const EditorPanel = ({
         <LocaleManager
           locale={locale}
           locales={locales}
+          sourceLocale={referenceLocale}
           isLoading={isLoading}
           error={error}
           onAddLocale={onAddLocale}
@@ -165,6 +178,8 @@ export const EditorPanel = ({
           selected={selected}
           inputValue={inputValue}
           locale={locale}
+          referenceLocale={referenceLocale}
+          keepsInBrowser={keepsInBrowser}
           isLoading={isLoading}
           isSuccess={isSuccess}
           error={error}
@@ -175,9 +190,10 @@ export const EditorPanel = ({
           onDismissWarning={onDismissWarning}
           onClear={onClear}
           jumpNote={jumpNote}
+          nextMissing={nextMissing}
         />
       ) : (
-        <EmptySelection />
+        <EmptySelection clickToEdit={clickToEdit} canSwitchToEdit={canSwitchToEdit} />
       )}
     </div>
   );

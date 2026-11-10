@@ -140,7 +140,7 @@ describe('createDraftActions.restoreBackupFile', () => {
     });
     const file = new File([text], 'backup.txt', { type: 'text/plain' });
     await expect(actions.restoreBackupFile(file)).resolves.toBe(
-      'Restored 1 changes (0 already here).'
+      'Restored 1 change (0 already here).'
     );
     expect(transport.restoreDrafts).toHaveBeenCalledWith([
       expect.objectContaining({ locale: 'ar', key: 'home.greet', to: 'y' }),

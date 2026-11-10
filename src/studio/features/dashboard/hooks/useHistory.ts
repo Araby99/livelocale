@@ -6,6 +6,13 @@ export interface HistoryEntry {
   key: string;
   previousValue: string;
   nextValue: string;
+  /**
+   * True when the locale had no value for the key before this edit. There is no way to remove
+   * a key from the Studio, so undo writes an empty value; the Changes panel says so.
+   */
+  added?: boolean;
+  /** What the page showed before the edit when it differs from `previousValue` (a fallback). */
+  pageValue?: string;
   /** Epoch milliseconds. */
   at: number;
 }

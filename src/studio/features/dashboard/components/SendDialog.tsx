@@ -79,7 +79,7 @@ export const SendDialog = ({
   // Phones get at least 44 px to tap; the desktop dialog keeps its compact buttons.
   const actionButton = `${actionButtonBase} ${asSheet ? 'min-h-11' : 'h-9'}`;
   // 16px text in the sheet's fields, so a phone does not zoom in when one takes focus.
-  const fieldText = asSheet ? 'min-h-11 text-base' : 'h-9 text-xs';
+  const fieldText = asSheet ? 'min-h-11 text-base' : 'h-9 text-sm';
   const [name, setName] = useState(() => readPref('translator-name') ?? '');
   const [note, setNote] = useState('');
   const [includeSent, setIncludeSent] = useState(false);
@@ -160,6 +160,12 @@ export const SendDialog = ({
   const tooLong = shownLink !== null && shownLink.length > CHANGE_LINK_FILE_THRESHOLD;
   const canCopy = !encoding && shownLink !== null && !tooLong;
   const canDownload = !encoding && shownLink !== null;
+  // The link went out (copied, shared, saved as a file or opened on GitHub).
+  const handedOver =
+    outcome === 'copied' ||
+    outcome === 'shared' ||
+    outcome === 'downloaded' ||
+    outcome === 'opened';
   // Only on a phone: desktop browsers that have a share menu keep today's Copy link first.
   const canShareNatively = asSheet && typeof navigator.share === 'function';
 
@@ -219,7 +225,7 @@ export const SendDialog = ({
   const fields = (
     <>
       <label className="block space-y-1">
-        <span className="text-[11px] font-semibold text-fg-muted">{t('send.name_label')}</span>
+        <span className="text-xs font-semibold text-fg-muted">{t('send.name_label')}</span>
         <input
           id="studio-send-name"
           type="text"
@@ -227,12 +233,12 @@ export const SendDialog = ({
           maxLength={SEND_NAME_MAX_CHARS}
           value={name}
           onChange={(e) => handleNameChange(e.target.value)}
-          className={`w-full px-3 rounded-xl bg-surface border border-line text-fg ${fieldText}`}
+          className={`w-full px-3 rounded-xl bg-surface border border-line-strong text-fg ${fieldText}`}
         />
       </label>
 
       <label className="block space-y-1">
-        <span className="text-[11px] font-semibold text-fg-muted">{t('send.note_label')}</span>
+        <span className="text-xs font-semibold text-fg-muted">{t('send.note_label')}</span>
         <textarea
           id="studio-send-note"
           dir="auto"
@@ -240,8 +246,8 @@ export const SendDialog = ({
           maxLength={SEND_NOTE_MAX_CHARS}
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          className={`w-full px-3 py-2 rounded-xl bg-surface border border-line text-fg resize-none ${
-            asSheet ? 'text-base' : 'text-xs'
+          className={`w-full px-3 py-2 rounded-xl bg-surface border border-line-strong text-fg resize-none ${
+            asSheet ? 'text-base' : 'text-sm'
           }`}
         />
       </label>
@@ -277,10 +283,10 @@ export const SendDialog = ({
                   : 'px-3 py-2 rounded-xl bg-surface border border-line space-y-1'
               }
             >
-              <span dir="ltr" className="block text-[11px] font-mono text-info-fg break-all">
+              <span dir="ltr" className="block text-xs font-mono text-info-fg break-all">
                 {`${d.key} · ${d.locale}`}
               </span>
-              <div className={`${asSheet ? 'text-xs' : 'text-[10px]'} leading-relaxed`}>
+              <div className="text-sm leading-relaxed">
                 {d.from ? (
                   <span
                     dir="auto"
@@ -356,12 +362,18 @@ export const SendDialog = ({
           aria-label={t('send.link_label')}
           value={shownLink}
           onFocus={(e) => e.currentTarget.select()}
-          className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg"
+          className="w-full h-9 px-3 rounded-xl bg-surface border border-line-strong text-xs font-mono text-fg"
         />
       )}
       {tooLong && (
         <p role="status" className="glyph-warn text-xs text-warning-fg">
           {t('send.too_long')}
+        </p>
+      )}
+      {/* The link is the hand-off: say where it goes before it is copied. */}
+      {shownLink !== null && !tooLong && !handedOver && (
+        <p data-testid="send-next-step" className="text-sm text-fg-muted">
+          {t('send.next_step')}
         </p>
       )}
 
@@ -418,7 +430,7 @@ export const SendDialog = ({
             label={t('send.open_github')}
             onOpened={() => void markSent(included, 'opened')}
           />
-          <p className="text-[11px] text-fg-muted">{t('send.github_hint')}</p>
+          <p className="text-xs text-fg-muted">{t('send.github_hint')}</p>
         </div>
       )}
 
@@ -461,6 +473,12 @@ export const SendDialog = ({
           </button>
         </div>
       )}
+      {/* Once it is handed over, what happens next and where to see it. */}
+      {handedOver && (
+        <p data-testid="send-after" className="text-sm text-fg-muted">
+          {t('send.after')}
+        </p>
+      )}
       {actionError && (
         <p role="alert" className="text-xs text-danger-fg break-words">
           {studioMessage(t, actionError)}
@@ -471,7 +489,13 @@ export const SendDialog = ({
 
   if (asSheet) {
     return (
-      <BottomSheet open onClose={onClose} labelledBy="studio-send-title" lightBackdrop>
+      <BottomSheet
+        open
+        onClose={onClose}
+        labelledBy="studio-send-title"
+        lightBackdrop
+        closeButton={false}
+      >
         <div className="space-y-3">{content}</div>
       </BottomSheet>
     );

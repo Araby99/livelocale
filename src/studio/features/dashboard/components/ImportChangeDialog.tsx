@@ -80,7 +80,7 @@ export const ImportChangeDialog = ({
           onChange={(e) => setText(e.target.value)}
           rows={5}
           spellCheck={false}
-          className="mt-2 w-full px-3 py-2 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg break-all resize-y"
+          className="mt-2 w-full px-3 py-2 rounded-xl bg-surface border border-line-strong text-xs font-mono text-fg break-all resize-y"
         />
 
         <label htmlFor="studio-import-file" className="block mt-4 text-xs font-semibold text-fg">
@@ -91,7 +91,7 @@ export const ImportChangeDialog = ({
           type="file"
           accept=".txt,text/plain"
           onChange={(e) => void chooseFile(e.target.files?.[0])}
-          className="mt-2 block w-full text-[11px] text-fg-muted file:me-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-raised file:text-fg file:text-[11px] file:font-semibold"
+          className="mt-2 block w-full text-xs text-fg-muted file:me-3 file:px-3 file:py-1.5 file:rounded-lg file:border-0 file:bg-raised file:text-fg file:text-xs file:font-semibold"
         />
 
         {shownError && (

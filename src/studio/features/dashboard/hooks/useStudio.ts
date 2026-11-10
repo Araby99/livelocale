@@ -4,7 +4,7 @@ import { getAppOrigin, getAppUrl } from '../constants.js';
 import { useConnection } from './useConnection.js';
 import { useEditMode } from './useEditMode.js';
 import { useTouchDevice } from './useTouchDevice.js';
-import { useLocaleData } from './useLocaleData.js';
+import { flattenObject, useLocaleData } from './useLocaleData.js';
 import { usePageNavigation } from './usePageNavigation.js';
 import { useSelection } from './useSelection.js';
 import { useLocaleActions } from './useLocaleActions.js';
@@ -32,12 +32,31 @@ import { useReview } from './useReview.js';
 import { findChangeToken } from '../../../../core/change-link.js';
 import { describeLinkError } from '../../../share/send.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import type { TextCandidates } from '../../../locale-inference.js';
 
 /** Start-up problems found before any connection, e.g. a share folder without a manifest. */
 const runtimeProblems = (): string[] => {
   const runtime = getStudioRuntime();
   return runtime.kind === 'server' ? runtime.problems : [];
 };
+
+/**
+ * Every listed locale's texts as locale-inference reads them. A locale that fails to load is
+ * left out: it can then never be detected, which is no worse than before.
+ */
+async function loadServerCandidates(locales: readonly string[]): Promise<TextCandidates> {
+  const entries = await Promise.all(
+    locales.map(async (l) => {
+      try {
+        const texts = flattenObject(await fetchLocaleDictionary(l));
+        return [l, Object.fromEntries(Object.entries(texts).map(([k, v]) => [k, [v]]))] as const;
+      } catch {
+        return null;
+      }
+    })
+  );
+  return Object.fromEntries(entries.filter((entry) => entry !== null));
+}
 
 /**
  * Composer hook: wires the focused feature hooks together and owns the
@@ -93,10 +112,13 @@ export const useStudio = () => {
     onVisibleTexts: (texts) => visibleTextsRef.current(texts),
   });
 
-  // Touch devices tap to edit through the Edit/Browse switch, re-sent to every new page.
+  // The Edit/Browse switch, re-sent to every new page. Touch devices and share links (the
+  // translator's path) start in Edit, where a plain tap or click picks text; a developer's
+  // Studio on a desktop starts in Browse, with Alt+Click.
   const { isTouch, isPhone } = useTouchDevice();
   const { editMode, setEditMode } = useEditMode({
-    active: isTouch && supportsEditMode,
+    active: supportsEditMode,
+    initial: isTouch || getStaticTransport() !== null,
     readySeq,
     setSiteEditMode,
   });
@@ -136,9 +158,27 @@ export const useStudio = () => {
   const staticTransport = getStaticTransport();
   const drafts = useDrafts(staticTransport);
 
-  // The locale edits go to: inferred and always shown on a share link; today's behaviour otherwise.
+  // Server stack: every locale's texts, read once per locale list and again after a save, so
+  // the Studio can tell from the page which language the app shows.
+  const serverCandidatesRef = useRef<{ list: string; texts: Promise<TextCandidates> } | null>(null);
+  const serverCandidates = (): Promise<TextCandidates> => {
+    if (locales.length === 0) return Promise.resolve({});
+    const list = locales.join('|');
+    if (serverCandidatesRef.current?.list !== list) {
+      serverCandidatesRef.current = { list, texts: loadServerCandidates(locales) };
+    }
+    return serverCandidatesRef.current.texts;
+  };
+
+  // Set once useSelection below runs; read by the target locale when the page changes.
+  const unsavedRef = useRef(false);
+
+  // The locale edits go to: inferred and always shown on a share link. A server stack follows
+  // the language the page shows (the app's own switch), unless one was chosen in the menu.
   const target = useTargetLocale({
+    hasUnsavedChanges: () => unsavedRef.current,
     enabled: staticTransport !== null,
+    followPage: staticTransport === null,
     scope: staticTransport?.scope ?? null,
     locale,
     setLocale,
@@ -146,9 +186,8 @@ export const useStudio = () => {
     // Share link: the current page in a chosen language, marked the way its address marks it.
     showLocale: showLocaleInPage,
     locales,
-    getCandidates: async () => (staticTransport ? staticTransport.textCandidates() : {}),
+    getCandidates: () => (staticTransport ? staticTransport.textCandidates() : serverCandidates()),
   });
-  const handleLocaleChange = target.onMenuLocale;
 
   const {
     selected,
@@ -163,6 +202,8 @@ export const useStudio = () => {
     handleInputChange,
     handleSave,
     handleClearSelection,
+    guardUnsaved,
+    hasUnsavedChanges,
     saveWarning,
     dismissSaveWarning,
   } = useSelection({
@@ -176,11 +217,20 @@ export const useStudio = () => {
     setLoading: setIsLoading,
     setError,
     onSaved: (change) => {
+      serverCandidatesRef.current = null;
       history.record(change);
       git.refresh();
     },
     t,
   });
+  unsavedRef.current = hasUnsavedChanges;
+
+  // A language switch reloads the editor with the other language's text, so typed text that
+  // is not saved yet gets the same prompt as picking another text.
+  const handleLocaleChange = (chosen: string) => guardUnsaved(() => target.onMenuLocale(chosen));
+
+  // Typed but unsaved text is lost on a reload or a closed tab: the browser asks first.
+  useUnsentGuard(hasUnsavedChanges);
 
   const git = useGit({
     connectionStatus,
@@ -312,19 +362,21 @@ export const useStudio = () => {
       .catch(() => {});
   }, [currentPath]);
 
-  // Share link: an Alt+Click is shown only once the dictionary of its target locale has loaded.
+  // An Alt+Click is shown only once the dictionary of its target locale has loaded.
   const [queuedSelection, setQueuedSelection] = useState<SelectedElement | null>(null);
   useEffect(() => {
-    if (queuedSelection === null || dataLocale !== locale) return;
+    if (queuedSelection === null) return;
+    // A server stack whose dictionary never loaded (a failed request) still opens the pick, as
+    // it always did, from the page's own text.
+    const waiting = dataLocale !== locale && (staticTransport !== null || dataLocale !== null);
+    if (waiting) return;
     setQueuedSelection(null);
     selectElement(queuedSelection);
   }, [queuedSelection, dataLocale, locale]);
 
+  // The click's text may name another language (the app switched it): the editor opens once
+  // that language's dictionary has loaded, on a share link and a server stack alike.
   const handleElementSelected = (el: SelectedElement) => {
-    if (!staticTransport) {
-      selectElement(el);
-      return;
-    }
     target
       .resolveForSelection(el)
       .then((resolved) => {
@@ -348,6 +400,9 @@ export const useStudio = () => {
     const pending = target.choose(chosen);
     if (pending) setQueuedSelection(pending);
   };
+
+  // The header's "Switch to …" changes the language being edited, so it asks first too.
+  const switchTargetLocale = (chosen: string) => guardUnsaved(() => chooseTargetLocale(chosen));
 
   const firstRun = useFirstRun(mode === 'static' && !review);
 
@@ -414,8 +469,16 @@ export const useStudio = () => {
     t,
   });
 
-  const { searchTerm, setSearchTerm, filterPageOnly, setFilterPageOnly, filteredKeys } =
-    useKeySearch({ allKeys, visibleKeys, localeData });
+  const {
+    searchTerm,
+    setSearchTerm,
+    filterPageOnly,
+    setFilterPageOnly,
+    filterMissing,
+    setFilterMissing,
+    missingCount,
+    filteredKeys,
+  } = useKeySearch({ allKeys, visibleKeys, localeData });
 
   return {
     selected,
@@ -452,6 +515,9 @@ export const useStudio = () => {
     codeKeys,
     filterPageOnly,
     setFilterPageOnly,
+    filterMissing,
+    setFilterMissing,
+    missingCount,
     visibleKeys,
     // Touch devices: Edit/Browse switch and tap-to-edit
     isTouch,
@@ -503,16 +569,20 @@ export const useStudio = () => {
     downloadBackup,
     restoreBackupFile,
     staticManifest: staticTransport?.manifest ?? null,
-    // Target locale (share link only)
-    targetLocale: staticTransport
-      ? { locale, source: target.source, mismatch: target.mismatch }
-      : null,
+    // Target locale: always on a share link; a server stack shows it only to flag text in
+    // another language than the one chosen in the menu.
+    targetLocale:
+      staticTransport || target.mismatch
+        ? { locale, source: target.source, mismatch: target.mismatch }
+        : null,
     localePickerCandidates: target.pickerCandidates,
     chooseTargetLocale,
+    switchTargetLocale,
     cancelLocalePick: target.cancelPick,
     // First-run tips (share link only)
     showTips: firstRun.showTips,
     dismissTips: firstRun.dismiss,
+    showTipsAgain: firstRun.reopen,
     translatorName: firstRun.name,
     setTranslatorName: firstRun.setName,
     // Review mode (change links)

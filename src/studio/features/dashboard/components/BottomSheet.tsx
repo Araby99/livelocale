@@ -1,6 +1,7 @@
 import React, { useRef, useState, type ReactNode } from 'react';
 import { useDialog } from '../hooks/useDialog.js';
 import { useKeyboardInset, useVisualViewportHeight } from '../hooks/useKeyboardInset.js';
+import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 /** A drag on the handle longer than this many px closes the sheet. */
 export const CLOSE_DRAG_PX = 80;
@@ -24,6 +25,12 @@ interface BottomSheetProps {
    * instead of closing the sheet. A tap on the dimmed page below the bar still closes.
    */
   lightBackdrop?: boolean;
+  /**
+   * A labelled Close button in the top corner. The drag handle and the dimmed page are
+   * pointer-only, so without it a screen reader or switch user has nothing to close the sheet
+   * with. Off when the content brings its own Close.
+   */
+  closeButton?: boolean;
   children: ReactNode;
 }
 
@@ -38,8 +45,10 @@ export const BottomSheet = ({
   labelledBy,
   maxHeightShare = MAX_HEIGHT_SHARE,
   lightBackdrop = false,
+  closeButton = true,
   children,
 }: BottomSheetProps) => {
+  const { t } = useStudioText();
   const dialogRef = useDialog<HTMLDivElement>(open, onClose);
   const inset = useKeyboardInset();
   // `dvh` ignores the keyboard, so cap the height to what is visible above it too.
@@ -116,6 +125,30 @@ export const BottomSheet = ({
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 pb-4">
           {children}
         </div>
+        {/* After the content, so opening the sheet still lands in its first field; drawn in the
+            handle row's corner. */}
+        {closeButton && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('sheet.close')}
+            title={t('sheet.close')}
+            className="absolute top-0 end-1 min-h-11 min-w-11 inline-flex items-center justify-center rounded-xl text-fg-muted hover:text-fg"
+          >
+            <svg
+              aria-hidden="true"
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              viewBox="0 0 24 24"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -137,14 +137,14 @@ describe('Studio accessible names', () => {
       />
     );
     expect(unnamedControls(container)).toEqual([]);
-    expect(screen.getByRole('textbox', { name: 'Search keys or values' })).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Search texts' })).toBeTruthy();
   });
 
   it('names the locale select and the manage toggle in EditorPanel', () => {
     const { container } = render(<EditorPanel {...editorProps} />);
     expect(unnamedControls(container)).toEqual([]);
-    expect(screen.getByRole('combobox', { name: 'Locale' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Manage Languages' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: 'Language' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Manage languages' })).toBeTruthy();
     expect(screen.getByRole('textbox', { name: 'Translation' }).id).toBe(
       'studio-translation-input'
     );
@@ -163,9 +163,9 @@ describe('Studio accessible names', () => {
       />
     );
     expect(unnamedControls(container)).toEqual([]);
-    expect(screen.getByRole('textbox', { name: 'Add New Locale' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Rename locale ar' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Delete locale ar' })).toBeTruthy();
+    expect(screen.getByRole('textbox', { name: 'Add a language' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Rename language ar' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Delete language ar' })).toBeTruthy();
   });
 
   it('names the rename field, Save rename and Cancel while renaming', () => {
@@ -179,7 +179,7 @@ describe('Studio accessible names', () => {
         onDelete={vi.fn(async () => {})}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Rename locale ar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename language ar' }));
     expect(unnamedControls(container)).toEqual([]);
     expect(screen.getByRole('textbox', { name: 'New code for ar' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Save rename' })).toBeTruthy();
@@ -204,10 +204,10 @@ describe('Studio accessible names', () => {
     );
   });
 
-  it('names Reload Frame in IframeViewer', () => {
+  it('names Reload page in IframeViewer', () => {
     const { container } = render(<IframeViewer {...viewerProps} />);
     expect(unnamedControls(container)).toEqual([]);
-    expect(screen.getByRole('button', { name: 'Reload Frame' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Reload page' })).toBeTruthy();
   });
 
   it('names the page address field', () => {

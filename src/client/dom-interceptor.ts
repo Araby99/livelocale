@@ -526,9 +526,12 @@ export class DOMInterceptor {
     if (!document.getElementById(EDIT_STYLE_ID)) {
       const style = document.createElement('style');
       style.id = EDIT_STYLE_ID;
+      // The outlines are drawn on the customer's site, light or dark, so each is two tones: a
+      // Night dash on a Paper ring for "you can tap this", and the amber marker on a Night ring
+      // for "this is picked". The ring (a box-shadow) fills the gap the outline offset leaves.
       style.textContent =
-        `html[${EDIT_ATTRIBUTE}] [data-i18n-key]{outline:1px dashed rgba(79,195,220,.7);outline-offset:2px}` +
-        `html[${EDIT_ATTRIBUTE}] [data-i18n-key][${PICKED_ATTRIBUTE}]{outline:2px solid #FFB224;outline-offset:3px}`;
+        `html[${EDIT_ATTRIBUTE}] [data-i18n-key]{outline:2px dashed #0C0D0F;outline-offset:2px;box-shadow:0 0 0 2px #E8E4D9}` +
+        `html[${EDIT_ATTRIBUTE}] [data-i18n-key][${PICKED_ATTRIBUTE}]{outline:2px solid #FFB224;outline-offset:3px;box-shadow:0 0 0 3px #0C0D0F}`;
       document.head.appendChild(style);
     }
     document.documentElement.setAttribute(EDIT_ATTRIBUTE, '');
@@ -1001,18 +1004,22 @@ export class DOMInterceptor {
     const target = event.target as HTMLElement | null;
     if (!target || typeof target.closest !== 'function') return;
 
-    const keyedElement = target.closest('[data-i18n-key]') as HTMLElement | null;
-    if (!keyedElement) return;
-
-    // RULE CLT-003: ALWAYS CHECK data-i18n-key EXISTENCE
-    const key = keyedElement.getAttribute('data-i18n-key');
-    if (key === null) return;
-
     // RULE CLT-002: EVENT LISTENERS IN CAPTURE PHASE
+    // Alt+Click is the Studio's gesture, so it never reaches the site: Chrome would download an
+    // Alt+Clicked link's target.
     event.preventDefault();
     event.stopPropagation();
 
-    this.select(keyedElement, key);
+    const keyedElement = target.closest('[data-i18n-key]') as HTMLElement | null;
+    // RULE CLT-003: ALWAYS CHECK data-i18n-key EXISTENCE
+    const key = keyedElement?.getAttribute('data-i18n-key');
+    if (keyedElement && key) {
+      this.select(keyedElement, key);
+    } else if (hasOwnText(target)) {
+      // Text the locale files do not hold (hardcoded, CMS): the Studio says why nothing opens,
+      // as it does for a tap in Edit mode.
+      this.onUnkeyedTap?.();
+    }
   };
 
   private handleCopy = (event: ClipboardEvent): void => {

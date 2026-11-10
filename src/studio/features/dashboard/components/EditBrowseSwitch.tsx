@@ -14,15 +14,18 @@ const CHECKED = 'bg-accent-soft text-accent-fg';
 const UNCHECKED = 'text-fg-muted hover:text-fg';
 
 /**
- * The Edit / Browse switch of a touch device. In Edit a tap on the site selects text and the
- * site does not react; in Browse the site works as it does without LiveLocale.
+ * The Edit / Browse switch. In Edit a tap or click on the site selects text and the site does
+ * not react; in Browse the site works as it does without LiveLocale (Alt+Click still picks).
  */
 export const EditBrowseSwitch = ({
   editMode,
   onChange,
+  pointer = 'touch',
 }: {
   editMode: boolean;
   onChange(on: boolean): void;
+  /** `mouse` names the switch for clicking instead of tapping. */
+  pointer?: 'touch' | 'mouse';
 }) => {
   const { t } = useStudioText();
   const name = useId();
@@ -33,7 +36,7 @@ export const EditBrowseSwitch = ({
   return (
     <div
       role="radiogroup"
-      aria-label={t('touch.mode_label')}
+      aria-label={t(pointer === 'mouse' ? 'edit.mode_label' : 'touch.mode_label')}
       data-testid="edit-browse-switch"
       className="inline-flex items-center gap-0.5 p-0.5 rounded-xl bg-raised border border-line select-none"
     >
@@ -63,9 +66,12 @@ export const TapNotice = ({
   unkeyedTapSeq,
   placement = 'default',
   hidden = false,
+  pointer = 'touch',
 }: {
   editMode: boolean;
   unkeyedTapSeq: number;
+  /** `mouse` says "click" in the first hint instead of "tap". */
+  pointer?: 'touch' | 'mouse';
   /** `phone` lifts it above the phone's bottom bar (the Edit / Browse switch). */
   placement?: 'default' | 'phone';
   /** Keeps a message out of sight (a sheet is open); the live region still announces it. */
@@ -89,7 +95,7 @@ export const TapNotice = ({
   useEffect(() => {
     if (!editMode || hintShown.current) return;
     hintShown.current = true;
-    show('touch.hint', TAP_HINT_MS);
+    show(pointer === 'mouse' ? 'edit.hint_click' : 'touch.hint', TAP_HINT_MS);
   }, [editMode]);
 
   useEffect(() => {

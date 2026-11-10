@@ -35,13 +35,24 @@ interface DraftListProps {
   /** Drafts the rebuilt site already shows: labelled Live now, with no action. */
   liveNow?: Draft[];
   onDismissLiveNow?: () => void;
+  /** How a text is picked now, so the empty list names the right gesture. Defaults to Alt+Click. */
+  pick?: PickGesture;
 }
+
+/** How the person picks a text on the page: Alt+Click, a plain click (Edit), or a tap. */
+export type PickGesture = 'alt' | 'click' | 'tap';
+
+const EMPTY_KEYS: Readonly<Record<PickGesture, StringKey>> = {
+  alt: 'draft_list.none',
+  click: 'draft_list.none_click',
+  tap: 'draft_list.none_tap',
+};
 
 const StateBadge = ({ state }: { state: DraftDisplayState }) => {
   const { t } = useStudioText();
   return (
     <span
-      className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
+      className={`px-1.5 py-0.5 rounded text-xs font-extrabold uppercase tracking-wider border ${STATE_STYLES[state]}`}
     >
       {t(DRAFT_STATUS_KEYS[state])}
     </span>
@@ -49,7 +60,7 @@ const StateBadge = ({ state }: { state: DraftDisplayState }) => {
 };
 
 const rowHeading = (d: Draft) => (
-  <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
+  <span dir="ltr" className="text-xs font-mono text-info-fg break-all">
     {`${d.key} · ${d.locale}`}
   </span>
 );
@@ -58,7 +69,7 @@ const rowHeading = (d: Draft) => (
 const DraftValues = ({ d }: { d: Draft }) => {
   const { t } = useStudioText();
   return (
-    <div className="text-[10px] leading-relaxed">
+    <div className="text-sm leading-relaxed">
       {d.from ? (
         <span dir="auto" className="text-fg-muted line-through decoration-fg-faint break-all">
           {d.from}
@@ -95,6 +106,7 @@ export const DraftList = ({
   onReviewChange,
   liveNow = [],
   onDismissLiveNow,
+  pick = 'alt',
 }: DraftListProps) => {
   const { t } = useStudioText();
   const [result, setResult] = useState<string | null>(null);
@@ -127,16 +139,16 @@ export const DraftList = ({
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+        <h3 className="text-xs font-bold text-fg-muted uppercase tracking-wider">
           {t('draft_list.title')}
         </h3>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
+        <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
           {drafts.length}
         </span>
       </div>
 
       {drafts.length === 0 && liveNow.length === 0 ? (
-        <p className="text-xs text-fg-muted">{t('draft_list.none')}</p>
+        <p className="text-xs text-fg-muted">{t(EMPTY_KEYS[pick])}</p>
       ) : (
         <ul className="space-y-1.5">
           {drafts.map((d) => {
@@ -152,7 +164,7 @@ export const DraftList = ({
                       type="button"
                       onClick={() => onUndo(d)}
                       disabled={isUndoing}
-                      className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
+                      className="text-xs font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
                       title={t(isSent ? 'draft_list.remove_title' : 'draft_list.undo_title')}
                       aria-label={t(isSent ? 'draft_list.remove_aria' : 'draft_list.undo_aria', {
                         key: d.key,
@@ -184,7 +196,7 @@ export const DraftList = ({
         <button
           type="button"
           onClick={onDismissLiveNow}
-          className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
+          className="text-xs font-semibold text-fg-muted hover:text-fg transition duration-150"
         >
           {t('draft_list.dismiss_live')}
         </button>
@@ -215,7 +227,7 @@ export const DraftList = ({
         )}
       </div>
       {result && (
-        <p role="status" className="text-[11px] text-fg-muted break-words">
+        <p role="status" className="text-xs text-fg-muted break-words">
           {studioMessage(t, result)}
         </p>
       )}

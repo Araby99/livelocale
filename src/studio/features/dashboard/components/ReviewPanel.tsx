@@ -82,7 +82,7 @@ const STATUS_CLASS: Record<EditStatus, string> = {
 const noop = () => {};
 
 const actionButton =
-  'h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong';
+  'h-8 px-3 rounded-xl text-xs font-semibold border transition duration-150 text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong';
 
 const Value = ({ value }: { value: string | null }) => {
   const { t } = useStudioText();
@@ -186,7 +186,7 @@ export const ReviewPanel = ({
         <button
           type="button"
           onClick={onClose}
-          className="text-[11px] font-semibold text-fg-muted hover:text-fg transition duration-150"
+          className="text-xs font-semibold text-fg-muted hover:text-fg transition duration-150"
         >
           {t('review.close')}
         </button>
@@ -221,7 +221,7 @@ export const ReviewPanel = ({
               </p>
             )}
 
-            <ul data-testid="review-summary" className="flex flex-wrap gap-2 text-[11px]">
+            <ul data-testid="review-summary" className="flex flex-wrap gap-2 text-xs">
               {STATUS_ORDER.filter((s) => counts[s] > 0).map((s) => (
                 <li
                   key={s}
@@ -255,20 +255,20 @@ export const ReviewPanel = ({
                         by={review.set.by}
                         label={t('review.create_pr')}
                       />
-                      <span dir="ltr" className="text-[11px] font-mono text-fg-muted break-all">
+                      <span dir="ltr" className="text-xs font-mono text-fg-muted break-all">
                         {repo}
                       </span>
                       {!repoFromManifest && (
                         <button
                           type="button"
                           onClick={() => setIsChangingRepo(true)}
-                          className="text-[11px] font-semibold text-fg-muted hover:text-fg underline-offset-2 hover:underline"
+                          className="text-xs font-semibold text-fg-muted hover:text-fg underline-offset-2 hover:underline"
                         >
                           {t('review.change_repo')}
                         </button>
                       )}
                     </div>
-                    <p className="text-[11px] text-fg-muted">{t('review.github_hint')}</p>
+                    <p className="text-xs text-fg-muted">{t('review.github_hint')}</p>
                   </>
                 )}
               </div>
@@ -281,12 +281,12 @@ export const ReviewPanel = ({
                   type="button"
                   disabled={applyCount === 0 || isApplying}
                   onClick={() => onApplyLocal({ includeForced })}
-                  className="h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 bg-accent border-accent-line text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="h-8 px-3 rounded-xl text-xs font-semibold border transition duration-150 bg-accent border-accent-line text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   {t('review.apply_local', { count: applyCount })}
                 </button>
                 {counts['needs-force'] > 0 && (
-                  <label className="flex items-center gap-2 text-[11px] text-fg">
+                  <label className="flex items-center gap-2 text-xs text-fg">
                     <input
                       type="checkbox"
                       checked={includeForced}
@@ -305,7 +305,7 @@ export const ReviewPanel = ({
               <code
                 data-testid="review-apply-command"
                 dir="ltr"
-                className="block px-3 py-2 rounded-lg bg-surface border border-line text-[11px] font-mono text-fg break-all"
+                className="block px-3 py-2 rounded-lg bg-surface border border-line text-xs font-mono text-fg break-all"
               >
                 {command}
               </code>
@@ -318,18 +318,18 @@ export const ReviewPanel = ({
                     {t('review.copy_link')}
                   </button>
                 )}
-                {copied && <span className="text-[11px] text-fg-muted">{copied}</span>}
+                {copied && <span className="text-xs text-fg-muted">{copied}</span>}
               </div>
-              <p className="text-[11px] text-fg-muted">{t('review.apply_hint')}</p>
+              <p className="text-xs text-fg-muted">{t('review.apply_hint')}</p>
             </div>
 
             {review.target === 'github' && (
-              <p className="text-[11px] text-fg-muted">
+              <p className="text-xs text-fg-muted">
                 {t('review.run_workflow_hint', { path: RUN_WORKFLOW_PATH })}
               </p>
             )}
 
-            <table className="w-full text-[11px] text-start border-collapse">
+            <table className="w-full text-xs text-start border-collapse">
               <thead className="text-fg-muted">
                 <tr>
                   <th className="py-1 pe-2 font-semibold">{t('review.col_language')}</th>
@@ -363,7 +363,7 @@ export const ReviewPanel = ({
                       <td dir="ltr" className="py-2 pe-2 font-mono text-info-fg break-all">
                         {row.key}
                       </td>
-                      <td className="py-2 pe-2">
+                      <td className="py-2 pe-2 text-sm">
                         <Value value={row.from} />
                         {row.status === 'conflict' && row.current !== undefined && (
                           <p className="mt-1 glyph-warn text-warning-fg">
@@ -374,7 +374,7 @@ export const ReviewPanel = ({
                           </p>
                         )}
                       </td>
-                      <td className="py-2 pe-2">
+                      <td className="py-2 pe-2 text-sm">
                         <AfterCell row={row} />
                       </td>
                       <td className="py-2">

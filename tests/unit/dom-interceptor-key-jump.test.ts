@@ -252,7 +252,7 @@ describe('IframeBridge KEY_JUMPED', () => {
   it('carries only a valid key and a known result', () => {
     const bridge = new IframeBridge('http://localhost:3010');
     bridge.sendToParent('KEY_JUMPED', { key: 'home.title', result: 'shown', extra: 'leak' });
-    bridge.sendToParent('KEY_JUMPED', { key: 'bad key', result: 'shown' });
+    bridge.sendToParent('KEY_JUMPED', { key: 'bad/key', result: 'shown' });
     bridge.sendToParent('KEY_JUMPED', { key: 'home.title', result: 'maybe' });
     bridge.sendToParent('KEY_JUMPED', null);
     expect(parent.postMessage.mock.calls.map(([m]) => m)).toEqual([

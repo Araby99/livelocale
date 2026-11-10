@@ -301,7 +301,7 @@ describe('useLocaleActions', () => {
   });
 
   it('reports a failed add-locale in the Studio text when the server gives no message', async () => {
-    // A 500 body without `error` still has a message ("Server responded with status 500").
+    // A 500 body without `error` still has a message ("The site answered with an error (500).").
     vi.mocked(fetch).mockRejectedValue(new Error(''));
     const t = vi.fn(englishText);
     const params = makeParams({ t });

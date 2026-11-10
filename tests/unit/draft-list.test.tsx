@@ -43,6 +43,26 @@ const row = (label: string) => screen.getByText(label).closest('li') as HTMLElem
 
 afterEach(cleanup);
 
+describe('DraftList with no changes', () => {
+  it.each([
+    [undefined, 'draft_list.none'],
+    ['alt', 'draft_list.none'],
+    ['click', 'draft_list.none_click'],
+    ['tap', 'draft_list.none_tap'],
+  ] as const)('says how to pick a text (%s)', (pick, key) => {
+    renderList({ pick });
+    expect(screen.getByText(englishText(key))).toBeTruthy();
+  });
+
+  it('names no Alt key when a click or a tap picks text', () => {
+    renderList({ pick: 'tap' });
+    expect(screen.queryByText(/Alt/)).toBeNull();
+    cleanup();
+    renderList({ pick: 'click' });
+    expect(screen.queryByText(/Alt/)).toBeNull();
+  });
+});
+
 describe('DraftList', () => {
   it('maps drafts to display states', () => {
     expect(draftDisplayState(d())).toBe('unsent');

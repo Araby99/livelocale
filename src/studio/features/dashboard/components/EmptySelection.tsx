@@ -1,7 +1,17 @@
 import React from 'react';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
-export const EmptySelection = () => {
+interface EmptySelectionProps {
+  /** A plain click picks text (tap-to-edit is on), so the hint does not mention Alt. */
+  clickToEdit?: boolean;
+  /** Browse is on and the Edit switch is there: the hint names it as the way without Alt. */
+  canSwitchToEdit?: boolean;
+}
+
+export const EmptySelection = ({
+  clickToEdit = false,
+  canSwitchToEdit = false,
+}: EmptySelectionProps) => {
   const { t } = useStudioText();
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-6 text-center select-none">
@@ -16,7 +26,9 @@ export const EmptySelection = () => {
         </svg>
       </div>
       <h3 className="text-fg font-semibold tracking-wide font-heading">{t('empty.title')}</h3>
-      <p className="text-xs text-fg-muted max-w-xs mt-2 leading-relaxed">{t('empty.body')}</p>
+      <p className="text-sm text-fg-muted max-w-xs mt-2 leading-relaxed">
+        {t(clickToEdit ? 'empty.body_click' : canSwitchToEdit ? 'empty.body_switch' : 'empty.body')}
+      </p>
     </div>
   );
 };

@@ -71,6 +71,32 @@ describe('text matching', () => {
     ]);
     expect(matchLocalesByVisibleTexts([], cands)).toEqual([]);
   });
+
+  // English holds four texts, Arabic only the title: an Arabic page shows English for the rest.
+  const sparse = {
+    en: { title: ['Welcome'], cta: ['Start'], about: ['About us'], help: ['Help'] },
+    ar: { title: ['مرحبا'] },
+  };
+
+  it('counts a fallback text for every language that lacks the key', () => {
+    expect(matchLocalesByText('cta', ['Start'], sparse)).toEqual(['ar', 'en']);
+    // Text no language holds is no evidence, even for the languages that lack the key.
+    expect(matchLocalesByText('cta', ['Commencer'], sparse)).toEqual([]);
+  });
+
+  it('reads a mostly fallback Arabic page as Arabic, and an English page as English', () => {
+    const arabicPage = [
+      { key: 'title', text: 'مرحبا' },
+      { key: 'cta', text: 'Start' },
+      { key: 'about', text: 'About us' },
+      { key: 'help', text: 'Help' },
+    ];
+    expect(matchLocalesByVisibleTexts(arabicPage, sparse)).toEqual(['ar']);
+    const englishPage = [{ key: 'title', text: 'Welcome' }, ...arabicPage.slice(1)];
+    expect(matchLocalesByVisibleTexts(englishPage, sparse)).toEqual(['en']);
+    // Only fallback texts on screen: either language could be showing them.
+    expect(matchLocalesByVisibleTexts(arabicPage.slice(1), sparse)).toEqual(['ar', 'en']);
+  });
 });
 
 describe('locale choice', () => {

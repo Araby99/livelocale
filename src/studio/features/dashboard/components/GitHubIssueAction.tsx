@@ -13,7 +13,7 @@ interface GitHubIssueActionProps {
 }
 
 const actionButton =
-  'inline-flex items-center h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong';
+  'inline-flex items-center h-8 px-3 rounded-xl text-xs font-semibold border transition duration-150 text-fg hover:text-fg bg-raised hover:bg-raised-hover border-line-strong';
 
 /**
  * Opens a pre-filled GitHub issue holding the change block. When the block
@@ -34,7 +34,7 @@ export function GitHubIssueAction({
 
   if (request.tooLarge || request.url === null) {
     return (
-      <p role="status" className="glyph-warn text-[11px] text-warning-fg">
+      <p role="status" className="glyph-warn text-xs text-warning-fg">
         {t('issue.too_large', { command: 'npx livelocale apply' })}
       </p>
     );
@@ -67,7 +67,7 @@ export function GitHubIssueAction({
       </div>
       {copied === 'failed' && (
         <>
-          <p role="alert" className="text-[11px] text-fg-muted">
+          <p role="alert" className="text-xs text-fg-muted">
             {t('issue.copy_failed')}
           </p>
           <textarea
@@ -77,7 +77,7 @@ export function GitHubIssueAction({
             value={block}
             rows={4}
             onFocus={(e) => e.currentTarget.select()}
-            className="w-full px-3 py-2 rounded-xl bg-surface border border-line text-[11px] font-mono text-fg resize-none"
+            className="w-full px-3 py-2 rounded-xl bg-surface border border-line-strong text-xs font-mono text-fg resize-none"
           />
         </>
       )}

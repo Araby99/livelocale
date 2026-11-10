@@ -9,7 +9,13 @@ import {
   readSameOriginParent,
   resolveStudioOrigin,
 } from './iframe-bridge.js';
-import { applyPreview, commitPreview, forgetPreviews, restorePreviews } from './preview.js';
+import {
+  applyPreview,
+  commitPreview,
+  forgetPreviews,
+  restorePreview,
+  restorePreviews,
+} from './preview.js';
 import { watchLocation } from './location-watch.js';
 import { isLiveLocaleEnabled } from '../core/env.js';
 
@@ -31,8 +37,9 @@ export {
   unwrap,
 } from './watermark.js';
 
-// wrapTranslationEngine lives in wrap.ts (no 'use client') so it can also be
-// imported by Server Components via 'livelocale/server'.
+// wrapTranslationEngine lives in wrap.ts (no 'use client') so it can also be imported
+// through 'livelocale/wrap', which works in Server, Client and shared components and
+// does not carry this in-page client into a production bundle.
 export { wrapTranslationEngine, wrapNextIntl, type WrapOptions } from './wrap.js';
 
 /// ─── Start ──────────────────────────────────────────────────────────────────
@@ -123,6 +130,9 @@ export function startLiveLocale(): boolean {
         if (type === 'APPLY_PREVIEW') applyPreview(payload.key, payload.value, source);
         else commitPreview(payload.key, payload.value, source);
       }
+    } else if (type === 'RESTORE_PREVIEW') {
+      // One key's unsaved text was discarded; the selection and its highlight stay.
+      if (payload && typeof payload.key === 'string') restorePreview(payload.key);
     } else if (type === 'CLEAR_SELECTION') {
       // Revert any live preview, then re-trigger/reset interceptor highlight states
       restorePreviews();

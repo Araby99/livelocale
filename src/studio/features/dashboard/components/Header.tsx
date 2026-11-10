@@ -5,6 +5,7 @@ import { BrandMark } from './BrandMark.js';
 import type { LocaleSource } from '../../../locale-inference.js';
 import type { StringKey } from '../../../i18n/catalogue.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { getLocaleLabel } from '../locale-names.js';
 
 // Injected by Vite at build/dev time from package.json version (see vite.config.ts).
 declare const __STUDIO_VERSION__: string;
@@ -40,6 +41,10 @@ interface HeaderProps {
   onImport?: () => void;
   /** Header settings (the theme toggle); always visible, rendered only when set. */
   settings?: React.ReactNode;
+  /** Opens the list of texts still missing; given, the coverage meter is a button. */
+  onShowMissing?: () => void;
+  /** Shows the first-visit tips again; the "How it works" button renders only when set. */
+  onShowTips?: () => void;
 }
 
 /** The catalogue key of the hint saying where the target locale came from. */
@@ -67,12 +72,35 @@ export const Header = ({
   onCloseReview,
   onImport,
   settings,
+  onShowMissing,
+  onShowTips,
 }: HeaderProps) => {
   const { t } = useStudioText();
   const mismatch =
     targetLocale?.mismatch && (!locales || locales.includes(targetLocale.mismatch))
       ? targetLocale.mismatch
       : null;
+  const mismatchLabel = mismatch ? getLocaleLabel(mismatch, t) : '';
+  const coverageVisibility = targetLocale ? 'hidden xl:flex' : 'flex';
+  // Spans only, so the meter is valid inside the button it becomes.
+  const coverageMeter = (
+    <>
+      <span className="text-xs text-fg-muted font-medium select-none whitespace-nowrap">
+        {t('header.coverage')}
+      </span>
+      <span className="block w-16 xl:w-28 h-1.5 bg-raised rounded-full overflow-hidden">
+        <span
+          className={`block h-full rounded-full transition-all duration-700 ease-out ${
+            coveragePercentage >= 80 ? 'bg-success-fg' : 'bg-warning-fg'
+          }`}
+          style={{ width: `${coveragePercentage}%` }}
+        />
+      </span>
+      <span className="text-xs font-bold font-mono text-fg-muted select-none tabular-nums">
+        {coveragePercentage}%
+      </span>
+    </>
+  );
 
   return (
     <header className="h-16 bg-surface border-b border-line px-4 xl:px-8 flex items-center justify-between gap-4 shrink-0 select-none">
@@ -87,7 +115,7 @@ export const Header = ({
           >
             livelocale
           </h1>
-          <p className="hidden xl:block text-[10px] text-fg-muted font-medium tracking-wider uppercase mt-0.5">
+          <p className="hidden xl:block text-xs text-fg-muted font-medium mt-0.5">
             {t('header.tagline')}
           </p>
         </div>
@@ -104,63 +132,69 @@ export const Header = ({
             className="flex items-center gap-2 select-none min-w-0 overflow-hidden p-1 -m-1"
           >
             {targetLocale.source === null ? (
-              <span className="px-2.5 py-1 rounded-full bg-raised border border-line text-[10px] font-semibold text-fg-muted whitespace-nowrap truncate min-w-0">
+              <span className="px-2.5 py-1 rounded-full bg-raised border border-line text-xs font-semibold text-fg-muted whitespace-nowrap truncate min-w-0">
                 {t('header.locale_unset')}
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] whitespace-nowrap min-w-0">
-                <span className="font-bold text-accent-fg">
+              // overflow-hidden keeps a chip squeezed by the mismatch notice inside its own box, so
+              // the two never draw over each other.
+              <span className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-xs whitespace-nowrap min-w-0 overflow-hidden">
+                <span className="font-bold text-accent-fg truncate">
                   {t(isReviewing ? 'header.viewing' : 'header.editing', {
                     locale: targetLocale.locale,
                   })}
                 </span>
-                <span className="hidden xl:inline text-fg">
-                  {t(SOURCE_HINTS[targetLocale.source])}
-                </span>
+                {/* While the mismatch notice shows, it explains the choice; the hint would only crowd it. */}
+                {!mismatch && (
+                  <span className="hidden xl:inline text-fg truncate">
+                    {t(SOURCE_HINTS[targetLocale.source])}
+                  </span>
+                )}
               </span>
             )}
             {mismatch && (
-              <span className="glyph-warn flex items-center gap-1.5 text-[10px] text-warning-fg whitespace-nowrap shrink-0">
-                <span className="hidden xl:inline">
-                  {t('header.mismatch', { locale: mismatch })}
+              <span className="glyph-warn flex items-center gap-1.5 text-xs text-warning-fg whitespace-nowrap shrink-0">
+                <span className="hidden 2xl:inline">
+                  {t('header.mismatch', { locale: mismatchLabel })}
                 </span>
                 <button
                   type="button"
                   onClick={() => onChooseLocale?.(mismatch)}
-                  title={t('header.mismatch', { locale: mismatch })}
+                  title={t('header.mismatch', { locale: mismatchLabel })}
                   className="px-2 py-0.5 rounded-md bg-warning-bg border border-warning-line font-semibold hover:bg-warning-bg transition duration-150"
                 >
-                  {t('header.switch_locale', { locale: mismatch })}
+                  {t('header.switch_locale', { locale: mismatchLabel })}
                 </button>
               </span>
             )}
           </div>
         )}
 
-        {/* Translation coverage metric */}
-        <div
-          className={`items-center gap-2.5 shrink-0 ${targetLocale ? 'hidden xl:flex' : 'flex'}`}
-          title={t('header.coverage_title', { percent: coveragePercentage })}
-        >
-          <span className="text-[10px] text-fg-muted font-medium select-none whitespace-nowrap">
-            {t('header.coverage')}
-          </span>
-          <div className="w-16 xl:w-28 h-1.5 bg-raised rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-700 ease-out ${
-                coveragePercentage >= 80 ? 'bg-success-fg' : 'bg-warning-fg'
-              }`}
-              style={{ width: `${coveragePercentage}%` }}
-            />
+        {/* Translation coverage metric. With somewhere to list the gaps it is a button: the
+            percentage is where "what is left for me to do?" starts. */}
+        {onShowMissing ? (
+          <button
+            type="button"
+            data-testid="coverage-button"
+            onClick={onShowMissing}
+            aria-label={t('header.coverage_show_missing', { percent: coveragePercentage })}
+            title={t('header.coverage_show_missing', { percent: coveragePercentage })}
+            className={`items-center gap-2.5 shrink-0 px-2 py-1 -mx-2 -my-1 rounded-lg hover:bg-raised transition duration-150 ${coverageVisibility}`}
+          >
+            {coverageMeter}
+          </button>
+        ) : (
+          <div
+            className={`items-center gap-2.5 shrink-0 ${coverageVisibility}`}
+            title={t('header.coverage_title', { percent: coveragePercentage })}
+          >
+            {coverageMeter}
           </div>
-          <span className="text-[10px] font-bold font-mono text-fg-muted select-none tabular-nums">
-            {coveragePercentage}%
-          </span>
-        </div>
+        )}
 
         {mode === 'preview' && (
           <span
-            className="glyph-warn px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-extrabold tracking-wider text-warning-fg select-none"
+            className="glyph-warn px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-xs font-extrabold tracking-wider text-warning-fg select-none"
             title={t('header.preview_title')}
           >
             {t('header.preview')}
@@ -170,7 +204,7 @@ export const Header = ({
         {reviewCount !== null && (
           <span
             data-testid="review-chip"
-            className="shrink-0 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-[10px] font-semibold text-fg select-none whitespace-nowrap"
+            className="shrink-0 px-2.5 py-1 rounded-full bg-accent-soft border border-accent-line text-xs font-semibold text-fg select-none whitespace-nowrap"
           >
             {t('header.reviewing', { count: reviewCount })}
           </span>
@@ -181,7 +215,7 @@ export const Header = ({
             id="studio-close-review"
             type="button"
             onClick={onCloseReview}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-xs font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
           >
             {t('header.close_review')}
           </button>
@@ -190,7 +224,7 @@ export const Header = ({
         {!isReviewing && unsentCount > 0 && (
           <span
             data-testid="unsent-counter"
-            className="glyph-warn shrink-0 px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-[10px] font-semibold text-warning-fg select-none whitespace-nowrap"
+            className="glyph-warn shrink-0 px-2.5 py-1 rounded-full bg-warning-bg border border-warning-line text-xs font-semibold text-warning-fg select-none whitespace-nowrap"
             title={t('header.unsent_title')}
           >
             {unsentLabel(unsentCount, t)}
@@ -203,7 +237,7 @@ export const Header = ({
             id="studio-send-button"
             onClick={onSend}
             disabled={!canSend}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-accent border-accent-line text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-xs font-semibold bg-accent border-accent-line text-on-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition duration-150 whitespace-nowrap"
             title={t('header.send_title')}
           >
             {t('header.send')}
@@ -215,7 +249,7 @@ export const Header = ({
             id="studio-import-button"
             type="button"
             onClick={onImport}
-            className="shrink-0 px-3 py-1.5 rounded-xl border text-[11px] font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-xs font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
             title={t('header.import_title')}
           >
             {t('header.import')}
@@ -226,7 +260,7 @@ export const Header = ({
           type="button"
           id="studio-changes-button"
           onClick={onToggleChanges}
-          className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[11px] font-semibold whitespace-nowrap transition duration-150 ${
+          className={`shrink-0 flex items-center gap-2 px-3 py-1.5 rounded-xl border text-xs font-semibold whitespace-nowrap transition duration-150 ${
             isChangesOpen
               ? 'bg-accent-soft border-accent-line text-accent-fg'
               : 'bg-raised border-line text-fg hover:text-fg hover:border-line-strong'
@@ -248,11 +282,22 @@ export const Header = ({
           </svg>
           {t('header.changes')}
           {changesCount > 0 && (
-            <span className="glyph-warn px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-[10px] font-mono font-bold text-warning-fg">
+            <span className="glyph-warn px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-xs font-mono font-bold text-warning-fg">
               {changesCount}
             </span>
           )}
         </button>
+
+        {onShowTips && (
+          <button
+            type="button"
+            data-testid="show-tips"
+            onClick={onShowTips}
+            className="shrink-0 px-3 py-1.5 rounded-xl border text-xs font-semibold bg-raised border-line text-fg hover:text-fg hover:border-line-strong transition duration-150 whitespace-nowrap"
+          >
+            {t('header.show_tips')}
+          </button>
+        )}
 
         {settings != null && (
           <div data-testid="header-settings" className="flex items-center gap-2 shrink-0">
@@ -260,8 +305,11 @@ export const Header = ({
           </div>
         )}
 
-        <span className="hidden xl:block px-3 py-1 rounded-full bg-raised border border-line text-[10px] font-bold text-fg-muted select-none whitespace-nowrap">
-          <span dir="ltr">v{__STUDIO_VERSION__}</span> {t('header.beta')}
+        <span
+          dir="ltr"
+          className="hidden xl:block px-3 py-1 rounded-full bg-raised border border-line text-xs font-bold text-fg-muted select-none whitespace-nowrap"
+        >
+          v{__STUDIO_VERSION__}
         </span>
       </div>
     </header>

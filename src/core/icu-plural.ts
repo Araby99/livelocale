@@ -172,7 +172,8 @@ export function buildPluralMessage(p: PluralMessage): string {
 export function pluralCategoriesFor(locale: string, type: PluralType = 'plural'): string[] {
   if (type === 'select') return [];
   try {
-    const rules = new Intl.PluralRules(locale, {
+    // Intl reads only the hyphen form: pt_BR is pt-BR to it.
+    const rules = new Intl.PluralRules(locale.replace(/_/g, '-'), {
       type: type === 'selectordinal' ? 'ordinal' : 'cardinal',
     });
     const categories = new Set(rules.resolvedOptions().pluralCategories);

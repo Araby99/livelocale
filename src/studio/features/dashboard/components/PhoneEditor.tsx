@@ -1,7 +1,7 @@
 import React, { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { SelectedElement } from '../types/index.js';
 import { parsePluralMessage } from '../../../../core/icu-plural.js';
-import { PluralEditor } from './PluralEditor.jsx';
+import { PluralEditor, pluralScaffold } from './PluralEditor.jsx';
 import {
   CHIP_STYLES,
   CHIP_TITLES,
@@ -10,7 +10,7 @@ import {
 } from './TranslationEditor.jsx';
 import { TRANSLATION_INPUT_ID } from '../constants.js';
 import { useSaveFocus } from '../hooks/useSaveFocus.js';
-import { getLocaleLabel, getLocaleName } from '../locale-names.js';
+import { getLocaleLabel, getLocaleNameBeside } from '../locale-names.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { studioMessage } from '../../../i18n/catalogue.js';
 import { KeyJumpNote } from './KeyJumpNote.jsx';
@@ -43,7 +43,7 @@ interface PhoneEditorProps {
   jumpNote?: JumpNote | null;
 }
 
-const LABEL = 'text-[10px] font-semibold text-fg-muted uppercase tracking-wider';
+const LABEL = 'text-xs font-semibold text-fg-muted uppercase tracking-wider';
 
 /**
  * The phone's editor: only what fixing one text needs, compact enough that most of the page
@@ -69,7 +69,15 @@ export const PhoneEditor = ({
   const referenceId = useId();
   const [showRaw, setShowRaw] = useState(false);
   const isPlural = useMemo(() => parsePluralMessage(inputValue) !== null, [inputValue]);
-  const usePluralEditor = isPlural && !showRaw;
+  // A plural source text gives its forms to a translation that does not exist yet.
+  const referencePlural = useMemo(
+    () => pluralScaffold(selected.fallbackValue || ''),
+    [selected.fallbackValue]
+  );
+  const scaffold =
+    selected.currentValue === '' && inputValue === '' && !isPlural ? referencePlural : null;
+  const hasForms = isPlural || scaffold !== null;
+  const usePluralEditor = hasForms && !showRaw;
   const canSave = !isLoading && inputValue !== selected.currentValue;
   const { rootRef, startSave } = useSaveFocus<HTMLDivElement>(isLoading);
   const chips = usePlaceholderChips(selected.fallbackValue || '', inputValue);
@@ -113,7 +121,7 @@ export const PhoneEditor = ({
         </span>
         <span
           dir="ltr"
-          className="shrink-0 px-2 py-0.5 rounded-full border border-line-strong text-[11px] text-fg-muted"
+          className="shrink-0 px-2 py-0.5 rounded-full border border-line-strong text-xs text-fg-muted"
         >
           {getLocaleLabel(locale, t)}
         </span>
@@ -123,7 +131,7 @@ export const PhoneEditor = ({
       {showReference && (
         <div className="space-y-1">
           <span id={referenceId} className={LABEL}>
-            {getLocaleName(referenceLocale, t)}
+            {getLocaleNameBeside(referenceLocale, locale, t)}
           </span>
           <p
             ref={referenceRef}
@@ -152,7 +160,7 @@ export const PhoneEditor = ({
       <div className="space-y-1" onKeyDown={handleEditKeyDown}>
         <div className="flex items-center justify-between gap-2">
           <span className={LABEL}>
-            {getLocaleName(locale, t)}
+            {getLocaleNameBeside(locale, referenceLocale, t)}
             {inputValue === '' && (
               <span data-testid="phone-editor-missing" className="text-danger-fg normal-case">
                 {` · ${t('phone.missing')}`}
@@ -160,18 +168,18 @@ export const PhoneEditor = ({
             )}
           </span>
           <span className="flex items-center gap-3">
-            {isPlural && (
+            {hasForms && (
               <button
                 type="button"
                 data-testid="plural-raw-toggle"
                 onClick={() => setShowRaw((v) => !v)}
-                className="min-h-8 text-[11px] font-semibold text-fg-muted hover:text-fg"
+                className="min-h-8 text-xs font-semibold text-fg-muted hover:text-fg"
               >
                 {showRaw ? t('editor.edit_forms') : t('editor.edit_raw')}
               </button>
             )}
             {inputValue.length >= COUNT_FROM && (
-              <span dir="ltr" className="text-[10px] text-warning-fg font-mono">
+              <span dir="ltr" className="text-xs text-warning-fg font-mono">
                 {`${inputValue.length}/${MAX_CHARS}`}
               </span>
             )}
@@ -180,7 +188,9 @@ export const PhoneEditor = ({
         {usePluralEditor ? (
           <PluralEditor
             locale={locale}
-            value={inputValue}
+            value={scaffold?.value ?? inputValue}
+            selectors={referencePlural?.selectors}
+            surround={referencePlural?.surround}
             onChange={onInputChange}
             disabled={isLoading}
             variant="sheet"
@@ -197,7 +207,7 @@ export const PhoneEditor = ({
             disabled={isLoading}
             placeholder={t('editor.input_placeholder')}
             style={{ maxHeight: FIELD_MAX_PX }}
-            className="block w-full bg-surface border border-accent-line rounded-xl px-3 py-2 text-base text-fg placeholder-fg-muted font-sans resize-none leading-snug overflow-y-auto"
+            className="block w-full bg-surface border border-line-strong rounded-xl px-3 py-2 text-base text-fg placeholder-fg-muted font-sans resize-none leading-snug overflow-y-auto"
           />
         )}
         {flagged.length > 0 && (
@@ -209,7 +219,7 @@ export const PhoneEditor = ({
                 data-state={state}
                 dir="ltr"
                 title={t(CHIP_TITLES[state])}
-                className={`px-2 py-0.5 rounded-md text-[10px] font-mono ${CHIP_STYLES[state]}`}
+                className={`px-2 py-0.5 rounded-md text-xs font-mono ${CHIP_STYLES[state]}`}
               >
                 {token}
               </span>

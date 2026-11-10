@@ -14,7 +14,7 @@ const visible = (text: string | null) => (text ?? '').replace(/[\u200B-\u200D]/g
 
 async function openStudio(page: Page): Promise<void> {
   await page.goto(SHARE);
-  const active = page.getByText('ACTIVE', { exact: true });
+  const active = page.getByText('Connected', { exact: true });
   await expect(active).toBeVisible({ timeout: 30_000 });
   const name = page.locator('#studio-tips-name');
   const tipsShown = await name.waitFor({ timeout: 5_000 }).then(

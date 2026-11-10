@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import {
+  FIRST_RUN_CLICK_TIP_KEYS,
   FIRST_RUN_TIP_KEYS,
   FIRST_RUN_TOUCH_TIP_KEYS,
   FIRST_RUN_VIEW_ONLY_TIP_KEYS,
@@ -13,6 +14,8 @@ interface FirstRunTipsProps {
   touch?: boolean;
   /** A touch device whose site client cannot tap to edit: the first tip says to use a computer. */
   viewOnly?: boolean;
+  /** A desktop whose Studio starts in Edit: the first tip says a plain click picks text. */
+  clickToEdit?: boolean;
   name: string;
   onNameChange(v: string): void;
   onDismiss(): void;
@@ -23,6 +26,7 @@ export const FirstRunTips = ({
   open,
   touch = false,
   viewOnly = false,
+  clickToEdit = false,
   name,
   onNameChange,
   onDismiss,
@@ -53,7 +57,9 @@ export const FirstRunTips = ({
             ? FIRST_RUN_VIEW_ONLY_TIP_KEYS
             : touch
               ? FIRST_RUN_TOUCH_TIP_KEYS
-              : FIRST_RUN_TIP_KEYS
+              : clickToEdit
+                ? FIRST_RUN_CLICK_TIP_KEYS
+                : FIRST_RUN_TIP_KEYS
           ).map((key) => (
             <li key={key}>{t(key)}</li>
           ))}
@@ -72,7 +78,7 @@ export const FirstRunTips = ({
           dir="auto"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
-          className="mt-1 w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs text-fg"
+          className="mt-1 w-full h-9 px-3 rounded-xl bg-surface border border-line-strong text-sm text-fg"
         />
         <div className="flex items-center justify-end mt-6">
           <button

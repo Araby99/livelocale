@@ -39,7 +39,7 @@ test.describe('Import change link in the dev Studio', () => {
     });
 
     await page.goto('http://localhost:3010');
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
 
     await page.locator('#studio-import-button').click();
     await page.locator('#studio-import-text').fill(token);

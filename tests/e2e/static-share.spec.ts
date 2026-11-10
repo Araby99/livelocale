@@ -12,7 +12,7 @@ const STATIC = 'http://localhost:3020';
 /** Opens the share Studio, gets past the first-run tips, and waits for the app connection. */
 async function openStudio(page: Page): Promise<void> {
   await page.goto(`${STATIC}/livelocale/index.html`);
-  const active = page.getByText('ACTIVE', { exact: true });
+  const active = page.getByText('Connected', { exact: true });
   await expect(active).toBeVisible({ timeout: 30_000 });
   // The tips open once the static mode is known, which is just after the connection.
   const name = page.locator('#studio-tips-name');
@@ -26,6 +26,17 @@ async function openStudio(page: Page): Promise<void> {
     await expect(name).toBeHidden();
   }
   await expect(active).toBeVisible();
+  await switchToBrowse(page);
+}
+
+/**
+ * A share link on a desktop starts in Edit, where a plain click picks text, and so does every
+ * reload. These tests use the site's own links and Alt+Click, so they switch to Browse.
+ */
+async function switchToBrowse(page: Page): Promise<void> {
+  const modeSwitch = page.getByRole('radiogroup', { name: 'Click mode' });
+  await modeSwitch.getByText('Browse', { exact: true }).click();
+  await expect(modeSwitch.getByRole('radio', { name: 'Browse' })).toBeChecked();
 }
 
 /** Every row of the IndexedDB draft store (`livelocale-drafts`/`drafts`). */
@@ -95,7 +106,8 @@ test('detects Arabic from the page and keeps the fix across reloads', async ({ p
   // The live preview already shows the text while typing; the counter shows the saved draft.
   await expect(page.getByTestId('unsent-counter')).toHaveText('1 change not sent');
   await page.reload();
-  await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible();
+  await expect(page.getByText('Connected', { exact: true })).toBeVisible();
+  await switchToBrowse(page);
   await frame.locator('#lang-ar').click();
   await expect(frame.locator('[data-i18n-key="home.title"]')).toHaveText(shows('أهلاً'), {
     timeout: 30_000,
@@ -115,7 +127,7 @@ test('the app preview follows the language chosen in the menu, also after a relo
   await expect(page.getByText('Editing: ar')).toBeVisible();
   await expect(frame.locator('main')).toHaveAttribute('lang', 'ar');
   await page.reload();
-  await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(frame.locator('main')).toHaveAttribute('lang', 'ar', { timeout: 30_000 });
   await expect(page.getByText('Editing: ar')).toBeVisible();
 });
@@ -290,7 +302,7 @@ test.describe('after a rebuild', () => {
       JSON.stringify({ ...JSON.parse(manifestBefore), base: 'b'.repeat(40) }, null, 2)
     );
     await page.reload();
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 30_000 });
     await expect.poll(() => readDrafts(page)).toEqual([]);
     await page.locator('#studio-changes-button').click();
     await expect(page.getByText('Live now', { exact: true })).toBeVisible();
@@ -302,7 +314,7 @@ test.describe('after a rebuild', () => {
     await saveArabicTitle(page);
     rebuildArabicTitle('سلام');
     await page.reload();
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 30_000 });
     await expect
       .poll(() => readDrafts(page))
       .toEqual([expect.objectContaining({ locale: 'ar', key: 'home.title', conflict: true })]);

@@ -95,7 +95,12 @@ export function normalizeText(text: string): string {
   return text.normalize('NFC').replace(/\s+/g, ' ').trim().toLowerCase();
 }
 
-/** The locales, sorted, whose candidates for `key` include one of `texts`. Empty text never matches. */
+/**
+ * The locales, sorted, whose page may show one of `texts` for `key`: those whose candidates
+ * include it and, once one does, those that lack `key`. A locale without the key shows another
+ * locale's text in its place (i18next `fallbackLng`, next-intl merged messages), so that text
+ * is no evidence against it. Empty text never matches.
+ */
 export function matchLocalesByText(
   key: string,
   texts: readonly string[],
@@ -104,13 +109,18 @@ export function matchLocalesByText(
   const wanted = new Set(texts.map(normalizeText).filter((text) => text !== ''));
   if (wanted.size === 0) return [];
   const matches: string[] = [];
+  const lacking: string[] = [];
   for (const locale of Object.keys(candidates)) {
     const byKey = candidates[locale];
-    if (!byKey || !hasOwn(byKey, key)) continue;
+    if (!byKey || !hasOwn(byKey, key)) {
+      lacking.push(locale);
+      continue;
+    }
     const values = byKey[key] ?? [];
     if (values.some((value) => wanted.has(normalizeText(value)))) matches.push(locale);
   }
-  return matches.sort();
+  if (matches.length === 0) return [];
+  return [...matches, ...lacking].sort();
 }
 
 /** The locales, sorted, that match the most visible texts (at least one). */

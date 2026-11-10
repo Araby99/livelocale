@@ -8,7 +8,7 @@ const STATIC = 'http://localhost:3020';
 /** Opens the share Studio, gets past the first-run tips, and returns the app's frame. */
 async function openStudio(page: Page): Promise<Frame> {
   await page.goto(`${STATIC}/livelocale/index.html`);
-  const active = page.getByText('ACTIVE', { exact: true });
+  const active = page.getByText('Connected', { exact: true });
   await expect(active).toBeVisible({ timeout: 30_000 });
   const name = page.locator('#studio-tips-name');
   const tipsShown = await name.waitFor({ timeout: 5_000 }).then(

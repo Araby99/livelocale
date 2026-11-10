@@ -36,9 +36,8 @@ describe('livelocale/strip', () => {
   it('is built, exported and marked side-effect free in package.json', () => {
     const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
     expect(pkg.exports['./strip']).toEqual({
-      types: './dist/strip/index.d.ts',
-      import: './dist/strip/index.js',
-      require: './dist/strip/index.cjs',
+      import: { types: './dist/strip/index.d.ts', default: './dist/strip/index.js' },
+      require: { types: './dist/strip/index.d.cts', default: './dist/strip/index.cjs' },
     });
     expect(readFileSync('tsup.config.ts', 'utf8')).toContain("'strip/index': 'src/strip/index.ts'");
     // A sideEffects list names the files that DO have side effects; strip is not among them,

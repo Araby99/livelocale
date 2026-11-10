@@ -10,6 +10,12 @@ interface KeysDirectoryProps {
   setSearchTerm: (term: string) => void;
   filterPageOnly: boolean;
   setFilterPageOnly: (filter: boolean) => void;
+  /** The list shows only the texts the edited language still lacks. */
+  filterMissing?: boolean;
+  /** Turns the Missing scope on or off; the Missing button renders only when set. */
+  setFilterMissing?: (filter: boolean) => void;
+  /** How many texts the edited language still lacks, on every page. */
+  missingCount?: number;
   visibleKeys: string[] | null;
   selectKeyDirectly: (key: string) => void;
   /** Called after a pick made from the keyboard (Enter or Space), not by a pointer click. */
@@ -26,12 +32,16 @@ export const KeysDirectory = ({
   setSearchTerm,
   filterPageOnly,
   setFilterPageOnly,
+  filterMissing = false,
+  setFilterMissing,
+  missingCount = 0,
   visibleKeys,
   selectKeyDirectly,
   onKeyActivatedByKeyboard,
   className = 'w-[300px] shrink-0',
 }: KeysDirectoryProps) => {
   const { t } = useStudioText();
+  const showsAll = !filterPageOnly && !filterMissing;
   return (
     <div
       data-testid="keys-directory"
@@ -39,7 +49,7 @@ export const KeysDirectory = ({
     >
       <div className="h-14 bg-surface border-b border-line flex items-center justify-between px-6 shrink-0 select-none">
         <h2 className="text-sm font-bold tracking-wide font-heading text-fg">{t('keys.title')}</h2>
-        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-raised text-fg border border-line">
+        <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-raised text-fg border border-line">
           {t('keys.count', { count: filteredKeys.length })}
         </span>
       </div>
@@ -54,7 +64,7 @@ export const KeysDirectory = ({
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder={t('keys.search')}
             aria-label={t('keys.search_label')}
-            className="w-full h-9 ps-9 pe-4 bg-surface border border-line hover:border-line-strong rounded-lg text-xs text-fg placeholder-fg-muted transition duration-150"
+            className="w-full h-9 ps-9 pe-4 bg-surface border border-line-strong rounded-lg text-sm text-fg placeholder-fg-muted transition duration-150"
           />
           <svg
             aria-hidden="true"
@@ -72,17 +82,16 @@ export const KeysDirectory = ({
           </svg>
         </div>
 
-        <div className="flex items-center justify-between">
-          <span className="text-[10px] text-fg-muted font-semibold uppercase tracking-wider">
-            {t('keys.scope')}
-          </span>
+        {/* Three scopes do not fit beside the label in the 300px column, so the row may wrap. */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-fg-muted font-semibold">{t('keys.scope')}</span>
           <div className="flex items-center gap-1 bg-surface border border-line rounded-lg p-0.5 select-none shrink-0">
             <button
               type="button"
               onClick={() => setFilterPageOnly(false)}
-              aria-pressed={!filterPageOnly}
-              className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-colors duration-150 ${
-                !filterPageOnly
+              aria-pressed={showsAll}
+              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors duration-150 ${
+                showsAll
                   ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
                   : 'text-fg-muted hover:text-fg'
               }`}
@@ -94,7 +103,7 @@ export const KeysDirectory = ({
               onClick={() => setFilterPageOnly(true)}
               aria-pressed={filterPageOnly}
               disabled={visibleKeys === null}
-              className={`px-2.5 py-1 text-[9px] font-bold rounded-md transition-colors duration-150 ${
+              className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors duration-150 ${
                 filterPageOnly
                   ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
                   : 'text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed'
@@ -103,6 +112,22 @@ export const KeysDirectory = ({
             >
               {t('keys.page')}
             </button>
+            {setFilterMissing && (
+              <button
+                type="button"
+                data-testid="keys-scope-missing"
+                onClick={() => setFilterMissing(true)}
+                aria-pressed={filterMissing}
+                className={`px-2.5 py-1 text-xs font-bold rounded-md transition-colors duration-150 ${
+                  filterMissing
+                    ? 'bg-raised hover:bg-raised-hover text-fg border border-line'
+                    : 'text-fg-muted hover:text-fg'
+                }`}
+                title={t('keys.missing_title')}
+              >
+                {t('keys.missing_filter', { count: missingCount })}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -140,19 +165,20 @@ export const KeysDirectory = ({
                 <div className="w-full flex items-center justify-between gap-2">
                   <span
                     dir="ltr"
-                    className="text-[11px] font-semibold font-mono break-all line-clamp-2 leading-relaxed text-info-fg"
+                    className="text-xs font-semibold font-mono break-all line-clamp-2 leading-relaxed text-info-fg"
                   >
                     {key}
                   </span>
                   {isMissing && (
-                    <span className="px-1.5 py-0.5 rounded bg-transparent text-[8px] font-extrabold text-danger-fg border-[1.5px] border-dashed border-danger-line shrink-0 uppercase tracking-wider">
+                    <span className="px-1.5 py-0.5 rounded bg-transparent text-xs font-bold text-danger-fg border-[1.5px] border-dashed border-danger-line shrink-0">
                       {t('keys.missing')}
                     </span>
                   )}
                 </div>
                 <span
                   dir="auto"
-                  className={`text-[10px] break-all line-clamp-1 ${isActive ? 'text-fg' : 'text-fg-muted'}`}
+                  data-testid="key-row-value"
+                  className={`text-sm break-all line-clamp-1 ${isActive ? 'text-fg' : 'text-fg-muted'}`}
                 >
                   {valueText || <span className="italic">{t('keys.empty_value')}</span>}
                 </span>
@@ -174,7 +200,9 @@ export const KeysDirectory = ({
                 d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
               />
             </svg>
-            <span className="text-xs">{t('keys.none')}</span>
+            <span className="text-xs">
+              {filterMissing && searchTerm === '' ? t('keys.none_missing') : t('keys.none')}
+            </span>
           </div>
         )}
       </div>

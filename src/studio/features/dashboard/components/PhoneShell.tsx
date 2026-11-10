@@ -1,7 +1,7 @@
 import React, { useEffect, useId, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { BottomSheet } from './BottomSheet.js';
 import { useKeyboardInset } from '../hooks/useKeyboardInset.js';
-import { nextMissingKey } from '../next-missing.js';
+import { nextMissingInList, nextMissingKey } from '../next-missing.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 
 interface PhoneShellProps {
@@ -159,6 +159,12 @@ interface NextMissingButtonProps {
   hasValue: (key: string) => boolean;
   /** Scrolls the page to `key` and selects it. */
   onSelectKey: (key: string) => void;
+  /**
+   * Every text of the project, in list order (the desktop editor). Given, once the page has
+   * no visible gap left the next missing text comes from here, on any page, and "done" means
+   * the whole language is translated.
+   */
+  listKeys?: string[];
 }
 
 /**
@@ -173,27 +179,39 @@ export const NextMissingButton = ({
   currentKey,
   hasValue,
   onSelectKey,
+  listKeys,
 }: NextMissingButtonProps) => {
   const { t } = useStudioText();
-  const [hiddenMissing, setHiddenMissing] = useState<number | null>(null);
+  // How many gaps the page hides once its visible ones are done; 'everywhere' when the whole
+  // list has none left.
+  const [done, setDone] = useState<number | 'everywhere' | null>(null);
 
   // A new selection makes an earlier "all done" stale.
-  useEffect(() => setHiddenMissing(null), [currentKey]);
+  useEffect(() => setDone(null), [currentKey]);
+
+  const select = (key: string) => {
+    setDone(null);
+    onSelectKey(key);
+  };
 
   const goNext = () => {
-    if (renderedKeys === null) return;
-    const next = nextMissingKey({
-      renderedKeys,
-      allPageKeys: pageKeys ?? renderedKeys,
-      currentKey,
-      hasValue,
-    });
-    if (next.kind === 'key') {
-      setHiddenMissing(null);
-      onSelectKey(next.key);
-    } else {
-      setHiddenMissing(next.hiddenMissing);
+    // The page first, in reading order, so the live preview shows each text as it is fixed.
+    const next =
+      renderedKeys === null
+        ? null
+        : nextMissingKey({
+            renderedKeys,
+            allPageKeys: pageKeys ?? renderedKeys,
+            currentKey,
+            hasValue,
+          });
+    if (next?.kind === 'key') return select(next.key);
+    if (listKeys) {
+      const key = nextMissingInList(listKeys, currentKey, hasValue);
+      if (key !== null) return select(key);
+      return setDone('everywhere');
     }
+    if (next) setDone(next.hiddenMissing);
   };
 
   return (
@@ -202,7 +220,7 @@ export const NextMissingButton = ({
         type="button"
         data-testid="next-missing"
         onClick={goNext}
-        disabled={renderedKeys === null}
+        disabled={renderedKeys === null && !listKeys}
         className="flex-1 min-h-11 px-4 inline-flex items-center justify-center gap-2 rounded-xl border bg-raised border-line text-fg text-sm font-semibold hover:border-line-strong disabled:opacity-40 disabled:cursor-not-allowed transition duration-150"
       >
         {t('phone.next_missing')}
@@ -224,11 +242,13 @@ export const NextMissingButton = ({
         aria-live="polite"
         className="order-first basis-full text-xs text-fg-muted empty:hidden"
       >
-        {hiddenMissing === null
+        {done === null
           ? ''
-          : hiddenMissing === 0
-            ? t('phone.done_all')
-            : t('phone.done_hidden', { count: hiddenMissing })}
+          : done === 'everywhere'
+            ? t('phone.done_everywhere')
+            : done === 0
+              ? t('phone.done_all')
+              : t('phone.done_hidden', { count: done })}
       </p>
     </>
   );

@@ -145,6 +145,26 @@ describe('SendDialog', () => {
     expect(onMarkSent).toHaveBeenCalledWith(drafts);
   });
 
+  it('says what to do with the link before it is copied', async () => {
+    renderDialog();
+    await linkField();
+    expect(screen.getByTestId('send-next-step').textContent).toBe(
+      'Copy the link and paste it to your developer in chat or email. They turn it into a change on the site.'
+    );
+    expect(screen.queryByTestId('send-after')).toBeNull();
+  });
+
+  it('says what happens next once the link is copied', async () => {
+    renderDialog();
+    await linkField();
+    fireEvent.click(button('studio-send-copy'));
+    const after = await screen.findByTestId('send-after');
+    expect(after.textContent).toBe(
+      'Next, your developer adds your changes to the site. Once they are live, Changes shows them as “Live now”.'
+    );
+    expect(screen.queryByTestId('send-next-step')).toBeNull();
+  });
+
   it('passes the name and note into the change set', async () => {
     renderDialog();
     await linkField();

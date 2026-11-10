@@ -82,5 +82,15 @@ describe.skipIf(!fs.existsSync('dist/studio/index.html'))('built Studio bundle',
     const files: string[] = JSON.parse(result.stdout)[0].files.map((f: { path: string }) => f.path);
     for (const family of families)
       expect(files).toContain(`dist/studio/fonts-licenses/${family}.txt`);
+    expect(files).toContain('dist/studio/THIRD-PARTY-NOTICES.txt');
   }, 60_000);
+
+  // MIT and the other licences of the libraries compiled into the Studio travel with every copy.
+  it('ships the licence notices of the libraries compiled into the Studio', () => {
+    const text = fs.readFileSync('dist/studio/THIRD-PARTY-NOTICES.txt', 'utf-8');
+    for (const name of ['react', 'react-dom', 'scheduler']) {
+      expect(text).toMatch(new RegExp(`^${name}@\\d+\\.\\d+\\.\\d+ \\(MIT\\)$`, 'm'));
+    }
+    expect(text).toContain('Permission is hereby granted, free of charge');
+  });
 });

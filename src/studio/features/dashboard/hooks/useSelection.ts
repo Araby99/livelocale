@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { SelectedElement } from '../types/index.js';
-import { saveTranslation, ValidationError } from '../../../api.js';
+import { HttpStatusError, NetworkError, saveTranslation, ValidationError } from '../../../api.js';
 import { englishText, type StudioText } from '../../../i18n/catalogue.js';
 import { editorValueFor } from '../page-value.js';
 
@@ -28,6 +28,10 @@ export interface UseSelectionParams {
     key: string;
     previousValue: string;
     nextValue: string;
+    /** The locale had no value for the key: `previousValue` is '' only because none existed. */
+    added?: boolean;
+    /** What the page showed before, when it differs from `previousValue` (a fallback). */
+    pageValue?: string;
   }) => void;
   /** The Studio text for the fallback error message; English when left out. */
   t?: StudioText;
@@ -72,6 +76,8 @@ export const useSelection = ({
   // Custom Confirmation Modal States (Keeping hook UI-agnostic)
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [pendingElement, setPendingElement] = useState<SelectedElement | null>(null);
+  // Something else that would drop the typed text (a language switch), run once it is discarded.
+  const pendingActionRef = useRef<(() => void) | null>(null);
 
   // Check if there are unsaved changes
   const hasUnsavedChanges = selected !== null && inputValue !== selected.currentValue;
@@ -82,9 +88,13 @@ export const useSelection = ({
       setInputValue(value);
       setSaveWarning(null);
       // The stored value lets the page find a rich-text value's nodes and keep literal text.
-      sendToIframe('APPLY_PREVIEW', { key: selected?.key, value, source: selected?.currentValue });
+      sendToIframe('APPLY_PREVIEW', {
+        key: selected?.key,
+        value,
+        source: selected?.pageValue ?? selected?.currentValue,
+      });
     },
-    [sendToIframe, selected?.key, selected?.currentValue]
+    [sendToIframe, selected?.key, selected?.currentValue, selected?.pageValue]
   );
 
   // A pick reports the text on the page, which is the edited locale's text once the page
@@ -94,50 +104,91 @@ export const useSelection = ({
     [enLocaleData]
   );
 
-  // The edited locale's stored value; without one, the page text, or the reference value when
-  // the page shows it (a fallback), so markup the page renders is never lost.
-  const editorValue = useCallback(
+  // What the page shows for the key: the edited locale's stored value; without one, the page
+  // text, or the reference value when the page shows it (a fallback), markup included.
+  const pageValueOf = useCallback(
     (el: SelectedElement) =>
       editorValueFor(localeData[el.key], el.currentValue, [enLocaleData[el.key]], el.fallbackValue),
     [localeData, enLocaleData]
+  );
+
+  // The picked element as the editor holds it. A translation the edited locale lacks starts
+  // empty: the page shows the fallback's words, which are to be translated, not corrected, and
+  // they stay in view as the reference above the field. The preview still finds them on the
+  // page through `pageValue`.
+  const pickFor = useCallback(
+    (el: SelectedElement): SelectedElement => {
+      const shown = pageValueOf(el);
+      const missing = locale !== referenceLocale && localeData[el.key] === undefined;
+      return {
+        ...el,
+        fallbackValue: referenceFor(el),
+        currentValue: missing ? '' : shown,
+        pageValue: shown,
+      };
+    },
+    [pageValueOf, referenceFor, locale, referenceLocale, localeData]
+  );
+
+  // A new pick, after the page was told to drop the last pick's preview. The page reported the
+  // text with that preview still on it, so when the same missing translation is picked again,
+  // what the page showed before comes from the last pick, not from the discarded preview.
+  const repickFor = useCallback(
+    (el: SelectedElement): SelectedElement => {
+      const pick = pickFor(el);
+      const missing = locale !== referenceLocale && localeData[el.key] === undefined;
+      if (!selected || selected.key !== el.key || !missing) return pick;
+      return {
+        ...pick,
+        fallbackValue: selected.fallbackValue,
+        pageValue: selected.pageValue ?? pick.pageValue,
+      };
+    },
+    [pickFor, selected, locale, referenceLocale, localeData]
   );
 
   const selectElement = useCallback(
     (newElement: SelectedElement) => {
       // Expose the custom Confirmation Modal state instead of using blocking window.confirm (RULE STD-004)
       if (hasUnsavedChanges) {
+        pendingActionRef.current = null;
         setPendingElement(newElement);
         setShowConfirmModal(true);
         return;
       }
 
-      const rawValue = editorValue(newElement);
-
-      setSelected({
-        ...newElement,
-        fallbackValue: referenceFor(newElement),
-        currentValue: rawValue,
-      });
+      // Nothing unsaved, yet the page may still show a preview of the last pick: text typed
+      // and erased again ('' for a missing translation blanks the fallback text).
+      if (selected) sendToIframe('RESTORE_PREVIEW', { key: selected.key });
+      const pick = repickFor(newElement);
+      setSelected(pick);
       setSelectionCount((n) => n + 1);
-      setInputValue(rawValue);
+      setInputValue(pick.currentValue);
       setIsSuccess(false);
       setSaveWarning(null);
       setError(null);
     },
-    [hasUnsavedChanges, editorValue, referenceFor, setError]
+    [hasUnsavedChanges, repickFor, setError, selected, sendToIframe]
   );
 
   // Expose trigger actions to handle Confirmation Modal choice
   const confirmDiscard = useCallback(() => {
-    if (pendingElement) {
-      const rawValue = editorValue(pendingElement);
-      setSelected({
-        ...pendingElement,
-        fallbackValue: referenceFor(pendingElement),
-        currentValue: rawValue,
-      });
+    const pendingAction = pendingActionRef.current;
+    pendingActionRef.current = null;
+    if (pendingAction) {
+      // The selection stays; only the typed text goes, on the page too, before the action.
+      setInputValue(selected?.currentValue ?? '');
+      setSaveWarning(null);
+      sendToIframe('CLEAR_SELECTION');
+    } else if (pendingElement) {
+      // The page still shows the discarded text: the client puts back what it showed before.
+      // Not CLEAR_SELECTION, which would also drop the new pick's highlight. A client older
+      // than this message ignores it and keeps the text until the selection clears.
+      if (selected) sendToIframe('RESTORE_PREVIEW', { key: selected.key });
+      const pick = repickFor(pendingElement);
+      setSelected(pick);
       setSelectionCount((n) => n + 1);
-      setInputValue(rawValue);
+      setInputValue(pick.currentValue);
     } else {
       // Discarding a clear-selection with unsaved edits → deselect entirely
       setSelected(null);
@@ -148,12 +199,31 @@ export const useSelection = ({
     setShowConfirmModal(false);
     setIsSuccess(false);
     setError(null);
-  }, [pendingElement, editorValue, referenceFor, sendToIframe, setError]);
+    pendingAction?.();
+  }, [pendingElement, repickFor, sendToIframe, setError, selected]);
 
   const cancelDiscard = useCallback(() => {
+    pendingActionRef.current = null;
     setPendingElement(null);
     setShowConfirmModal(false);
   }, []);
+
+  /**
+   * Runs `action`, which would drop the typed text (a language switch), at once when nothing
+   * is typed; otherwise after the same unsaved-changes prompt as picking another text.
+   */
+  const guardUnsaved = useCallback(
+    (action: () => void) => {
+      if (!hasUnsavedChanges) {
+        action();
+        return;
+      }
+      pendingActionRef.current = action;
+      setPendingElement(null);
+      setShowConfirmModal(true);
+    },
+    [hasUnsavedChanges]
+  );
 
   // Select a key directly from the searchable sidebar directory (Phase 2)
   const selectKeyDirectly = useCallback(
@@ -181,6 +251,7 @@ export const useSelection = ({
             ? {
                 ...prev,
                 currentValue: activeValue,
+                pageValue: undefined,
                 fallbackValue: enValue,
               }
             : null
@@ -202,6 +273,7 @@ export const useSelection = ({
 
     try {
       const previousValue = selected.currentValue;
+      const previousPageValue = selected.pageValue ?? previousValue;
       const reference =
         locale === referenceLocale
           ? previousValue
@@ -214,8 +286,19 @@ export const useSelection = ({
 
       // Successful save
       setIsSuccess(true);
-      onSaved?.({ locale, key: selected.key, previousValue, nextValue: inputValue });
-      setSelected((prev) => (prev ? { ...prev, currentValue: inputValue } : null));
+      // A translation the locale lacked starts empty; the source locale keeps the page text.
+      const added = localeData[selected.key] === undefined && previousValue === '';
+      onSaved?.({
+        locale,
+        key: selected.key,
+        previousValue,
+        nextValue: inputValue,
+        ...(added ? { added } : {}),
+        ...(previousPageValue !== previousValue ? { pageValue: previousPageValue } : {}),
+      });
+      setSelected((prev) =>
+        prev ? { ...prev, currentValue: inputValue, pageValue: undefined } : null
+      );
 
       // Update dictionary state local cache
       updateLocaleDataCache(selected.key, inputValue);
@@ -227,7 +310,7 @@ export const useSelection = ({
       sendToIframe('COMMIT_PREVIEW', {
         key: selected.key,
         value: inputValue,
-        source: previousValue,
+        source: previousPageValue,
       });
       sendToIframe('CLEAR_SELECTION');
 
@@ -247,7 +330,13 @@ export const useSelection = ({
           missing: err.details.missing,
           extra: err.details.extra,
         });
+      } else if (err instanceof NetworkError) {
+        // The browser's own words ("Failed to fetch") say nothing to the person who typed.
+        setError(t('errors.save_unreachable'));
+      } else if (err instanceof HttpStatusError && !err.fromServer) {
+        setError(t('errors.save_server', { status: err.status }));
       } else {
+        // The server's own message (a refused structure change, say) is kept as it is.
         setError(err.message || t('errors.save_failed'));
       }
     } finally {
@@ -258,6 +347,7 @@ export const useSelection = ({
   const handleClearSelection = useCallback(() => {
     // Guard against silently discarding unsaved edits
     if (hasUnsavedChanges) {
+      pendingActionRef.current = null;
       setPendingElement(null);
       setShowConfirmModal(true);
       return;
@@ -281,6 +371,7 @@ export const useSelection = ({
     handleInputChange,
     handleSave,
     handleClearSelection,
+    guardUnsaved,
     saveWarning,
     dismissSaveWarning: () => setSaveWarning(null),
   };

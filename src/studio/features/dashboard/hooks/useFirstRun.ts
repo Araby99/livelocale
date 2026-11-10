@@ -7,6 +7,9 @@ export const FIRST_RUN_TIP_KEYS = ['tips.step1', 'tips.step2', 'tips.step3'] as 
 /** The same lines on a touch device, where a tap replaces Alt+Click. */
 export const FIRST_RUN_TOUCH_TIP_KEYS = ['tips.step1_touch', 'tips.step2', 'tips.step3'] as const;
 
+/** The same lines on a desktop whose Studio starts in Edit, where a plain click picks text. */
+export const FIRST_RUN_CLICK_TIP_KEYS = ['tips.step1_click', 'tips.step2', 'tips.step3'] as const;
+
 /**
  * A touch device on a site whose LiveLocale client is too old to tap to edit: the first line
  * sends the person to a computer instead of telling them to tap.
@@ -17,6 +20,8 @@ export const FIRST_RUN_VIEW_ONLY_TIP_KEYS = ['tips.view_only', 'tips.step2', 'ti
 export function useFirstRun(enabled: boolean): {
   showTips: boolean;
   dismiss(): void;
+  /** Shows the tips again (the header's "How it works"); undefined where tips never show. */
+  reopen: (() => void) | undefined;
   name: string;
   setName(v: string): void;
 } {
@@ -34,5 +39,14 @@ export function useFirstRun(enabled: boolean): {
     writePref('translator-name', v === '' ? null : v);
   };
 
-  return { showTips: enabled && !seen, dismiss, name, setName };
+  // Only for this visit: dismissing them again stores "seen" again.
+  const reopen = () => setSeen(false);
+
+  return {
+    showTips: enabled && !seen,
+    dismiss,
+    reopen: enabled ? reopen : undefined,
+    name,
+    setName,
+  };
 }

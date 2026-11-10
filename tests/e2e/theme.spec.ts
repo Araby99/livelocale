@@ -13,7 +13,7 @@ const INK_LINES = 'rgb(21, 23, 27)';
 const PAPER_LINES = 'rgb(232, 228, 217)';
 
 const ready = (page: Page) =>
-  expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+  expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
 const isDark = (page: Page) =>
   page.evaluate(() => document.documentElement.classList.contains('dark'));
 const rootBg = (page: Page) =>

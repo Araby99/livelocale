@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { isValidLocaleFormat } from '../../../../core/validate.js';
 import { studioMessage } from '../../../i18n/catalogue.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { getLocaleLabel } from '../locale-names.js';
 
 interface LocaleRowProps {
   code: string;
   isActive: boolean;
+  /** The source language: it has no delete control, since every other language is read against it. */
+  isSource?: boolean;
   isLoading: boolean;
   allLocales: string[];
   onRename: (oldCode: string, newCode: string) => Promise<void>;
@@ -15,6 +18,7 @@ interface LocaleRowProps {
 export const LocaleRow = ({
   code,
   isActive,
+  isSource = false,
   isLoading,
   allLocales,
   onRename,
@@ -78,7 +82,7 @@ export const LocaleRow = ({
             onChange={(e) => setRenameValue(e.target.value)}
             disabled={isLoading}
             aria-label={t('locales.new_code_aria', { code })}
-            className="flex-1 bg-surface border border-line rounded-lg px-2.5 py-1 text-xs font-mono text-fg"
+            className="flex-1 bg-surface border border-line-strong rounded-lg px-2.5 py-1 text-sm font-mono text-fg"
             autoFocus
           />
           <button
@@ -130,11 +134,12 @@ export const LocaleRow = ({
         </div>
       ) : deleting ? (
         <div className="flex-1 flex flex-col gap-2">
-          <span className="text-[10px] font-semibold text-danger-fg">
-            {t('locales.confirm_delete')}
+          {/* Names the language, so a mis-aimed trash icon is caught before the file goes. */}
+          <span className="text-xs font-semibold text-danger-fg">
+            {t('locales.confirm_delete', { language: getLocaleLabel(code, t) })}
           </span>
           {localError && (
-            <span role="alert" className="text-[10px] text-danger-fg break-words">
+            <span role="alert" className="text-xs text-danger-fg break-words">
               {studioMessage(t, localError)}
             </span>
           )}
@@ -143,7 +148,7 @@ export const LocaleRow = ({
               type="button"
               onClick={() => setDeleting(false)}
               disabled={isLoading}
-              className="px-2.5 py-1 text-[10px] font-semibold bg-raised hover:bg-raised-hover text-fg rounded-lg transition"
+              className="px-2.5 py-1 text-xs font-semibold bg-raised hover:bg-raised-hover text-fg rounded-lg transition"
             >
               {t('locales.cancel')}
             </button>
@@ -151,7 +156,7 @@ export const LocaleRow = ({
               type="button"
               onClick={handleDeleteConfirm}
               disabled={isLoading}
-              className="px-2.5 py-1 text-[10px] font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg rounded-lg transition"
+              className="px-2.5 py-1 text-xs font-semibold bg-transparent border border-dashed border-danger-line text-danger-fg hover:bg-danger-bg rounded-lg transition"
             >
               {t('locales.delete')}
             </button>
@@ -160,16 +165,14 @@ export const LocaleRow = ({
       ) : (
         <>
           <div className="flex flex-col min-w-0">
-            <span dir="ltr" className="text-xs font-semibold text-fg truncate">
-              {code}
+            <span className="text-sm font-semibold text-fg truncate">
+              {getLocaleLabel(code, t)}
             </span>
             {isActive && (
-              <span className="text-[9px] text-accent-fg font-bold tracking-wide mt-0.5">
-                {t('locales.active')}
-              </span>
+              <span className="text-xs text-accent-fg font-bold mt-0.5">{t('locales.active')}</span>
             )}
             {localError && (
-              <span role="alert" className="text-[10px] text-danger-fg break-words mt-0.5">
+              <span role="alert" className="text-xs text-danger-fg break-words mt-0.5">
                 {studioMessage(t, localError)}
               </span>
             )}
@@ -199,32 +202,34 @@ export const LocaleRow = ({
                 />
               </svg>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setLocalError(null);
-                setDeleting(true);
-              }}
-              disabled={isLoading}
-              className="p-1.5 text-fg-muted hover:text-danger-fg transition duration-150"
-              aria-label={t('locales.delete_aria', { code })}
-              title={t('locales.delete_title')}
-            >
-              <svg
-                aria-hidden="true"
-                className="w-3.5 h-3.5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            {!isSource && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLocalError(null);
+                  setDeleting(true);
+                }}
+                disabled={isLoading}
+                className="p-1.5 text-fg-muted hover:text-danger-fg transition duration-150"
+                aria-label={t('locales.delete_aria', { code })}
+                title={t('locales.delete_title')}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
+                <svg
+                  aria-hidden="true"
+                  className="w-3.5 h-3.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
+                </svg>
+              </button>
+            )}
           </div>
         </>
       )}

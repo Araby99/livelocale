@@ -33,8 +33,9 @@ export function valuesToReapply(input: {
 
 /**
  * For each value `valuesToReapply` returns, the value the hosted build shows
- * before it is re-applied: the oldest `previousValue` of this session's history
- * (`preview`), or the draft's built value (`static`). Sent as the preview's
+ * before it is re-applied: the oldest entry of this session's history, its page text for a
+ * key the locale lacked (the fallback) or else its `previousValue` (`preview`), or the
+ * draft's built value (`static`). Sent as the preview's
  * `source`, it tells the page where the translation ends in a text node, so
  * literal text after it (`{t.terms} · {t.privacy}`) is kept.
  */
@@ -50,7 +51,7 @@ export function builtValuesToReapply(input: {
   if (mode === 'preview') {
     // History is newest first: the last entry seen for a key is its oldest.
     for (const entry of history) {
-      if (entry.locale === locale) values.set(entry.key, entry.previousValue);
+      if (entry.locale === locale) values.set(entry.key, entry.pageValue ?? entry.previousValue);
     }
   } else if (mode === 'static' && localeConfirmed) {
     for (const draft of drafts) {

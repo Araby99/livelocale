@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { BrandMark } from './BrandMark.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
+import { getLocaleLabel } from '../locale-names.js';
 
 interface PhoneTopBarProps {
   /** Share-link drafts not sent yet, shown in the Send button. */
@@ -102,7 +103,7 @@ export const PhoneTopBar = ({
         dir="ltr"
         aria-label={t('editor.locale')}
         onChange={(event) => onChooseLocale(event.target.value)}
-        className={`${CONTROL} min-w-0 px-3 bg-accent-soft border-accent-line text-accent-fg font-mono uppercase cursor-pointer`}
+        className={`${CONTROL} min-w-0 px-3 bg-accent-soft border-line-strong text-accent-fg cursor-pointer`}
       >
         {locale === null && (
           <option value="" disabled>
@@ -111,7 +112,7 @@ export const PhoneTopBar = ({
         )}
         {locales.map((code) => (
           <option key={code} value={code}>
-            {code}
+            {getLocaleLabel(code, t)}
           </option>
         ))}
       </select>

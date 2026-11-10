@@ -54,6 +54,29 @@ export class ValidationError extends Error {
   }
 }
 
+/**
+ * The request never reached the app (it is down, or the network dropped). The message is the
+ * browser's own, so callers that pass messages along are unchanged; the save flow words it.
+ */
+export class NetworkError extends Error {
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.name = 'NetworkError';
+  }
+}
+
+/** A failed status the app answered; `fromServer` is false when it gave no message of its own. */
+export class HttpStatusError extends Error {
+  readonly status: number;
+  readonly fromServer: boolean;
+  constructor(status: number, serverMessage: string | undefined) {
+    super(serverMessage || englishText('errors.server_status', { status }));
+    this.name = 'HttpStatusError';
+    this.status = status;
+    this.fromServer = Boolean(serverMessage);
+  }
+}
+
 export class UnauthorizedError extends Error {
   readonly code = 'UNAUTHORIZED';
   constructor(message = englishText('errors.unauthorized')) {
@@ -109,21 +132,27 @@ async function parse<T>(response: Response): Promise<T> {
     );
   }
   if (!response.ok) {
-    throw new Error(
-      body?.error || englishText('errors.server_status', { status: response.status })
-    );
+    throw new HttpStatusError(response.status, body?.error);
   }
   return body as T;
 }
 
+/** `fetch`, with a request that never got an answer rejected as a NetworkError. */
+function send(url: string, init?: RequestInit): Promise<Response> {
+  const request = init ? fetch(url, init) : fetch(url);
+  return request.catch((err: unknown) => {
+    throw new NetworkError(err);
+  });
+}
+
 function get<T>(query = ''): Promise<T> {
   const url = `${apiUrl()}${query}`;
-  const request = getToken() ? fetch(url, { headers: headers() }) : fetch(url);
+  const request = getToken() ? send(url, { headers: headers() }) : send(url);
   return request.then((r) => parse<T>(r));
 }
 
 async function post<T>(payload: Record<string, unknown>): Promise<T> {
-  const response = await fetch(apiUrl(), {
+  const response = await send(apiUrl(), {
     method: 'POST',
     headers: headers({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(payload),

@@ -13,7 +13,7 @@ export const KeyJumpNote = ({ note }: { note: Note | null }) => {
       role="status"
       aria-live="polite"
       data-testid="key-jump-note"
-      className="text-[11px] leading-relaxed text-fg-muted empty:hidden"
+      className="text-sm leading-relaxed text-fg-muted empty:hidden"
     >
       {note === 'absent'
         ? t('editor.not_on_page')

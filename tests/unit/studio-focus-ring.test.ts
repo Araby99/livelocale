@@ -61,7 +61,7 @@ const REVIEWED_OVERFLOW_HIDDEN: Record<string, number> = {
   'KeysDirectory.tsx': 1, // same panel shape
   'ReviewPanel.tsx': 1, // same panel shape
   'IframeViewer.tsx': 1, // px-6 top bar, then the iframe
-  'Header.tsx': 1, // the coverage bar, which holds no control
+  'Header.tsx': 2, // the coverage bar and the target-locale chip, which hold no control
 };
 
 it('gives a focus ring room in every overflow-hidden box', () => {

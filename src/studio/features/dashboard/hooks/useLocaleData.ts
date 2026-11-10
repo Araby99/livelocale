@@ -6,7 +6,7 @@ import {
 } from '../../../api.js';
 
 // Helper to flatten nested JSON objects to dot-separated keys
-function flattenObject(obj: any, prefix = ''): Record<string, string> {
+export function flattenObject(obj: any, prefix = ''): Record<string, string> {
   const result: Record<string, string> = {};
   if (!obj || typeof obj !== 'object') return result;
 

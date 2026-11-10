@@ -1,3 +1,5 @@
+import { KEY_RE, MAX_KEY_LENGTH } from '../core/validate.js';
+
 /**
  * The messages the in-page client sends the Studio. The wire protocol is stable; this
  * type is not, because new messages are added in minor releases.
@@ -27,6 +29,7 @@ export type StudioMessageType =
   | 'APPLY_PREVIEW'
   | 'COMMIT_PREVIEW'
   | 'CLEAR_SELECTION'
+  | 'RESTORE_PREVIEW'
   | 'NAVIGATE'
   | 'SET_EDIT_MODE'
   | 'SELECT_KEY'
@@ -136,7 +139,9 @@ export const MAX_VISIBLE_TEXTS = 100;
 /** Longest text, in UTF-16 code units, one visible key/text pair carries. */
 export const MAX_VISIBLE_TEXT_LENGTH = 200;
 
-const KEY_PATTERN = /^[a-zA-Z0-9._-]+$/;
+/** The same key shape the save API accepts, so keys with accents, other scripts or spaces work. */
+const isKey = (key: unknown): key is string =>
+  typeof key === 'string' && key.length <= MAX_KEY_LENGTH && KEY_RE.test(key);
 
 /** Shape of one READY feature name. */
 const FEATURE_PATTERN = /^[a-z0-9-]+$/;
@@ -247,13 +252,7 @@ export class IframeBridge {
     // RULE CLT-006: PAYLOAD SANITIZATION
     if (type === 'ELEMENT_SELECTED') {
       const p = payload as TranslationPayload;
-      if (
-        !p ||
-        typeof p.key !== 'string' ||
-        p.key.trim() === '' ||
-        !/^[a-zA-Z0-9._-]+$/.test(p.key) ||
-        typeof p.currentValue !== 'string'
-      ) {
+      if (!p || !isKey(p.key) || typeof p.currentValue !== 'string') {
         // Drop invalid payload silently
         return;
       }
@@ -262,9 +261,7 @@ export class IframeBridge {
     if (type === 'VISIBLE_KEYS_CHANGED' || type === 'RENDERED_KEYS_CHANGED') {
       // Validate payload is an array of valid key strings
       if (!Array.isArray(payload)) return;
-      const validKeys = (payload as unknown[]).filter(
-        (k): k is string => typeof k === 'string' && /^[a-zA-Z0-9._-]+$/.test(k)
-      );
+      const validKeys = (payload as unknown[]).filter(isKey);
       // Replace the payload with the sanitized array
       payload = validKeys;
     }
@@ -276,7 +273,7 @@ export class IframeBridge {
         if (texts.length >= MAX_VISIBLE_TEXTS) break;
         if (!entry || typeof entry !== 'object') continue;
         const { key, text } = entry as { key?: unknown; text?: unknown };
-        if (typeof key !== 'string' || !KEY_PATTERN.test(key) || typeof text !== 'string') {
+        if (!isKey(key) || typeof text !== 'string') {
           continue;
         }
         texts.push({ key, text: text.slice(0, MAX_VISIBLE_TEXT_LENGTH) });
@@ -300,11 +297,7 @@ export class IframeBridge {
     if (type === 'KEY_JUMPED') {
       // Only the key the Studio asked for and what was found; nothing else leaves the frame.
       const { key, result } = (payload ?? {}) as { key?: unknown; result?: unknown };
-      if (
-        typeof key !== 'string' ||
-        !KEY_PATTERN.test(key) ||
-        !KEY_JUMP_RESULTS.includes(result as KeyJumpResult)
-      ) {
+      if (!isKey(key) || !KEY_JUMP_RESULTS.includes(result as KeyJumpResult)) {
         return;
       }
       payload = { key, result };

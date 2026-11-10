@@ -90,6 +90,11 @@ describe('pluralCategoriesFor', () => {
     expect(pluralCategoriesFor('en', 'selectordinal')).toEqual(['one', 'two', 'few', 'other']);
   });
 
+  it('reads the underscore form the way Intl reads the hyphen form', () => {
+    expect(pluralCategoriesFor('pt_BR')).toEqual(pluralCategoriesFor('pt-BR'));
+    expect(pluralCategoriesFor('pt_BR')).toContain('many');
+  });
+
   it('falls back to one/other for unknown locales', () => {
     expect(pluralCategoriesFor('zz-ZZ-invalid-!!')).toEqual(['one', 'other']);
   });

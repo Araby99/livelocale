@@ -97,6 +97,22 @@ describe('builtValuesToReapply', () => {
     ).toEqual(new Map([['home.title', 'built']]));
   });
 
+  it('preview: the fallback text the page showed for a text that was new in this session', () => {
+    const entries: HistoryEntry[] = [
+      { ...entry('B', 2), previousValue: 'A' },
+      { ...entry('A', 1), previousValue: '', added: true, pageValue: 'Welcome' },
+    ];
+    expect(
+      builtValuesToReapply({
+        mode: 'preview',
+        locale: 'ar',
+        localeConfirmed: true,
+        history: entries,
+        drafts: [],
+      })
+    ).toEqual(new Map([['home.title', 'Welcome']]));
+  });
+
   it("static: each draft's built value, none when the build lacks the key", () => {
     const drafts = [draft({ from: 'مرحبا' }), draft({ key: 'home.new', from: null })];
     expect(

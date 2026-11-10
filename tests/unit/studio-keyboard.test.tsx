@@ -105,10 +105,10 @@ describe('Studio keyboard access', () => {
         filteredKeys={['a', 'b']}
       />
     );
-    expect(screen.getByRole('button', { name: 'All Keys' }).getAttribute('aria-pressed')).toBe(
+    expect(screen.getByRole('button', { name: 'All texts' }).getAttribute('aria-pressed')).toBe(
       'true'
     );
-    expect(screen.getByRole('button', { name: 'Page Keys' }).getAttribute('aria-pressed')).toBe(
+    expect(screen.getByRole('button', { name: 'On this page' }).getAttribute('aria-pressed')).toBe(
       'false'
     );
     expect(screen.getByRole('button', { name: /^a/ }).getAttribute('aria-current')).toBe('true');

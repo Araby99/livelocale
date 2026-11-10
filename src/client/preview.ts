@@ -22,6 +22,7 @@
  */
 import { containsWatermark, removeWatermarks } from './watermark.js';
 import { inInertParent, keyedSegments, segmentText } from './keyed-text.js';
+import { formatPreview } from './preview-format.js';
 
 /** A value to show for a key, with the stored value the page renders now, when known. */
 export interface PreviewValue {
@@ -44,6 +45,13 @@ interface Entry {
   previews: Map<string, PreviewValue>;
   /** Saved values: kept on the page, rendered again when other previews change. */
   committed: Map<string, PreviewValue>;
+  /** Values a save left in `original` as the node's own text, by key, when it still shows them. */
+  saved?: ReadonlyMap<string, string>;
+  /**
+   * The first stored value the Studio sent for each key while this entry lived: what
+   * `original` shows. Later sends carry the last saved or undone value instead.
+   */
+  bases: Map<string, string>;
 }
 
 /** What a node should look like. */
@@ -64,6 +72,15 @@ const entries = new Map<Text, Entry>();
  * next time the key is previewed, even when the Studio sends no `source`.
  */
 const committedValues = new Map<string, string>();
+
+/**
+ * What a save left in a node it then let go of: the node's text then and the values it shows.
+ * Per node, not per key: a node the app renders again (a client-side navigation, a re-render)
+ * shows the stored value again, and matching the saved value against it would misread it.
+ */
+// Never reset: keyed by node, a record outlives a body swap only for a node the swap kept
+// (Astro's transition:persist), and entryFor ignores it once the node's text changed.
+const savedOn = new WeakMap<Text, { text: string; values: Map<string, string> }>();
 
 // ─── Markup ────────────────────────────────────────────────────────────────
 
@@ -262,14 +279,20 @@ function isRichExtent(
 /**
  * The page's own text after a plain translation in the same node, which the
  * preview keeps. When the value the page shows is known (the stored value the
- * Studio sends, or the last value saved here) and the marked text starts with
+ * Studio sends, `base`: the first one it sent while the node's entry lived, or
+ * the last value saved here) and the marked text starts with
  * it, everything after it (`{t.terms} · {t.privacy}`, `{t.more} →`).
  * Otherwise only the trailing whitespace (`{t.title}\n  <span>`): the rest
  * cannot be told apart from the translation.
  */
-function pageTextAfter(segText: string, key: string, preview: PreviewValue): string {
+function pageTextAfter(
+  segText: string,
+  key: string,
+  preview: PreviewValue,
+  base: string | undefined
+): string {
   let best = -1;
-  for (const known of [preview.source, committedValues.get(key)]) {
+  for (const known of [preview.source, base, committedValues.get(key)]) {
     if (known === undefined) continue;
     const shown = removeWatermarks(known);
     if (shown === '' || hasMarkup(shown) || !segText.startsWith(shown)) continue;
@@ -296,12 +319,28 @@ function desiredFor(node: Text, entry: Entry): Desired {
   let insert: Node[] = [];
   let richValue: string | undefined;
   segments.forEach((segment, i) => {
-    const preview = entry.previews.get(segment.key) ?? entry.committed.get(segment.key);
-    if (!preview) return;
+    const raw = entry.previews.get(segment.key) ?? entry.committed.get(segment.key);
+    if (!raw) return;
     const segText = segmentText(original, segment);
     text += original.slice(cursor, segment.end);
     cursor = segment.textEnd;
     const last = i === segments.length - 1;
+    // `{count, plural, …}`, `{year}`: filled with the values the page shows now, not shown raw.
+    // The messages `original` may show: the stored value sent now; the first one sent while
+    // this entry lived (later sends carry the last saved or undone value); a value a save left
+    // as this node's own text. Only values tied to this node: one the app rendered again shows
+    // the stored value again. Never the typed value: matched against the page, it would take
+    // the old words as its arguments' values. A rich stored value goes on in the elements
+    // after the node.
+    const known = [raw.source, entry.bases.get(segment.key), entry.saved?.get(segment.key)];
+    const markup = last && known.some((each) => each !== undefined && hasMarkup(each));
+    const shownText = markup
+      ? segText +
+        originalSiblings(node, entry)
+          .map((each) => each.textContent ?? '')
+          .join('')
+      : segText;
+    const preview = formatPreview(raw.value, known, removeWatermarks(shownText));
     if (
       last &&
       isRichExtent(node, segText, originalSiblings(node, entry), preview, entry.richValue)
@@ -312,7 +351,9 @@ function desiredFor(node: Text, entry: Entry): Desired {
       richValue = preview.value;
       insert = nodes;
     } else {
-      text += removeWatermarks(preview.value) + pageTextAfter(segText, segment.key, preview);
+      text +=
+        removeWatermarks(preview.value) +
+        pageTextAfter(segText, segment.key, preview, entry.bases.get(segment.key));
     }
   });
   text += original.slice(cursor);
@@ -415,6 +456,7 @@ function entryFor(node: Text): Entry {
   }
   if (!entry) {
     const text = node.nodeValue ?? '';
+    const record = savedOn.get(node);
     entry = {
       original: text,
       removed: [],
@@ -422,6 +464,8 @@ function entryFor(node: Text): Entry {
       rendered: text,
       previews: new Map(),
       committed: new Map(),
+      saved: record?.text === text ? record.values : undefined,
+      bases: new Map(),
     };
     entries.set(node, entry);
   }
@@ -438,8 +482,10 @@ function entryFor(node: Text): Entry {
 export function applyPreview(key: string, value: string, source?: string): void {
   for (const node of nodesFor(key)) {
     const entry = entryFor(node);
+    // A saved value of the key stays under the preview (previews win in desiredFor), so
+    // dropping the preview puts the saved value back, not the text from before the save.
     entry.previews.set(key, { value, source });
-    entry.committed.delete(key);
+    if (source !== undefined && !entry.bases.has(key)) entry.bases.set(key, source);
     render(node, entry);
   }
 }
@@ -460,10 +506,40 @@ export function commitPreview(key: string, value: string, source?: string): void
     const isRich = entry.removed.length > 0 || entry.inserted.length > 0;
     if (entry.previews.size === 0 && !isRich) {
       // Nothing else to put back here: the page keeps the saved value as its own.
+      const values = new Map(entry.saved);
+      for (const [each, saved] of entry.committed) values.set(each, saved.value);
+      values.set(key, preview.value);
+      savedOn.set(node, { text: node.nodeValue ?? '', values });
       entries.delete(node);
     } else {
       // Kept while a rich value holds the page's own nodes, so they can be put back.
       entry.committed.set(key, preview);
+    }
+  }
+}
+
+/**
+ * Drops the unsaved preview of `key` only, wherever it shows: the node goes back to the
+ * page's own text, or to the saved values and other previews it still holds. Used when the
+ * typed text is discarded while another text gets picked, so that pick keeps its highlight.
+ */
+export function restorePreview(key: string): void {
+  for (const [node, entry] of [...entries]) {
+    if (!node.isConnected) {
+      entries.delete(node);
+      continue;
+    }
+    if (!entry.previews.delete(key)) continue;
+    if (node.nodeValue !== entry.rendered) {
+      // The app has rendered its own text since: that is what the page shows now.
+      undoRich(node, entry);
+      entries.delete(node);
+    } else if (entry.previews.size === 0 && entry.committed.size === 0) {
+      undoRich(node, entry);
+      if (node.nodeValue !== entry.original) node.nodeValue = entry.original;
+      entries.delete(node);
+    } else {
+      render(node, entry);
     }
   }
 }

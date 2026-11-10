@@ -190,3 +190,45 @@ describe('StudioLayout', () => {
     expect(screen.getByTestId('counter').textContent).toBe('2');
   });
 });
+
+describe('StudioLayout with right-to-left page text', () => {
+  afterEach(cleanup);
+
+  const drawers = (rtlContent: boolean | undefined) => {
+    render(
+      <StudioLayout
+        isWide={false}
+        keys={<div>keys</div>}
+        viewer={<div>viewer</div>}
+        side={<div>side</div>}
+        sideLabel="Editor"
+        openPanel="side"
+        onOpenPanelChange={vi.fn()}
+        rtlContent={rtlContent}
+      />
+    );
+    return screen.getByTestId('studio-drawer-side').className;
+  };
+
+  // Right-to-left lines start on the right, which is where the editor drawer opens; it moves to
+  // the left so the start of the text being edited stays in view.
+  it('opens the editor drawer on the left when the page text runs right to left', () => {
+    const side = drawers(true);
+    expect(side).toMatch(/\bstart-0\b/);
+    expect(side).not.toMatch(/\bend-0\b/);
+  });
+
+  it('keeps it on the right for left-to-right text', () => {
+    expect(drawers(false)).toMatch(/\bend-0\b/);
+    cleanup();
+    expect(drawers(undefined)).toMatch(/\bend-0\b/);
+  });
+});
+
+describe('isRtlLocale', () => {
+  it('knows the right-to-left languages, with or without a region', async () => {
+    const { isRtlLocale } = await import('../../src/studio/features/dashboard/locale-direction.js');
+    for (const l of ['ar', 'ar-EG', 'he', 'fa', 'ur', 'ckb']) expect(isRtlLocale(l)).toBe(true);
+    for (const l of ['en', 'es-MX', 'zh', 'not a locale', '']) expect(isRtlLocale(l)).toBe(false);
+  });
+});

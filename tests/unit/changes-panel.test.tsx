@@ -119,6 +119,27 @@ describe('ChangesPanel', () => {
     cleanup();
   });
 
+  it('says a new text had no translation, and what Undo leaves in the file', () => {
+    const entry = {
+      id: '2',
+      locale: 'ar',
+      key: 'hero.cta',
+      previousValue: '',
+      nextValue: 'ابدأ',
+      added: true,
+      at: Date.now(),
+    };
+    const props = renderPanel({ history: [entry] });
+    expect(screen.getByText(englishText('changes.was_missing'))).toBeTruthy();
+    const undo = screen.getByRole('button', {
+      name: 'Undo: restore the previous value of hero.cta',
+    });
+    expect(undo.getAttribute('title')).toBe(englishText('changes.undo_added_title'));
+    fireEvent.click(undo);
+    expect(props.onUndo).toHaveBeenCalledWith(entry);
+    cleanup();
+  });
+
   it('explains when git is unavailable or the directory is not a repository', () => {
     renderPanel({ git: { ...baseGit, available: false, isRepo: false, changes: [] } });
     expect(screen.getByText(/git integration is disabled/i)).toBeTruthy();

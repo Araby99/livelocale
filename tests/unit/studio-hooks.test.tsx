@@ -87,7 +87,7 @@ describe('useSelection', () => {
     });
   });
 
-  it('prefills from the reference value, markup and all, when the page shows its fallback', () => {
+  it('starts a missing translation empty, with the source text as the reference', () => {
     const sub = 'Wolvy encrypts so <strong>only your audience</strong> can watch.';
     const params = { ...makeParams(), localeData: {}, enLocaleData: { 'home.hero.sub': sub } };
     const { result } = renderHook(() => useSelection(params));
@@ -100,16 +100,69 @@ describe('useSelection', () => {
         currentValue: 'Wolvy encrypts so only your audience can watch.',
       })
     );
-    expect(result.current.inputValue).toBe(sub);
-    expect(result.current.selected?.currentValue).toBe(sub);
+    expect(result.current.inputValue).toBe('');
+    expect(result.current.selected?.currentValue).toBe('');
+    expect(result.current.selected?.fallbackValue).toBe(sub);
     expect(result.current.hasUnsavedChanges).toBe(false);
 
+    // Typing enables Save; the live preview still finds the English text, markup and all.
     act(() => result.current.handleInputChange('وولفي <strong>جمهورك</strong>'));
+    expect(result.current.hasUnsavedChanges).toBe(true);
     expect(params.sendToIframe).toHaveBeenLastCalledWith('APPLY_PREVIEW', {
       key: 'home.hero.sub',
       value: 'وولفي <strong>جمهورك</strong>',
       source: sub,
     });
+  });
+
+  it('commits a new translation over the fallback text the page showed', async () => {
+    const params = { ...makeParams(), localeData: {}, enLocaleData: { 'hero.cta': 'Start' } };
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200 })
+    );
+    const { result } = renderHook(() => useSelection(params));
+    act(() =>
+      result.current.selectElement({
+        key: 'hero.cta',
+        fallbackValue: 'Start',
+        currentValue: 'Start',
+      })
+    );
+    act(() => result.current.handleInputChange('ابدأ'));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    expect(params.sendToIframe).toHaveBeenCalledWith('COMMIT_PREVIEW', {
+      key: 'hero.cta',
+      value: 'ابدأ',
+      source: 'Start',
+    });
+    // The file had no value: undo can only write an empty one, so the entry says the text is
+    // new, and keeps what the page showed for a preview build that is reloaded.
+    expect(params.onSaved).toHaveBeenCalledWith({
+      locale: 'ar',
+      key: 'hero.cta',
+      previousValue: '',
+      nextValue: 'ابدأ',
+      added: true,
+      pageValue: 'Start',
+    });
+    // Once saved, the page shows the new text, so the next preview replaces that.
+    act(() => result.current.handleInputChange('ابدأ الآن'));
+    expect(params.sendToIframe).toHaveBeenLastCalledWith('APPLY_PREVIEW', {
+      key: 'hero.cta',
+      value: 'ابدأ الآن',
+      source: 'ابدأ',
+    });
+  });
+
+  it('keeps the page text in the field when the source language itself lacks a stored value', () => {
+    const params = { ...makeParams(), locale: 'en', localeData: {}, enLocaleData: {} };
+    const { result } = renderHook(() => useSelection(params));
+    act(() =>
+      result.current.selectElement({ key: 'home.x', fallbackValue: 'x', currentValue: 'On page' })
+    );
+    expect(result.current.inputValue).toBe('On page');
   });
 
   it('prefills from the stored value of the edited locale over the page text', () => {
@@ -129,7 +182,14 @@ describe('useSelection', () => {
     expect(result.current.inputValue).toBe('نص <strong>غني</strong>');
   });
 
-  it('prefills from the reference value when only the marked text matches it', () => {
+  // The preview replaces the text the page shows; for a missing translation that is the
+  // fallback's value, found the same way the 1.2.0 prefill found it.
+  const previewSource = (result: { current: ReturnType<typeof useSelection> }, send: any) => {
+    act(() => result.current.handleInputChange('…'));
+    return send.mock.calls.at(-1)[1].source;
+  };
+
+  it('previews against the reference value when only the marked text matches it', () => {
     const title = 'Advanced protection for your video content.';
     const params = { ...makeParams(), localeData: {}, enLocaleData: { 'home.hero.title': title } };
     const { result } = renderHook(() => useSelection(params));
@@ -141,10 +201,11 @@ describe('useSelection', () => {
         currentValue: `${title} _`,
       })
     );
-    expect(result.current.inputValue).toBe(title);
+    expect(result.current.inputValue).toBe('');
+    expect(previewSource(result, params.sendToIframe)).toBe(title);
   });
 
-  it('prefills from the reference value when the marked text ends in a page separator', () => {
+  it('previews against the reference value when the marked text ends in a page separator', () => {
     const params = { ...makeParams(), localeData: {}, enLocaleData: { 'footer.terms': 'Terms' } };
     const { result } = renderHook(() => useSelection(params));
     act(() =>
@@ -154,16 +215,17 @@ describe('useSelection', () => {
         currentValue: 'Terms ·',
       })
     );
-    expect(result.current.inputValue).toBe('Terms');
+    expect(previewSource(result, params.sendToIframe)).toBe('Terms');
   });
 
-  it('keeps the page text when no stored value shows it', () => {
+  it('previews against the page text when no stored value shows it', () => {
     const params = { ...makeParams(), localeData: {}, enLocaleData: { 'home.x': 'Other' } };
     const { result } = renderHook(() => useSelection(params));
     act(() =>
       result.current.selectElement({ key: 'home.x', fallbackValue: 'x', currentValue: 'On page' })
     );
-    expect(result.current.inputValue).toBe('On page');
+    expect(result.current.inputValue).toBe('');
+    expect(previewSource(result, params.sendToIframe)).toBe('On page');
   });
 
   it('takes the reference from the source locale, not the text on the page', () => {
@@ -220,8 +282,44 @@ describe('useSelection', () => {
     expect(result.current.selectionCount).toBe(3);
   });
 
+  it('takes a typed-then-erased preview off the page when another text is picked', () => {
+    const params = { ...makeParams(), locale: 'fr', localeData: {} };
+    const { result } = renderHook(() => useSelection(params));
+
+    act(() =>
+      result.current.selectElement({
+        key: 'home.title',
+        fallbackValue: 'Welcome',
+        currentValue: 'Welcome',
+      })
+    );
+    act(() => result.current.handleInputChange('B'));
+    act(() => result.current.handleInputChange(''));
+    expect(result.current.hasUnsavedChanges).toBe(false);
+    vi.mocked(params.sendToIframe).mockClear();
+    act(() => result.current.selectKeyDirectly('nav.about'));
+    expect(params.sendToIframe).toHaveBeenCalledWith('RESTORE_PREVIEW', { key: 'home.title' });
+  });
+
+  it('keeps what the page showed when the same missing translation is picked again', () => {
+    const params = { ...makeParams(), locale: 'fr', localeData: {} };
+    const { result } = renderHook(() => useSelection(params));
+    const pick = { key: 'home.title', fallbackValue: 'Welcome', currentValue: 'Welcome' };
+
+    act(() => result.current.selectElement(pick));
+    act(() => result.current.handleInputChange('Bienvenue'));
+    // The page reports the text with the typed preview still on it.
+    act(() => result.current.selectElement({ ...pick, currentValue: 'Bienvenue' }));
+    act(() => result.current.confirmDiscard());
+    expect(result.current.selected?.pageValue).toBe('Welcome');
+    expect(result.current.inputValue).toBe('');
+  });
+
   it('asks for confirmation before discarding unsaved edits, then honours the choice', () => {
-    const params = makeParams();
+    const params = {
+      ...makeParams(),
+      localeData: { 'home.title': 'Welcome', 'nav.about': 'About' },
+    };
     const { result } = renderHook(() => useSelection(params));
 
     act(() => result.current.selectKeyDirectly('home.title'));
@@ -247,9 +345,12 @@ describe('useSelection', () => {
         currentValue: 'About',
       })
     );
+    vi.mocked(params.sendToIframe).mockClear();
     act(() => result.current.confirmDiscard());
     expect(result.current.selected?.key).toBe('nav.about');
     expect(result.current.inputValue).toBe('About');
+    // The page stops showing the discarded text for the key left behind.
+    expect(params.sendToIframe).toHaveBeenCalledWith('RESTORE_PREVIEW', { key: 'home.title' });
   });
 
   it('saves through the mutation API and clears the selection highlight', async () => {
@@ -395,6 +496,42 @@ describe('useSelection', () => {
     expect(params.setError).toHaveBeenLastCalledWith('Forbidden: LiveLocale is disabled');
     expect(params.updateLocaleDataCache).not.toHaveBeenCalled();
     expect(params.onSaved).not.toHaveBeenCalled();
+  });
+
+  const saveFailing = async (response: () => Promise<Response>) => {
+    const params = makeParams();
+    vi.mocked(fetch).mockImplementation(response);
+    const { result } = renderHook(() => useSelection(params));
+    act(() => result.current.selectKeyDirectly('home.title'));
+    act(() => result.current.handleInputChange('مرحبا'));
+    await act(async () => {
+      await result.current.handleSave();
+    });
+    // The typed text stays in the field, ready for another try.
+    expect(result.current.inputValue).toBe('مرحبا');
+    expect(result.current.hasUnsavedChanges).toBe(true);
+    return params.setError.mock.calls.at(-1)?.[0] as string;
+  };
+
+  it('says in plain words that the site could not be reached and the text is kept', async () => {
+    const message = await saveFailing(() => Promise.reject(new TypeError('Failed to fetch')));
+    expect(message).toMatch(/^Could not reach your site\./);
+    expect(message).toContain('Your text is still here');
+    expect(message).not.toContain('Failed to fetch');
+  });
+
+  it('says in plain words that the site answered with an error when it gives no message', async () => {
+    const message = await saveFailing(async () => new Response('', { status: 500 }));
+    expect(message).toMatch(/^The site answered with an error \(500\)\./);
+    expect(message).toContain('Your text is still here');
+  });
+
+  it("keeps the server's own message, such as a refused structure change", async () => {
+    const error = 'home.title holds a group of texts, not one text, so it cannot be saved here.';
+    const message = await saveFailing(
+      async () => new Response(JSON.stringify({ error, code: 'KEY_NOT_A_STRING' }), { status: 409 })
+    );
+    expect(message).toBe(error);
   });
 });
 

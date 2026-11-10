@@ -128,7 +128,7 @@ test('the editor sheet is compact and keeps the picked text in view above it', a
   await tapKey(page, 'home.title');
   const sheet = editorSheet(page);
   // None of the desktop panel's chrome.
-  await expect(sheet).not.toContainText('Translation Studio');
+  await expect(sheet).not.toContainText('Edit text');
   await expect(sheet).not.toContainText('Clear Selection');
   await expect(sheet.getByRole('combobox')).toHaveCount(0);
   await expect(sheet.getByTestId('manage-languages-toggle')).toHaveCount(0);
@@ -158,7 +158,7 @@ test('the editor sheet is compact and keeps the picked text in view above it', a
 test('the picked text keeps a solid amber outline until the selection clears', async ({ page }) => {
   await openStudio(page);
   // Arabic leaves home.cta out, so Next missing has somewhere to go.
-  await page.getByRole('combobox', { name: 'Locale' }).selectOption('ar');
+  await page.getByRole('combobox', { name: 'Language' }).selectOption('ar');
   const frame = page.frameLocator('#app-preview-iframe');
   await expect(frame.locator('main')).toHaveAttribute('lang', 'ar');
   await expect(modeSwitch(page).getByRole('radio', { name: 'Edit' })).toBeChecked();
@@ -228,7 +228,7 @@ test('type and save updates the page', async ({ page }) => {
 test('Next missing walks the gaps and then reports done', async ({ page }) => {
   await openStudio(page);
   // Arabic leaves out home.cta and home.footer (visible) and home.menu_item (a closed menu).
-  await page.getByRole('combobox', { name: 'Locale' }).selectOption('ar');
+  await page.getByRole('combobox', { name: 'Language' }).selectOption('ar');
   const frame = page.frameLocator('#app-preview-iframe');
   await expect(frame.locator('main')).toHaveAttribute('lang', 'ar');
   await expect(modeSwitch(page).getByRole('radio', { name: 'Edit' })).toBeChecked();
@@ -288,7 +288,7 @@ test('the top bar still works while the editor sheet is open', async ({ page }) 
 
   // The editor sheet is still up, and the locale chip takes the tap too.
   await expect(editorSheet(page)).toBeVisible();
-  const chip = page.getByRole('combobox', { name: 'Locale' });
+  const chip = page.getByRole('combobox', { name: 'Language' });
   // A trial tap checks the chip is what a finger there would hit, without opening the picker.
   await chip.tap({ trial: true });
   await chip.selectOption('ar');

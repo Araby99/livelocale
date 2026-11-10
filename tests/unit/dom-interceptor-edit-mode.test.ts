@@ -132,6 +132,10 @@ describe('DOMInterceptor edit mode', () => {
     interceptor.setEditMode(true);
     expect(document.documentElement.hasAttribute('data-livelocale-edit')).toBe(true);
     expect(document.head.textContent).toContain('html[data-livelocale-edit] [data-i18n-key]');
+    // Two tones, a dark dash on a light ring, so the outline shows on light and dark sites alike.
+    expect(document.head.textContent).toContain(
+      'html[data-livelocale-edit] [data-i18n-key]{outline:2px dashed #0C0D0F;outline-offset:2px;box-shadow:0 0 0 2px #E8E4D9}'
+    );
 
     interceptor.setEditMode(false);
     expect(document.documentElement.hasAttribute('data-livelocale-edit')).toBe(false);
@@ -341,7 +345,7 @@ describe('DOMInterceptor edit mode', () => {
     };
     const picked = () => Array.from(document.querySelectorAll(`[${PICKED}]`));
 
-    it('a tap in edit mode marks the keyed element, styled as a solid amber outline', () => {
+    it('a tap in edit mode marks the keyed element, with an amber outline on a dark ring', () => {
       const { cta } = twoKeys();
       interceptor.init();
       interceptor.setEditMode(true);
@@ -350,8 +354,9 @@ describe('DOMInterceptor edit mode', () => {
 
       expect(picked()).toEqual([cta]);
       const css = document.getElementById('livelocale-edit-style')!.textContent!;
+      // The dark ring under the amber keeps the marker visible on a light site, the amber on a dark one.
       expect(css).toContain(
-        `html[data-livelocale-edit] [data-i18n-key][${PICKED}]{outline:2px solid #FFB224;outline-offset:3px}`
+        `html[data-livelocale-edit] [data-i18n-key][${PICKED}]{outline:2px solid #FFB224;outline-offset:3px;box-shadow:0 0 0 3px #0C0D0F}`
       );
     });
 
@@ -427,6 +432,51 @@ describe('DOMInterceptor edit mode', () => {
       expect(picked()).toEqual([]);
     });
   });
+
+  it('Browse: Alt+Click on text without a key says so and does not reach the site', () => {
+    document.body.innerHTML = '<a href="/file.pdf">Download the <b>price list</b></a>';
+    const anchorListener = vi.fn();
+    document.querySelector('a')!.addEventListener('click', anchorListener);
+    interceptor.init();
+
+    const event = click(document.querySelector('b')!, { altKey: true });
+
+    expect(onUnkeyedTap).toHaveBeenCalledTimes(1);
+    expect(onElementSelected).not.toHaveBeenCalled();
+    // Alt+Click on a link would otherwise download its target in Chrome.
+    expect(event.defaultPrevented).toBe(true);
+    expect(anchorListener).not.toHaveBeenCalled();
+  });
+
+  it('Browse: Alt+Click on keyed text still selects it, with no notice', () => {
+    document.body.innerHTML = `<p>${encodeKey('Welcome', 'home.title')}</p>`;
+    interceptor.init();
+
+    click(document.querySelector('p')!, { altKey: true });
+
+    expect(onElementSelected).toHaveBeenCalledWith(expect.objectContaining({ key: 'home.title' }));
+    expect(onUnkeyedTap).not.toHaveBeenCalled();
+  });
+
+  it('Browse: a plain click on text without a key is left to the site', () => {
+    document.body.innerHTML = '<p>Plain text</p>';
+    interceptor.init();
+
+    const event = click(document.querySelector('p')!);
+
+    expect(onUnkeyedTap).not.toHaveBeenCalled();
+    expect(event.defaultPrevented).toBe(false);
+  });
+
+  it('Browse: Alt+Click on an image without text is cancelled but says nothing', () => {
+    document.body.innerHTML = '<a href="/next"><img alt="" src="logo.png"></a>';
+    interceptor.init();
+
+    const event = click(document.querySelector('img')!, { altKey: true });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(onUnkeyedTap).not.toHaveBeenCalled();
+  });
 });
 
 describe('IframeBridge edit-mode messages', () => {
@@ -464,7 +514,7 @@ describe('IframeBridge edit-mode messages', () => {
 
   it('RENDERED_KEYS_CHANGED keeps only valid keys and drops non-arrays', () => {
     const bridge = new IframeBridge('http://localhost:3010');
-    bridge.sendToParent('RENDERED_KEYS_CHANGED', ['home.title', 'bad key', 7, 'nav.pricing']);
+    bridge.sendToParent('RENDERED_KEYS_CHANGED', ['home.title', 'bad/key', 7, 'nav.pricing']);
     bridge.sendToParent('RENDERED_KEYS_CHANGED', 'home.title');
     expect(sent()).toEqual([
       {

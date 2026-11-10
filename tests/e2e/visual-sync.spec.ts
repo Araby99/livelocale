@@ -29,7 +29,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
     // First test of the run: the dev server may still be compiling the page and the
     // client bundle. Wait for the Studio to report the iframe bridge as connected
     // before asserting on anything the client scanner produces.
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
 
     const frameElement = page.frameLocator('#app-preview-iframe');
 
@@ -107,7 +107,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
     await expect(page.locator('[data-testid="save-success"]')).toBeVisible();
 
     // Wait for iframe to reflect the HMR update. If it doesn't happen automatically in 5s (due to slow file watchers),
-    // trigger a manual reload of the iframe via the "Reload Frame" button.
+    // trigger a manual reload of the iframe via the "Reload page" button.
     try {
       await expect(frameElement.locator('[data-i18n-key="home.welcome_msg"]')).toHaveText(
         /HMR Live Update Value/,
@@ -116,7 +116,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
         }
       );
     } catch {
-      await page.locator('[title="Reload Frame"]').click();
+      await page.locator('[title="Reload page"]').click();
       await expect(frameElement.locator('[data-i18n-key="home.welcome_msg"]')).toHaveText(
         /HMR Live Update Value/,
         {
@@ -178,7 +178,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
     page,
   }) => {
     await page.goto('http://localhost:3010');
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
 
     const frameElement = page.frameLocator('#app-preview-iframe');
     const welcome = frameElement.locator('[data-i18n-key="home.welcome_msg"]');
@@ -211,7 +211,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
     page,
   }) => {
     await page.goto('http://localhost:3010');
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
 
     // Pick the key from the sidebar directory (it is not rendered on the page).
     await page.getByRole('button', { name: /home\.greeting/ }).click();
@@ -241,7 +241,7 @@ test.describe('Full Visual Translation Sync Loop', () => {
     page,
   }) => {
     await page.goto('http://localhost:3010');
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
 
     await page.getByRole('button', { name: /cart\.items/ }).click();
     await expect(page.getByTestId('plural-editor')).toBeVisible();

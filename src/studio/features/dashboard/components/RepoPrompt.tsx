@@ -24,7 +24,7 @@ export const RepoPrompt = ({ initial = '', onSave }: RepoPromptProps) => {
   return (
     <form onSubmit={save} className="space-y-2">
       <label className="block space-y-1">
-        <span className="text-[11px] font-semibold text-fg-muted">{t('repo.question')}</span>
+        <span className="text-xs font-semibold text-fg-muted">{t('repo.question')}</span>
         <input
           type="text"
           dir="ltr"
@@ -37,17 +37,17 @@ export const RepoPrompt = ({ initial = '', onSave }: RepoPromptProps) => {
             setInvalid(false);
           }}
           aria-invalid={invalid || undefined}
-          className="w-full h-9 px-3 rounded-xl bg-surface border border-line text-xs font-mono text-fg"
+          className="w-full h-9 px-3 rounded-xl bg-surface border border-line-strong text-sm font-mono text-fg"
         />
       </label>
       {invalid && (
-        <p role="alert" className="text-[11px] text-danger-fg">
+        <p role="alert" className="text-xs text-danger-fg">
           {t('repo.malformed')}
         </p>
       )}
       <button
         type="submit"
-        className="h-8 px-3 rounded-xl text-[11px] font-semibold border transition duration-150 text-on-accent bg-accent hover:bg-accent-hover border-accent-line"
+        className="h-8 px-3 rounded-xl text-xs font-semibold border transition duration-150 text-on-accent bg-accent hover:bg-accent-hover border-accent-line"
       >
         {t('repo.save')}
       </button>

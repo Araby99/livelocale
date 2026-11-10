@@ -20,6 +20,13 @@ export const TARGET_LOCALE_STORAGE_PREFIX = 'livelocale-target-locale:';
 export interface UseTargetLocaleParams {
   /** True on a share link (static mode); false keeps today's server-stack behaviour. */
   enabled: boolean;
+  /**
+   * Server stacks only (`enabled` false): the page's text decides the edited locale too, so the
+   * Studio follows the app's own language switch (`?lng=`, a cookie, i18next state). A locale
+   * chosen in the menu is kept, and text in another language is only flagged. No language pick
+   * is ever required.
+   */
+  followPage?: boolean;
   /** The draft scope the confirmed locale is remembered under; null remembers nothing. */
   scope: string | null;
   /** The Studio's current locale. */
@@ -36,6 +43,12 @@ export interface UseTargetLocaleParams {
   showLocale?: (locale: string) => void;
   locales: readonly string[];
   getCandidates: () => Promise<TextCandidates>;
+  /**
+   * True while typed text is not saved yet. The page then never changes the language: the
+   * editor would reload with the other language's text and drop what was typed. A text in
+   * another language is flagged instead, and switching goes through the unsaved prompt.
+   */
+  hasUnsavedChanges?: () => boolean;
 }
 
 function readRemembered(scope: string): string | null {
@@ -62,6 +75,7 @@ function writeRemembered(scope: string, locale: string): void {
  */
 export const useTargetLocale = ({
   enabled,
+  followPage = false,
   scope,
   locale,
   setLocale,
@@ -69,9 +83,17 @@ export const useTargetLocale = ({
   showLocale,
   locales,
   getCandidates,
+  hasUnsavedChanges = () => false,
 }: UseTargetLocaleParams) => {
   const [source, setSource] = useState<LocaleSource | null>(null);
-  const [mismatch, setMismatch] = useState<string | null>(null);
+  const [mismatch, setMismatchState] = useState<string | null>(null);
+  // Whether the shown mismatch came from the page's text while typing, so it can go once the
+  // text is saved and the page decides again.
+  const heldMismatchRef = useRef(false);
+  const setMismatch = (next: string | null, held = false) => {
+    heldMismatchRef.current = held && next !== null;
+    setMismatchState(next);
+  };
   const [pickerCandidates, setPickerCandidates] = useState<string[] | null>(null);
 
   // Latest values for the async handlers; updated synchronously on each decision.
@@ -80,6 +102,8 @@ export const useTargetLocale = ({
   const sourceRef = useRef(source);
   sourceRef.current = source;
   const pendingRef = useRef<SelectedElement | null>(null);
+  // Whether the page's text is read to decide the locale at all.
+  const infers = enabled || followPage;
   const restoredScopeRef = useRef<string | null>(null);
 
   const current = (): CurrentLocale => ({
@@ -114,28 +138,50 @@ export const useTargetLocale = ({
 
   const onUrlLocale = (urlLocale: string) => {
     if (!enabled) {
-      setLocale(urlLocale);
+      if (!followPage) {
+        setLocale(urlLocale);
+        return;
+      }
+      // The address still wins on a server stack, as it always has, except when it only echoes
+      // the menu choice the Studio itself put there: that choice stays the person's own.
+      const now = current();
+      if (now.source === 'manual' && now.locale === urlLocale) return;
+      apply({ locale: urlLocale, source: 'url' });
       return;
     }
     apply(chooseLocaleOnNavigation(urlLocale, current()));
   };
 
+  /** True when `next` changes the locale while typed text is unsaved; flags it instead. */
+  const holdWhileTyping = (next: CurrentLocale): boolean => {
+    if (next.locale === localeRef.current || !hasUnsavedChanges()) return false;
+    setMismatch(next.locale, true);
+    return true;
+  };
+
   const onVisibleTexts = async (texts: readonly VisibleText[]) => {
-    if (!enabled) return;
+    if (!infers) return;
     const candidates = await getCandidates();
-    apply(chooseLocaleOnPageTexts(matchLocalesByVisibleTexts(texts, candidates), current()));
+    const next = chooseLocaleOnPageTexts(matchLocalesByVisibleTexts(texts, candidates), current());
+    if (holdWhileTyping(next)) return;
+    if (heldMismatchRef.current) setMismatch(null);
+    apply(next);
   };
 
   const resolveForSelection = async (el: SelectedElement): Promise<boolean> => {
-    if (!enabled) return true;
+    if (!infers) return true;
     const candidates = await getCandidates();
+    // A text the edited language lacks shows the fallback's words; the match counts that
+    // language too, so it is neither switched away from nor flagged.
     const matches = matchLocalesByText(el.key, [el.currentValue], candidates);
     const now = current();
     setMismatch(localeMismatch(matches, now));
     const choice = chooseLocaleOnClick(matches, now, locales);
+    if (!('pick' in choice) && holdWhileTyping(choice)) return true;
     if ('pick' in choice) {
-      // Nothing to pick from: keep the current locale rather than show an empty picker.
-      if (choice.pick.length === 0) return true;
+      // Nothing to pick from: keep the current locale rather than show an empty picker. A
+      // server stack never asks either: it keeps the locale it has, as it always did.
+      if (choice.pick.length === 0 || !enabled) return true;
       pendingRef.current = el;
       setPickerCandidates(choice.pick);
       return false;
@@ -172,6 +218,13 @@ export const useTargetLocale = ({
 
   const onMenuLocale = (chosen: string) => {
     if (!enabled) {
+      if (followPage) {
+        // Chosen by hand: the page's text no longer moves it, only flags a mismatch.
+        localeRef.current = chosen;
+        sourceRef.current = 'manual';
+        setSource('manual');
+        setMismatch(null);
+      }
       setMenuLocale(chosen);
       return;
     }

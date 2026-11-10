@@ -17,9 +17,14 @@ interface StudioLayoutProps {
   onOpenPanelChange: (panel: StudioPanel) => void;
   /**
    * Extra controls shown after the drawer toggles in compact mode, and in a row of their own
-   * above the viewer in the wide layout (a wide touch tablet). Desktops pass none.
+   * above the viewer in the wide layout (the Edit / Browse switch).
    */
   toolbar?: ReactNode;
+  /**
+   * The page text runs right to left. Its lines start on the right, where the editor drawer
+   * would cover them, so below the breakpoint the drawer opens on the left instead.
+   */
+  rtlContent?: boolean;
 }
 
 const KEYS_DRAWER_ID = 'studio-drawer-keys';
@@ -28,7 +33,7 @@ const SIDE_DRAWER_ID = 'studio-drawer-side';
 const DRAWER = 'absolute top-12 bottom-0 z-30 w-[min(400px,45vw)] p-2';
 
 const toggleClass = (open: boolean) =>
-  `px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition duration-150 ${
+  `px-3 py-1.5 rounded-xl border text-xs font-semibold transition duration-150 ${
     open
       ? 'bg-accent-soft border-accent-line text-accent-fg'
       : 'bg-raised border-line text-fg hover:text-fg hover:border-line-strong'
@@ -48,6 +53,7 @@ export const StudioLayout = ({
   openPanel,
   onOpenPanelChange,
   toolbar,
+  rtlContent = false,
 }: StudioLayoutProps) => {
   const { t } = useStudioText();
   const compactOpen = isWide ? null : openPanel;
@@ -147,7 +153,7 @@ export const StudioLayout = ({
         ref={sideDrawerRef}
         id={SIDE_DRAWER_ID}
         data-testid={SIDE_DRAWER_ID}
-        className={isWide ? 'h-full shrink-0' : `${DRAWER} end-0`}
+        className={isWide ? 'h-full shrink-0' : `${DRAWER} ${rtlContent ? 'start-0' : 'end-0'}`}
         hidden={!isWide && compactOpen !== 'side'}
       >
         {side}

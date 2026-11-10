@@ -37,9 +37,9 @@ describe('Studio dialogs keyboard support', () => {
     const onCancel = vi.fn();
     const onConfirm = vi.fn();
     render(<ConfirmModal showConfirmModal onConfirm={onConfirm} onCancel={onCancel} />);
-    const dialog = screen.getByRole('dialog', { name: 'Unsaved Changes' });
+    const dialog = screen.getByRole('dialog', { name: 'Unsaved changes' });
     expect(dialog.getAttribute('aria-modal')).toBe('true');
-    expect(focused()).toBe(screen.getByRole('button', { name: 'Keep Editing' }));
+    expect(focused()).toBe(screen.getByRole('button', { name: 'Keep editing' }));
     pressEscape();
     expect(onCancel).toHaveBeenCalledTimes(1);
     expect(onConfirm).not.toHaveBeenCalled();

@@ -91,8 +91,8 @@ describe('Header target language', () => {
         onChooseLocale={onChooseLocale}
       />
     );
-    expect(screen.getByText('This text looks like ar.')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Switch to ar' }));
+    expect(screen.getByText('This text looks like Arabic (ar).')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to Arabic (ar)' }));
     expect(onChooseLocale).toHaveBeenCalledWith('ar');
   });
 });

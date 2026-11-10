@@ -109,7 +109,7 @@ export function AddressBar({ path, pendingPath, recent, sitePages, onNavigate }:
         <div
           role="presentation"
           id={labelId}
-          className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-fg-muted"
+          className="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-fg-muted"
         >
           {label}
         </div>
@@ -168,7 +168,7 @@ export function AddressBar({ path, pendingPath, recent, sitePages, onNavigate }:
           setRefused(false);
           close();
         }}
-        className="w-full h-7 px-2.5 rounded-md bg-raised border border-line text-fg font-mono text-xs"
+        className="w-full h-7 px-2.5 rounded-md bg-raised border border-line-strong text-fg font-mono text-xs"
       />
       {expanded && (
         <div

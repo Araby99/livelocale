@@ -33,6 +33,8 @@ import {
   type StudioPanel,
 } from './features/dashboard/index.js';
 import { TRANSLATION_INPUT_ID } from './features/dashboard/constants.js';
+import { isMissingValue } from './features/dashboard/next-missing.js';
+import { isRtlLocale } from './features/dashboard/locale-direction.js';
 import { getStudioRuntime, isAppPreviewBlocked, isShareStudio } from './runtime.js';
 import { diagnoseAppConnection } from './connection-probe.js';
 import { useStudioText } from './i18n/StudioLanguage.js';
@@ -78,6 +80,10 @@ export const App = () => {
     handleDeleteLocale,
     filterPageOnly,
     setFilterPageOnly,
+    filterMissing,
+    setFilterMissing,
+    missingCount,
+    allKeys,
     visibleKeys,
     isChangesOpen,
     toggleChanges,
@@ -112,9 +118,11 @@ export const App = () => {
     targetLocale,
     localePickerCandidates,
     chooseTargetLocale,
+    switchTargetLocale,
     cancelLocalePick,
     showTips,
     dismissTips,
+    showTipsAgain,
     translatorName,
     setTranslatorName,
     review,
@@ -158,6 +166,10 @@ export const App = () => {
   // Tap to edit needs a touch device and a client that knows Edit mode; an older client keeps
   // the view-only behaviour, with no switch that would do nothing.
   const canTapEdit = isTouch && supportsEditMode;
+  // A plain click picks text in Edit on any device whose site client knows Edit mode, so the
+  // switch shows on a desktop too: the way to pick text for anyone who cannot use Alt+Click.
+  const clickEditOn = supportsEditMode && editMode;
+  const pointer = isTouch ? 'touch' : 'mouse';
   const [openPanel, setOpenPanel] = useState<StudioPanel>(null);
   // The phone's keys list, a sheet opened from the More menu.
   const [isKeysSheetOpen, setIsKeysSheetOpen] = useState(false);
@@ -264,6 +276,15 @@ export const App = () => {
       />
     );
 
+  // A text counts as missing by the same rule as the coverage meter and the Missing list.
+  const hasValue = (key: string) => !isMissingValue(localeData[key]);
+
+  // The coverage meter opens the Missing list: in its drawer below 1280px, in place above.
+  const showMissing = () => {
+    setFilterMissing(true);
+    setOpenPanel('keys');
+  };
+
   const side = () =>
     isReviewing ? (
       <ReviewPanel
@@ -305,6 +326,23 @@ export const App = () => {
         onRenameLocale={handleRenameLocale}
         onDeleteLocale={handleDeleteLocale}
         jumpNote={keyJump.note}
+        nextMissing={
+          selected ? (
+            // The page's gaps first, then the rest of the language from the Texts list.
+            <NextMissingButton
+              renderedKeys={renderedKeys}
+              pageKeys={visibleKeys}
+              currentKey={selected.key}
+              hasValue={hasValue}
+              onSelectKey={pickKey}
+              listKeys={allKeys}
+            />
+          ) : undefined
+        }
+        referenceLocale={referenceLocale}
+        clickToEdit={clickEditOn}
+        canSwitchToEdit={supportsEditMode && !editMode}
+        keepsInBrowser={mode === 'static'}
       />
     );
 
@@ -318,6 +356,9 @@ export const App = () => {
       setSearchTerm={setSearchTerm}
       filterPageOnly={filterPageOnly}
       setFilterPageOnly={setFilterPageOnly}
+      filterMissing={filterMissing}
+      setFilterMissing={setFilterMissing}
+      missingCount={missingCount}
       visibleKeys={visibleKeys}
       selectKeyDirectly={onPick}
       onKeyActivatedByKeyboard={isPhone ? undefined : focusEditor}
@@ -348,6 +389,7 @@ export const App = () => {
       liveNow={mode === 'static' ? liveNow : undefined}
       onDismissLiveNow={mode === 'static' ? dismissLiveNow : undefined}
       onReviewChange={mode === 'static' ? openImport : undefined}
+      pick={isTouch ? 'tap' : clickEditOn ? 'click' : 'alt'}
     />
   );
 
@@ -374,7 +416,8 @@ export const App = () => {
       />
 
       <TapNotice
-        editMode={canTapEdit && editMode}
+        editMode={clickEditOn}
+        pointer={pointer}
         unkeyedTapSeq={unkeyedTapSeq}
         placement={isPhone ? 'phone' : 'default'}
         hidden={isPhone && (isEditorSheetOpen || isSendOpen || isKeysSheetOpen)}
@@ -386,6 +429,7 @@ export const App = () => {
         open={showTips && (!isTouch || connectionStatus === 'connected')}
         touch={isTouch}
         viewOnly={isTouch && !supportsEditMode}
+        clickToEdit={!isTouch && clickEditOn}
         name={translatorName}
         onNameChange={setTranslatorName}
         onDismiss={dismissTips}
@@ -437,11 +481,21 @@ export const App = () => {
         >
           {t('header.changes')}
           {changesCount > 0 && (
-            <span className="glyph-warn px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-[10px] font-mono font-bold text-warning-fg">
+            <span className="glyph-warn px-1.5 py-0.5 rounded-md bg-warning-bg border border-warning-line text-xs font-mono font-bold text-warning-fg">
               {changesCount}
             </span>
           )}
         </button>
+        {showTipsAgain && (
+          <button
+            type="button"
+            data-closes-menu
+            onClick={showTipsAgain}
+            className={PHONE_MENU_ITEM}
+          >
+            {t('header.show_tips')}
+          </button>
+        )}
         <div className="flex items-center justify-between gap-2 text-xs text-fg-muted">
           <span>{t('theme.group')}</span>
           {themeToggle}
@@ -503,7 +557,7 @@ export const App = () => {
                         renderedKeys={renderedKeys}
                         pageKeys={visibleKeys}
                         currentKey={selected.key}
-                        hasValue={(key) => (localeData[key] ?? '') !== ''}
+                        hasValue={hasValue}
                         onSelectKey={selectKeyInPage}
                       />
                     ) : undefined
@@ -561,7 +615,7 @@ export const App = () => {
         unsentCount={unsentCount}
         targetLocale={targetLocale}
         locales={locales}
-        onChooseLocale={chooseTargetLocale}
+        onChooseLocale={switchTargetLocale}
         canSend={unsentCount + sentCount > 0}
         onSend={mode === 'static' ? openSend : undefined}
         reviewCount={review ? review.rows.length : null}
@@ -569,6 +623,8 @@ export const App = () => {
         onCloseReview={closeReview}
         onImport={openImport}
         settings={themeToggle}
+        onShowMissing={showMissing}
+        onShowTips={showTipsAgain}
       />
 
       {changesPanel}
@@ -581,8 +637,11 @@ export const App = () => {
         openPanel={openPanel}
         onOpenPanelChange={setOpenPanel}
         sideLabel={isReviewing ? t('layout.review') : t('layout.editor')}
+        rtlContent={isRtlLocale(locale)}
         toolbar={
-          canTapEdit ? <EditBrowseSwitch editMode={editMode} onChange={setEditMode} /> : undefined
+          supportsEditMode ? (
+            <EditBrowseSwitch editMode={editMode} onChange={setEditMode} pointer={pointer} />
+          ) : undefined
         }
         keys={keysDirectory(pickKey)}
         viewer={viewer(false)}

@@ -21,7 +21,7 @@ const el = (text: string): SelectedElement => ({
 
 const SCOPE = 'path:/';
 
-const setup = (overrides: { enabled?: boolean } = {}) => {
+const setup = (overrides: { enabled?: boolean; locale?: string } = {}) => {
   const setLocale = vi.fn();
   const setMenuLocale = vi.fn();
   const showLocale = vi.fn();
@@ -30,7 +30,7 @@ const setup = (overrides: { enabled?: boolean } = {}) => {
     useTargetLocale({
       enabled: overrides.enabled ?? true,
       scope: SCOPE,
-      locale: 'en',
+      locale: overrides.locale ?? 'en',
       setLocale,
       setMenuLocale,
       showLocale,
@@ -142,6 +142,135 @@ describe('useTargetLocale', () => {
     expect(result.current.mismatch).toBe('ar');
   });
 
+  it('does not suggest switching when the clicked text is a missing translation', async () => {
+    // Arabic lacks hero.cta, so the page shows the English text in its place.
+    const withMissing: TextCandidates = {
+      en: { 'hero.cta': ['Start free trial'] },
+      ar: { 'home.title': ['مرحبا'] },
+    };
+    const { result, getCandidates, setLocale } = setup({ locale: 'ar' });
+    getCandidates.mockResolvedValue(withMissing);
+    act(() => {
+      result.current.choose('ar');
+    });
+    let resolved: boolean | undefined;
+    await act(async () => {
+      resolved = await result.current.resolveForSelection({
+        key: 'hero.cta',
+        fallbackValue: 'Start free trial',
+        currentValue: 'Start free trial',
+      });
+    });
+    expect(resolved).toBe(true);
+    expect(result.current.mismatch).toBeNull();
+    expect(setLocale).not.toHaveBeenCalledWith('en');
+  });
+
+  // English holds every text; Arabic only the title, so an Arabic page shows English elsewhere.
+  const sparse: TextCandidates = {
+    en: {
+      'home.title': ['Welcome'],
+      'hero.cta': ['Start free trial'],
+      'hero.sub': ['Ship faster'],
+      'nav.help': ['Help'],
+    },
+    ar: { 'home.title': ['مرحبا'] },
+  };
+  const arabicPage = [
+    { key: 'home.title', text: 'مرحبا' },
+    { key: 'hero.cta', text: 'Start free trial' },
+    { key: 'hero.sub', text: 'Ship faster' },
+    { key: 'nav.help', text: 'Help' },
+  ];
+  const untranslated: SelectedElement = {
+    key: 'hero.cta',
+    fallbackValue: 'Start free trial',
+    currentValue: 'Start free trial',
+  };
+
+  it('stays on the Arabic address when the page mostly shows English fallbacks', async () => {
+    const { result, getCandidates, setLocale } = setup();
+    getCandidates.mockResolvedValue(sparse);
+    act(() => result.current.onUrlLocale('ar'));
+    await act(async () => {
+      await result.current.onVisibleTexts(arabicPage);
+    });
+    expect(setLocale).not.toHaveBeenCalledWith('en');
+    expect(setLocale).toHaveBeenLastCalledWith('ar');
+  });
+
+  it.each(['url', 'content'] as const)(
+    'keeps Arabic (%s) after a click on a text Arabic lacks',
+    async (how) => {
+      const { result, getCandidates, setLocale } = setup();
+      getCandidates.mockResolvedValue(sparse);
+      if (how === 'url') act(() => result.current.onUrlLocale('ar'));
+      else {
+        await act(async () => {
+          await result.current.onVisibleTexts(arabicPage);
+        });
+      }
+      expect(result.current.source).toBe(how);
+      let resolved: boolean | undefined;
+      await act(async () => {
+        resolved = await result.current.resolveForSelection(untranslated);
+      });
+      expect(resolved).toBe(true);
+      expect(setLocale).not.toHaveBeenCalledWith('en');
+      expect(result.current.source).toBe(how);
+      expect(result.current.mismatch).toBeNull();
+    }
+  );
+
+  it('asks which language when only fallback text tells it', async () => {
+    const { result, getCandidates } = setup();
+    getCandidates.mockResolvedValue(sparse);
+    let resolved: boolean | undefined;
+    await act(async () => {
+      resolved = await result.current.resolveForSelection(untranslated);
+    });
+    expect(resolved).toBe(false);
+    expect(result.current.pickerCandidates).toEqual(['ar', 'en']);
+  });
+
+  it('does not change the language while typed text is unsaved, and flags it', async () => {
+    let unsaved = true;
+    const setLocale = vi.fn();
+    const { result } = renderHook(() =>
+      useTargetLocale({
+        enabled: true,
+        scope: SCOPE,
+        locale: 'en',
+        setLocale,
+        locales: ['ar', 'en'],
+        getCandidates: async () => candidates,
+        hasUnsavedChanges: () => unsaved,
+      })
+    );
+    act(() => result.current.onUrlLocale('en'));
+    await act(async () => {
+      await result.current.onVisibleTexts([{ key: 'home.title', text: 'مرحبا' }]);
+    });
+    expect(setLocale).not.toHaveBeenCalledWith('ar');
+    expect(result.current.mismatch).toBe('ar');
+
+    let resolved: boolean | undefined;
+    await act(async () => {
+      resolved = await result.current.resolveForSelection(el('مرحبا'));
+    });
+    expect(resolved).toBe(true);
+    expect(setLocale).not.toHaveBeenCalledWith('ar');
+    expect(result.current.mismatch).toBe('ar');
+
+    // Once saved, the page decides again and the flag goes.
+    unsaved = false;
+    await act(async () => {
+      await result.current.onVisibleTexts([{ key: 'home.title', text: 'مرحبا' }]);
+    });
+    expect(setLocale).toHaveBeenLastCalledWith('ar');
+    expect(result.current.mismatch).toBeNull();
+  });
+
   it("keeps a change from the editor's language menu as manual", async () => {
     const { result, setLocale } = setup();
     act(() => {
@@ -236,5 +365,113 @@ describe('useTargetLocale', () => {
     expect(resolved).toBe(true);
     expect(getCandidates).not.toHaveBeenCalled();
     expect(result.current.source).toBeNull();
+  });
+});
+
+describe('useTargetLocale following the page on a server stack', () => {
+  const follow = (locale = 'en', texts: TextCandidates = candidates) => {
+    const setLocale = vi.fn();
+    const setMenuLocale = vi.fn();
+    const showLocale = vi.fn();
+    const getCandidates = vi.fn(async () => texts);
+    const hook = renderHook(() =>
+      useTargetLocale({
+        enabled: false,
+        followPage: true,
+        scope: null,
+        locale,
+        setLocale,
+        setMenuLocale,
+        showLocale,
+        locales: ['ar', 'en'],
+        getCandidates,
+      })
+    );
+    return { ...hook, setLocale, setMenuLocale, showLocale };
+  };
+
+  it("edits Arabic once the app's own switch shows Arabic text", async () => {
+    const { result, setLocale, showLocale } = follow();
+    await act(async () => {
+      await result.current.onVisibleTexts([{ key: 'home.title', text: 'مرحبا' }]);
+    });
+    expect(setLocale).toHaveBeenCalledWith('ar');
+    expect(result.current.source).toBe('content');
+    // The page already shows Arabic: nothing reloads it.
+    expect(showLocale).not.toHaveBeenCalled();
+  });
+
+  it('an Alt+Click on Arabic text edits Arabic', async () => {
+    const { result, setLocale } = follow();
+    let resolved: boolean | undefined;
+    await act(async () => {
+      resolved = await result.current.resolveForSelection(el('مرحبا'));
+    });
+    expect(resolved).toBe(true);
+    expect(setLocale).toHaveBeenCalledWith('ar');
+  });
+
+  it('keeps a language chosen in the menu and only flags text in another one', async () => {
+    const { result, setLocale, setMenuLocale } = follow();
+    act(() => result.current.onMenuLocale('en'));
+    expect(setMenuLocale).toHaveBeenCalledWith('en');
+    expect(result.current.source).toBe('manual');
+
+    await act(async () => {
+      await result.current.onVisibleTexts([{ key: 'home.title', text: 'مرحبا' }]);
+    });
+    expect(setLocale).not.toHaveBeenCalled();
+
+    let resolved: boolean | undefined;
+    await act(async () => {
+      resolved = await result.current.resolveForSelection(el('مرحبا'));
+    });
+    expect(resolved).toBe(true);
+    expect(setLocale).not.toHaveBeenCalled();
+    expect(result.current.mismatch).toBe('ar');
+  });
+
+  it('the address echoing the menu choice keeps it manual; another address wins', () => {
+    const { result, setLocale } = follow();
+    act(() => result.current.onMenuLocale('en'));
+    act(() => result.current.onUrlLocale('en'));
+    expect(result.current.source).toBe('manual');
+    act(() => result.current.onUrlLocale('ar'));
+    expect(setLocale).toHaveBeenCalledWith('ar');
+    expect(result.current.source).toBe('url');
+  });
+
+  it('keeps Arabic from /ar on a sparse Arabic page, before and after a click', async () => {
+    const sparse: TextCandidates = {
+      en: { 'home.title': ['Welcome'], 'hero.cta': ['Start'], 'nav.help': ['Help'] },
+      ar: { 'home.title': ['مرحبا'] },
+    };
+    const { result, setLocale } = follow('en', sparse);
+    act(() => result.current.onUrlLocale('ar'));
+    await act(async () => {
+      await result.current.onVisibleTexts([
+        { key: 'home.title', text: 'مرحبا' },
+        { key: 'hero.cta', text: 'Start' },
+        { key: 'nav.help', text: 'Help' },
+      ]);
+      await result.current.resolveForSelection({
+        key: 'hero.cta',
+        fallbackValue: 'Start',
+        currentValue: 'Start',
+      });
+    });
+    expect(setLocale).toHaveBeenLastCalledWith('ar');
+    expect(setLocale).not.toHaveBeenCalledWith('en');
+    expect(result.current.mismatch).toBeNull();
+  });
+
+  it('never asks which language to edit: an unclear click keeps the current one', async () => {
+    const { result } = follow();
+    let resolved: boolean | undefined;
+    await act(async () => {
+      resolved = await result.current.resolveForSelection(el('Nothing like either'));
+    });
+    expect(resolved).toBe(true);
+    expect(result.current.pickerCandidates).toBeNull();
   });
 });

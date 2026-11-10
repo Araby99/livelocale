@@ -49,6 +49,19 @@ const EXEMPT: ReadonlyArray<readonly [file: string, text: string, reason: string
     "frame-src 'self' http://localhost:* http://127.0.0.1:*",
     "the dev server's Content-Security-Policy header",
   ],
+  ...[
+    ' is bundled into the Studio but has no licence file to ship with it.',
+    'see below',
+    'The livelocale Studio includes the open source packages below. Their licences ask that ',
+    'these notices travel with every copy.\n\n',
+  ].map(
+    (text) =>
+      [
+        'src/studio/vite.config.ts',
+        text,
+        'the build error and THIRD-PARTY-NOTICES.txt, a legal file written for the repository',
+      ] as const
+  ),
 ];
 
 /** JSX attributes whose value is code, never copy. */

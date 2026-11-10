@@ -7,6 +7,8 @@ import { useStudioText } from '../../../i18n/StudioLanguage.js';
 interface LocaleManagerProps {
   locale: string;
   locales: string[];
+  /** The project's source language; it cannot be deleted here, since every other one is read against it. */
+  sourceLocale?: string;
   isLoading: boolean;
   error: string | null;
   onAddLocale: (code: string) => Promise<void>;
@@ -17,6 +19,7 @@ interface LocaleManagerProps {
 export const LocaleManager = ({
   locale,
   locales,
+  sourceLocale,
   isLoading,
   error,
   onAddLocale,
@@ -56,7 +59,7 @@ export const LocaleManager = ({
       <form onSubmit={handleAdd} className="space-y-2.5">
         <label
           htmlFor="studio-new-locale"
-          className="text-[11px] font-bold text-fg-muted uppercase tracking-wider"
+          className="text-xs font-bold text-fg-muted uppercase tracking-wider"
         >
           {t('locales.add_label')}
         </label>
@@ -69,7 +72,7 @@ export const LocaleManager = ({
             onChange={(e) => setNewLocaleCode(e.target.value)}
             placeholder={t('locales.add_placeholder')}
             disabled={isLoading}
-            className="flex-1 min-w-0 bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-2.5 text-xs text-fg placeholder-fg-muted font-mono transition duration-155"
+            className="flex-1 min-w-0 bg-surface border border-line-strong rounded-xl px-4 py-2.5 text-sm text-fg placeholder-fg-muted font-mono transition duration-155"
           />
           <button
             type="submit"
@@ -109,7 +112,7 @@ export const LocaleManager = ({
 
       {/* Languages list */}
       <div className="flex-1 flex flex-col space-y-2">
-        <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider mb-1">
+        <label className="text-xs font-bold text-fg-muted uppercase tracking-wider mb-1">
           {t('locales.list')}
         </label>
         <div className="flex-1 overflow-y-auto space-y-2 pe-1 select-none">
@@ -118,6 +121,7 @@ export const LocaleManager = ({
               key={l}
               code={l}
               isActive={l === locale}
+              isSource={l === sourceLocale}
               isLoading={isLoading}
               allLocales={locales}
               onRename={onRenameLocale}

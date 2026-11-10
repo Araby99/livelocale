@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { GitState } from '../../../api.js';
 import type { HistoryEntry } from '../hooks/useHistory.js';
 import type { Draft } from '../../../transport/drafts.js';
-import { DraftList } from './DraftList.js';
+import { DraftList, type PickGesture } from './DraftList.js';
 import { useDialog } from '../hooks/useDialog.js';
 import { useStudioText } from '../../../i18n/StudioLanguage.js';
 import { studioMessage, type StringKey } from '../../../i18n/catalogue.js';
@@ -29,6 +29,8 @@ interface ChangesPanelProps {
   /** Share link only: drafts the rebuilt site already shows. */
   liveNow?: Draft[];
   onDismissLiveNow?: () => void;
+  /** Share link only: how a text is picked now, for the empty draft list. */
+  pick?: PickGesture;
 }
 
 const noop = async (): Promise<void> => {};
@@ -84,12 +86,15 @@ export const ChangesPanel = ({
   onReviewChange,
   liveNow,
   onDismissLiveNow,
+  pick,
 }: ChangesPanelProps) => {
   const { t } = useStudioText();
   const [message, setMessage] = useState('');
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
-  const dialogRef = useDialog<HTMLElement>(isOpen, onClose);
+  const dialogRef = useDialog<HTMLDivElement>(isOpen, onClose);
+  // A share link has no git: its changes are drafts in this browser, so no branch is named.
+  const isShareLink = Array.isArray(drafts);
 
   if (!isOpen) return null;
 
@@ -124,7 +129,7 @@ export const ChangesPanel = ({
       {/* Backdrop */}
       <div className="absolute inset-0 bg-overlay" onClick={onClose} />
 
-      <aside
+      <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
@@ -140,10 +145,10 @@ export const ChangesPanel = ({
             >
               {t('changes.title')}
             </h2>
-            {git?.isRepo && git.branch && (
+            {!isShareLink && git?.isRepo && git.branch && (
               <span
                 dir="ltr"
-                className="px-2 py-0.5 rounded-md bg-raised border border-line text-[10px] font-mono text-fg"
+                className="px-2 py-0.5 rounded-md bg-raised border border-line text-xs font-mono text-fg"
               >
                 {git.branch}
               </span>
@@ -194,10 +199,10 @@ export const ChangesPanel = ({
           </div>
         </div>
 
-        {Array.isArray(drafts) ? (
+        {isShareLink ? (
           <div className="flex-1 overflow-y-auto p-6 space-y-6">
             <DraftList
-              drafts={drafts}
+              drafts={drafts ?? []}
               onUndo={onUndoDraft}
               isUndoing={isUndoing}
               onDownloadBackup={onDownloadBackup}
@@ -205,6 +210,7 @@ export const ChangesPanel = ({
               onReviewChange={onReviewChange}
               liveNow={liveNow}
               onDismissLiveNow={onDismissLiveNow}
+              pick={pick}
             />
           </div>
         ) : (
@@ -212,10 +218,10 @@ export const ChangesPanel = ({
             {/* Git status */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+                <label className="text-xs font-bold text-fg-muted uppercase tracking-wider">
                   {t('changes.locale_files')}
                 </label>
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
+                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg border border-line">
                   {t('changes.changed', { count: changes.length })}
                 </span>
               </div>
@@ -239,11 +245,11 @@ export const ChangesPanel = ({
                       key={c.path}
                       className="flex items-center justify-between gap-3 px-3 py-2 rounded-xl bg-surface border border-line"
                     >
-                      <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
+                      <span dir="ltr" className="text-xs font-mono text-info-fg break-all">
                         {c.path}
                       </span>
                       <span
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-extrabold uppercase tracking-wider border shrink-0 ${
+                        className={`px-1.5 py-0.5 rounded text-xs font-bold border shrink-0 ${
                           STATUS_STYLES[c.status] ?? STATUS_STYLES.modified
                         }`}
                       >
@@ -259,12 +265,12 @@ export const ChangesPanel = ({
                   <button
                     type="button"
                     onClick={() => setShowDiff((v) => !v)}
-                    className="text-[10px] font-semibold text-fg-muted hover:text-fg transition duration-150"
+                    className="text-xs font-semibold text-fg-muted hover:text-fg transition duration-150"
                   >
                     {t(showDiff ? 'changes.hide_diff' : 'changes.show_diff')}
                   </button>
                   {showDiff && (
-                    <pre className="max-h-72 overflow-auto rounded-xl bg-surface border border-line p-3 text-[10px] font-mono leading-relaxed whitespace-pre">
+                    <pre className="max-h-72 overflow-auto rounded-xl bg-surface border border-line p-3 text-xs font-mono leading-relaxed whitespace-pre">
                       {git.diff.split('\n').map((line, i) => (
                         <div key={i} className={`px-1 ${diffLineClass(line)}`}>
                           {line || ' '}
@@ -279,7 +285,7 @@ export const ChangesPanel = ({
             {/* Commit */}
             {git?.isRepo && (
               <section className="space-y-3">
-                <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+                <label className="text-xs font-bold text-fg-muted uppercase tracking-wider">
                   {t(isGitHub ? 'changes.propose' : 'changes.commit_section')}
                 </label>
                 {isGitHub && git?.pullRequestUrl && (
@@ -287,7 +293,7 @@ export const ChangesPanel = ({
                     href={git.pullRequestUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="block text-[11px] text-info-fg hover:text-info-fg underline underline-offset-2"
+                    className="block text-xs text-info-fg hover:text-info-fg underline underline-offset-2"
                   >
                     {t('changes.view_pr')}
                   </a>
@@ -310,7 +316,7 @@ export const ChangesPanel = ({
                         : 'changes.placeholder_commit'
                   )}
                   maxLength={500}
-                  className="w-full min-h-20 bg-surface border border-line hover:border-line-strong rounded-xl px-4 py-3 text-xs text-fg placeholder-fg-muted font-sans resize-none transition duration-150 disabled:opacity-60"
+                  className="w-full min-h-20 bg-surface border border-line-strong rounded-xl px-4 py-3 text-sm text-fg placeholder-fg-muted font-sans resize-none transition duration-150 disabled:opacity-60"
                 />
                 <div className="flex items-center gap-3">
                   <button
@@ -360,7 +366,7 @@ export const ChangesPanel = ({
                   )}
                 </div>
                 {lastCommit && !gitError && (
-                  <p role="status" className="glyph-done text-[11px] text-success-fg break-words">
+                  <p role="status" className="glyph-done text-xs text-success-fg break-words">
                     {isGitHub ? (
                       <>
                         {t('changes.pull_request')}{' '}
@@ -393,10 +399,10 @@ export const ChangesPanel = ({
             {/* Session history */}
             <section className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-[11px] font-bold text-fg-muted uppercase tracking-wider">
+                <label className="text-xs font-bold text-fg-muted uppercase tracking-wider">
                   {t('changes.session')}
                 </label>
-                <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg-muted border border-line">
+                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded bg-surface text-fg-muted border border-line">
                   {t('changes.edits', { count: history.length })}
                 </span>
               </div>
@@ -410,32 +416,36 @@ export const ChangesPanel = ({
                       className="px-3 py-2 rounded-xl bg-surface border border-line space-y-1"
                     >
                       <div className="flex items-center justify-between gap-3">
-                        <span dir="ltr" className="text-[11px] font-mono text-info-fg break-all">
+                        <span dir="ltr" className="text-xs font-mono text-info-fg break-all">
                           {entry.key}
                           <span className="text-fg-muted"> · {entry.locale}</span>
                         </span>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[9px] text-fg-muted font-mono">
+                          <span className="text-xs text-fg-muted font-mono">
                             {formatTime(entry.at)}
                           </span>
                           <button
                             type="button"
                             onClick={() => onUndo(entry)}
                             disabled={isUndoing}
-                            className="text-[10px] font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
+                            className="text-xs font-semibold text-fg-muted hover:text-fg px-2 py-0.5 rounded-md border border-line hover:border-line-strong disabled:opacity-40 transition duration-150"
                             aria-label={t('changes.restore_aria', { key: entry.key })}
-                            title={t('changes.undo_title')}
+                            title={t(
+                              entry.added ? 'changes.undo_added_title' : 'changes.undo_title'
+                            )}
                           >
                             {t('changes.undo')}
                           </button>
                         </div>
                       </div>
-                      <div className="text-[10px] leading-relaxed">
+                      <div className="text-sm leading-relaxed">
                         <span
                           dir="auto"
                           className="text-fg-muted line-through decoration-fg-faint break-all"
                         >
-                          {entry.previousValue || <em>{t('changes.empty')}</em>}
+                          {entry.previousValue || (
+                            <em>{t(entry.added ? 'changes.was_missing' : 'changes.empty')}</em>
+                          )}
                         </span>
                         <span className="text-fg-muted" aria-hidden="true">
                           {` ${t('common.arrow')} `}
@@ -451,7 +461,7 @@ export const ChangesPanel = ({
             </section>
           </div>
         )}
-      </aside>
+      </div>
     </div>
   );
 };

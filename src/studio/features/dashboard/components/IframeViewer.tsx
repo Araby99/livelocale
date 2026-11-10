@@ -77,6 +77,16 @@ export const IframeViewer = ({
     setChecking(false);
   }, [isSlow, check]);
   const diagnosed = checking || diagnosis !== null;
+  // The check found a cause that does not clear by itself, so the page will not connect on its
+  // own. A probe that timed out or could not read the status found none, and a client not
+  // there yet may still be loading (a slow first compile, a slow phone): those keep waiting.
+  const stuck =
+    isSlow &&
+    !checking &&
+    diagnosis !== null &&
+    diagnosis.kind !== 'timeout' &&
+    diagnosis.kind !== 'status-unknown' &&
+    diagnosis.kind !== 'client-missing';
 
   return (
     <div
@@ -99,13 +109,11 @@ export const IframeViewer = ({
           {/* Connection status and actions */}
           <div className="flex items-center gap-4 justify-end shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-semibold tracking-wider text-fg-muted uppercase">
-                {t('viewer.status')}
-              </span>
+              <span className="text-xs font-semibold text-fg-muted">{t('viewer.status')}</span>
               <span
                 data-testid="connection-status"
                 data-status={connectionStatus}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                className={`px-2 py-0.5 rounded text-xs font-bold ${
                   connectionStatus === 'connected'
                     ? 'glyph-done bg-success-bg text-success-fg border border-success-line'
                     : connectionStatus === 'connecting'
@@ -151,6 +159,7 @@ export const IframeViewer = ({
         <iframe
           id="app-preview-iframe"
           ref={iframeRef}
+          title={t('viewer.frame_title')}
           src={frameSrc(appUrl, appOrigin, window.location.origin)}
           className="w-full h-full border-none bg-white"
           sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
@@ -158,15 +167,26 @@ export const IframeViewer = ({
 
         {connectionStatus === 'connecting' && (
           <div className="absolute inset-0 bg-surface flex flex-col items-center justify-center gap-4 transition duration-300">
-            <div className="relative w-12 h-12">
-              <div className="absolute inset-0 rounded-full border-2 border-accent-line"></div>
-              <div className="absolute inset-0 rounded-full border-2 border-t-accent animate-spin"></div>
-            </div>
+            {/* Once the check found why, the wait is over: no spinner, and a heading that says so. */}
+            {stuck ? (
+              <div
+                aria-hidden="true"
+                data-testid="connection-stuck"
+                className="glyph-warn w-12 h-12 rounded-full border-2 border-warning-line bg-warning-bg"
+              />
+            ) : (
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 rounded-full border-2 border-accent-line"></div>
+                <div className="absolute inset-0 rounded-full border-2 border-t-accent animate-spin"></div>
+              </div>
+            )}
             <div className="text-center">
               <h3 className="text-fg font-semibold tracking-wide font-heading">
-                {t('viewer.connecting_title')}
+                {t(stuck ? 'viewer.stuck_title' : 'viewer.connecting_title')}
               </h3>
-              <p className="text-xs text-fg-muted mt-1 font-mono">{t('viewer.connecting_body')}</p>
+              <p className="text-sm text-fg-muted mt-1">
+                {t(stuck ? 'viewer.stuck_body' : 'viewer.connecting_body')}
+              </p>
             </div>
             {isSlow && (
               <div

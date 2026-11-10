@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup, renderHook } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, renderHook, act } from '@testing-library/react';
 import { FirstRunTips } from '../../src/studio/features/dashboard/components/FirstRunTips.jsx';
 import {
   FIRST_RUN_TIP_KEYS,
@@ -48,6 +48,17 @@ describe('first-run tips', () => {
 
   it('stays hidden when disabled', () => {
     const { result } = renderHook(() => useFirstRun(false));
+    expect(result.current.showTips).toBe(false);
+    expect(result.current.reopen).toBeUndefined();
+  });
+
+  it('shows the tips again on request after they were dismissed', () => {
+    writePref('tips-seen', '1');
+    const { result } = renderHook(() => useFirstRun(true));
+    expect(result.current.showTips).toBe(false);
+    act(() => result.current.reopen!());
+    expect(result.current.showTips).toBe(true);
+    act(() => result.current.dismiss());
     expect(result.current.showTips).toBe(false);
   });
 

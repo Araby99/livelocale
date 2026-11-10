@@ -234,13 +234,13 @@ describe('Studio live regions', () => {
         onDelete={onDelete}
       />
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Rename locale ar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Rename language ar' }));
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'not valid!' } });
     fireEvent.click(screen.getByRole('button', { name: 'Save rename' }));
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByRole('alert').textContent).toBe('Invalid locale format.');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete locale ar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete language ar' }));
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
     expect((await screen.findByRole('alert')).textContent).toBe('Locale file is locked');
   });

@@ -35,3 +35,28 @@ export function nextMissingKey({
   const hidden = new Set(allPageKeys.filter((key) => !rendered.has(key) && !hasValue(key)));
   return { kind: 'done', hiddenMissing: hidden.size };
 }
+
+/**
+ * Whether a stored value still needs a translation: absent, empty or only spaces. The same
+ * rule as the header's coverage meter, so the Missing list and the meter always agree.
+ */
+export function isMissingValue(value: string | undefined): boolean {
+  return value === undefined || value.trim() === '';
+}
+
+/**
+ * The next key in `keys` after `currentKey` that has no value, wrapping round; null when no
+ * other key is missing. The current key is never offered: the person is already on it.
+ */
+export function nextMissingInList(
+  keys: readonly string[],
+  currentKey: string | null,
+  hasValue: (key: string) => boolean
+): string | null {
+  const start = currentKey === null ? -1 : keys.indexOf(currentKey);
+  for (let step = 1; step <= keys.length; step++) {
+    const key = keys[(start + step) % keys.length]!;
+    if (key !== currentKey && !hasValue(key)) return key;
+  }
+  return null;
+}

@@ -32,6 +32,11 @@ const openShare = async (page: Page) => {
   await page.locator('#studio-tips-start').click();
   await expect(name).toBeHidden();
   await connected(page);
+  // A share link on a desktop starts in Edit, where a plain click picks text. These tests use
+  // the site's own links and Alt+Click, so they switch to Browse.
+  const modeSwitch = page.getByRole('radiogroup', { name: 'Click mode' });
+  await modeSwitch.getByText('Browse', { exact: true }).click();
+  await expect(modeSwitch.getByRole('radio', { name: 'Browse' })).toBeChecked();
 };
 
 /** Opens /about/ from the site-pages group with the keyboard and checks the preview lands there. */

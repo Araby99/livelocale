@@ -70,8 +70,13 @@ async function chooseLanguageIfAsked(page: Page): Promise<void> {
 test.describe('desktop', () => {
   async function openStudio(page: Page): Promise<void> {
     await page.goto(SHARE);
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 30_000 });
     await dismissTips(page, false);
+    // A share link on a desktop starts in Edit, where a plain click picks text. These tests use
+    // the site's own links and Alt+Click, so they switch to Browse.
+    const modeSwitch = page.getByRole('radiogroup', { name: 'Click mode' });
+    await modeSwitch.getByText('Browse', { exact: true }).click();
+    await expect(modeSwitch.getByRole('radio', { name: 'Browse' })).toBeChecked();
   }
 
   test('a click on a key opens it and scrolls the page to its text, outlined', async ({ page }) => {
@@ -190,7 +195,7 @@ test.describe('phone', () => {
   /** Opens the Keys sheet from the More menu and taps the row for `key`. */
   async function pickFromKeysSheet(page: Page, key: string): Promise<void> {
     await page.getByRole('button', { name: 'More' }).tap();
-    await page.getByRole('button', { name: 'Keys' }).tap();
+    await page.getByRole('button', { name: 'Texts', exact: true }).tap();
     await keyRow(page, key).tap();
     await chooseLanguageIfAsked(page);
   }

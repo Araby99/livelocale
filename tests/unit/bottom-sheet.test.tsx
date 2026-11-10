@@ -120,6 +120,26 @@ describe('BottomSheet', () => {
     expect(onClose).toHaveBeenCalledTimes(2);
   });
 
+  it('has a labelled Close button, for screen reader and switch users who cannot drag', () => {
+    const onClose = vi.fn();
+    render(<Sheet open onClose={onClose} />);
+    const close = screen.getByRole('button', { name: 'Close' });
+    expect(screen.getByRole('dialog').contains(close)).toBe(true);
+    // It comes after the content, so opening the sheet still lands in the field.
+    expect(document.activeElement).toBe(screen.getByLabelText('Translation'));
+    fireEvent.click(close);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the Close button out when the content brings its own', () => {
+    render(
+      <BottomSheet open onClose={vi.fn()} labelledBy="t" closeButton={false}>
+        <h2 id="t">Send</h2>
+      </BottomSheet>
+    );
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+  });
+
   it('a click inside the sheet does not close it', () => {
     const onClose = vi.fn();
     render(<Sheet open onClose={onClose} />);

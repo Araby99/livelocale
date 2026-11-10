@@ -412,7 +412,8 @@ function pluralForLanguage(
   if (typeof count !== 'number' || options.ordinal || !lng || usedLng === lng) return key;
   if (!PLURAL_SUFFIX.test(key)) return key;
   try {
-    return key.replace(PLURAL_SUFFIX, `_${new Intl.PluralRules(lng).select(count)}`);
+    const rules = new Intl.PluralRules(lng.replace(/_/g, '-'));
+    return key.replace(PLURAL_SUFFIX, `_${rules.select(count)}`);
   } catch {
     // A language Intl does not know (i18next's 'cimode'): keep i18next's own key.
     return key;

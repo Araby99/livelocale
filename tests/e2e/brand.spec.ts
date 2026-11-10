@@ -10,7 +10,7 @@ test.describe('Studio brand', () => {
       if (/fonts\.(googleapis|gstatic)\.com/.test(r.url())) thirdParty.push(r.url());
     });
     await page.goto(DEV);
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
     await page.evaluate(() => document.fonts.ready);
     // document.fonts.check() is true when no face matches; only a face with status 'loaded' proves the font arrived.
     const faces = await loadedFaces(page);
@@ -23,7 +23,7 @@ test.describe('Studio brand', () => {
 
   test('colours the patch mark with the hunk fills in dark', async ({ page }) => {
     await page.goto(DEV);
-    await expect(page.getByText('ACTIVE', { exact: true })).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByText('Connected', { exact: true })).toBeVisible({ timeout: 90_000 });
     await page.evaluate(() => document.fonts.ready);
     expect(await page.evaluate(() => document.documentElement.classList.contains('dark'))).toBe(
       true

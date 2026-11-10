@@ -85,7 +85,7 @@ describe('IframeViewer slow-connection help', () => {
 
   it('reload is disabled while navigating', () => {
     renderViewer('connected', navigationStub({ isNavigating: true }));
-    const reload = screen.getByRole('button', { name: 'Reload Frame' }) as HTMLButtonElement;
+    const reload = screen.getByRole('button', { name: 'Reload page' }) as HTMLButtonElement;
     expect(reload.disabled).toBe(true);
     expect(reload.getAttribute('data-testid')).toBe('reload-frame');
   });
@@ -93,13 +93,13 @@ describe('IframeViewer slow-connection help', () => {
   it('reload calls navigation.reload', () => {
     const navigation = navigationStub();
     renderViewer('connected', navigation);
-    fireEvent.click(screen.getByRole('button', { name: 'Reload Frame' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Reload page' }));
     expect(navigation.reload).toHaveBeenCalledTimes(1);
   });
 
   it('keeps the English status words', () => {
     renderViewer('connecting');
-    expect(screen.getByTestId('connection-status').textContent).toBe('CONNECTING');
+    expect(screen.getByTestId('connection-status').textContent).toBe('Connecting');
   });
 });
 
@@ -169,6 +169,10 @@ describe('IframeViewer connection diagnosis', () => {
     const help = screen.getByTestId('slow-connection-help');
     expect(help.textContent).toContain(englishText('viewer.slow_title_more'));
     expect(help.textContent).toContain('frame-ancestors');
+    // The wait is over: the spinner and "Connecting" give way to a heading that says so.
+    expect(screen.getByTestId('connection-stuck')).toBeTruthy();
+    expect(screen.queryByText(englishText('viewer.connecting_title'))).toBeNull();
+    expect(screen.getByText(englishText('viewer.stuck_title'))).toBeTruthy();
   });
 
   it.each<[ConnectionDiagnosis, string]>([
@@ -228,6 +232,19 @@ describe('IframeViewer connection diagnosis', () => {
     );
   });
 
+  it.each<ConnectionDiagnosis>([
+    { kind: 'timeout', origin: 'http://localhost:3000' },
+    { kind: 'status-unknown', origin: 'http://localhost:3000' },
+    // The page answered, but its client may still be loading on a slow first compile or phone.
+    { kind: 'client-missing' },
+  ])('keeps waiting when the check found no lasting cause (%o)', async (diagnosis) => {
+    vi.useFakeTimers();
+    renderDiagnosed(async () => diagnosis);
+    await becomeSlow();
+    expect(screen.queryByTestId('connection-stuck')).toBeNull();
+    expect(screen.getByText(englishText('viewer.connecting_title'))).toBeTruthy();
+  });
+
   it('says it is checking while the probe runs', async () => {
     vi.useFakeTimers();
     renderDiagnosed(() => new Promise(() => {}));
@@ -235,6 +252,9 @@ describe('IframeViewer connection diagnosis', () => {
     const note = screen.getByTestId('connection-diagnosis');
     expect(note.getAttribute('data-kind')).toBe('checking');
     expect(note.textContent).toContain(englishText('viewer.diag_checking'));
+    // Still waiting while the check runs.
+    expect(screen.queryByTestId('connection-stuck')).toBeNull();
+    expect(screen.getByText(englishText('viewer.connecting_title'))).toBeTruthy();
   });
 });
 
