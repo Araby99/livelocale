@@ -224,6 +224,201 @@ function fallbackOnlyKeys(target: object, keyPrefix: string, options: WrapOption
   );
 }
 
+/**
+ * Calls a translation function and watermarks a string result with the key its text belongs
+ * to. A result that looks missing (empty, or the key echoed back) is filled from the fallback.
+ */
+function watermarkCall(
+  fn: (...args: unknown[]) => unknown,
+  thisArg: unknown,
+  args: unknown[],
+  keyPrefix: string,
+  options: WrapOptions
+): unknown {
+  const { result, key, echoes } = callEngine(fn, thisArg, args, keyPrefix);
+  let resolvedValue = result;
+  const isMissing =
+    resolvedValue === undefined ||
+    resolvedValue === null ||
+    resolvedValue === '' ||
+    (typeof resolvedValue === 'string' && echoes.includes(resolvedValue));
+
+  const fallbackObj = fallbackSource(options);
+  if (isMissing && fallbackObj && key) {
+    const fbVal = fromFallback(fallbackObj, key, options);
+    if (fbVal !== undefined) {
+      resolvedValue = fbVal;
+    }
+  }
+
+  if (typeof resolvedValue === 'string' && key) {
+    return encodeKey(resolvedValue, key);
+  }
+  return resolvedValue;
+}
+
+interface EngineCall {
+  result: unknown;
+  /** The full key the text belongs to. */
+  key: string;
+  /** What the engine returns in place of text for a missing key. */
+  echoes: unknown[];
+}
+
+function callEngine(
+  fn: (...args: unknown[]) => unknown,
+  thisArg: unknown,
+  args: unknown[],
+  keyPrefix: string
+): EngineCall {
+  // Only i18next's own t is asked for details: any other t sees exactly the call it got.
+  const fixed = isFixedT(fn) ? fn : undefined;
+  const detailed = fixed && withReturnDetails(args);
+  let result = Reflect.apply(fn, thisArg, detailed ? detailed.args : args);
+  if (fixed && detailed && isDetails(result)) {
+    if (typeof result.res === 'string') {
+      return fromDetails(fixed, args, detailed.options, result, keyPrefix);
+    }
+    // An object or array came back (`returnObjects` set in init): i18next nests a details
+    // object in place of each string, so the plain result is read again.
+    result = Reflect.apply(fn, thisArg, args);
+  }
+  const key = extractKey(args[0], keyPrefix);
+  return { result, key, echoes: [args[0], key] };
+}
+
+function fromDetails(
+  t: FixedT,
+  args: unknown[],
+  options: Record<string, any>,
+  details: Details,
+  keyPrefix: string
+): EngineCall {
+  const missing = isMissingDetails(details, args, options);
+  const key = joinKey(
+    namespaceOverride(t, details.usedNS, args[0], options, missing) ?? keyPrefix,
+    pluralForLanguage(details.exactUsedKey, options.lng ?? t.lng, details.usedLng, options)
+  );
+  return {
+    result: details.res,
+    key,
+    echoes: [args[0], details.usedKey, details.exactUsedKey, key],
+  };
+}
+
+/** Whether i18next gave back the key itself, or the call's default value, for no text. */
+function isMissingDetails(d: Details, args: unknown[], options: Record<string, any>): boolean {
+  const defaultValue = typeof args[1] === 'string' ? args[1] : options.defaultValue;
+  return d.res === d.usedKey || d.res === d.exactUsedKey || d.res === defaultValue;
+}
+
+function joinKey(prefix: string, key: string): string {
+  return prefix ? `${prefix}.${key}` : key;
+}
+
+/**
+ * A t from i18next's `getFixedT`, which react-i18next's `useTranslation` returns. i18next
+ * assigns it own `lng`, `ns` and `keyPrefix` properties, even when they are undefined.
+ */
+interface FixedT {
+  (...args: unknown[]): unknown;
+  lng?: string;
+  ns?: string | readonly string[];
+  keyPrefix?: string;
+}
+
+function isFixedT(fn: unknown): fn is FixedT {
+  const own = (prop: string) => Object.prototype.hasOwnProperty.call(fn, prop);
+  return typeof fn === 'function' && own('lng') && own('ns') && own('keyPrefix');
+}
+
+/** What an i18next t returns with `returnDetails: true`. */
+interface Details {
+  res: unknown;
+  usedKey: string;
+  /** The key with its plural or context suffix and i18next's own keyPrefix. */
+  exactUsedKey: string;
+  usedLng?: string;
+  usedNS?: string;
+}
+
+function isDetails(value: unknown): value is Details {
+  return (
+    isContainer(value) &&
+    'res' in value &&
+    typeof value.usedKey === 'string' &&
+    typeof value.exactUsedKey === 'string'
+  );
+}
+
+/**
+ * The call's arguments with `returnDetails: true` in a copy of its options, for each of
+ * i18next's call shapes: `(key)`, `(key, options)` and `(key, defaultValue, options)`. None
+ * when the call wants objects back, since details then nest inside them, or asked for the
+ * details itself.
+ */
+function withReturnDetails(
+  args: unknown[]
+): { args: unknown[]; options: Record<string, any> } | undefined {
+  const at = typeof args[1] === 'string' ? 2 : 1;
+  const given = args[at];
+  if (given !== undefined && !isContainer(given)) return undefined;
+  if (given?.returnObjects || given?.returnDetails) return undefined;
+
+  const detailedArgs = args.slice();
+  detailedArgs[at] = { ...given, returnDetails: true };
+  return { args: detailedArgs, options: given ?? {} };
+}
+
+/**
+ * The namespace that takes the place of livelocale's keyPrefix when the call resolved
+ * outside the t's own namespace (`t('title', { ns: 'home' })`, `t('home:title')`). A t with
+ * no namespace of its own reads i18next's default one, which it does not expose, and for a
+ * missing key i18next reports the last namespace it tried, not one the key is in: in both
+ * cases only a namespace the call asked for counts.
+ */
+function namespaceOverride(
+  t: FixedT,
+  usedNS: string | undefined,
+  keyArg: unknown,
+  options: Record<string, any>,
+  missing: boolean
+): string | undefined {
+  const own = Array.isArray(t.ns) ? t.ns[0] : t.ns;
+  if (!usedNS || usedNS === own) return undefined;
+  if (own !== undefined && !missing) return usedNS;
+
+  const keys = Array.isArray(keyArg) ? keyArg : [keyArg];
+  const asked =
+    [options.ns].flat().includes(usedNS) ||
+    keys.some((key) => typeof key === 'string' && key.startsWith(`${usedNS}:`));
+  return asked ? usedNS : undefined;
+}
+
+const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
+
+/**
+ * Text from the fallback language carries that language's plural suffix: English `_other`
+ * for 5, where an Arabic page's file needs `_few`. The suffix is recomputed for the page's
+ * language (the call's `lng`, else the t's), so a save lands on the key the page reads.
+ */
+function pluralForLanguage(
+  key: string,
+  lng: string | undefined,
+  usedLng: string | undefined,
+  options: Record<string, any>
+): string {
+  const count = options.count;
+  if (typeof count !== 'number' || options.ordinal || !lng || usedLng === lng) return key;
+  if (!PLURAL_SUFFIX.test(key)) return key;
+  try {
+    return key.replace(PLURAL_SUFFIX, `_${new Intl.PluralRules(lng).select(count)}`);
+  } catch {
+    // A language Intl does not know (i18next's 'cimode'): keep i18next's own key.
+    return key;
+  }
+}
+
 function buildProxy<T extends object>(target: T, keyPrefix: string, options: WrapOptions): T {
   // Without these traps, `Object.keys`, `Object.values`, `Object.entries`, spread, `in` and
   // `JSON.stringify` see only the record's own keys, while a read also finds the keys only
@@ -264,29 +459,7 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
 
     // Allow the proxy to be called directly (e.g. t('key') or t('key', { name: 'value' }))
     apply(target: any, thisArg, args: unknown[]) {
-      const result = Reflect.apply(target, thisArg, args);
-      const calledKey = extractKey(args[0], keyPrefix);
-
-      const fallbackObj = fallbackSource(options);
-      let resolvedValue = result;
-      const isMissing =
-        resolvedValue === undefined ||
-        resolvedValue === null ||
-        resolvedValue === '' ||
-        (typeof resolvedValue === 'string' &&
-          (resolvedValue === args[0] || resolvedValue === calledKey));
-
-      if (isMissing && fallbackObj && calledKey) {
-        const fbVal = fromFallback(fallbackObj, calledKey, options);
-        if (fbVal !== undefined) {
-          resolvedValue = fbVal;
-        }
-      }
-
-      if (typeof resolvedValue === 'string' && calledKey) {
-        return encodeKey(resolvedValue, calledKey);
-      }
-      return resolvedValue;
+      return watermarkCall(target, thisArg, args, keyPrefix, options);
     },
   });
 
@@ -316,32 +489,13 @@ function buildProxy<T extends object>(target: T, keyPrefix: string, options: Wra
       return encodeKey(val, fullKey);
     }
 
-    // Function (e.g. t() or t.raw() or t.rich() from next-intl) – wrap the call result
+    // Function (e.g. t() or t.raw() or t.rich() from next-intl) – wrap the call result.
+    // A member of a t itself (next-intl's t.raw('title')) reads the same keys as the t, so
+    // its calls keep the t's prefix rather than taking the member's name into the key.
     if (typeof val === 'function') {
-      return (...args: unknown[]) => {
-        const result = (val as (...args: unknown[]) => unknown).apply(obj, args);
-        const calledKey = extractKey(args[0], fullKey);
-
-        let resolvedValue = result;
-        const isMissing =
-          resolvedValue === undefined ||
-          resolvedValue === null ||
-          resolvedValue === '' ||
-          (typeof resolvedValue === 'string' &&
-            (resolvedValue === args[0] || resolvedValue === calledKey));
-
-        if (isMissing && fallbackObj && calledKey) {
-          const fbVal = fromFallback(fallbackObj, calledKey, options);
-          if (fbVal !== undefined) {
-            resolvedValue = fbVal;
-          }
-        }
-
-        if (typeof resolvedValue === 'string' && calledKey) {
-          return encodeKey(resolvedValue, calledKey);
-        }
-        return resolvedValue;
-      };
+      const callPrefix = typeof obj === 'function' ? keyPrefix : fullKey;
+      const member = val as (...args: unknown[]) => unknown;
+      return (...args: unknown[]) => watermarkCall(member, obj, args, callPrefix, options);
     }
 
     // Nested object – recurse with updated key path

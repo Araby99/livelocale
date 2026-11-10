@@ -106,7 +106,7 @@ Every option of the plugin is on the [configuration reference](../reference/conf
 - `check` lists each missing key and the locale it is missing from; add it to that file and run it again. If your files live elsewhere, run `npx livelocale check --locales <path>` and set the same folder as `localesPath` in `vite.config.ts`.
 - `localesPath` is resolved from the folder you start `vite` in, so start it from the app's folder.
 - Text you never wrap carries no watermark, so the Studio cannot pick it. `npx livelocale check --hardcoded` lists the text in your components that never goes through translation; see [Catch untranslated text in CI](../guides/ci-check.md).
-- With a namespace, give the wrapper the same prefix (`keyPrefix: 'auth'`), so `t('login.title')` maps to `auth.login.title` in your file.
+- With a namespace, give the wrapper the same prefix (`keyPrefix: 'auth'`), so `t('login.title')` maps to `auth.login.title` in your file. With react-i18next, plurals, context and per-call namespaces map to the right key on their own, but `useTranslation()` with no namespace, in a folder-per-namespace layout, needs `keyPrefix` set to the default namespace (usually `'translation'`).
 - Once `vite` runs (next step), `npx livelocale doctor --app http://localhost:5173` probes the plugin's API on the dev server.
 
 :::
