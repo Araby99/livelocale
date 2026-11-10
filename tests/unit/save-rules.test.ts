@@ -2,6 +2,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   detectRiskFlags,
+  keyNotAStringMessage,
+  namespaceNotFoundMessage,
   RISK_FLAG_MESSAGES,
   sourceReference,
   validateEdit,
@@ -157,9 +159,20 @@ describe('validateEdit', () => {
     (key) => {
       const v = validateEdit({ locale: 'ar', key, value: 'x' }, ctx, { force: true });
       expect(v).toMatchObject({ ok: false, status: 409, code: 'KEY_NOT_A_STRING' });
-      expect(!v.ok && v.error).toMatch(/would replace/);
+      expect(!v.ok && v.error).toBe(keyNotAStringMessage(key, 'ar'));
     }
   );
+
+  it('words the occupied-key refusal once for every save path', () =>
+    expect(keyNotAStringMessage('home', 'ar')).toBe(
+      'Cannot save "home" in ar: it would replace translations that are not a single text.'
+    ));
+
+  it('names the missing namespace file and the fix', () => {
+    const message = namespaceNotFoundMessage('nav');
+    expect(message).toContain('"nav" namespace file (nav.json)');
+    expect(message).toContain('keyPrefix');
+  });
 
   it('refuses to shadow a literal dotted key', () =>
     // Review Focus 4
@@ -169,6 +182,14 @@ describe('validateEdit', () => {
         { ...ctx, target: { 'promo.banner': 'قديم' } }
       )
     ).toMatchObject({ status: 409, code: 'KEY_NOT_A_STRING' }));
+
+  it('accepts a key whose text is null, as the write path does', () =>
+    expect(
+      validateEdit(
+        { locale: 'ar', key: 'promo.banner', value: 'x' },
+        { ...ctx, target: { promo: { banner: null } } }
+      ).ok
+    ).toBe(true));
 
   it('checks a source-locale edit against the source, not target', () =>
     expect(

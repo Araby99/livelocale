@@ -138,6 +138,17 @@ describe('static transport reads', () => {
     expect(((await t.readBuiltLocale('ar')) as typeof AR).home.title).toBe('مرحبا');
   });
 
+  it('skips a stored draft that conflicts with another instead of failing the preview', async () => {
+    // Saves refuse overlapping drafts, but an older store can still hold a pair.
+    const { t, store } = await make();
+    await store.put(draft(t.scope));
+    await store.put(draft(t.scope, { key: 'promo', from: null, to: 'P' }));
+    await store.put(draft(t.scope, { key: 'promo.banner', from: null, to: 'B' }));
+    const dict = await t.fetchLocaleDictionary('ar');
+    expect(dict.home.title).toBe('أهلاً');
+    expect(['P', { banner: 'B' }]).toContainEqual(dict.promo);
+  });
+
   it('rejects unknown or unsafe locales without fetching', async () => {
     const { t, fetch } = await make();
     await expect(t.readBuiltLocale('fr')).rejects.toThrow('Unknown language "fr".');

@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { FileMutator } from '../../src/server/file-mutator.js';
+import { KeyOccupiedError } from '../../src/core/json-path.js';
+import { namespaceNotFoundMessage, SaveRefusedError } from '../../src/core/save-rules.js';
 import { promises as fs } from 'fs';
 import path from 'path';
 
@@ -216,12 +218,12 @@ describe('FileMutator', () => {
         // First call takes longer to simulate disk operation delay
         await new Promise((resolve) => setTimeout(resolve, 20));
         callOrder.push(1);
-        return JSON.stringify({ count: 0 });
+        return JSON.stringify({ count: '0' });
       })
       .mockImplementationOnce(async () => {
         // Second call executes
         callOrder.push(2);
-        return JSON.stringify({ count: 1 });
+        return JSON.stringify({ count: '1' });
       });
 
     vi.mocked(fs.writeFile).mockResolvedValue(undefined);
@@ -253,6 +255,96 @@ describe('FileMutator', () => {
       JSON.stringify({ title: 'New' }, null, 2),
       'utf-8'
     );
+  });
+
+  // ─── Save guard: never replace data, never create a stray namespace file ───
+
+  describe('save guard', () => {
+    /** Serves `files` (paths relative to BASE_PATH) through the mocked fs. */
+    function serve(files: Record<string, string>) {
+      const abs = new Map(
+        Object.entries(files).map(([rel, text]) => [path.resolve(BASE_PATH, rel), text])
+      );
+      const isDir = (p: string) => [...abs.keys()].some((f) => f.startsWith(p + path.sep));
+      const enoent = () => Object.assign(new Error('ENOENT'), { code: 'ENOENT' });
+      vi.mocked(fs.stat).mockImplementation(async (p) => {
+        const file = abs.has(String(p));
+        if (!file && !isDir(String(p))) throw enoent();
+        return { isDirectory: () => !file, isFile: () => file } as any;
+      });
+      vi.mocked(fs.readFile).mockImplementation(async (p) => {
+        const text = abs.get(String(p));
+        if (text === undefined) throw enoent();
+        return text as any;
+      });
+      vi.mocked(fs.readdir).mockImplementation(async (p) => {
+        const dir = String(p) + path.sep;
+        const names = new Set(
+          [...abs.keys()]
+            .filter((f) => f.startsWith(dir))
+            .map((f) => f.slice(dir.length).split(path.sep)[0]!)
+        );
+        return [...names].map((name) => ({
+          name,
+          isDirectory: () => isDir(dir + name),
+          isFile: () => abs.has(dir + name),
+        })) as any;
+      });
+      vi.mocked(fs.writeFile).mockResolvedValue(undefined);
+      vi.mocked(fs.rename).mockResolvedValue(undefined);
+    }
+
+    it.each([
+      ['an array item', { features: ['Fast', 'Free', 'Open'] }, 'features.1'],
+      ['a literal dotted key', { 'home.title': 'Hola' }, 'home.title'],
+      ['a group of translations', { home: { title: 'x' } }, 'home'],
+    ])('refuses to replace %s and writes nothing', async (_, data, key) => {
+      serve({ 'en.json': JSON.stringify(data) });
+      await expect(mutator.updateLocaleKey(BASE_PATH, 'en', key, 'v')).rejects.toBeInstanceOf(
+        KeyOccupiedError
+      );
+      expect(fs.writeFile).not.toHaveBeenCalled();
+      expect(fs.rename).not.toHaveBeenCalled();
+    });
+
+    it('refuses a namespace no language has instead of creating a stray file', async () => {
+      serve({ 'en/common.json': '{}', 'ar/common.json': '{}' });
+      const save = mutator.updateLocaleKey(BASE_PATH, 'en', 'nav.home', 'Home');
+      await expect(save).rejects.toBeInstanceOf(SaveRefusedError);
+      await expect(save).rejects.toMatchObject({
+        status: 409,
+        code: 'NAMESPACE_NOT_FOUND',
+        message: namespaceNotFoundMessage('nav'),
+      });
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('creates a namespace file that another language already has', async () => {
+      serve({ 'en/common.json': '{"title":"Hello"}', 'ar/other.json': '{}' });
+      await mutator.updateLocaleKey(BASE_PATH, 'ar', 'common.title', 'مرحبا');
+      expect(fs.writeFile).toHaveBeenCalledWith(
+        path.resolve(BASE_PATH, 'ar', 'common.json.tmp'),
+        JSON.stringify({ title: 'مرحبا' }, null, 2) + '\n',
+        'utf-8'
+      );
+    });
+
+    it('refuses a key that names no key inside a namespace file with a 400', async () => {
+      serve({ 'en/common.json': '{"title":"Hello"}' });
+      await expect(mutator.updateLocaleKey(BASE_PATH, 'en', 'common', 'x')).rejects.toMatchObject({
+        status: 400,
+        code: 'INVALID_KEY_FORMAT',
+      });
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('refuses a value inside a namespace file that would replace a group', async () => {
+      serve({ 'en/common.json': '{"home":{"title":"x"}}' });
+      await expect(
+        mutator.updateLocaleKey(BASE_PATH, 'en', 'common.home', 'x')
+      ).rejects.toBeInstanceOf(KeyOccupiedError);
+      expect(fs.writeFile).not.toHaveBeenCalled();
+    });
   });
 
   // ─── Locale Management ──────────────────────────────────────────────────────

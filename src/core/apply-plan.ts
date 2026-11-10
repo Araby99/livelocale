@@ -10,9 +10,10 @@
 
 import { containsWatermark } from '../client/watermark.js';
 import type { ChangeEdit } from './change-link.js';
-import { lookupKey } from './json-path.js';
+import { keysOverlap, lookupKey } from './json-path.js';
 import {
   detectRiskFlags,
+  keyNotAStringMessage,
   RISK_FLAG_MESSAGES,
   sourceReference,
   validateEdit,
@@ -79,6 +80,31 @@ function inExistingNamespace(dict: Record<string, unknown>, key: string): boolea
 
   const value = dict[namespace];
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Each edit is planned against the files as they are, so two edits whose keys
+ * overlap (`promo` and `promo.banner`, both missing) pass alone. Writing both
+ * would stop halfway, after the first changed the file, so a later one that
+ * overlaps an earlier edit to apply in the same locale is refused up front.
+ */
+function refuseOverlaps(edits: PlannedEdit[]): PlannedEdit[] {
+  const writing: PlannedEdit[] = [];
+  return edits.map((edit) => {
+    if (edit.status !== 'apply') return edit;
+    if (writing.some((w) => w.locale === edit.locale && keysOverlap(w.key, edit.key))) {
+      const { locale, key, from, to, force } = edit;
+      return {
+        ...{ locale, key, from, to, force },
+        status: 'invalid',
+        code: 'KEY_NOT_A_STRING',
+        message: keyNotAStringMessage(key, locale),
+        flags: [],
+      };
+    }
+    writing.push(edit);
+    return edit;
+  });
 }
 
 function planEdit(
@@ -175,7 +201,7 @@ export function planApply(input: PlanInput): ApplyPlan {
     throw new Error(`Source locale "${input.sourceLocale}" has no locale file on the target.`);
   }
 
-  const edits = input.edits.map((edit) => planEdit(edit, input, source.dict));
+  const edits = refuseOverlaps(input.edits.map((edit) => planEdit(edit, input, source.dict)));
   const counts: Record<EditStatus, number> = {
     apply: 0,
     already: 0,

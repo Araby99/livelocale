@@ -5,6 +5,8 @@ import {
   type MutationGateway,
   type RouterRequest,
 } from '../../src/server/router.js';
+import { KeyOccupiedError } from '../../src/core/json-path.js';
+import { keyNotAStringMessage, SaveRefusedError } from '../../src/core/save-rules.js';
 
 const LOCALES = '/project/locales';
 
@@ -166,5 +168,48 @@ describe('mutation router — placeholder and syntax validation', () => {
     expect(res.status).toBe(200);
     expect(res.body).toBe(JSON.stringify({ success: true, key: 'g', locale: 'ar' }));
     expect(mutator.updateLocaleKey).toHaveBeenCalledWith(LOCALES, 'ar', 'g', 'x {a}');
+  });
+});
+
+describe('mutation router — refusals from the store', () => {
+  beforeEach(() => {
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('LIVELOCALE', '');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  const saveWith = async (error: Error) => {
+    const mutator = makeMutator();
+    vi.mocked(mutator.updateLocaleKey).mockRejectedValue(error);
+    const res = await createMutationRouter(mutator, { localesPath: LOCALES }).handle(
+      post({ locale: 'ar', key: 'common.home', value: 'x' })
+    );
+    return { status: res.status, body: JSON.parse(res.body!) };
+  };
+
+  it('maps an occupied key to 409 with the full key and locale', async () => {
+    // The store sees only the key inside its namespace file.
+    expect(await saveWith(new KeyOccupiedError('home'))).toEqual({
+      status: 409,
+      body: { error: keyNotAStringMessage('common.home', 'ar'), code: 'KEY_NOT_A_STRING' },
+    });
+  });
+
+  it('passes a refused save through with its status, code and message', async () => {
+    const refused = new SaveRefusedError(409, 'NAMESPACE_NOT_FOUND', 'No language has it.');
+    expect(await saveWith(refused)).toEqual({
+      status: 409,
+      body: { error: 'No language has it.', code: 'NAMESPACE_NOT_FOUND' },
+    });
+  });
+
+  it('still answers 500 for any other store failure', async () => {
+    expect(await saveWith(new Error('disk full'))).toEqual({
+      status: 500,
+      body: { error: 'disk full', code: 'INTERNAL_ERROR' },
+    });
   });
 });

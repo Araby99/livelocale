@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createGitHubGateway } from '../../src/server/github-gateway.js';
+import { KeyOccupiedError } from '../../src/core/json-path.js';
+import { namespaceNotFoundMessage, SaveRefusedError } from '../../src/core/save-rules.js';
 
 /**
  * A minimal in-memory GitHub REST API covering what the gateway uses:
@@ -331,6 +333,59 @@ describe('createGitHubGateway', () => {
     github.forcedConflicts = 10;
     await expect(gw.updateLocaleKey('locales', 'en', 'home.title', 'Never')).rejects.toThrow(/409/);
     expect(github.forcedConflicts).toBe(6); // four attempts, then the error surfaces
+  });
+
+  describe('save guard', () => {
+    const BRANCH = 'i18n/preview-edits';
+    const puts = () => github.calls.filter((c) => c.method === 'PUT');
+
+    it.each([
+      ['an array item', '{\n  "features": ["Fast", "Free", "Open"]\n}\n', 'features.1'],
+      ['a literal dotted key', '{\n  "home.title": "Hola"\n}\n', 'home.title'],
+      ['a group of translations', '{\n  "home": {\n    "title": "x"\n  }\n}\n', 'home'],
+    ])('refuses to replace %s and commits nothing', async (_, text, key) => {
+      github = new FakeGitHub({ 'locales/en.json': text });
+      await expect(make().updateLocaleKey('locales', 'en', key, 'v')).rejects.toBeInstanceOf(
+        KeyOccupiedError
+      );
+      expect(puts()).toEqual([]);
+      expect(github.branches[BRANCH]!['locales/en.json']).toBe(text);
+    });
+
+    it('refuses a namespace no language has instead of committing a stray file', async () => {
+      github = new FakeGitHub({
+        'locales/en/common.json': '{}\n',
+        'locales/ar/common.json': '{}\n',
+      });
+      const save = make().updateLocaleKey('locales', 'en', 'nav.home', 'Home');
+      await expect(save).rejects.toBeInstanceOf(SaveRefusedError);
+      await expect(save).rejects.toMatchObject({
+        status: 409,
+        code: 'NAMESPACE_NOT_FOUND',
+        message: namespaceNotFoundMessage('nav'),
+      });
+      expect(puts()).toEqual([]);
+    });
+
+    it('creates a namespace file that another language already has', async () => {
+      github = new FakeGitHub({
+        'locales/en/common.json': '{"title":"Hello"}\n',
+        'locales/ar/other.json': '{}\n',
+      });
+      await make().updateLocaleKey('locales', 'ar', 'common.title', 'مرحبا');
+      expect(JSON.parse(github.branches[BRANCH]!['locales/ar/common.json']!)).toEqual({
+        title: 'مرحبا',
+      });
+    });
+
+    it('refuses a key that names no key inside a namespace file with a 400', async () => {
+      github = new FakeGitHub({ 'locales/en/common.json': '{}\n' });
+      await expect(make().updateLocaleKey('locales', 'en', 'common', 'x')).rejects.toMatchObject({
+        status: 400,
+        code: 'INVALID_KEY_FORMAT',
+      });
+      expect(puts()).toEqual([]);
+    });
   });
 
   describe('checkAccess', () => {

@@ -13,6 +13,11 @@ import {
   DANGEROUS_KEY_SEGMENTS,
 } from '../core/validate.js';
 import { setNestedProperty, stringifyLike, flattenKeys } from '../core/json-path.js';
+import {
+  namespaceKeyRequiredMessage,
+  namespaceNotFoundMessage,
+  SaveRefusedError,
+} from '../core/save-rules.js';
 import { trimTrailingSlashes } from '../core/strings.js';
 import {
   createGitHubRest,
@@ -236,6 +241,17 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     return JSON.parse(flat.text);
   }
 
+  /**
+   * True when some locale folder holds `fileName`, so a save may create it for
+   * another locale; see FileMutator for why a namespace nobody has is refused.
+   */
+  async function anyLocaleHasFile(basePath: string, fileName: string): Promise<boolean> {
+    for (const locale of await listLocales(basePath)) {
+      if ((await namespaceFiles(basePath, locale))?.includes(fileName)) return true;
+    }
+    return false;
+  }
+
   async function updateLocaleKey(
     basePath: string,
     locale: string,
@@ -252,14 +268,16 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
     const files = await namespaceFiles(basePath, locale);
     if (files) {
       const firstDot = keyPath.indexOf('.');
-      if (firstDot === -1) {
-        throw new Error(
-          '[livelocale] Invalid namespace key path: must contain at least one nested key.'
-        );
+      if (firstDot <= 0 || firstDot === keyPath.length - 1) {
+        // The key would be a whole namespace file, which can only hold translations.
+        throw new SaveRefusedError(400, 'INVALID_KEY_FORMAT', namespaceKeyRequiredMessage(keyPath));
       }
       const ns = keyPath.slice(0, firstDot);
       if (DANGEROUS_KEY_SEGMENTS.has(ns)) {
         throw new Error(`[livelocale] Forbidden namespace segment in path: "${ns}".`);
+      }
+      if (!files.includes(`${ns}.json`) && !(await anyLocaleHasFile(basePath, `${ns}.json`))) {
+        throw new SaveRefusedError(409, 'NAMESPACE_NOT_FOUND', namespaceNotFoundMessage(ns));
       }
       filePath = `${dirPath(basePath, locale)}/${ns}.json`;
       mutationKeyPath = keyPath.slice(firstDot + 1);
@@ -278,6 +296,7 @@ export function createGitHubGateway(config: GitHubGatewayConfig): GitHubGateway 
           }
           data = parsed;
         }
+        // Throws KeyOccupiedError against the content just read, before anything is committed.
         setNestedProperty(data, mutationKeyPath, value);
         await putFile(
           filePath,

@@ -44,14 +44,6 @@ const EXEMPT: ReadonlyArray<readonly [file: string, text: string, reason: string
       ] as const
   ),
   ['src/studio/transport/drafts.ts', '+++ b/', 'a diff header, written for the repository'],
-  ...['Cannot save "', '" in ', ': it would replace translations that are not a single text.'].map(
-    (text) =>
-      [
-        'src/studio/transport/static.ts',
-        text,
-        'the shared validation message of src/core/save-rules.ts (spec §12.1)',
-      ] as const
-  ),
   [
     'src/studio/vite.config.ts',
     "frame-src 'self' http://localhost:* http://127.0.0.1:*",

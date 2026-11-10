@@ -5,6 +5,11 @@ import { LOCALE_RE } from '../core/validate.js';
 import { DANGEROUS_KEY_SEGMENTS } from '../core/validate.js';
 import { resolveSafeLocalePath } from '../core/safe-path.js';
 import { setNestedProperty, detectJsonIndent } from '../core/json-path.js';
+import {
+  namespaceKeyRequiredMessage,
+  namespaceNotFoundMessage,
+  SaveRefusedError,
+} from '../core/save-rules.js';
 import { KeyScanner } from './key-scanner.js';
 import { getDisabledReason } from '../core/env.js';
 
@@ -106,6 +111,7 @@ export class FileMutator {
 
     let filePath = '';
     let mutationKeyPath = keyPath;
+    let namespace: string | null = null;
     let isNamespaceDir = false;
 
     try {
@@ -117,19 +123,18 @@ export class FileMutator {
 
     if (isNamespaceDir) {
       const firstDot = keyPath.indexOf('.');
-      if (firstDot !== -1) {
-        const namespace = keyPath.substring(0, firstDot);
-        if (DANGEROUS_KEY_SEGMENTS.has(namespace)) {
-          throw new Error(
-            `[livelocale] Forbidden namespace segment in path: "${namespace}". Segment names like __proto__, constructor, and prototype are not allowed.`
-          );
-        }
-        mutationKeyPath = keyPath.substring(firstDot + 1);
-        filePath = path.resolve(localeDir, `${namespace}.json`);
-      } else {
-        filePath = path.resolve(localeDir, `${keyPath}.json`);
-        mutationKeyPath = '';
+      if (firstDot <= 0 || firstDot === keyPath.length - 1) {
+        // The key would be a whole namespace file, which can only hold translations.
+        throw new SaveRefusedError(400, 'INVALID_KEY_FORMAT', namespaceKeyRequiredMessage(keyPath));
       }
+      namespace = keyPath.substring(0, firstDot);
+      if (DANGEROUS_KEY_SEGMENTS.has(namespace)) {
+        throw new Error(
+          `[livelocale] Forbidden namespace segment in path: "${namespace}". Segment names like __proto__, constructor, and prototype are not allowed.`
+        );
+      }
+      mutationKeyPath = keyPath.substring(firstDot + 1);
+      filePath = path.resolve(localeDir, `${namespace}.json`);
     } else {
       filePath = path.resolve(resolvedBasePath, `${locale}.json`);
     }
@@ -171,17 +176,21 @@ export class FileMutator {
             `[livelocale] Failed to read locale file at ${filePath}. Operation: read. Original error: ${err.message}`
           );
         }
+        if (
+          namespace !== null &&
+          !(await this.anyLocaleHasFile(resolvedBasePath, `${namespace}.json`))
+        ) {
+          throw new SaveRefusedError(
+            409,
+            'NAMESPACE_NOT_FOUND',
+            namespaceNotFoundMessage(namespace)
+          );
+        }
       }
 
-      // Update nested property using safe array traversal (RULE SEC-003 & RULE SRV-003)
-      if (mutationKeyPath) {
-        setNestedProperty(currentData, mutationKeyPath, newValue);
-      } else {
-        // Root value mutation inside split JSON files (rare but possible: e.g. key has no dot)
-        throw new Error(
-          '[livelocale] Invalid namespace key path: must contain at least one nested key.'
-        );
-      }
+      // Update nested property using safe array traversal (RULE SEC-003 & RULE SRV-003).
+      // Throws KeyOccupiedError against the content just read, before anything is written.
+      setNestedProperty(currentData, mutationKeyPath, newValue);
 
       // RULE SEC-004: VALIDATE JSON BEFORE WRITE
       let stringified: string;
@@ -224,6 +233,22 @@ export class FileMutator {
         console.log(`[livelocale] Updated key '${keyPath}' in locale '${locale}'`);
       }
     });
+  }
+
+  /**
+   * True when some locale folder holds `fileName`. A save may create a namespace file
+   * another locale already has (a first translation), never one no app code can load:
+   * a key without its namespace, such as react-i18next's default `useTranslation()`,
+   * would otherwise land in a stray file and the page would never change.
+   */
+  private async anyLocaleHasFile(basePath: string, fileName: string): Promise<boolean> {
+    for (const entry of await fs.readdir(basePath, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !LOCALE_RE.test(entry.name)) continue;
+      try {
+        if ((await fs.stat(path.join(basePath, entry.name, fileName))).isFile()) return true;
+      } catch {}
+    }
+    return false;
   }
 
   /**

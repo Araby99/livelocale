@@ -37,6 +37,28 @@ const already1 = e('ar', 'home.greet', 'قديم', 'مرحبا {name}');
 const conflict1 = e('ar', 'home.cta', 'قديم', 'x');
 
 describe('planApply', () => {
+  it('refuses a later edit whose key overlaps an earlier one in the same locale', () => {
+    // A crafted or older link: both keys are missing in ar, so each passes alone, but
+    // writing both would half-apply the file (the second write finds a text in its way).
+    const { edits, counts } = plan([
+      e('ar', 'promo', null, 'عرض'),
+      e('ar', 'promo.banner', null, 'لافتة'),
+      e('en', 'promo.banner', null, 'Banner'),
+    ]);
+    expect(edits.map((x) => x.status)).toEqual(['apply', 'invalid', 'apply']);
+    expect(edits[1]).toMatchObject({ code: 'KEY_NOT_A_STRING' });
+    expect(edits[1]!.message).toContain('promo.banner');
+    expect(counts).toMatchObject({ apply: 2, invalid: 1 });
+  });
+
+  it('keeps non-overlapping keys that share a prefix', () =>
+    expect(
+      plan([
+        e('ar', 'home.cta', null, 'اقرأ'),
+        e('ar', 'home.ctaLong', null, 'اقرأ أكثر'),
+      ]).edits.map((x) => x.status)
+    ).toEqual(['apply', 'apply']));
+
   it('applies an edit whose current value equals from', () =>
     expect(plan([e('ar', 'home.title', 'أهلا', 'مرحبًا')]).edits[0]!.status).toBe('apply'));
 

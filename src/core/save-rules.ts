@@ -50,6 +50,36 @@ export interface WriteRuleOptions {
   force?: boolean;
 }
 
+/** The 409 wording for a key that holds more than one text, shared by every save path. */
+export const keyNotAStringMessage = (key: string, locale: string): string =>
+  `Cannot save "${key}" in ${locale}: it would replace translations that are not a single text.`;
+
+/** The 409 wording for a key whose first segment names no namespace file in any locale. */
+export const namespaceNotFoundMessage = (namespace: string): string =>
+  `No language has a "${namespace}" namespace file (${namespace}.json), so this text cannot be saved there. ` +
+  `If it comes from useTranslation() without a namespace, give wrapTranslationEngine that namespace as keyPrefix.`;
+
+/** The 400 wording for a key that names a whole namespace file instead of a key inside it. */
+export const namespaceKeyRequiredMessage = (key: string): string =>
+  `Cannot save "${key}": in this project every key starts with its namespace file name, like common.title.`;
+
+/**
+ * Thrown by a translation store when the files themselves refuse a write that
+ * passed `validateWrite`. The router answers with `status`, `code` and the
+ * message as they are.
+ */
+export class SaveRefusedError extends Error {
+  readonly status: 400 | 409;
+  readonly code: WriteRuleCode | 'NAMESPACE_NOT_FOUND';
+
+  constructor(status: 400 | 409, code: WriteRuleCode | 'NAMESPACE_NOT_FOUND', message: string) {
+    super(message);
+    this.name = 'SaveRefusedError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
 const reject = (
   status: WriteRejected['status'],
   code: WriteRuleCode,
@@ -172,11 +202,7 @@ export function validateEdit(
 
   const dict = locale === ctx.sourceLocale ? ctx.source : (ctx.target ?? {});
   if (lookupKey(dict, key).state === 'occupied') {
-    return reject(
-      409,
-      'KEY_NOT_A_STRING',
-      `Cannot save "${key}" in ${locale}: it would replace translations that are not a single text.`
-    );
+    return reject(409, 'KEY_NOT_A_STRING', keyNotAStringMessage(key, locale));
   }
 
   return validateWrite(input, {

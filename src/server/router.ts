@@ -1,5 +1,6 @@
 import { getDisabledReason, getLiveLocaleMode } from '../core/env.js';
-import { validateWrite } from '../core/save-rules.js';
+import { KeyOccupiedError } from '../core/json-path.js';
+import { keyNotAStringMessage, SaveRefusedError, validateWrite } from '../core/save-rules.js';
 import { isValidLocaleFormat } from '../core/validate.js';
 
 /**
@@ -147,6 +148,25 @@ function bearerToken(authorization: string | undefined): string | null {
   const token = header.slice('Bearer'.length).trim();
   if (token === '' || LINE_TERMINATOR.test(token)) return null;
   return token;
+}
+
+/**
+ * The response for a write the store refused after reading the current file,
+ * or null for any other failure (which stays a 500). The store sees only the
+ * key inside its file, so the occupied-key message is worded from the full key.
+ */
+function storeRefusal(
+  err: unknown,
+  key: string,
+  locale: string
+): { status: 400 | 409; code: string; error: string } | null {
+  if (err instanceof KeyOccupiedError) {
+    return { status: 409, code: err.code, error: keyNotAStringMessage(key, locale) };
+  }
+  if (err instanceof SaveRefusedError) {
+    return { status: err.status, code: err.code, error: err.message };
+  }
+  return null;
 }
 
 const json = (
@@ -388,7 +408,13 @@ export function createMutationRouter(
         details: verdict.details,
       });
     }
-    await mutator.updateLocaleKey(basePath, verdict.locale, verdict.key, verdict.value);
+    try {
+      await mutator.updateLocaleKey(basePath, verdict.locale, verdict.key, verdict.value);
+    } catch (err) {
+      const refusal = storeRefusal(err, verdict.key, verdict.locale);
+      if (!refusal) throw err;
+      return json(refusal.status, headers, { error: refusal.error, code: refusal.code });
+    }
 
     return json(200, headers, { success: true, key, locale });
   }

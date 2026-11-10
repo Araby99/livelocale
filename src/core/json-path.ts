@@ -4,9 +4,30 @@ import { DANGEROUS_KEY_SEGMENTS } from './validate.js';
 export const MAX_KEY_DEPTH = 30;
 
 /**
+ * Thrown by `setNestedProperty` when the write would replace data that is not
+ * a single text. `key` is the path inside the object written, which for a
+ * namespace file lacks the namespace, so callers word the message themselves.
+ */
+export class KeyOccupiedError extends Error {
+  readonly code = 'KEY_NOT_A_STRING';
+  readonly key: string;
+
+  constructor(key: string) {
+    super(
+      `[livelocale] Cannot save "${key}": it would replace translations that are not a single text.`
+    );
+    this.name = 'KeyOccupiedError';
+    this.key = key;
+  }
+}
+
+/**
  * Sets `value` at the dot-separated `keyPath` inside `obj`, creating
  * intermediate objects as needed. Rejects paths deeper than `MAX_KEY_DEPTH`
  * and any segment that could pollute `Object.prototype` (RULE SEC-005).
+ * Throws `KeyOccupiedError`, leaving `obj` untouched, when `lookupKey` calls
+ * the path occupied: replacing an array, a group or a literal dotted key
+ * would lose translations or add a duplicate the app never reads.
  */
 export function setNestedProperty(obj: Record<string, any>, keyPath: string, value: string): void {
   const keys = keyPath.split('.');
@@ -22,6 +43,8 @@ export function setNestedProperty(obj: Record<string, any>, keyPath: string, val
       `[livelocale] Forbidden key segment in path: "${keyPath}". Segment names like __proto__, constructor, and prototype are not allowed.`
     );
   }
+
+  if (lookupKey(obj, keyPath).state === 'occupied') throw new KeyOccupiedError(keyPath);
 
   let current = obj;
   for (let i = 0; i < keys.length; i++) {
@@ -51,6 +74,10 @@ export function setNestedProperty(obj: Record<string, any>, keyPath: string, val
   }
 }
 
+/** True when one dotted key contains the other as a group (`promo` and `promo.banner`). */
+export const keysOverlap = (a: string, b: string): boolean =>
+  a.startsWith(b + '.') || b.startsWith(a + '.');
+
 /** The outcome of reading a dotted key without writing to it. */
 export type KeyLookup =
   { state: 'string'; value: string } | { state: 'missing' } | { state: 'occupied' };
@@ -69,8 +96,9 @@ function hasOwn(obj: Record<string, unknown>, key: string): boolean {
  * through.
  *
  * - `string`: the path leads to a string value.
- * - `missing`: a segment is absent, or `dict` is not a plain object. Writing
- *   here creates the key.
+ * - `missing`: a segment is absent or null, or `dict` is not a plain object.
+ *   Writing here creates the key. Some export tools write null for a text
+ *   nobody translated, so replacing a null loses nothing.
  * - `occupied`: a write would overwrite data or create a duplicate the app
  *   never reads. That is an intermediate value that is not a plain object, a
  *   final value that is not a string, or, at any level, an own property named
@@ -87,7 +115,7 @@ export function lookupKey(dict: unknown, keyPath: string): KeyLookup {
     if (hasOwn(current, segments.slice(i).join('.'))) return { state: 'occupied' };
 
     const segment = segments[i]!;
-    if (!hasOwn(current, segment)) return { state: 'missing' };
+    if (!hasOwn(current, segment) || current[segment] === null) return { state: 'missing' };
 
     const next = current[segment];
     if (!isPlainObject(next)) return { state: 'occupied' };
@@ -95,7 +123,7 @@ export function lookupKey(dict: unknown, keyPath: string): KeyLookup {
   }
 
   const key = segments[leaf]!;
-  if (!hasOwn(current, key)) return { state: 'missing' };
+  if (!hasOwn(current, key) || current[key] === null) return { state: 'missing' };
 
   const value = current[key];
   return typeof value === 'string' ? { state: 'string', value } : { state: 'occupied' };

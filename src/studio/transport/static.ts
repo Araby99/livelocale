@@ -1,7 +1,13 @@
 import type { ChangeEdit } from '../../core/change-link.js';
 import { deepMerge } from '../../core/deep-merge.js';
-import { flattenKeys, lookupKey, setNestedProperty } from '../../core/json-path.js';
-import { validateEdit } from '../../core/save-rules.js';
+import {
+  flattenKeys,
+  KeyOccupiedError,
+  keysOverlap,
+  lookupKey,
+  setNestedProperty,
+} from '../../core/json-path.js';
+import { keyNotAStringMessage, validateEdit } from '../../core/save-rules.js';
 import { parseShareManifest, type ShareManifest } from '../../core/share-manifest.js';
 import { isSafeLocaleSegment, isValidLocaleFormat } from '../../core/validate.js';
 import { ValidationError, type GitState, type ServerInfo, type StudioTransport } from '../api.js';
@@ -89,10 +95,6 @@ const isSameDraft = (a: Draft, b: Draft): boolean =>
   a.conflict === b.conflict &&
   a.updatedAt === b.updatedAt &&
   a.sentAt === b.sentAt;
-
-/** True when one dotted key contains the other as a group (`promo` and `promo.banner`). */
-const keysOverlap = (a: string, b: string): boolean =>
-  a.startsWith(b + '.') || b.startsWith(a + '.');
 
 /** A Studio transport for a share link: built locale files next to the Studio, drafts in the browser. */
 export async function createStaticTransport(
@@ -249,7 +251,15 @@ export async function createStaticTransport(
     async fetchLocaleDictionary(locale) {
       const dictionary = await readBuiltLocale(locale);
       const overlay: Record<string, any> = {};
-      for (const d of await draftsFor(locale)) setNestedProperty(overlay, d.key, d.to);
+      for (const d of await draftsFor(locale)) {
+        // Saves refuse overlapping drafts, but a store from an older version can hold
+        // a pair ("promo" and "promo.banner"). Keep the first one so the preview still loads.
+        try {
+          setNestedProperty(overlay, d.key, d.to);
+        } catch (err) {
+          if (!(err instanceof KeyOccupiedError)) throw err;
+        }
+      }
       return deepMerge(dictionary, overlay) as Record<string, any>;
     },
 
@@ -354,9 +364,7 @@ export async function createStaticTransport(
       // Two drafts where one key groups the other cannot travel in one change link.
       const others = (await store.list(scope)).filter((d) => d.locale === locale && d.key !== key);
       if (others.some((d) => keysOverlap(d.key, key))) {
-        throw new Error(
-          `Cannot save "${key}" in ${locale}: it would replace translations that are not a single text.`
-        );
+        throw new Error(keyNotAStringMessage(key, locale));
       }
 
       if (!verdict.ok) throw new ValidationError(verdict.error, verdict.code, verdict.details);

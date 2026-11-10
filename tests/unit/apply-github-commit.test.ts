@@ -14,6 +14,7 @@ import {
   readRemoteLocales,
 } from '../../src/codemod/apply/github-commit.js';
 import { planApply, type ApplyPlan } from '../../src/core/apply-plan.js';
+import { KeyOccupiedError } from '../../src/core/json-path.js';
 import { createGitHubRest, type GitHubRest } from '../../src/server/github-rest.js';
 import { FileMutator } from '../../src/server/file-mutator.js';
 import { FakeGitHub } from './helpers/fake-github.js';
@@ -60,6 +61,13 @@ describe('locale paths and text', () => {
     }
     expect(applyEditsToText(EN, [{ innerKey: 'home.sub.x', value: 'z' }])).toBe(
       await viaFileMutator(EN, 'home.sub.x', 'z')
+    );
+  });
+
+  it('throws instead of replacing a group of translations the plan let through', () => {
+    // planApply refuses this first (KEY_NOT_A_STRING); the write refuses it again.
+    expect(() => applyEditsToText(EN, [{ innerKey: 'home', value: 'x' }])).toThrow(
+      KeyOccupiedError
     );
   });
 
