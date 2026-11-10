@@ -1,5 +1,8 @@
 import { devices, expect, test, type Page } from '@playwright/test';
 
+/** The notice for tapped text with no translation behind it (catalogue key touch.unkeyed). */
+const UNKEYED = /not connected to a translation/;
+
 // The static share fixture (playground-vite built with `share: true`) on an emulated phone:
 // touch, a coarse pointer and a 412 px screen, so the Studio shows its phone layout.
 const SHARE = 'http://localhost:3020/livelocale/index.html';
@@ -90,8 +93,8 @@ test('tapping an image link does nothing', async ({ page }) => {
   await page.waitForTimeout(500);
   expect(await framePath(page)).toBe('/');
   await expect(page.getByRole('dialog')).toHaveCount(0);
-  // Nothing to fix there, so no "not in your locale files" notice either.
-  await expect(page.getByTestId('tap-notice')).not.toHaveText(/locale files/);
+  // Nothing to fix there, so no "not connected to a translation" notice either.
+  await expect(page.getByTestId('tap-notice')).not.toHaveText(UNKEYED);
 });
 
 test('Browse follows the link and the switch stays on Browse on the new page', async ({ page }) => {
@@ -117,7 +120,7 @@ test('switching back to Edit on the new page freezes it again', async ({ page })
   await expect(frame.locator('html')).toHaveAttribute('data-livelocale-edit', '');
   // The Arabic link has no key: the tap shows the notice and does not leave the page.
   await frame.locator('#lang-ar').tap();
-  await expect(page.getByTestId('tap-notice')).toContainText('locale files');
+  await expect(page.getByTestId('tap-notice')).toHaveText(UNKEYED);
   await page.waitForTimeout(500);
   expect(new URL(await frameUrl(page)).search).toBe('');
   await tapKey(page, 'home.title');

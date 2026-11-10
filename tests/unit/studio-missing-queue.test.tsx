@@ -131,21 +131,18 @@ describe('Header coverage meter', () => {
   it('is a button that opens the Missing list when the Studio can show it', () => {
     const onShowMissing = vi.fn();
     render(<Header {...headerProps} onShowMissing={onShowMissing} />);
-    fireEvent.click(
-      screen.getByRole('button', {
-        name: englishText('header.coverage_show_missing', { percent: 33 }),
-      })
+    // Its name holds the words it shows; what it does is its description.
+    const button = screen.getByRole('button', { name: /Coverage\s*33%/ });
+    expect(button.getAttribute('title')).toBe(
+      englishText('header.coverage_show_missing', { percent: 33 })
     );
+    fireEvent.click(button);
     expect(onShowMissing).toHaveBeenCalledTimes(1);
   });
 
   it('stays a plain meter without a handler', () => {
     render(<Header {...headerProps} />);
-    expect(
-      screen.queryByRole('button', {
-        name: englishText('header.coverage_show_missing', { percent: 33 }),
-      })
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: /Coverage/ })).toBeNull();
   });
 });
 

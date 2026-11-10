@@ -177,7 +177,8 @@ export const Header = ({
             type="button"
             data-testid="coverage-button"
             onClick={onShowMissing}
-            aria-label={t('header.coverage_show_missing', { percent: coveragePercentage })}
+            // The name is what it shows ("Coverage 33%"), so voice control finds it by those
+            // words (WCAG 2.5.3); what it does is the description.
             title={t('header.coverage_show_missing', { percent: coveragePercentage })}
             className={`items-center gap-2.5 shrink-0 px-2 py-1 -mx-2 -my-1 rounded-lg hover:bg-raised transition duration-150 ${coverageVisibility}`}
           >
