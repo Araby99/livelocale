@@ -7,11 +7,13 @@ description: For the person who fixes or translates the text. Open the link, cli
 
 This page is for you if a developer sent you a link to fix or translate the text of a website. You need no account, no password and nothing to install. You fix the text on the real site and send your changes back when you are done.
 
+<DocShot lead name="share-alt-click" alt="The editor over the Tidewell demo site: the Texts list on the left, the live page in the middle, and the editor on the right open on the clicked headline with the typo fixed." caption="The site in the middle, the texts on one side, your fix on the other." />
+
 ## Open the link
 
 Open the link in a current Chrome, Edge, Firefox or Safari, on a computer or a phone. If the site has its own login, sign in as usual.
 
-The site opens inside the editor. On your first visit you see three tips and a field for your name. The name is optional; it tells your developer who made the changes. The tips show only on your first visit, so here is what they say. You can come back to this page at any time.
+The site opens inside the editor. On your first visit you see three tips and a field for your name. The name is optional; it tells your developer who made the changes. The tips show on your first visit, and **How it works** at the top shows them again. Here is what they say:
 
 - Pick a text: hold Alt (Option on Mac) and click it, or tap it on a phone.
 - Type your fix. The page changes as you type, and your changes are kept in this browser.

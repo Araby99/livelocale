@@ -107,10 +107,11 @@ it('uses the Studio labels as the Studio shows them now', () => {
   }
 });
 
-it('repeats the first-visit tips, since the Studio shows them only once', () => {
+it('repeats the first-visit tips and says how to show them again', () => {
   const open = section('Open the link');
-  expect(open).toMatch(/only on your first visit/);
-  expect(open).toContain('this page');
+  expect(open).toMatch(/on your first visit/);
+  expect(open).toContain('**How it works**');
+  expect(open).toContain('Pick a text');
 });
 
 it('explains plural forms and placeholders in plain words', () => {
